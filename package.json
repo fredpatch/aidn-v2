@@ -3,7 +3,10 @@
   "version": "0.1.0",
   "description": "AIDN - Application Informatique de la Direction de la Navigabilite - ANAC Gabon",
   "private": true,
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "concurrently \"npm run dev --workspace=apps/api\" \"npm run dev --workspace=apps/admin\" \"npm run dev --workspace=apps/portal\"",
     "dev:api": "npm run dev --workspace=apps/api",
@@ -18,6 +21,7 @@
     "db:studio": "npm run db:studio --workspace=apps/api"
   },
   "devDependencies": {
+    "@types/node": "^26.1.0",
     "@types/pg": "^8.20.0",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",

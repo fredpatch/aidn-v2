@@ -33,8 +33,11 @@ comme un ETL ponctuel.
       style UI/UX ANAC
 - [x] Init repo `aidn-v2` (monorepo, structure alignée SICOT)
 - [ ] Renommer ancien repo en `aidn-v2-legacy`, archivage clair
-- [ ] Schéma PostgreSQL initial (tables Demande, Postulant, Organisme, Document,
-      Phase, Paiement, Certificat, Réunion, Notification, User/Rôles)
+- [x] Schéma PostgreSQL initial (19 tables : users, user_roles, organisations,
+      applicants, account_requests, requests, dg_circuit_documents, phases,
+      meetings, preliminary_evaluation_forms, formal_request_documents,
+      document_evaluations, site_inspections, payments, certificates,
+      document_versions, notifications, reports, audit_logs)
 
 ## Sprint 1 — Intake & Circuit DG (M1+M2)
 
