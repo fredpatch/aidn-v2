@@ -55,6 +55,7 @@ export const requestStatusEnum = pgEnum("request_status", [
   "in_progress",
   "rejected",
   "completed",
+  "cancelled",
 ]);
 
 export const phaseCodeEnum = pgEnum("phase_code", [
@@ -179,12 +180,37 @@ export const aiAnalysisStatusEnum = pgEnum("ai_analysis_status", [
 ]);
 
 // ── M13 - Internal users & roles ────────────────────────────────────────────
+/** Mirrors SICOT's login model: employee code as login identifier, OTP-based
+ *  first login, bcrypt password thereafter, failed-attempt lockout. */
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
+  employeeCode: varchar("employee_code", { length: 20 }).notNull().unique(),
   fullName: varchar("full_name", { length: 200 }).notNull(),
   email: varchar("email", { length: 255 }).notNull().unique(),
-  passwordHash: varchar("password_hash", { length: 255 }).notNull(),
+  // Nullable: unset until the user completes first login via OTP.
+  passwordHash: varchar("password_hash", { length: 255 }),
+  otpHash: varchar("otp_hash", { length: 255 }),
+  otpExpiresAt: timestamp("otp_expires_at"),
+  firstLogin: boolean("first_login").notNull().default(true),
+  failedAttempts: integer("failed_attempts").notNull().default(0),
+  lockedUntil: timestamp("locked_until"),
   active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+/** Mirrors SICOT's parametres table: admin-configurable values (OTP expiry,
+ *  lockout policy, default alert thresholds) instead of hardcoded constants. */
+export const parameterTypeEnum = pgEnum("parameter_type", ["integer", "boolean", "text"]);
+
+export const systemParameters = pgTable("system_parameters", {
+  id: serial("id").primaryKey(),
+  key: varchar("key", { length: 100 }).notNull().unique(),
+  value: text("value").notNull(),
+  type: parameterTypeEnum("type").notNull(),
+  module: varchar("module", { length: 20 }).notNull(), // M1, M13, AUTH...
+  description: text("description"),
+  updatedBy: integer("updated_by").references(() => users.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -282,7 +308,7 @@ export const requests = pgTable(
   "requests",
   {
     id: serial("id").primaryKey(),
-    reference: varchar("reference", { length: 30 }).notNull().unique(), // DEM-YYYY-XXXX
+    reference: varchar("reference", { length: 30 }).notNull().unique(), // DEM-YYYY-MM-DD-ORGCODE-NN
     applicantId: integer("applicant_id")
       .notNull()
       .references(() => applicants.id),
@@ -299,7 +325,7 @@ export const requests = pgTable(
   (t) => [
     uniqueIndex("requests_one_active_per_organisation_idx")
       .on(t.organisationId)
-      .where(sql`${t.status} NOT IN ('rejected', 'completed')`),
+      .where(sql`${t.status} NOT IN ('rejected', 'completed', 'cancelled')`),
     index("requests_status_idx").on(t.status),
   ]
 );

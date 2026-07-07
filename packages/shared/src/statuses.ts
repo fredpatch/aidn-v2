@@ -52,6 +52,13 @@ export const INTERNAL_ROLES = [
 ] as const;
 export type InternalRole = (typeof INTERNAL_ROLES)[number];
 
+/** AUTH - default system parameter keys and fallback values, used when a row
+ *  is missing from system_parameters (should not normally happen once seeded) */
+export const DEFAULT_OTP_EXPIRATION_MINUTES = 15;
+export const DEFAULT_LOCKOUT_MAX_ATTEMPTS = 5;
+export const DEFAULT_LOCKOUT_DURATION_MINUTES = 30;
+export const DEFAULT_DG_CIRCUIT_ALERT_DAYS = 3;
+
 /** M13 - applicant contact ordering label; permissions are strictly equal
  *  across contacts of the same organisation - this is a contact-order label
  *  only, never an access-control tier */

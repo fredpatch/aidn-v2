@@ -41,13 +41,32 @@ comme un ETL ponctuel.
 
 ## Sprint 1 — Intake & Circuit DG (M1+M2)
 
-- [ ] Modèle de données : Demande (type, statut, contacts, postulant)
-- [ ] Formulaire unique portail + saisie manuelle reception/assistant_dg
-- [ ] Statuts Déposé → Signé → En attente de traitement
-- [ ] Règle « une seule demande active » par postulant
-- [ ] Alerte blocage parapheur (seuil configurable, défaut 3j ouvrés) → DN +
-      reception/assistant_dg
-- [ ] Annulation possible en `Déposé` uniquement
+- [x] Modèle de données : Demande (type, statut, contacts, postulant)
+- [x] Formulaire unique portail + saisie manuelle reception/assistant_dg
+      (`POST /api/requests` - un seul endpoint pour les deux canaux)
+- [x] Statuts Déposé → Signé → En attente de traitement
+      (`mark-signed`, `mark-pending-review`)
+- [x] Règle « une seule demande active » par postulant (contrainte DB -
+      index unique partiel, pas seulement une vérification applicative)
+- [x] Alerte blocage parapheur (seuil configurable, défaut 3j ouvrés) → DN +
+      reception/assistant_dg (`jobs/dg-circuit-alert.job.ts`, écrit dans
+      `notifications` ; envoi email réel différé au Sprint 10)
+- [x] Annulation possible en `Déposé` uniquement (`cancel`)
+
+### Prérequis ajouté en cours de sprint : Auth & Utilisateurs (calqué sur SICOT)
+
+- [x] Authentification matricule + OTP première connexion + mot de passe
+      (bcrypt), verrouillage après échecs répétés, JWT access+refresh en
+      cookies httpOnly — même modèle que SICOT, adapté au multi-rôle
+      (`user_roles` au lieu d'une colonne `role` unique)
+- [x] Bootstrap du premier Super Admin (`/api/bootstrap/status`, `/init`)
+- [x] Gestion des utilisateurs (création avec envoi OTP, liste, mise à jour,
+      activation/désactivation, réinitialisation OTP) - réservé au rôle `SU`
+- [x] `system_parameters` (équivalent des `parametres` SICOT) : seuils OTP,
+      verrouillage, alerte parapheur - configurables sans redéploiement
+- [x] Emails réels via Nodemailer (mêmes noms de variables d'env que SICOT :
+      SMTP_HOST/PORT/USER/PASS/FROM, pour réutiliser les identifiants
+      existants tel quel)
 
 ## Sprint 2 — Phase Préliminaire (M3)
 
