@@ -8,9 +8,18 @@
 > Référence de logique métier déjà implémentée (mais non reprise telle quelle) :
 > `aidn-v2-legacy` (ancien `aidn_v2`).
 
-**Stack cible :** à décider (voir `technical/conventions.md`, à créer — aligner sur
-SICOT : React + TypeScript + Tailwind / Node.js + Express + TypeScript / Drizzle ORM,
-sauf contrainte spécifique AIDN à identifier).
+**Stack cible (validée) :** React + TypeScript + Tailwind CSS (frontend) / Node.js +
+Express + TypeScript (backend) / **PostgreSQL + Drizzle ORM** (base de données) —
+identique à SICOT. Voir `technical/conventions.md` (à créer) pour le détail complet
+des conventions de code/naming.
+
+**Décision base de données :** PostgreSQL retenu plutôt que MongoDB (utilisé par le
+legacy `aidn-v2-legacy`) — les règles métier verrouillées (une seule demande active,
+checklist 11/11, création certificat à validation paiement) sont des problèmes
+d'intégrité relationnelle mieux garantis par contraintes SQL ; les KPIs (M12) et la
+détection de conflit de créneaux (M10) sont des requêtes d'agrégation/chevauchement
+naturelles en SQL. Migration des données historiques Mongo, si nécessaire, traitée
+comme un ETL ponctuel.
 
 ---
 
@@ -18,9 +27,14 @@ sauf contrainte spécifique AIDN à identifier).
 
 - [x] Étude de faisabilité complète des 13 modules (M1–M13)
 - [x] Patterns transverses consolidés (`technical/cross-cutting-patterns.md`)
-- [ ] Décision de stack technique + conventions (`technical/conventions.md`)
+- [x] Décision de stack technique : React+TS+Tailwind / Express+TS / **PostgreSQL +
+      Drizzle ORM**
+- [ ] Conventions détaillées (`technical/conventions.md`) — naming, structure dossiers,
+      style UI/UX ANAC
 - [ ] Init repo `aidn-v2` (monorepo, structure alignée SICOT)
 - [ ] Renommer ancien repo en `aidn-v2-legacy`, archivage clair
+- [ ] Schéma PostgreSQL initial (tables Demande, Postulant, Organisme, Document,
+      Phase, Paiement, Certificat, Réunion, Notification, User/Rôles)
 
 ## Sprint 1 — Intake & Circuit DG (M1+M2)
 

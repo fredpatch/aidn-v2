@@ -24,6 +24,7 @@ de la connaissance terrain de Fred, indépendamment du code existant.
 ## Miroir Notion
 
 Le même contenu (+ le suivi vivant des idées/pistes) est disponible dans l'espace Notion :
+
 - Dashboard : AIDN v2 — Tableau de Bord Projet
 - Patterns transverses : AIDN v2 — Patterns Transverses (Cross-Cutting)
 - Backlog de Développement (base liée)
