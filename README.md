@@ -1,40 +1,103 @@
-# AIDN v2 — Seed de spécification (pré-repo)
+# AIDN - Application Informatique de la Direction de la Navigabilite
 
-Ce dossier est le point de départ du nouveau repo `aidn-v2`, produit **avant tout code**,
-suivant la méthodologie appliquée sur SICOT : étude de faisabilité module par module,
-questions/réponses avec le métier (DN), verrouillage des décisions de conception au fur
-et à mesure.
+**ANAC Gabon - Direction de la Navigabilite / Service Informatique**
+Version 0.1.0 (scaffold) - Juillet 2026
 
-L'ancien repo (`aidn_v2`, à renommer `aidn-v2-legacy`) reste une **référence** — logique
-métier déjà implémentée et partiellement validée en production — mais n'est jamais copié
-directement. Chaque module ci-dessous a été ré-étudié à partir du Cahier des charges et
-de la connaissance terrain de Fred, indépendamment du code existant.
+Reconstruction spec-first d'AIDN, methodologie alignee sur SICOT : etude de
+faisabilite module par module avant tout code (voir `exploration-cache/project/
+modules-feasibility.md`). L'ancien depot (`aidn-v2-legacy`) reste une reference de
+logique metier, jamais copie directement.
 
-## Contenu
+---
 
-- `project/overview.md` — contexte, objectifs, utilisateurs (issu du CDC)
-- `project/modules-feasibility.md` — étude de faisabilité complète des 13 modules (M1–M13),
-  avec décisions de conception verrouillées et cas limites résolus
-- `technical/cross-cutting-patterns.md` — 6 patterns transverses réutilisés à travers
-  plusieurs modules (Circuit DG, Réunion/Visite, Clôture de phase, Facture/Paiement,
-  Checklist documentaire, Une seule demande active) + tableau des rôles
-- `docs/TASKS.md` — backlog de développement seedé à partir des modules, format sprint
-  identique à SICOT
+## Structure du monorepo
 
-## Miroir Notion
+```
+aidn-v2/
+├── apps/
+│   ├── api/              API Express + Drizzle ORM + PostgreSQL
+│   ├── admin/             Interface interne ANAC (reception, DN, R3, S5, SU)
+│   └── portal/            Portail postulant (industrie)
+├── packages/
+│   └── shared/            Codes de module, enums de statut partages
+├── exploration-cache/
+│   ├── project/            overview.md, modules-feasibility.md
+│   └── technical/          cross-cutting-patterns.md, conventions.md
+├── docs/
+│   └── TASKS.md            Backlog de developpement, par sprint
+├── scripts/
+├── tsconfig.base.json
+├── .eslintrc.json
+├── .prettierrc
+└── package.json
+```
 
-Le même contenu (+ le suivi vivant des idées/pistes) est disponible dans l'espace Notion :
+## Stack technique
 
-- Dashboard : AIDN v2 — Tableau de Bord Projet
-- Patterns transverses : AIDN v2 — Patterns Transverses (Cross-Cutting)
-- Backlog de Développement (base liée)
-- Idées & Pistes d'Exploration (base liée)
+| Couche | Technologie |
+|---|---|
+| Frontend (admin + portal) | React 18 + TypeScript + Tailwind CSS |
+| Backend | Node.js + Express + TypeScript |
+| ORM | Drizzle ORM |
+| Base de donnees | PostgreSQL |
+| Jobs planifies | node-cron |
+| Export Excel | ExcelJS |
+| Email | Nodemailer |
+| Analyse IA (rapports) | Gemini (fournisseur swappable) |
 
-## Prochaine étape
+**Code entierement en anglais** (variables, fonctions, composants) ; seule l'UI est
+en francais. Voir `exploration-cache/technical/conventions.md` pour le detail
+complet (naming, tokens de design ANAC, alias de chemins).
 
-1. Créer le repo `aidn-v2` (nouveau, vide)
-2. Copier ce dossier tel quel comme base de `exploration-cache/` / `docs/`
-3. Décider des conventions techniques (`technical/conventions.md` — naming, stack,
-   structure des dossiers), alignées sur SICOT et sur le style UI/UX ANAC déjà en place
-4. Reconstruction phase par phase, en utilisant `aidn-v2-legacy` comme référence de
-   logique métier — jamais comme dépendance ou copier-coller direct
+## Demarrage rapide (developpement)
+
+### 1. Prerequis
+
+- Node.js >= 22
+- PostgreSQL >= 15
+
+### 2. Installation
+
+```bash
+git clone https://github.com/fredpatch/aidn-v2.git && cd aidn-v2
+
+npm install
+
+cp apps/api/.env.example apps/api/.env
+# Editer apps/api/.env (DATABASE_URL, JWT_SECRET, SMTP, GEMINI_API_KEY)
+
+npm run db:generate
+npm run db:migrate
+```
+
+### 3. Lancer en developpement
+
+```bash
+npm run dev
+# -> API    : http://localhost:4000
+# -> Admin  : http://localhost:5173
+# -> Portal : http://localhost:5174
+```
+
+Ou individuellement : `npm run dev:api`, `npm run dev:admin`, `npm run dev:portal`.
+
+## Modules (13, dont M2 fusionne dans M1)
+
+- **M1** Intake & Circuit DG (M2 - Circuit DG - fusionne ici)
+- **M3** Phase Preliminaire
+- **M4** Phase Demande formelle
+- **M5** Evaluation approfondie des documents
+- **M6** Demonstration et Inspection sur site
+- **M7** Delivrance & Certificats
+- **M8** Documents (transverse)
+- **M9** Paiements (transverse)
+- **M10** Reunions (transverse)
+- **M11** Notifications (transverse)
+- **M12** Dashboard & Rapports
+- **M13** Administration & Roles
+
+Voir `docs/TASKS.md` pour le decoupage en sprints et `exploration-cache/project/
+modules-feasibility.md` pour les decisions de conception verrouillees module par
+module.
+
+---

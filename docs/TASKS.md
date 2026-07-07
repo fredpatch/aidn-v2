@@ -29,9 +29,9 @@ comme un ETL ponctuel.
 - [x] Patterns transverses consolidés (`technical/cross-cutting-patterns.md`)
 - [x] Décision de stack technique : React+TS+Tailwind / Express+TS / **PostgreSQL +
       Drizzle ORM**
-- [ ] Conventions détaillées (`technical/conventions.md`) — naming, structure dossiers,
+- [x] Conventions détaillées (`technical/conventions.md`) — naming, structure dossiers,
       style UI/UX ANAC
-- [ ] Init repo `aidn-v2` (monorepo, structure alignée SICOT)
+- [x] Init repo `aidn-v2` (monorepo, structure alignée SICOT)
 - [ ] Renommer ancien repo en `aidn-v2-legacy`, archivage clair
 - [ ] Schéma PostgreSQL initial (tables Demande, Postulant, Organisme, Document,
       Phase, Paiement, Certificat, Réunion, Notification, User/Rôles)

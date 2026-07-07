@@ -1,0 +1,42 @@
+{
+  "name": "aidn-v2",
+  "version": "0.1.0",
+  "description": "AIDN - Application Informatique de la Direction de la Navigabilite - ANAC Gabon",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=apps/api\" \"npm run dev --workspace=apps/admin\" \"npm run dev --workspace=apps/portal\"",
+    "dev:api": "npm run dev --workspace=apps/api",
+    "dev:admin": "npm run dev --workspace=apps/admin",
+    "dev:portal": "npm run dev --workspace=apps/portal",
+    "build": "npm run build --workspace=packages/shared && npm run build --workspace=apps/api && npm run build --workspace=apps/admin && npm run build --workspace=apps/portal",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint apps/*/src packages/*/src --ext .ts,.tsx",
+    "format": "prettier --write \"apps/*/src/**/*.{ts,tsx}\" \"packages/*/src/**/*.{ts,tsx}\"",
+    "db:generate": "npm run db:generate --workspace=apps/api",
+    "db:migrate": "npm run db:migrate --workspace=apps/api",
+    "db:studio": "npm run db:studio --workspace=apps/api"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.20.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "concurrently": "^8.2.2",
+    "drizzle-kit": "0.31.10",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-react": "^7.34.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "prettier": "^3.2.5",
+    "tsx": "^4.22.4",
+    "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.2",
+    "exceljs": "3.4.0",
+    "node-cron": "4.5.0",
+    "nodemailer": "9.0.3",
+    "pg": "^8.22.0",
+    "uuid": "14.0.1"
+  }
+}

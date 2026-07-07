@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-anac-navy: #1b2a5e;
+  --color-anac-blue: #2b4dae;
+  --color-anac-sky: #4a90d9;
+  --color-anac-white: #ffffff;
+  --color-anac-gray: #f4f6fa;
+  --color-anac-border: #d1d9e6;
+  --color-anac-text: #1a2340;
+  --color-anac-muted: #6b7a99;
+  --color-anac-success: #16a34a;
+  --color-anac-warning: #d97706;
+  --color-anac-danger: #dc2626;
+  --color-anac-info: #0891b2;
+}
+
+body {
+  @apply bg-anac-gray text-anac-text;
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-anac-navy text-white px-4 py-2 rounded hover:bg-anac-blue transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply bg-white text-anac-navy border border-anac-border px-4 py-2 rounded hover:bg-anac-gray transition-colors font-medium;
+  }
+
+  .btn-danger {
+    @apply bg-anac-danger text-white px-4 py-2 rounded hover:opacity-90 transition-opacity font-medium;
+  }
+
+  .card {
+    @apply bg-white border border-anac-border rounded-lg shadow-sm p-6;
+  }
+
+  .input {
+    @apply border border-anac-border rounded px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-anac-sky focus:border-transparent text-sm;
+  }
+
+  .label {
+    @apply block text-anac-text font-medium mb-1 text-sm;
+  }
+}
