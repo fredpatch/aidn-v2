@@ -1,0 +1,38 @@
+{
+  "project": "AIDN v2 - Application Informatique de la Direction de la Navigabilite",
+  "client": "ANAC Gabon",
+  "repo": "fredpatch/aidn-v2",
+  "branch": "main",
+  "lastUpdated": "2026-07-07T23:45:00Z",
+  "lastCommit": "b64a073 feat: admin/portal auth UI, applicant auth, uploads module, requests flow",
+  "currentSprint": "Sprint 1 complete, Sprint 2 (Phase Preliminaire, M3) not started",
+  "currentSprintFocus": "Sprint 0 (feasibility study, patterns, stack, schema, scaffold) and Sprint 1 (Intake & Circuit DG, M1+M2, full API + admin/portal UI) both complete and pushed. Auth/Users/Bootstrap prerequisite built alongside Sprint 1, mirroring SICOT. Two real gaps caught by the client and fixed: missing applicant auth, and UI/UX that only matched SICOT's colors instead of its actual component structure. On top of that, an uncommitted admin polish/hardening pass is in progress (see activeSession) and currently leaves the portal app broken.",
+  "status": "Sprint 0 COMPLETE. Sprint 1 COMPLETE (API + full UI, verified against a real running Postgres instance including a genuine cross-app flow test). 10 real bugs found and fixed that session, most notably a confirmed upstream drizzle-kit CLI bug that silently swallows migration errors. Since then: an uncommitted admin-app polish pass (hardened axios refresh queue, prettier reformat, vite/tsconfig tweaks) left the portal app with a broken import (apps/portal/src/lib/axios.ts referenced but never created). Next: fix that, then Sprint 2 (Phase Preliminaire, M3).",
+
+  "activeSession": {
+    "task": "exploration-cache brought up to SICOT's full standard; then an uncommitted admin-app polish/hardening pass was made (axios refresh-queue hardening, prettier reformat, vite/tsconfig tweaks, TASKS.md doc catch-up) that inadvertently left the portal app with a broken import.",
+    "startedAt": "2026-07-07",
+    "nextAction": "Create apps/portal/src/lib/axios.ts (mirroring apps/admin/src/lib/axios.ts, pointed at /applicant-auth/refresh) to unbreak the portal build — see active-session/blockers.md #B0 — before committing/pushing the current diff. After that: start Sprint 2 (Phase Preliminaire, M3)."
+  },
+
+  "index": [
+    { "path": "index.md", "type": "navigation", "tags": ["index", "overview", "navigation"], "summary": "Human-readable index of all files" },
+    { "path": "quick-ref.md", "type": "reference", "tags": ["commands", "api", "colors", "rules", "sprint"], "summary": "One-page quick reference" },
+    { "path": "changelog.md", "type": "history", "tags": ["git", "commits", "history"], "summary": "Commit history, be9fce9 through b64a073" },
+    { "path": "active-session/current-task.md", "type": "session", "tags": ["current", "sprint0", "sprint1", "auth", "ui-redesign", "axios", "uncommitted"], "summary": "Sprint 0+1 complete (committed); uncommitted admin polish pass on top currently breaks the portal build" },
+    { "path": "active-session/blockers.md", "type": "session", "tags": ["blockers", "m13", "applicant-registration", "visual-qa", "axios", "portal-broken"], "summary": "1 hard blocker (portal lib/axios.ts missing) + 2 soft blockers (M13 registration, no browser verification)" },
+    { "path": "active-session/next-actions.md", "type": "session", "tags": ["actions", "sprint2", "phase-preliminaire", "m3"], "summary": "Sprint 2 (Phase Preliminaire, M3) is next" },
+    { "path": "active-session/context.md", "type": "session", "tags": ["orientation", "rules", "environment", "auth", "dual-auth"], "summary": "Fresh-session orientation: dual auth system, critical rules, environment assumptions" },
+    { "path": "project/overview.md", "type": "project", "tags": ["overview", "cdc", "context"], "summary": "What AIDN is, CDC summary" },
+    { "path": "project/modules-feasibility.md", "type": "project", "tags": ["modules", "feasibility", "business-rules", "m1-m13"], "summary": "Full 13-module feasibility study with locked decisions" },
+    { "path": "project/architecture.md", "type": "project", "tags": ["stack", "auth", "env-vars", "data-flow"], "summary": "Stack, dual auth flow, env vars, M1 data flow example" },
+    { "path": "project/database-schema.md", "type": "project", "tags": ["schema", "tables", "enums", "drizzle"], "summary": "All 20 tables and enums" },
+    { "path": "project/decisions.md", "type": "project", "tags": ["decisions", "rationale", "postgres", "auth", "ui-redesign"], "summary": "9 non-obvious technical decisions with rationale" },
+    { "path": "technical/cheat-sheet.md", "type": "reference", "tags": ["commands", "api-routes", "paths"], "summary": "Dev commands, key file paths, API endpoint list" },
+    { "path": "technical/patterns.md", "type": "reference", "tags": ["service-controller-route", "error-handling", "frontend-gate"], "summary": "Code patterns used across all modules" },
+    { "path": "technical/conventions.md", "type": "reference", "tags": ["naming", "language-policy", "css"], "summary": "Naming, English-code/French-UI policy, file structure" },
+    { "path": "technical/cross-cutting-patterns.md", "type": "reference", "tags": ["circuit-dg", "reunion", "cloture", "facture", "checklist"], "summary": "6 business-rule patterns reused across modules" },
+    { "path": "technical/gotchas.md", "type": "reference", "tags": ["bugs", "drizzle-kit", "postgres", "tsconfig", "gotchas"], "summary": "10 real pitfalls found this session, with symptom/cause/fix" },
+    { "path": "sessions/2026-07-07.md", "type": "session-log", "tags": ["sprint0", "sprint1", "session-log"], "summary": "Full session log: Sprint 0+1, 10 bugs, UI redesign" }
+  ]
+}

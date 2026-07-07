@@ -1,0 +1,95 @@
+# 🎯 AIDN v2 — Key Decisions & Rationale
+
+Non-obvious decisions that would otherwise get re-litigated or silently reversed by
+a future session. Business-rule decisions (the 13 modules) live in
+`project/modules-feasibility.md` — this file is technical/architectural decisions
+made *during implementation*, not during the feasibility study.
+
+## 1. PostgreSQL over MongoDB
+
+Locked before Sprint 0 scaffolding. The 13 modules' business rules are relational
+integrity problems (one active demande, 11/11 document checklist, certificate
+created at payment validation) — better enforced by SQL constraints than app code.
+Logged in Notion (Idées & Pistes, Architecture, 2026-07-07).
+
+## 2. Code in English, UI in French
+
+Deliberate divergence from SICOT (which mixes French/English in server code).
+AIDN's code — variables, functions, components, comments, endpoints, error codes —
+is entirely English. Only what the user sees is French. Documented explicitly in
+`technical/conventions.md`'s "Écarts assumés" section.
+
+## 3. Demande reference format: `DEM-YYYY-MM-DD-ORGCODE-NN`
+
+No global incrementing counter — deliberately avoided to sidestep any reset-policy
+complexity. `ORGCODE` is the first 4 alphanumeric characters of the organisation's
+normalized name, uppercased. `NN` disambiguates the rare case of the same
+organisation submitting more than once on the same calendar day (e.g. a rejection
+releases the "one active request" rule same-day). Certificates keep the simpler
+`CERT-YYYY-XXXX` format (lower volume, no same-day-collision concern).
+
+## 4. "One active demande" enforced at the database level
+
+A partial unique index (`requests_one_active_per_organisation_idx`), not just an
+application check. This closes the exact loophole Fred caught during the M1
+feasibility study — cancelling by creating a second demande — permanently, since a
+bug in application code can no longer bypass it.
+
+## 5. Dual auth systems, one API server
+
+Staff (`users`) and applicants (`applicants`) are structurally different accounts
+with different login flows (OTP vs plain password) and different JWT payload
+shapes. A `kind: "staff" | "applicant"` field on every token prevents either being
+misused as the other. This was a real gap found mid-Sprint-1: the first version of
+the requests module was "tested" using a staff SU token standing in for an
+applicant, because applicant auth simply didn't exist yet.
+
+## 6. SMTP env var names match SICOT's exactly
+
+`SMTP_HOST/PORT/USER/PASS/FROM` — chosen specifically so Fred's existing SICOT SMTP
+credentials can be copied into AIDN's `.env` with zero renaming.
+
+## 7. `db:migrate` calls a custom script, not the `drizzle-kit` CLI directly
+
+See `technical/gotchas.md` #3 for the full story — `drizzle-kit@0.31.10`'s CLI
+silently swallows real Postgres errors on migration failure. `apps/api/src/scripts/
+migrate.ts` calls `drizzle-orm`'s `migrate()` function programmatically instead,
+which surfaces the real error. This is how two genuine Postgres errors (enum
+transaction issue, missing `public` schema) got diagnosed instead of staying
+invisible.
+
+## 8. UI/UX must structurally match SICOT, not just share color tokens
+
+Early in the AIDN rebuild, "match SICOT's style" was interpreted as reusing its
+ANAC color tokens (`--color-anac-navy` etc.) plus generic clean Tailwind forms.
+That was an incomplete read of the actual instruction. SICOT's real Bootstrap/
+Login/Layout pages use `react-hook-form` + `zod`, `framer-motion` animations,
+shadcn-style hand-written primitives (`Button`/`Input`/`Label`), a password-strength
+meter, and a collapsible sidebar nav. AIDN's admin and portal apps were rebuilt to
+match this structurally, not just palette-wise, once the gap was flagged.
+
+## 9. Users management page added, not originally scoped
+
+Once the Layout/sidebar was being rebuilt to match SICOT, the nav needed a second
+real entry beyond "Demandes." The multi-role system (Sprint 1's `user_roles` join
+table + full CRUD API) had no UI at all — there was no way to create a
+`dn_agent`/`reception` account except via curl. A minimal SU-only Users page
+(list, create with multi-role selection, activate/deactivate, reset OTP) was added
+to close that gap, since the backend already existed and was tested.
+
+## 10. Axios client hardened with a proper refresh queue (admin app, in progress)
+
+The original `lib/api.ts` (both admin and portal) used a single shared `refreshing`
+promise to de-dupe concurrent 401-triggered refresh calls — functionally OK for one
+in-flight request, but any request that arrived *while* a refresh was already running
+would still race it instead of being queued behind it cleanly. `apps/admin/src/lib/
+axios.ts` replaces this with an explicit `isRefreshing` flag + a `failedQueue` array:
+every request that 401s while a refresh is already in flight is queued and replayed
+only after that single refresh resolves, rather than each one kicking off its own
+check. It also skips the refresh dance entirely for `/auth/*` requests (avoids
+refreshing in response to a failed login itself) and redirects to `/login` with a
+`session_expired` flag on final failure.
+**Not yet finished**: this was only built for the admin app. Portal's imports were
+updated to point at the same `lib/axios` path but the file was never created there —
+see `active-session/blockers.md` #B0. Do not treat the migration as done until
+`apps/portal/src/lib/axios.ts` exists and `useApplicantAuth.tsx` is switched over too.
