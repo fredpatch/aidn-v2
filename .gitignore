@@ -1,0 +1,17 @@
+node_modules/
+dist/
+build/
+.env
+.env.local
+.env.production
+*.log
+.DS_Store
+coverage/
+.nyc_output/
+drizzle/
+*.sqlite
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
