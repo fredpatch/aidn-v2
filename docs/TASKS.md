@@ -33,11 +33,18 @@ comme un ETL ponctuel.
       style UI/UX ANAC
 - [x] Init repo `aidn-v2` (monorepo, structure alignée SICOT)
 - [ ] Renommer ancien repo en `aidn-v2-legacy`, archivage clair
-- [x] Schéma PostgreSQL initial (19 tables : users, user_roles, organisations,
+- [x] Schéma PostgreSQL initial (20 tables : users, user_roles, organisations,
       applicants, account_requests, requests, dg_circuit_documents, phases,
       meetings, preliminary_evaluation_forms, formal_request_documents,
       document_evaluations, site_inspections, payments, certificates,
-      document_versions, notifications, reports, audit_logs)
+      document_versions, notifications, reports, audit_logs,
+      system_parameters — cette dernière ajoutée pendant le prérequis
+      Auth & Utilisateurs du Sprint 1, voir plus bas)
+- [x] `db:migrate` pointe vers un script personnalisé
+      (`apps/api/src/scripts/migrate.ts`) plutôt que le CLI `drizzle-kit`
+      brut — bug confirmé en amont (drizzle-kit@0.31.10) qui masque
+      silencieusement les vraies erreurs de migration. Détail complet dans
+      `exploration-cache/technical/gotchas.md`
 
 ## Sprint 1 — Intake & Circuit DG (M1+M2)
 
@@ -88,6 +95,35 @@ admin → retour portail, pas seulement des tests API isolés) :
 - [x] Emails réels via Nodemailer (mêmes noms de variables d'env que SICOT :
       SMTP_HOST/PORT/USER/PASS/FROM, pour réutiliser les identifiants
       existants tel quel)
+
+### Correction post-implémentation : UI/UX alignée sur SICOT (pas seulement les couleurs)
+
+Le premier passage sur les écrans Bootstrap/Login/Layout n'avait repris que
+les tokens de couleur ANAC de SICOT, pas sa structure réelle de composants.
+Corrigé après retour explicite :
+
+- [x] `Bootstrap`, `Login` (admin + portail), `Layout` (sidebar rétractable)
+      reconstruits avec le même système que SICOT : react-hook-form + zod,
+      framer-motion, primitives shadcn écrites à la main (`Button`, `Input`,
+      `Label`), indicateur de force de mot de passe, arrière-plan à motif de
+      grille
+- [x] Authentification postulant repensée dans le même langage visuel
+      (portail) — étape unique, pas de tabs OTP (l'applicant n'a pas de
+      flux OTP)
+- [x] Page `Utilisateurs` (SU uniquement) ajoutée — pas prévue initialement,
+      mais nécessaire pour que le système multi-rôle du Sprint 1 soit
+      utilisable via l'UI (sans elle, aucun moyen de créer un compte
+      `dn_agent`/`reception` autrement qu'en curl)
+
+### ⚠️ À corriger en priorité au prochain démarrage de session
+
+- [ ] **Build du portail cassé** : `apps/admin/src/lib/axios.ts` (client axios
+      durci, file d'attente de refresh concurrent) a été créé pour l'admin, mais
+      `LoginPage.tsx`/`MyRequestPage.tsx` du portail importent désormais
+      `../../lib/axios` — fichier qui n'existe pas dans `apps/portal/src/lib/`.
+      À créer (miroir de la version admin, pointé vers `/applicant-auth/refresh`)
+      avant tout `npm run dev`/build du portail. Détail complet dans
+      `exploration-cache/active-session/blockers.md` #B0.
 
 ## Sprint 2 — Phase Préliminaire (M3)
 

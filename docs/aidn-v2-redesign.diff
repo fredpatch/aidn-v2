@@ -329,7 +329,7 @@ index 5e37f2b..c6b3a7c 100644
 +import { cn } from "../../lib/utils";
 +import { Button } from "../../components/ui/button";
 +import { Input } from "../../components/ui/input";
- import { api, apiErrorMessage } from "../../lib/api";
+ import { api, apiErrorMessage } from "../../lib/axios";
  import { useAuth } from "../../hooks/useAuth";
  
 +import { fadeUp } from "./animations";
@@ -678,7 +678,7 @@ index b0aa05f..13e5640 100644
 +import { cn } from "../../lib/utils";
 +import { Button } from "../../components/ui/button";
 +import { Input } from "../../components/ui/input";
- import { api, apiErrorMessage } from "../../lib/api";
+ import { api, apiErrorMessage } from "../../lib/axios";
  import { useAuth } from "../../hooks/useAuth";
  
 -type Step = "credentials" | "set-password";
@@ -1427,7 +1427,7 @@ index 0000000..7e4d7dc
 @@ -0,0 +1,247 @@
 +import { useEffect, useState, FormEvent } from "react";
 +import { UserPlus, RotateCcw, Loader2 } from "lucide-react";
-+import { api, apiErrorMessage } from "../../lib/api";
++import { api, apiErrorMessage } from "../../lib/axios";
 +import { Button } from "../../components/ui/button";
 +import { Input } from "../../components/ui/input";
 +import { Label } from "../../components/ui/label";
@@ -1858,7 +1858,7 @@ index 6e1235f..72f27d8 100644
 +
 +import { Button } from "../../components/ui/button";
 +import { Input } from "../../components/ui/input";
- import { api, apiErrorMessage } from "../../lib/api";
+ import { api, apiErrorMessage } from "../../lib/axios";
  import { useApplicantAuth } from "../../hooks/useApplicantAuth";
  
 +import { fadeUp } from "./animations";

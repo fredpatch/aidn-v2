@@ -1,11 +1,19 @@
-import { useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { Inbox, Users, ChevronLeft, ChevronRight, LogOut, Loader2, ShieldCheck } from "lucide-react";
+import { useState } from 'react';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import {
+  Inbox,
+  Users,
+  ChevronLeft,
+  ChevronRight,
+  LogOut,
+  Loader2,
+  ShieldCheck,
+} from 'lucide-react';
 
-import { cn } from "../../lib/utils";
-import { Button } from "../ui/button";
-import { useAuth } from "../../hooks/useAuth";
+import { cn } from '../../lib/utils';
+import { Button } from '../ui/button';
+import { useAuth } from '../../hooks/useAuth';
 
 interface NavItem {
   to: string;
@@ -15,8 +23,8 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { to: "/", label: "Demandes", icon: Inbox },
-  { to: "/utilisateurs", label: "Utilisateurs", icon: Users, roles: ["SU"] },
+  { to: '/', label: 'Demandes', icon: Inbox },
+  { to: '/utilisateurs', label: 'Gestion des utilisateurs', icon: Users, roles: ['SU'] },
 ];
 
 export default function AppShell() {
@@ -35,29 +43,34 @@ export default function AppShell() {
     try {
       await logout();
     } finally {
-      navigate("/");
+      navigate('/');
     }
   }
 
-  const initials = (user?.fullName ?? "")
-    .split(" ")
+  const initials = (user?.fullName ?? '')
+    .split(' ')
     .map((part) => part[0])
-    .join("")
+    .join('')
     .slice(0, 2)
     .toUpperCase();
 
   return (
     <div className="flex h-screen bg-anac-gray overflow-hidden">
       <motion.aside
-        animate={{ width: sidebarOpen ? 174 : 45 }}
+        animate={{ width: sidebarOpen ? 226 : 60 }}
         transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
         className="flex flex-col bg-anac-navy overflow-hidden flex-shrink-0"
       >
         <div className="flex items-center gap-3 px-3 py-4 border-b border-white/10 h-[57px] overflow-hidden">
           <div className="w-8 h-8 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center flex-shrink-0">
-            <ShieldCheck size={15} className="text-white" strokeWidth={1.75} />
+            <ShieldCheck size={16} className="text-white" strokeWidth={1.75} />
           </div>
-          <div className={cn("overflow-hidden whitespace-nowrap transition-opacity duration-200", sidebarOpen ? "opacity-100" : "opacity-0")}>
+          <div
+            className={cn(
+              'overflow-hidden whitespace-nowrap transition-opacity duration-200',
+              sidebarOpen ? 'opacity-100' : 'opacity-0'
+            )}
+          >
             <p className="text-white font-bold text-sm leading-tight">AIDN</p>
             <p className="text-anac-sky text-[10px] leading-tight">ANAC Gabon</p>
           </div>
@@ -70,17 +83,24 @@ export default function AppShell() {
               <NavLink
                 key={item.to}
                 to={item.to}
-                end={item.to === "/"}
+                end={item.to === '/'}
                 title={!sidebarOpen ? item.label : undefined}
                 className={({ isActive }) =>
                   cn(
-                    "flex items-center gap-2.5 px-2.5 py-[7px] rounded-md transition-colors overflow-hidden",
-                    isActive ? "bg-anac-blue text-white" : "text-white/60 hover:bg-white/10 hover:text-white"
+                    'flex items-center gap-2.5 px-3.5 py-[7px] rounded-md transition-colors overflow-hidden',
+                    isActive
+                      ? 'bg-anac-blue text-white'
+                      : 'text-white/60 hover:bg-white/10 hover:text-white'
                   )
                 }
               >
                 <Icon size={15} className="flex-shrink-0" strokeWidth={1.75} />
-                <span className={cn("text-[12px] font-medium truncate whitespace-nowrap transition-opacity duration-150", sidebarOpen ? "opacity-100" : "opacity-0")}>
+                <span
+                  className={cn(
+                    'text-[12px] font-medium truncate whitespace-nowrap transition-opacity duration-150',
+                    sidebarOpen ? 'opacity-100' : 'opacity-0'
+                  )}
+                >
                   {item.label}
                 </span>
               </NavLink>
@@ -91,7 +111,7 @@ export default function AppShell() {
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className="flex items-center justify-center h-10 border-t border-white/10 text-white/40 hover:text-white hover:bg-white/10 transition-colors flex-shrink-0"
-          aria-label={sidebarOpen ? "Reduire la barre laterale" : "Agrandir la barre laterale"}
+          aria-label={sidebarOpen ? 'Reduire la barre laterale' : 'Agrandir la barre laterale'}
         >
           {sidebarOpen ? <ChevronLeft size={15} /> : <ChevronRight size={15} />}
         </button>
@@ -106,11 +126,15 @@ export default function AppShell() {
           <div className="flex items-center gap-1 flex-shrink-0 ml-4">
             <div className="flex items-center gap-2.5 px-1.5">
               <div className="text-right">
-                <p className="text-[12px] font-semibold text-anac-navy leading-tight">{user?.fullName}</p>
-                <p className="text-[10px] text-anac-muted leading-tight">{user?.roles.join(", ")}</p>
+                <p className="text-[12px] font-semibold text-anac-navy leading-tight">
+                  {user?.fullName}
+                </p>
+                <p className="text-[10px] text-anac-muted leading-tight">
+                  {user?.roles.join(', ')}
+                </p>
               </div>
               <div className="w-8 h-8 rounded-lg bg-anac-navy text-white flex items-center justify-center text-[11px] font-bold flex-shrink-0 select-none">
-                {initials || "-"}
+                {initials || '-'}
               </div>
             </div>
 

@@ -8,7 +8,7 @@ import { Loader2, Settings2, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
-import { api, apiErrorMessage } from '../../lib/api';
+import { api, apiErrorMessage } from '../../lib/axios';
 import { useAuth } from '../../hooks/useAuth';
 
 import { fadeUp } from './animations';

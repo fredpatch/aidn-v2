@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "db:generate": "drizzle-kit generate --config drizzle.config.ts",
     "db:migrate": "npx tsx src/scripts/migrate.ts",
-    "db:studio": "drizzle-kit studio --config drizzle.config.ts"
+    "db:studio": "drizzle-kit studio --config drizzle.config.ts",
+    "seed:params": "npx tsx src/scripts/seed-system-parameters.ts"
   },
   "dependencies": {
     "@aidn/shared": "*",

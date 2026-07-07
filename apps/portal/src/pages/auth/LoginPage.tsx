@@ -1,21 +1,21 @@
-import { useId, useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { motion } from "framer-motion";
-import { Loader2, Plane } from "lucide-react";
+import { useId, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { motion } from 'framer-motion';
+import { Loader2, Plane } from 'lucide-react';
 
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { api, apiErrorMessage } from "../../lib/api";
-import { useApplicantAuth } from "../../hooks/useApplicantAuth";
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { api, apiErrorMessage } from '../../lib/axios';
+import { useApplicantAuth } from '../../hooks/useApplicantAuth';
 
-import { fadeUp } from "./animations";
-import { GridPattern, FormField, EyeToggle, ServerError } from "./components";
+import { fadeUp } from './animations';
+import { GridPattern, FormField, EyeToggle, ServerError } from './components';
 
 const loginSchema = z.object({
-  email: z.string().min(1, "L'email est requis").email("Adresse email invalide"),
-  password: z.string().min(1, "Le mot de passe est requis"),
+  email: z.string().min(1, "L'email est requis").email('Adresse email invalide'),
+  password: z.string().min(1, 'Le mot de passe est requis'),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -30,19 +30,19 @@ export default function LoginPage() {
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: "", password: "" },
+    defaultValues: { email: '', password: '' },
   });
 
   const { errors, isSubmitting } = form.formState;
-  const errCls = (has: boolean) => (has ? "border-anac-danger focus:ring-red-300" : "");
+  const errCls = (has: boolean) => (has ? 'border-anac-danger focus:ring-red-300' : '');
 
   async function onSubmit(data: LoginFormData) {
     setServerError(null);
     try {
-      await api.post("/applicant-auth/login", data);
+      await api.post('/applicant-auth/login', data);
       await refreshMe();
     } catch (err) {
-      setServerError(apiErrorMessage(err, "Connexion impossible."));
+      setServerError(apiErrorMessage(err, 'Connexion impossible.'));
     }
   }
 
@@ -55,13 +55,13 @@ export default function LoginPage() {
         initial="hidden"
         animate="visible"
         variants={fadeUp}
-        transition={{ duration: 0.4, ease: "easeOut" }}
+        transition={{ duration: 0.4, ease: 'easeOut' }}
       >
         <div className="text-center mb-7">
           <motion.div
             className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-anac-navy shadow-lg mb-4 relative overflow-hidden"
             whileHover={{ scale: 1.05 }}
-            transition={{ type: "spring", stiffness: 320, damping: 22 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 22 }}
           >
             <div className="absolute inset-0 bg-gradient-to-br from-anac-blue/40 to-transparent" />
             <Plane className="text-white relative z-10" size={22} strokeWidth={1.75} />
@@ -76,13 +76,15 @@ export default function LoginPage() {
           <div className="h-[3px] bg-gradient-to-r from-anac-navy via-anac-blue to-anac-sky" />
 
           <div className="p-6">
-            <p className="text-[13px] font-semibold text-anac-navy mb-5">Connectez-vous a votre espace</p>
+            <p className="text-[13px] font-semibold text-anac-navy mb-5">
+              Connectez-vous a votre espace
+            </p>
 
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
               <FormField id={emailId} label="Email" error={errors.email?.message}>
                 <Input
                   id={emailId}
-                  {...form.register("email")}
+                  {...form.register('email')}
                   type="email"
                   autoFocus
                   autoComplete="email"
@@ -95,8 +97,8 @@ export default function LoginPage() {
                 <div className="relative">
                   <Input
                     id={passwordId}
-                    {...form.register("password")}
-                    type={showPassword ? "text" : "password"}
+                    {...form.register('password')}
+                    type={showPassword ? 'text' : 'password'}
                     autoComplete="current-password"
                     aria-invalid={!!errors.password}
                     className={`${errCls(!!errors.password)} pr-10`}
@@ -114,7 +116,7 @@ export default function LoginPage() {
                     Connexion...
                   </>
                 ) : (
-                  "Se connecter"
+                  'Se connecter'
                 )}
               </Button>
             </form>

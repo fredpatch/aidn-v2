@@ -1,5 +1,5 @@
-import { useEffect, useState, FormEvent } from "react";
-import { api, apiErrorMessage } from "../../lib/api";
+import { useEffect, useState, FormEvent } from 'react';
+import { api, apiErrorMessage } from '../../lib/axios';
 
 interface RequestView {
   id: number;
@@ -16,38 +16,40 @@ interface RequestView {
 }
 
 const REQUEST_TYPE_LABELS: Record<string, string> = {
-  recognition: "Reconnaissance",
-  issuance: "Delivrance",
-  modification: "Modification",
-  renewal: "Renouvellement",
+  recognition: 'Reconnaissance',
+  issuance: 'Delivrance',
+  modification: 'Modification',
+  renewal: 'Renouvellement',
 };
 
 const CIRCUIT_STATUS_LABELS: Record<string, string> = {
-  submitted: "Depose",
-  signed: "Signe",
-  pending_review: "En attente de traitement",
+  submitted: 'Depose',
+  signed: 'Signe',
+  pending_review: 'En attente de traitement',
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  submitted: "Depose",
-  signed: "Signe",
-  pending_review: "En attente de traitement",
-  in_progress: "En cours",
-  rejected: "Rejete",
-  completed: "Termine",
-  cancelled: "Annule",
+  submitted: 'Depose',
+  signed: 'Signe',
+  pending_review: 'En attente de traitement',
+  in_progress: 'En cours',
+  rejected: 'Rejete',
+  completed: 'Termine',
+  cancelled: 'Annule',
 };
 
 function StatusBadge({ status, labels }: { status: string; labels: Record<string, string> }) {
   const colorMap: Record<string, string> = {
-    submitted: "bg-anac-info/10 text-anac-info",
-    signed: "bg-anac-warning/10 text-anac-warning",
-    pending_review: "bg-anac-success/10 text-anac-success",
-    rejected: "bg-anac-danger/10 text-anac-danger",
-    cancelled: "bg-anac-muted/10 text-anac-muted",
+    submitted: 'bg-anac-info/10 text-anac-info',
+    signed: 'bg-anac-warning/10 text-anac-warning',
+    pending_review: 'bg-anac-success/10 text-anac-success',
+    rejected: 'bg-anac-danger/10 text-anac-danger',
+    cancelled: 'bg-anac-muted/10 text-anac-muted',
   };
   return (
-    <span className={`px-2 py-0.5 rounded text-xs font-medium ${colorMap[status] ?? "bg-anac-gray text-anac-text"}`}>
+    <span
+      className={`px-2 py-0.5 rounded text-xs font-medium ${colorMap[status] ?? 'bg-anac-gray text-anac-text'}`}
+    >
       {labels[status] ?? status}
     </span>
   );
@@ -65,10 +67,10 @@ export default function RequestsPage() {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await api.get("/requests");
+      const { data } = await api.get('/requests');
       setRequestsList(data);
     } catch (err) {
-      setError(apiErrorMessage(err, "Impossible de charger les demandes."));
+      setError(apiErrorMessage(err, 'Impossible de charger les demandes.'));
     } finally {
       setLoading(false);
     }
@@ -78,14 +80,17 @@ export default function RequestsPage() {
     loadRequests();
   }, []);
 
-  async function handleAction(id: number, action: "mark-signed" | "mark-pending-review" | "cancel") {
+  async function handleAction(
+    id: number,
+    action: 'mark-signed' | 'mark-pending-review' | 'cancel'
+  ) {
     setActionError(null);
     setBusyId(id);
     try {
       await api.post(`/requests/${id}/${action}`);
       await loadRequests();
     } catch (err) {
-      setActionError(apiErrorMessage(err, "Action impossible."));
+      setActionError(apiErrorMessage(err, 'Action impossible.'));
     } finally {
       setBusyId(null);
     }
@@ -101,7 +106,7 @@ export default function RequestsPage() {
           </p>
         </div>
         <button className="btn-secondary" onClick={() => setShowManualForm((v) => !v)}>
-          {showManualForm ? "Fermer" : "Saisie manuelle (guichet)"}
+          {showManualForm ? 'Fermer' : 'Saisie manuelle (guichet)'}
         </button>
       </div>
 
@@ -139,45 +144,49 @@ export default function RequestsPage() {
               {requestsList.map((r) => (
                 <tr key={r.id} className="border-b border-anac-border last:border-0">
                   <td className="py-2 pr-4 font-medium">{r.reference}</td>
-                  <td className="py-2 pr-4">{REQUEST_TYPE_LABELS[r.requestType] ?? r.requestType}</td>
                   <td className="py-2 pr-4">
-                    {r.circuitStatus && <StatusBadge status={r.circuitStatus} labels={CIRCUIT_STATUS_LABELS} />}
+                    {REQUEST_TYPE_LABELS[r.requestType] ?? r.requestType}
+                  </td>
+                  <td className="py-2 pr-4">
+                    {r.circuitStatus && (
+                      <StatusBadge status={r.circuitStatus} labels={CIRCUIT_STATUS_LABELS} />
+                    )}
                   </td>
                   <td className="py-2 pr-4">
                     <StatusBadge status={r.status} labels={STATUS_LABELS} />
                   </td>
                   <td className="py-2 pr-4 text-anac-muted">
-                    {new Date(r.createdAt).toLocaleDateString("fr-FR")}
+                    {new Date(r.createdAt).toLocaleDateString('fr-FR')}
                   </td>
                   <td className="py-2 space-x-2">
-                    {r.circuitStatus === "submitted" && (
+                    {r.circuitStatus === 'submitted' && (
                       <>
                         <button
                           className="text-anac-blue underline text-xs disabled:opacity-50"
                           disabled={busyId === r.id}
-                          onClick={() => handleAction(r.id, "mark-signed")}
+                          onClick={() => handleAction(r.id, 'mark-signed')}
                         >
                           Marquer signe
                         </button>
                         <button
                           className="text-anac-danger underline text-xs disabled:opacity-50"
                           disabled={busyId === r.id}
-                          onClick={() => handleAction(r.id, "cancel")}
+                          onClick={() => handleAction(r.id, 'cancel')}
                         >
                           Annuler
                         </button>
                       </>
                     )}
-                    {r.circuitStatus === "signed" && (
+                    {r.circuitStatus === 'signed' && (
                       <button
                         className="text-anac-blue underline text-xs disabled:opacity-50"
                         disabled={busyId === r.id}
-                        onClick={() => handleAction(r.id, "mark-pending-review")}
+                        onClick={() => handleAction(r.id, 'mark-pending-review')}
                       >
                         Marquer en attente de traitement
                       </button>
                     )}
-                    {r.circuitStatus === "pending_review" && (
+                    {r.circuitStatus === 'pending_review' && (
                       <span className="text-anac-muted text-xs">Pret pour DN</span>
                     )}
                   </td>
@@ -192,9 +201,9 @@ export default function RequestsPage() {
 }
 
 function ManualRequestForm({ onCreated }: { onCreated: () => void }) {
-  const [applicantId, setApplicantId] = useState("");
-  const [requestType, setRequestType] = useState("issuance");
-  const [message, setMessage] = useState("");
+  const [applicantId, setApplicantId] = useState('');
+  const [requestType, setRequestType] = useState('issuance');
+  const [message, setMessage] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -204,19 +213,19 @@ function ManualRequestForm({ onCreated }: { onCreated: () => void }) {
     setError(null);
 
     if (!file) {
-      setError("Le document scanne est requis.");
+      setError('Le document scanne est requis.');
       return;
     }
 
     setSubmitting(true);
     try {
       const formData = new FormData();
-      formData.append("file", file);
-      const { data: uploaded } = await api.post("/uploads", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+      formData.append('file', file);
+      const { data: uploaded } = await api.post('/uploads', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
 
-      await api.post("/requests", {
+      await api.post('/requests', {
         applicantId: Number(applicantId),
         requestType,
         message,
@@ -226,7 +235,7 @@ function ManualRequestForm({ onCreated }: { onCreated: () => void }) {
 
       onCreated();
     } catch (err) {
-      setError(apiErrorMessage(err, "Impossible de creer la demande."));
+      setError(apiErrorMessage(err, 'Impossible de creer la demande.'));
     } finally {
       setSubmitting(false);
     }
@@ -271,7 +280,12 @@ function ManualRequestForm({ onCreated }: { onCreated: () => void }) {
 
       <div>
         <label className="label">Message (optionnel)</label>
-        <textarea className="input" value={message} onChange={(e) => setMessage(e.target.value)} rows={2} />
+        <textarea
+          className="input"
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          rows={2}
+        />
       </div>
 
       <div>
@@ -285,7 +299,7 @@ function ManualRequestForm({ onCreated }: { onCreated: () => void }) {
       </div>
 
       <button type="submit" className="btn-primary" disabled={submitting}>
-        {submitting ? "Enregistrement..." : "Enregistrer la demande"}
+        {submitting ? 'Enregistrement...' : 'Enregistrer la demande'}
       </button>
     </form>
   );

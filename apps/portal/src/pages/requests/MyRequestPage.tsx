@@ -1,5 +1,5 @@
-import { useEffect, useState, FormEvent } from "react";
-import { api, apiErrorMessage } from "../../lib/api";
+import { useEffect, useState, FormEvent } from 'react';
+import { api, apiErrorMessage } from '../../lib/axios';
 
 interface RequestView {
   id: number;
@@ -20,12 +20,12 @@ const REQUEST_TYPE_LABELS: Record<string, string> = {
 };
 
 const CIRCUIT_STATUS_LABELS: Record<string, string> = {
-  submitted: "Deposee - en attente de signature DG",
-  signed: "Signee par la DG",
-  pending_review: "Transmise a la Direction de la Navigabilite",
+  submitted: 'Deposee - en attente de signature DG',
+  signed: 'Signee par la DG',
+  pending_review: 'Transmise a la Direction de la Navigabilite',
 };
 
-const TERMINAL_STATUSES = ["rejected", "completed", "cancelled"];
+const TERMINAL_STATUSES = ['rejected', 'completed', 'cancelled'];
 
 export default function MyRequestPage() {
   const [requests, setRequests] = useState<RequestView[] | null>(null);
@@ -33,10 +33,10 @@ export default function MyRequestPage() {
 
   async function load() {
     try {
-      const { data } = await api.get("/requests/mine");
+      const { data } = await api.get('/requests/mine');
       setRequests(data);
     } catch (err) {
-      setError(apiErrorMessage(err, "Impossible de charger votre demande."));
+      setError(apiErrorMessage(err, 'Impossible de charger votre demande.'));
     }
   }
 
@@ -81,10 +81,12 @@ export default function MyRequestPage() {
               <div key={r.id} className="card text-sm flex items-center justify-between">
                 <div>
                   <p className="font-medium">{r.reference}</p>
-                  <p className="text-anac-muted">{REQUEST_TYPE_LABELS[r.requestType] ?? r.requestType}</p>
+                  <p className="text-anac-muted">
+                    {REQUEST_TYPE_LABELS[r.requestType] ?? r.requestType}
+                  </p>
                 </div>
                 <span className="text-anac-muted text-xs">
-                  {new Date(r.createdAt).toLocaleDateString("fr-FR")}
+                  {new Date(r.createdAt).toLocaleDateString('fr-FR')}
                 </span>
               </div>
             ))}
@@ -95,11 +97,17 @@ export default function MyRequestPage() {
   );
 }
 
-function ActiveRequestCard({ request, onChanged }: { request: RequestView; onChanged: () => void }) {
+function ActiveRequestCard({
+  request,
+  onChanged,
+}: {
+  request: RequestView;
+  onChanged: () => void;
+}) {
   const [cancelling, setCancelling] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canCancel = request.circuitStatus === "submitted";
+  const canCancel = request.circuitStatus === 'submitted';
 
   async function handleCancel() {
     setError(null);
@@ -108,7 +116,7 @@ function ActiveRequestCard({ request, onChanged }: { request: RequestView; onCha
       await api.post(`/requests/${request.id}/cancel`);
       onChanged();
     } catch (err) {
-      setError(apiErrorMessage(err, "Annulation impossible."));
+      setError(apiErrorMessage(err, 'Annulation impossible.'));
     } finally {
       setCancelling(false);
     }
@@ -124,14 +132,17 @@ function ActiveRequestCard({ request, onChanged }: { request: RequestView; onCha
       </div>
 
       <p className="text-sm">
-        Statut : <span className="font-medium">{CIRCUIT_STATUS_LABELS[request.circuitStatus ?? ""] ?? request.status}</span>
+        Statut :{' '}
+        <span className="font-medium">
+          {CIRCUIT_STATUS_LABELS[request.circuitStatus ?? ''] ?? request.status}
+        </span>
       </p>
 
       {error && <p className="text-anac-danger text-sm">{error}</p>}
 
       {canCancel && (
         <button className="btn-secondary text-sm" onClick={handleCancel} disabled={cancelling}>
-          {cancelling ? "Annulation..." : "Annuler ma demande"}
+          {cancelling ? 'Annulation...' : 'Annuler ma demande'}
         </button>
       )}
 
@@ -145,8 +156,8 @@ function ActiveRequestCard({ request, onChanged }: { request: RequestView; onCha
 }
 
 function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
-  const [requestType, setRequestType] = useState("issuance");
-  const [message, setMessage] = useState("");
+  const [requestType, setRequestType] = useState('issuance');
+  const [message, setMessage] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -156,19 +167,19 @@ function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
     setError(null);
 
     if (!file) {
-      setError("Merci de joindre votre demande scannee (PDF, Word, PNG ou JPG).");
+      setError('Merci de joindre votre demande scannee (PDF, Word, PNG ou JPG).');
       return;
     }
 
     setSubmitting(true);
     try {
       const formData = new FormData();
-      formData.append("file", file);
-      const { data: uploaded } = await api.post("/uploads", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+      formData.append('file', file);
+      const { data: uploaded } = await api.post('/uploads', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
 
-      await api.post("/requests", {
+      await api.post('/requests', {
         requestType,
         message,
         fileUrl: uploaded.fileUrl,
@@ -177,7 +188,7 @@ function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
 
       onSubmitted();
     } catch (err) {
-      setError(apiErrorMessage(err, "Impossible de soumettre la demande."));
+      setError(apiErrorMessage(err, 'Impossible de soumettre la demande.'));
     } finally {
       setSubmitting(false);
     }
@@ -193,7 +204,11 @@ function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
 
       <div>
         <label className="label">Type de demande</label>
-        <select className="input" value={requestType} onChange={(e) => setRequestType(e.target.value)}>
+        <select
+          className="input"
+          value={requestType}
+          onChange={(e) => setRequestType(e.target.value)}
+        >
           <option value="issuance">Delivrance d'un nouvel agrement</option>
           <option value="recognition">Reconnaissance d'agrement</option>
           <option value="modification">Modification d'un agrement existant</option>
@@ -203,7 +218,12 @@ function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
 
       <div>
         <label className="label">Message (optionnel)</label>
-        <textarea className="input" value={message} onChange={(e) => setMessage(e.target.value)} rows={3} />
+        <textarea
+          className="input"
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          rows={3}
+        />
       </div>
 
       <div>
@@ -217,7 +237,7 @@ function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
       </div>
 
       <button type="submit" className="btn-primary w-full" disabled={submitting}>
-        {submitting ? "Envoi..." : "Soumettre ma demande"}
+        {submitting ? 'Envoi...' : 'Soumettre ma demande'}
       </button>
     </form>
   );

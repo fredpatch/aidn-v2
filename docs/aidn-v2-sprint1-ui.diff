@@ -227,7 +227,7 @@ index 0000000..5e37f2b
 +++ b/apps/admin/src/pages/auth/BootstrapPage.tsx
 @@ -0,0 +1,113 @@
 +import { useState, FormEvent } from "react";
-+import { api, apiErrorMessage } from "../../lib/api";
++import { api, apiErrorMessage } from "../../lib/axios";
 +import { useAuth } from "../../hooks/useAuth";
 +
 +export default function BootstrapPage() {
@@ -346,7 +346,7 @@ index 0000000..b0aa05f
 +++ b/apps/admin/src/pages/auth/LoginPage.tsx
 @@ -0,0 +1,150 @@
 +import { useState, FormEvent } from "react";
-+import { api, apiErrorMessage } from "../../lib/api";
++import { api, apiErrorMessage } from "../../lib/axios";
 +import { useAuth } from "../../hooks/useAuth";
 +
 +type Step = "credentials" | "set-password";
@@ -502,7 +502,7 @@ index 0000000..689aa21
 +++ b/apps/admin/src/pages/requests/RequestsPage.tsx
 @@ -0,0 +1,292 @@
 +import { useEffect, useState, FormEvent } from "react";
-+import { api, apiErrorMessage } from "../../lib/api";
++import { api, apiErrorMessage } from "../../lib/axios";
 +
 +interface RequestView {
 +  id: number;
@@ -1691,7 +1691,7 @@ index 0000000..6e1235f
 +++ b/apps/portal/src/pages/auth/LoginPage.tsx
 @@ -0,0 +1,69 @@
 +import { useState, FormEvent } from "react";
-+import { api, apiErrorMessage } from "../../lib/api";
++import { api, apiErrorMessage } from "../../lib/axios";
 +import { useApplicantAuth } from "../../hooks/useApplicantAuth";
 +
 +export default function LoginPage() {
@@ -1766,7 +1766,7 @@ index 0000000..24c69cf
 +++ b/apps/portal/src/pages/requests/MyRequestPage.tsx
 @@ -0,0 +1,224 @@
 +import { useEffect, useState, FormEvent } from "react";
-+import { api, apiErrorMessage } from "../../lib/api";
++import { api, apiErrorMessage } from "../../lib/axios";
 +
 +interface RequestView {
 +  id: number;

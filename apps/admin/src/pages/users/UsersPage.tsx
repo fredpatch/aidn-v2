@@ -1,9 +1,9 @@
-import { useEffect, useState, FormEvent } from "react";
-import { UserPlus, RotateCcw, Loader2 } from "lucide-react";
-import { api, apiErrorMessage } from "../../lib/api";
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
+import { useEffect, useState, FormEvent } from 'react';
+import { UserPlus, RotateCcw, Loader2 } from 'lucide-react';
+import { api, apiErrorMessage } from '../../lib/axios';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
 
 interface UserView {
   id: number;
@@ -17,13 +17,13 @@ interface UserView {
 }
 
 const ROLE_LABELS: Record<string, string> = {
-  reception: "Reception",
-  assistant_dg: "Assistant DG",
-  dn_agent: "Agent DN",
-  dn_supervisor: "Superviseur DN",
-  r3_agent: "Agent R3",
-  s5_agent: "Agent S5",
-  SU: "Super Admin",
+  reception: 'Reception',
+  assistant_dg: 'Assistant DG',
+  dn_agent: 'Agent DN',
+  dn_supervisor: 'Superviseur DN',
+  r3_agent: 'Agent R3',
+  s5_agent: 'Agent S5',
+  SU: 'Super Admin',
 };
 
 const ALL_ROLES = Object.keys(ROLE_LABELS);
@@ -40,10 +40,10 @@ export default function UsersPage() {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await api.get("/users");
+      const { data } = await api.get('/users');
       setUsers(data.data);
     } catch (err) {
-      setError(apiErrorMessage(err, "Impossible de charger les utilisateurs."));
+      setError(apiErrorMessage(err, 'Impossible de charger les utilisateurs.'));
     } finally {
       setLoading(false);
     }
@@ -60,7 +60,7 @@ export default function UsersPage() {
       await api.patch(`/users/${id}/activation`, { active });
       await load();
     } catch (err) {
-      setActionError(apiErrorMessage(err, "Action impossible."));
+      setActionError(apiErrorMessage(err, 'Action impossible.'));
     } finally {
       setBusyId(null);
     }
@@ -73,7 +73,7 @@ export default function UsersPage() {
       await api.post(`/users/${id}/reset-otp`);
       await load();
     } catch (err) {
-      setActionError(apiErrorMessage(err, "Reinitialisation impossible."));
+      setActionError(apiErrorMessage(err, 'Reinitialisation impossible.'));
     } finally {
       setBusyId(null);
     }
@@ -84,11 +84,13 @@ export default function UsersPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-anac-navy text-xl font-semibold">Utilisateurs</h1>
-          <p className="text-anac-muted text-sm">Comptes internes ANAC - reception, DN, R3, S5, SU</p>
+          <p className="text-anac-muted text-sm">
+            Comptes internes ANAC - reception, DN, R3, S5, SU
+          </p>
         </div>
         <Button onClick={() => setShowForm((v) => !v)} className="gap-1.5">
           <UserPlus size={14} />
-          {showForm ? "Fermer" : "Nouvel utilisateur"}
+          {showForm ? 'Fermer' : 'Nouvel utilisateur'}
         </Button>
       </div>
 
@@ -125,11 +127,13 @@ export default function UsersPage() {
                   <td className="py-2 pr-4 font-medium">{u.employeeCode}</td>
                   <td className="py-2 pr-4">{u.fullName}</td>
                   <td className="py-2 pr-4 text-anac-muted text-xs">
-                    {u.roles.map((r) => ROLE_LABELS[r] ?? r).join(", ")}
+                    {u.roles.map((r) => ROLE_LABELS[r] ?? r).join(', ')}
                   </td>
                   <td className="py-2 pr-4">
-                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${u.active ? "bg-anac-success/10 text-anac-success" : "bg-anac-muted/10 text-anac-muted"}`}>
-                      {u.active ? "Actif" : "Inactif"}
+                    <span
+                      className={`px-2 py-0.5 rounded text-xs font-medium ${u.active ? 'bg-anac-success/10 text-anac-success' : 'bg-anac-muted/10 text-anac-muted'}`}
+                    >
+                      {u.active ? 'Actif' : 'Inactif'}
                     </span>
                     {u.firstLogin && (
                       <span className="ml-1.5 px-2 py-0.5 rounded text-xs font-medium bg-anac-warning/10 text-anac-warning">
@@ -143,14 +147,18 @@ export default function UsersPage() {
                       disabled={busyId === u.id}
                       onClick={() => handleToggle(u.id, !u.active)}
                     >
-                      {u.active ? "Desactiver" : "Activer"}
+                      {u.active ? 'Desactiver' : 'Activer'}
                     </button>
                     <button
                       className="text-anac-muted underline text-xs disabled:opacity-50 inline-flex items-center gap-1"
                       disabled={busyId === u.id}
                       onClick={() => handleResetOtp(u.id)}
                     >
-                      {busyId === u.id ? <Loader2 size={10} className="animate-spin" /> : <RotateCcw size={10} />}
+                      {busyId === u.id ? (
+                        <Loader2 size={10} className="animate-spin" />
+                      ) : (
+                        <RotateCcw size={10} />
+                      )}
                       Reinitialiser OTP
                     </button>
                   </td>
@@ -165,9 +173,9 @@ export default function UsersPage() {
 }
 
 function CreateUserForm({ onCreated }: { onCreated: () => void }) {
-  const [employeeCode, setEmployeeCode] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
+  const [employeeCode, setEmployeeCode] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
   const [roles, setRoles] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -181,13 +189,13 @@ function CreateUserForm({ onCreated }: { onCreated: () => void }) {
     setError(null);
 
     if (roles.length === 0) {
-      setError("Selectionnez au moins un role.");
+      setError('Selectionnez au moins un role.');
       return;
     }
 
     setSubmitting(true);
     try {
-      await api.post("/users", { employeeCode, fullName, email, roles });
+      await api.post('/users', { employeeCode, fullName, email, roles });
       onCreated();
     } catch (err) {
       setError(apiErrorMessage(err, "Impossible de creer l'utilisateur."));
@@ -229,8 +237,8 @@ function CreateUserForm({ onCreated }: { onCreated: () => void }) {
               onClick={() => toggleRole(role)}
               className={`px-3 py-1.5 rounded text-xs font-medium border transition-colors ${
                 roles.includes(role)
-                  ? "bg-anac-navy text-white border-anac-navy"
-                  : "bg-white text-anac-muted border-anac-border hover:bg-anac-gray"
+                  ? 'bg-anac-navy text-white border-anac-navy'
+                  : 'bg-white text-anac-muted border-anac-border hover:bg-anac-gray'
               }`}
             >
               {ROLE_LABELS[role]}
@@ -240,7 +248,7 @@ function CreateUserForm({ onCreated }: { onCreated: () => void }) {
       </div>
 
       <Button type="submit" disabled={submitting}>
-        {submitting ? "Creation..." : "Creer l'utilisateur"}
+        {submitting ? 'Creation...' : "Creer l'utilisateur"}
       </Button>
     </form>
   );
