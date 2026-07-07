@@ -53,6 +53,27 @@ comme un ETL ponctuel.
       `notifications` ; envoi email réel différé au Sprint 10)
 - [x] Annulation possible en `Déposé` uniquement (`cancel`)
 
+### UI (React) - couche manquante identifiée après coup
+
+L'implémentation initiale du Sprint 1 ne couvrait que l'API ; les deux
+frontends sont maintenant construits et testés bout-en-bout (portail →
+admin → retour portail, pas seulement des tests API isolés) :
+
+- [x] `apps/admin` : Bootstrap (création SU), Login (matricule + OTP
+      première connexion / mot de passe), liste des demandes avec actions
+      de circuit (signer, transmettre, annuler), formulaire de saisie
+      manuelle guichet (upload + soumission au nom d'un postulant)
+- [x] `apps/portal` : Login postulant, formulaire de soumission de demande
+      avec upload, vue statut de la demande active + historique, annulation
+      tant que `Déposé`
+- [x] Authentification postulant (email + mot de passe) — manquait
+      initialement ; seule l'auth interne (SICOT-style) avait été
+      construite. Création de compte reste M13 (Sprint 12) ; ceci ne
+      couvre que la connexion pour un compte déjà existant
+- [x] Module `uploads` générique (multer, disque local) — prérequis non
+      identifié au départ, nécessaire pour que les formulaires puissent
+      réellement joindre un fichier
+
 ### Prérequis ajouté en cours de sprint : Auth & Utilisateurs (calqué sur SICOT)
 
 - [x] Authentification matricule + OTP première connexion + mot de passe

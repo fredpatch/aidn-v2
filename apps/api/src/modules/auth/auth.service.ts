@@ -67,6 +67,7 @@ export async function login(params: {
 
     // Temporary token, 5 minutes, to secure the /set-password call only.
     const tempAccessToken = signAccessToken({
+      kind: "staff",
       userId: user.id,
       employeeCode: user.employeeCode,
       roles: ["first_login"],
@@ -143,7 +144,7 @@ export async function refreshToken(token: string): Promise<{ accessToken: string
   if (!user || !user.active) throw new Error("ACCOUNT_INACTIVE");
 
   const roles = payload.roles;
-  const accessToken = signAccessToken({ userId: user.id, employeeCode: user.employeeCode, roles });
+  const accessToken = signAccessToken({ kind: "staff", userId: user.id, employeeCode: user.employeeCode, roles });
 
   return { accessToken };
 }

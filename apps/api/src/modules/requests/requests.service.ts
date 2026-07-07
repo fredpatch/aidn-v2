@@ -195,7 +195,21 @@ export async function markPendingReview(requestId: number, actorUserId: number):
 
 /** Cancellable only while still in Depose - locked the instant DG signs it.
  *  Releases the "one active request" rule immediately. */
-export async function cancelRequest(requestId: number, actorUserId: number): Promise<RequestView> {
+/** Cancellable only while still in Depose (checked above). Can be called
+ *  either by staff (on the postulant's behalf) or by the applicant
+ *  themselves - when it's the applicant, ownership is enforced: they can
+ *  only cancel their own demande. */
+export async function cancelRequest(
+  requestId: number,
+  actor: { userId?: number; applicantId?: number }
+): Promise<RequestView> {
+  const [request] = await db.select().from(requests).where(eq(requests.id, requestId));
+  if (!request) throw new Error("REQUEST_NOT_FOUND");
+
+  if (actor.applicantId !== undefined && request.applicantId !== actor.applicantId) {
+    throw new Error("REQUEST_NOT_FOUND"); // don't leak existence of someone else's request
+  }
+
   const [circuitDoc] = await db
     .select()
     .from(dgCircuitDocuments)
@@ -203,15 +217,43 @@ export async function cancelRequest(requestId: number, actorUserId: number): Pro
   if (!circuitDoc) throw new Error("DG_CIRCUIT_NOT_FOUND");
   if (circuitDoc.status !== "submitted") throw new Error("REQUEST_NOT_CANCELLABLE");
 
-  const [request] = await db
+  const [updated] = await db
     .update(requests)
     .set({ status: "cancelled", updatedAt: new Date() })
     .where(eq(requests.id, requestId))
     .returning();
 
-  await logAudit({ userId: actorUserId, action: "REQUEST_CANCELLED", module: "M1", entityId: requestId });
+  await logAudit({
+    userId: actor.userId,
+    action: "REQUEST_CANCELLED",
+    module: "M1",
+    entityId: requestId,
+    details: actor.applicantId ? { cancelledByApplicant: actor.applicantId } : undefined,
+  });
 
-  return toRequestView(request, circuitDoc.status);
+  return toRequestView(updated, circuitDoc.status);
+}
+
+/** M1 - "my current demande" for the portal. At most one non-terminal
+ *  request exists per applicant's organisation (see the "one active
+ *  request" rule), but history (cancelled/rejected/completed) is included
+ *  too so the applicant can see what happened to past attempts. */
+export async function listRequestsByApplicant(applicantId: number): Promise<RequestView[]> {
+  const rows = await db
+    .select()
+    .from(requests)
+    .where(eq(requests.applicantId, applicantId))
+    .orderBy(desc(requests.createdAt));
+
+  return Promise.all(
+    rows.map(async (row) => {
+      const [circuitDoc] = await db
+        .select()
+        .from(dgCircuitDocuments)
+        .where(eq(dgCircuitDocuments.requestId, row.id));
+      return toRequestView(row, circuitDoc?.status ?? null);
+    })
+  );
 }
 
 /** M8 pattern - replace a mis-scanned document. The old version goes to

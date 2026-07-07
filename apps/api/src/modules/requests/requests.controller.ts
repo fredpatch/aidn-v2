@@ -4,24 +4,41 @@ import { handleRequestsError } from "../../shared/utils/error.js";
 
 export async function submit(req: Request, res: Response): Promise<void> {
   try {
-    const { applicantId, requestType, message, fileUrl, mimeType } = req.body;
+    const { requestType, message, fileUrl, mimeType } = req.body;
 
-    if (!applicantId || !requestType || !fileUrl || !mimeType) {
-      res.status(400).json({
-        message: "applicantId, requestType, fileUrl et mimeType sont requis.",
-      });
+    // Applicant (portal, self-submission) - applicantId always comes from
+    // their own session, never trusted from the request body.
+    // Staff (reception/assistant_dg, manual entry for a physical drop-off)
+    // - must specify which applicant this demande is for.
+    let applicantId: number;
+    let submittedByUserId: number | undefined;
+
+    if (req.applicant) {
+      applicantId = req.applicant.applicantId;
+    } else if (req.user) {
+      if (!req.body.applicantId) {
+        res.status(400).json({ message: "applicantId requis pour une saisie manuelle." });
+        return;
+      }
+      applicantId = Number(req.body.applicantId);
+      submittedByUserId = req.user.userId;
+    } else {
+      res.status(401).json({ message: "Non authentifie." });
+      return;
+    }
+
+    if (!requestType || !fileUrl || !mimeType) {
+      res.status(400).json({ message: "requestType, fileUrl et mimeType sont requis." });
       return;
     }
 
     const result = await requestsService.submitRequest({
-      applicantId: Number(applicantId),
+      applicantId,
       requestType,
       message,
       fileUrl,
       mimeType,
-      // Present when reception/assistant_dg enters a physical drop-off manually;
-      // absent for a genuine portal self-submission.
-      submittedByUserId: req.user?.userId,
+      submittedByUserId,
     });
 
     res.status(201).json(result);
@@ -69,7 +86,19 @@ export async function markPendingReview(req: Request, res: Response): Promise<vo
 
 export async function cancel(req: Request, res: Response): Promise<void> {
   try {
-    const result = await requestsService.cancelRequest(Number(req.params.id), req.user!.userId);
+    const result = await requestsService.cancelRequest(Number(req.params.id), {
+      userId: req.user?.userId,
+      applicantId: req.applicant?.applicantId,
+    });
+    res.json(result);
+  } catch (error) {
+    handleRequestsError(res, error);
+  }
+}
+
+export async function mine(req: Request, res: Response): Promise<void> {
+  try {
+    const result = await requestsService.listRequestsByApplicant(req.applicant!.applicantId);
     res.json(result);
   } catch (error) {
     handleRequestsError(res, error);

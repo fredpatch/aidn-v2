@@ -8,6 +8,7 @@
     "packages/*"
   ],
   "scripts": {
+    "postinstall": "npm run build --workspace=packages/shared",
     "dev": "concurrently \"npm run dev --workspace=apps/api\" \"npm run dev --workspace=apps/admin\" \"npm run dev --workspace=apps/portal\"",
     "dev:api": "npm run dev --workspace=apps/api",
     "dev:admin": "npm run dev --workspace=apps/admin",

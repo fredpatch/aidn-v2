@@ -11,6 +11,8 @@ coverage/
 drizzle/
 *.sqlite
 *.tsbuildinfo
+apps/api/uploads/*
+!apps/api/uploads/.gitkeep
 # Python
 .venv/
 __pycache__/

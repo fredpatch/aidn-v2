@@ -36,7 +36,12 @@ export async function resetFailedAttempts(userId: number): Promise<void> {
 
 export async function buildTokens(user: { id: number; employeeCode: string }): Promise<AuthTokens> {
   const roles = await getRolesForUser(user.id);
-  const payload: TokenPayload = { userId: user.id, employeeCode: user.employeeCode, roles };
+  const payload: TokenPayload = {
+    kind: "staff",
+    userId: user.id,
+    employeeCode: user.employeeCode,
+    roles,
+  };
   return {
     accessToken: signAccessToken(payload),
     refreshToken: signRefreshToken(payload),

@@ -1,17 +1,25 @@
 import { Request, NextFunction, Response } from "express";
-import { verifyAccessToken, TokenPayload } from "../utils/jwt.js";
+import {
+  verifyAccessToken,
+  verifyApplicantAccessToken,
+  TokenPayload,
+  ApplicantTokenPayload,
+} from "../utils/jwt.js";
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       user?: TokenPayload;
+      applicant?: ApplicantTokenPayload;
     }
   }
 }
 
 export const ACCESS_TOKEN_COOKIE = "aidn_access";
 export const REFRESH_TOKEN_COOKIE = "aidn_refresh";
+export const APPLICANT_ACCESS_TOKEN_COOKIE = "aidn_applicant_access";
+export const APPLICANT_REFRESH_TOKEN_COOKIE = "aidn_applicant_refresh";
 
 export const accessCookieOptions = {
   httpOnly: true,
@@ -26,6 +34,13 @@ export const refreshCookieOptions = {
   sameSite: "strict" as const,
   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
 };
+
+export const applicantAccessCookieOptions = {
+  ...accessCookieOptions,
+  maxAge: 30 * 60 * 1000, // 30 minutes
+};
+
+export const applicantRefreshCookieOptions = refreshCookieOptions;
 
 export function authenticate(req: Request, res: Response, next: NextFunction): void {
   const token = req.cookies?.[ACCESS_TOKEN_COOKIE];
@@ -42,6 +57,54 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
     // Expired token - client should call /api/auth/refresh
     res.status(401).json({ message: "Session expiree.", code: "TOKEN_EXPIRED" });
   }
+}
+
+export function authenticateApplicant(req: Request, res: Response, next: NextFunction): void {
+  const token = req.cookies?.[APPLICANT_ACCESS_TOKEN_COOKIE];
+
+  if (!token) {
+    res.status(401).json({ message: "Non authentifie." });
+    return;
+  }
+
+  try {
+    req.applicant = verifyApplicantAccessToken(token);
+    next();
+  } catch {
+    res.status(401).json({ message: "Session expiree.", code: "TOKEN_EXPIRED" });
+  }
+}
+
+/** M1 - the demande submission endpoint is reachable from the portal
+ *  (applicant) and from reception/assistant_dg entering a physical
+ *  drop-off (staff) - see cross-cutting pattern "Circuit DG". Accepts
+ *  either a valid applicant session or a valid staff session, attaching
+ *  whichever one matched. */
+export function authenticateEither(req: Request, res: Response, next: NextFunction): void {
+  const staffToken = req.cookies?.[ACCESS_TOKEN_COOKIE];
+  const applicantToken = req.cookies?.[APPLICANT_ACCESS_TOKEN_COOKIE];
+
+  if (staffToken) {
+    try {
+      req.user = verifyAccessToken(staffToken);
+      next();
+      return;
+    } catch {
+      // fall through to try applicant token below
+    }
+  }
+
+  if (applicantToken) {
+    try {
+      req.applicant = verifyApplicantAccessToken(applicantToken);
+      next();
+      return;
+    } catch {
+      // fall through to the 401 below
+    }
+  }
+
+  res.status(401).json({ message: "Non authentifie." });
 }
 
 /** Role gate - internal roles only, multi-role aware (see packages/shared
@@ -61,4 +124,9 @@ export function requireRole(...allowedRoles: string[]) {
 export function clearAuthCookies(res: Response): void {
   res.clearCookie(ACCESS_TOKEN_COOKIE);
   res.clearCookie(REFRESH_TOKEN_COOKIE);
+}
+
+export function clearApplicantAuthCookies(res: Response): void {
+  res.clearCookie(APPLICANT_ACCESS_TOKEN_COOKIE);
+  res.clearCookie(APPLICANT_REFRESH_TOKEN_COOKIE);
 }
