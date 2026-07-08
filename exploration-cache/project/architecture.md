@@ -55,7 +55,10 @@ added after a real gap was found (see `technical/gotchas.md` #6).
 **Endpoints that accept either** (e.g. `POST /api/requests`, the demande submission
 endpoint) use `authenticateEither` middleware, since M1 requires the same entry point
 whether the postulant self-submits via the portal or reception enters a physical
-drop-off manually.
+drop-off manually. Since admin and portal share a top-level domain in this setup,
+`authenticateEither` uses the request's `Origin` header (compared against
+`PORTAL_ORIGIN`) to check the *matching* cookie first, so a stale staff cookie can't
+silently win over a genuine applicant request — see `technical/gotchas.md` #19.
 
 ## Data flow example — M1 demande submission
 
@@ -75,4 +78,7 @@ drop-off manually.
 PORT, CORS_ORIGIN, DATABASE_URL, JWT_SECRET, JWT_REFRESH_SECRET
 SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM
 GEMINI_API_KEY
+PORTAL_ORIGIN   added Sprint 2 — used by authenticateEither to pick which cookie to
+                trust first (technical/gotchas.md #19); NOT yet in .env.example, only
+                in the local .env — add it there before this is handed to anyone else
 ```

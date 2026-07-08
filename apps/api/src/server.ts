@@ -13,6 +13,10 @@ import applicantAuthRoute from "./modules/applicant-auth/applicant-auth.route.js
 import usersRoute from "./modules/users/users.route.js";
 import requestsRoute from "./modules/requests/requests.route.js";
 import uploadsRoute from "./modules/uploads/uploads.route.js";
+import phasesRoute from "./modules/phases/phases.route.js";
+import meetingsRoute from "./modules/meetings/meetings.route.js";
+import documentTemplatesRoute from "./modules/document-templates/document-templates.route.js";
+import preliminaryEvaluationRoute from "./modules/preliminary-evaluation/preliminary-evaluation.route.js";
 import { startDgCircuitAlertJob } from "./jobs/dg-circuit-alert.job.js";
 import { verifyEmailConnection } from "./shared/utils/email.js";
 
@@ -47,6 +51,10 @@ app.use("/api/applicant-auth", applicantAuthRoute);
 app.use("/api/users", usersRoute);
 app.use("/api/requests", requestsRoute);
 app.use("/api/uploads", uploadsRoute);
+app.use("/api/phases", phasesRoute);
+app.use("/api/meetings", meetingsRoute);
+app.use("/api/document-templates", documentTemplatesRoute);
+app.use("/api/preliminary-evaluation", preliminaryEvaluationRoute);
 
 app.listen(port, () => {
   console.log(`AIDN API listening on port ${port}`);

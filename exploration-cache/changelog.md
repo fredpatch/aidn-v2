@@ -1,24 +1,44 @@
 # 📝 AIDN v2 — Changelog
 
-Commit-level history. Covers `be9fce9` through `2205261` (2026-07-07), plus an
-uncommitted fix pass from 2026-07-08.
+Commit-level history. Covers `be9fce9` through `a4a5220` (2026-07-07/08), plus an
+uncommitted Sprint 2 pass from 2026-07-08.
 
-## (uncommitted) — fix both builds broken by the axios-hardening migration
+## (uncommitted) — Sprint 2: Phase Préliminaire (M3), full API + UI
 
-On top of `2205261`, 2026-07-08:
-- `apps/portal/src/lib/axios.ts` created, mirroring `apps/admin/src/lib/axios.ts`
-  but pointed at `/applicant-auth/refresh` — portal build was broken without it
-  (`technical/gotchas.md` #11)
-- `apps/portal/src/hooks/useApplicantAuth.tsx` switched onto the new `lib/axios.ts`;
-  both apps' now-orphaned `lib/api.ts` deleted
-- `apps/admin/src/hooks/useAuth.tsx`: fixed a doubled `@/src/lib/axios` import path
-  that also broke the admin build (`technical/gotchas.md` #14)
-- `sessionStorage` "session expired" key mismatch fixed (`session_expiree` vs
-  `session_expired`) in admin's `LoginPage.tsx`; same check added to portal's
-  `LoginPage.tsx`, which had none (`technical/gotchas.md` #15)
-- `apps/portal/vite.config.ts` brought to parity with admin's (`@` alias, dev proxy,
-  build config)
-- `docs/TASKS.md` and `active-session/blockers.md` updated to reflect the fix
+On top of `a4a5220`, 2026-07-08:
+- Phase lifecycle (`modules/phases/`): open M3 on a `pending_review` request,
+  close with a doc or note
+- Meetings (`modules/meetings/`): schedule, status changes (added `scheduled` as
+  the real initial status), reschedule, hard-conflict DB constraint, HTML ticket
+  (not a generated PDF — `project/decisions.md` #12)
+- Preliminary evaluation declaration (`modules/preliminary-evaluation/`): made
+  available post-meeting, portal upload of the filled form, dynamic return delay
+- **New module, generalized ahead of M4**: `document_templates`
+  (`modules/document-templates/`) — DN uploads/replaces blank forms by key,
+  4 keys seeded (1 in use now, 3 ready for Sprint 3) — `project/decisions.md` #11
+- **Security fix**: `authenticateEither` now prefers the cookie matching the
+  request's `Origin` header, closing a stale-staff-cookie-wins gap
+  (`technical/gotchas.md` #19, `project/decisions.md` #13)
+- Full admin UI (`pages/phases/PreliminaryPhasePage.tsx`,
+  `pages/document-templates/DocumentTemplatesPage.tsx`) and portal UI
+  (`pages/requests/MyRequestPage.tsx` extended)
+- 6 real bugs found and fixed: controllers crashing on empty request bodies
+  (systemic, not just new code), a router-mount collision blocking applicant
+  access, error check-ordering, a `packages/shared`/schema drift, a missing
+  portal bundle endpoint, missing imports — `technical/gotchas.md` #15-#18
+- Legacy repo actually renamed to `aidn-v2-legacy`
+- Old reference `docs/*.diff` snapshots (redesign, schema, sprint1, sprint1-ui,
+  axios-fix, exploration-cache) removed, replaced by fresh `aidn-v2-sprint2.diff`
+  and `aidn-v2-personnel-note.diff`
+- Verified via typecheck across `apps/api`, `apps/admin`, `apps/portal`
+
+## `a4a5220` — fix(admin,portal): repair both builds broken by axios-hardening migration
+
+Created `apps/portal/src/lib/axios.ts` (was referenced but never created), switched
+`useApplicantAuth.tsx` onto it, deleted both apps' orphaned `lib/api.ts`. Fixed a
+doubled `@/src/lib/axios` import in admin's `useAuth.tsx` (broke the admin build
+too). Fixed a `session_expired`/`session_expiree` sessionStorage key mismatch.
+Full detail in `sessions/2026-07-08.md`.
 
 ## `2205261` — feat(admin): harden axios refresh queue, prettier reformat, vite/tsconfig tweaks
 
@@ -26,7 +46,7 @@ The admin polish/hardening pass, on top of `b64a073`:
 - `apps/admin/src/lib/axios.ts` added — hardened refresh-queue axios client,
   replacing `lib/api.ts`'s single-promise version (`project/decisions.md` #10)
 - Repo-wide `.prettierrc` (present since Sprint 0, never enforced) actually applied
-  across admin/portal source (`technical/gotchas.md` #12)
+  across admin/portal source (`technical/gotchas.md` #13)
 - `apps/admin/vite.config.ts`: `@` alias, dev proxy to the API, explicit build config
 - `apps/admin/tsconfig.json`: target `ES2022` → `ES2020`, `allowImportingTsExtensions`
   added (rationale unconfirmed)

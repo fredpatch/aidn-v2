@@ -4,7 +4,7 @@ import { handleRequestsError } from "../../shared/utils/error.js";
 
 export async function submit(req: Request, res: Response): Promise<void> {
   try {
-    const { requestType, message, fileUrl, mimeType } = req.body;
+    const { requestType, message, fileUrl, mimeType, applicantId: bodyApplicantId } = req.body ?? {};
 
     // Applicant (portal, self-submission) - applicantId always comes from
     // their own session, never trusted from the request body.
@@ -16,11 +16,11 @@ export async function submit(req: Request, res: Response): Promise<void> {
     if (req.applicant) {
       applicantId = req.applicant.applicantId;
     } else if (req.user) {
-      if (!req.body.applicantId) {
+      if (!bodyApplicantId) {
         res.status(400).json({ message: "applicantId requis pour une saisie manuelle." });
         return;
       }
-      applicantId = Number(req.body.applicantId);
+      applicantId = Number(bodyApplicantId);
       submittedByUserId = req.user.userId;
     } else {
       res.status(401).json({ message: "Non authentifie." });
@@ -107,7 +107,7 @@ export async function mine(req: Request, res: Response): Promise<void> {
 
 export async function replaceDocument(req: Request, res: Response): Promise<void> {
   try {
-    const { fileUrl, mimeType } = req.body;
+    const { fileUrl, mimeType } = req.body ?? {};
     if (!fileUrl || !mimeType) {
       res.status(400).json({ message: "fileUrl et mimeType sont requis." });
       return;

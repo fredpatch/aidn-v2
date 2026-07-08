@@ -1,4 +1,5 @@
 import { useEffect, useState, FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import { api, apiErrorMessage } from '../../lib/axios';
 
 interface RequestView {
@@ -187,7 +188,12 @@ export default function RequestsPage() {
                       </button>
                     )}
                     {r.circuitStatus === 'pending_review' && (
-                      <span className="text-anac-muted text-xs">Pret pour DN</span>
+                      <Link
+                        to={`/demandes/${r.id}/phase-preliminaire`}
+                        className="text-anac-blue underline text-xs"
+                      >
+                        Phase Preliminaire
+                      </Link>
                     )}
                   </td>
                 </tr>

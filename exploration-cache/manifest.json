@@ -3,37 +3,37 @@
   "client": "ANAC Gabon",
   "repo": "fredpatch/aidn-v2",
   "branch": "main",
-  "lastUpdated": "2026-07-08T00:00:00Z",
-  "lastCommit": "2205261 feat(admin): harden axios refresh queue, prettier reformat, vite/tsconfig tweaks",
-  "currentSprint": "Sprint 1 complete, Sprint 2 (Phase Preliminaire, M3) not started",
-  "currentSprintFocus": "Sprint 0 (feasibility study, patterns, stack, schema, scaffold) and Sprint 1 (Intake & Circuit DG, M1+M2, full API + admin/portal UI) both complete and pushed. Auth/Users/Bootstrap prerequisite built alongside Sprint 1, mirroring SICOT. Two real gaps caught by the client and fixed: missing applicant auth, and UI/UX that only matched SICOT's colors instead of its actual component structure. An admin polish/hardening pass landed on top (2205261) but broke both the admin and portal builds; both fixed in a 2026-07-08 follow-up session, ready to commit.",
-  "status": "Sprint 0 COMPLETE. Sprint 1 COMPLETE (API + full UI, verified against a real running Postgres instance including a genuine cross-app flow test). 10 real bugs found and fixed that session, most notably a confirmed upstream drizzle-kit CLI bug that silently swallows migration errors. The admin-app polish pass (hardened axios refresh queue, prettier reformat, vite/tsconfig tweaks, commit 2205261) left both the admin build (doubled-path import in useAuth.tsx) and the portal build (missing lib/axios.ts) broken, plus a sessionStorage key mismatch. All three fixed 2026-07-08. Next: commit/push this fix, then Sprint 2 (Phase Preliminaire, M3).",
+  "lastUpdated": "2026-07-08T12:00:00Z",
+  "lastCommit": "a4a5220 fix(admin,portal): repair both builds broken by axios-hardening migration",
+  "currentSprint": "Sprint 2 (Phase Preliminaire, M3) complete, uncommitted; Sprint 3 (Phase Demande formelle, M4) not started",
+  "currentSprintFocus": "Sprint 0, Sprint 1, and the axios-migration fix (a4a5220) are committed and pushed. Sprint 2 (Phase Preliminaire, M3) is now fully built on top of that - phase lifecycle, meetings, preliminary evaluation declaration, plus a document_templates module generalized ahead of M4 and a real security fix to authenticateEither's cookie precedence. All three workspaces typecheck clean. Uncommitted as of this writing, ready to commit/push.",
+  "status": "Sprint 0 COMPLETE. Sprint 1 COMPLETE. The 2026-07-08 axios-migration fix (a4a5220) is committed and pushed. Sprint 2 COMPLETE (API + full admin/portal UI) as of this session, uncommitted: phase open/close, meeting scheduling/status/ticket (HTML, not PDF), declaration make-available/submit, document_templates module (4 keys, 1 in use + 3 ready for Sprint 3), authenticateEither origin-based cookie fix. 6 real bugs found and fixed this sprint (empty-body controller crashes, router-mount collision, check ordering, packages/shared drift, missing portal bundle endpoint, missing imports). Legacy repo actually renamed to aidn-v2-legacy. Next: commit/push this diff, then Sprint 3 (Phase Demande formelle, M4).",
 
   "activeSession": {
-    "task": "Fixed the admin polish pass's fallout: portal's missing lib/axios.ts, admin's doubled @/src/lib/axios import path, and a session_expired/session_expiree sessionStorage key mismatch. exploration-cache updated to match. Ready to commit and push.",
+    "task": "Built Sprint 2 (Phase Preliminaire, M3) end to end: phases/meetings/preliminary-evaluation modules, document_templates module generalized ahead of M4, authenticateEither origin-based cookie security fix, admin+portal UI, 6 bugs found and fixed. exploration-cache updated to match. Ready to commit and push.",
     "startedAt": "2026-07-08",
-    "nextAction": "Commit and push this fix, then start Sprint 2 (Phase Preliminaire, M3)."
+    "nextAction": "Commit and push this Sprint 2 diff, then start Sprint 3 (Phase Demande formelle, M4). Add PORTAL_ORIGIN to apps/api/.env.example first."
   },
 
   "index": [
     { "path": "index.md", "type": "navigation", "tags": ["index", "overview", "navigation"], "summary": "Human-readable index of all files" },
     { "path": "quick-ref.md", "type": "reference", "tags": ["commands", "api", "colors", "rules", "sprint"], "summary": "One-page quick reference" },
-    { "path": "changelog.md", "type": "history", "tags": ["git", "commits", "history"], "summary": "Commit history, be9fce9 through b64a073" },
-    { "path": "active-session/current-task.md", "type": "session", "tags": ["current", "sprint0", "sprint1", "auth", "ui-redesign", "axios", "fixed"], "summary": "Sprint 0+1 complete (committed); 2026-07-08 fix session repaired both broken builds, ready to commit" },
-    { "path": "active-session/blockers.md", "type": "session", "tags": ["blockers", "m13", "applicant-registration", "visual-qa", "axios", "resolved"], "summary": "No hard blockers (portal/admin axios builds fixed) + 2 soft blockers (M13 registration, no browser verification)" },
-    { "path": "active-session/next-actions.md", "type": "session", "tags": ["actions", "sprint2", "phase-preliminaire", "m3"], "summary": "Sprint 2 (Phase Preliminaire, M3) is next" },
+    { "path": "changelog.md", "type": "history", "tags": ["git", "commits", "history"], "summary": "Commit history, be9fce9 through a4a5220, plus uncommitted Sprint 2" },
+    { "path": "active-session/current-task.md", "type": "session", "tags": ["current", "sprint2", "phase-preliminaire", "m3", "document-templates", "auth-security"], "summary": "Sprint 0+1+axios-fix committed; Sprint 2 (M3) fully built this session, uncommitted, ready to push" },
+    { "path": "active-session/blockers.md", "type": "session", "tags": ["blockers", "m13", "applicant-registration", "visual-qa"], "summary": "No hard blockers + 2 soft blockers (M13 registration, no browser verification)" },
+    { "path": "active-session/next-actions.md", "type": "session", "tags": ["actions", "sprint3", "phase-demande-formelle", "m4"], "summary": "Commit Sprint 2, then Sprint 3 (Phase Demande formelle, M4) is next" },
     { "path": "active-session/context.md", "type": "session", "tags": ["orientation", "rules", "environment", "auth", "dual-auth"], "summary": "Fresh-session orientation: dual auth system, critical rules, environment assumptions" },
     { "path": "project/overview.md", "type": "project", "tags": ["overview", "cdc", "context"], "summary": "What AIDN is, CDC summary" },
     { "path": "project/modules-feasibility.md", "type": "project", "tags": ["modules", "feasibility", "business-rules", "m1-m13"], "summary": "Full 13-module feasibility study with locked decisions" },
-    { "path": "project/architecture.md", "type": "project", "tags": ["stack", "auth", "env-vars", "data-flow"], "summary": "Stack, dual auth flow, env vars, M1 data flow example" },
-    { "path": "project/database-schema.md", "type": "project", "tags": ["schema", "tables", "enums", "drizzle"], "summary": "All 20 tables and enums" },
-    { "path": "project/decisions.md", "type": "project", "tags": ["decisions", "rationale", "postgres", "auth", "ui-redesign"], "summary": "9 non-obvious technical decisions with rationale" },
-    { "path": "technical/cheat-sheet.md", "type": "reference", "tags": ["commands", "api-routes", "paths"], "summary": "Dev commands, key file paths, API endpoint list" },
+    { "path": "project/architecture.md", "type": "project", "tags": ["stack", "auth", "env-vars", "data-flow"], "summary": "Stack, dual auth flow, env vars, M1 data flow example, origin-based cookie precedence" },
+    { "path": "project/database-schema.md", "type": "project", "tags": ["schema", "tables", "enums", "drizzle", "document-templates"], "summary": "All tables and enums, including Sprint 2's document_templates" },
+    { "path": "project/decisions.md", "type": "project", "tags": ["decisions", "rationale", "postgres", "auth", "ui-redesign", "document-templates", "pdf"], "summary": "13 non-obvious technical decisions with rationale" },
+    { "path": "technical/cheat-sheet.md", "type": "reference", "tags": ["commands", "api-routes", "paths", "sprint2"], "summary": "Dev commands, key file paths, API endpoint list (Sprint 0-2)" },
     { "path": "technical/patterns.md", "type": "reference", "tags": ["service-controller-route", "error-handling", "frontend-gate"], "summary": "Code patterns used across all modules" },
     { "path": "technical/conventions.md", "type": "reference", "tags": ["naming", "language-policy", "css"], "summary": "Naming, English-code/French-UI policy, file structure" },
     { "path": "technical/cross-cutting-patterns.md", "type": "reference", "tags": ["circuit-dg", "reunion", "cloture", "facture", "checklist"], "summary": "6 business-rule patterns reused across modules" },
-    { "path": "technical/gotchas.md", "type": "reference", "tags": ["bugs", "drizzle-kit", "postgres", "tsconfig", "axios", "gotchas"], "summary": "14 real pitfalls found across sessions, with symptom/cause/fix" },
+    { "path": "technical/gotchas.md", "type": "reference", "tags": ["bugs", "drizzle-kit", "postgres", "tsconfig", "axios", "auth", "gotchas"], "summary": "18 real pitfalls found across sessions, with symptom/cause/fix" },
     { "path": "sessions/2026-07-07.md", "type": "session-log", "tags": ["sprint0", "sprint1", "session-log"], "summary": "Full session log: Sprint 0+1, 10 bugs, UI redesign" },
-    { "path": "sessions/2026-07-08.md", "type": "session-log", "tags": ["axios", "bugfix", "session-log"], "summary": "Fixed the admin polish pass's fallout: both broken builds + sessionStorage key mismatch" }
+    { "path": "sessions/2026-07-08.md", "type": "session-log", "tags": ["axios", "bugfix", "sprint2", "phase-preliminaire", "session-log"], "summary": "Fixed both broken builds, then built Sprint 2 (Phase Preliminaire, M3) end to end" }
   ]
 }

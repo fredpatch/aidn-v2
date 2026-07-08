@@ -9,8 +9,23 @@ export const REQUEST_STATUSES = ["submitted", "signed", "pending_review"] as con
 export type RequestStatus = (typeof REQUEST_STATUSES)[number];
 
 /** Pattern "Reunion / Visite" (M3, M4, M6) */
-export const MEETING_STATUSES = ["held", "no_show", "rescheduled", "file_cancelled"] as const;
+export const MEETING_STATUSES = [
+  "scheduled",
+  "held",
+  "no_show",
+  "rescheduled",
+  "file_cancelled",
+] as const;
 export type MeetingStatus = (typeof MEETING_STATUSES)[number];
+
+/** M3/M4 - blank template forms DN makes available for applicants */
+export const DOCUMENT_TEMPLATE_KEYS = [
+  "preliminary_evaluation_declaration",
+  "dn_air_r2_3_f_e_010",
+  "dn_air_r2_3_f_e_011",
+  "dn_air_r2_3_f_e_012",
+] as const;
+export type DocumentTemplateKey = (typeof DOCUMENT_TEMPLATE_KEYS)[number];
 
 /** M5 - per-document evaluation verdict */
 export const DOCUMENT_VERDICTS = ["validated", "rejected", "needs_correction"] as const;

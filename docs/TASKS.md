@@ -32,7 +32,7 @@ comme un ETL ponctuel.
 - [x] Conventions détaillées (`technical/conventions.md`) — naming, structure dossiers,
       style UI/UX ANAC
 - [x] Init repo `aidn-v2` (monorepo, structure alignée SICOT)
-- [ ] Renommer ancien repo en `aidn-v2-legacy`, archivage clair
+- [x] Renommer ancien repo en `aidn-v2-legacy` — https://github.com/fredpatch/aidn-v2-legacy.git
 - [x] Schéma PostgreSQL initial (20 tables : users, user_roles, organisations,
       applicants, account_requests, requests, dg_circuit_documents, phases,
       meetings, preliminary_evaluation_forms, formal_request_documents,
@@ -90,6 +90,9 @@ admin → retour portail, pas seulement des tests API isolés) :
 - [x] Bootstrap du premier Super Admin (`/api/bootstrap/status`, `/init`)
 - [x] Gestion des utilisateurs (création avec envoi OTP, liste, mise à jour,
       activation/désactivation, réinitialisation OTP) - réservé au rôle `SU`
+      **— provisoire** : création manuelle (matricule/nom/email saisis à la
+      main). Sera remplacée par une activation depuis l'annuaire personnel
+      ANAC une fois construite (voir note sous Sprint 12)
 - [x] `system_parameters` (équivalent des `parametres` SICOT) : seuils OTP,
       verrouillage, alerte parapheur - configurables sans redéploiement
 - [x] Emails réels via Nodemailer (mêmes noms de variables d'env que SICOT :
@@ -129,12 +132,75 @@ build + flow complet contre un vrai Postgres). Détail complet dans
 
 ## Sprint 2 — Phase Préliminaire (M3)
 
-- [ ] Planification réunion (date, ticket/PDF téléchargeable, email optionnel)
-- [ ] Statuts réunion : tenue / No-Show / Reportée / Dossier annulé
-- [ ] Mise à disposition Déclaration de pré-évaluation (post-réunion)
-- [ ] Upload retour formulaire par postulant
-- [ ] Clôture de phase (doc attaché ou note facultative)
-- [ ] Délai de retour configurable dynamiquement par DN
+- [x] Ouverture de phase M3 (`POST /api/phases/requests/:requestId/start-preliminary-phase`,
+      dn_agent/dn_supervisor/SU) — passe la demande en `in_progress`
+- [x] Planification réunion (date, ticket HTML simple téléchargeable — pas de
+      génération PDF réelle ce sprint, voir décision ci-dessous)
+- [x] Statuts réunion : tenue / No-Show / Reportée / Dossier annulé
+      (`PATCH /api/meetings/:id/status`, `POST /api/meetings/:id/reschedule`)
+- [x] Conflit dur (même agent, même créneau exact) → bloqué par contrainte DB ;
+      chevauchement doux (même jour) → avertissement non bloquant
+- [x] Mise à disposition Déclaration de pré-évaluation (post-réunion),
+      s'appuie sur un modèle configurable par DN (voir module Modèles de
+      documents ci-dessous)
+- [x] Upload retour formulaire par postulant (portail)
+- [x] Clôture de phase (doc attaché ou note facultative)
+- [x] Délai de retour configurable dynamiquement par DN (paramètre par
+      défaut 15 jours dans `system_parameters`, ajustable par instance)
+- [x] UI admin complète : ouverture phase, planification/statuts réunion,
+      ticket, mise à disposition + suivi déclaration, clôture
+- [x] UI portail : ticket de réunion, téléchargement du formulaire vierge,
+      soumission de la déclaration remplie
+
+### Module ajouté, anticipant M4 : Modèles de documents (`document_templates`)
+
+Généralisé au-delà du seul besoin M3, sur demande explicite — les mêmes
+formulaires DN-AIR-R2-3-F-E-010/011/012 de M4 en auront besoin :
+
+- [x] Table `document_templates` (clé, libellé, fichier, historique via le
+      pattern M8 version/corbeille)
+- [x] 4 clés initiales : déclaration de pré-évaluation (M3),
+      DN-AIR-R2-3-F-E-010/011/012 (M4, prêtes pour Sprint 3)
+- [x] Page admin `Modèles de documents` (dn_agent/dn_supervisor/SU) —
+      upload/remplacement par clé
+- [x] Endpoint de téléchargement accessible aux deux types d'auth (staff +
+      postulant)
+
+### Décision : ticket HTML simple, pas de PDF généré
+
+Confirmé avec Fred — un vrai générateur PDF est un besoin transverse (M3 + M4
++ M6 en ont tous besoin) mieux construit une seule fois plus tard que trois
+fois maintenant. Le ticket de réunion est du HTML servi directement
+(`GET /api/meetings/:id/ticket`), pas un fichier stocké.
+
+### 6 bugs réels trouvés et corrigés pendant ce sprint
+
+1. **Contrôleurs plantant sur un corps de requête vide** (`req.body`
+   `undefined` quand aucun body/Content-Type n'est envoyé) — bug systémique
+   présent depuis le Sprint 1 (login, création d'utilisateur, soumission de
+   demande...), pas seulement dans le nouveau code. Tous les contrôleurs
+   déstructurent désormais `req.body ?? {}`.
+2. **Collision de routage** : `phases.route.ts` applique un `router.use(authenticate,
+   requireRole(...))` global sans restriction de chemin ; monter les routes
+   de `preliminary-evaluation` sous `/api/phases/*` les faisait intercepter
+   par ce garde staff-only avant même d'atteindre `authenticateEither` —
+   bloquant tout accès postulant. Déplacé vers son propre préfixe
+   `/api/preliminary-evaluation`.
+3. Ordre de vérification dans `openPreliminaryPhase` corrigé : la phase
+   déjà-ouverte est maintenant détectée avant l'état de la demande, pour un
+   message d'erreur plus clair en cas de double-ouverture.
+4. Dérive trouvée entre schéma et `packages/shared` : `MEETING_STATUSES`
+   dans `packages/shared` n'incluait pas `"scheduled"` (statut initial réel
+   en base) — corrigé.
+5. Nouvel endpoint `by-request/:requestId` ajouté pour que le portail
+   assemble phase+réunion+déclaration en un seul appel, sans dépendre des
+   routes staff-only de `phases`/`meetings` — testé avec isolation
+   inter-postulant confirmée (un postulant ne peut pas lire la phase d'un
+   autre).
+6. `and`/`desc`/`meetings` manquants aux imports lors de l'ajout du bundle —
+   détecté immédiatement par le typecheck.
+
+Voir `exploration-cache/technical/gotchas.md` pour le détail complet.
 
 ## Sprint 3 — Phase Demande formelle (M4)
 
@@ -210,6 +276,21 @@ build + flow complet contre un vrai Postgres). Détail complet dans
       Principal/Secondaire/Tertiaire
 - [ ] Panneau SU : gestion utilisateurs, corbeille documents, configuration
       (seuils d'alerte, délais dynamiques)
+- [ ] **Remplacer la création manuelle d'utilisateur (Sprint 1) par une
+      activation depuis l'annuaire personnel ANAC** — le legacy
+      `aidn-v2-legacy` a déjà un module `personnel/` complet et fonctionnel
+      à reprendre comme référence : interface `PersonnelAdapter` avec 2
+      intégrations réelles (`ApiPersonnelAdapter` — API personnel ANAC
+      externe ; `MariaPersonnelAdapter` — base MariaDB existante), plus un
+      adaptateur mock pour le dev, sélectionnées via `PERSONNEL_SOURCE`.
+      Flux : SU recherche dans l'annuaire par matricule/nom, puis
+      `activateInternalAccount` crée le compte AIDN en récupérant
+      fullName/email/service/direction depuis la fiche personnel (pas de
+      saisie manuelle). **Attention** : le legacy est mono-rôle
+      (`role: Role`) — garder notre modèle multi-rôle (`user_roles`) plutôt
+      que reprendre cette limitation. Vérifier l'implémentation réelle côté
+      SICOT une fois construite là-bas avant de bâtir la version AIDN
+      (Idées & Pistes Notion, 2026-07-08)
 
 ---
 

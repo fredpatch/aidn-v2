@@ -1,7 +1,7 @@
 # ⚠️ AIDN v2 — Known Pitfalls
 
-Real bugs hit during Sprint 0/1, with exact symptoms and fixes, so nobody rediscovers
-them the hard way.
+Real bugs hit during Sprint 0/1/2, with exact symptoms and fixes, so nobody
+rediscovers them the hard way.
 
 ## 1. `ignoreDeprecations: "6.0"` breaks typecheck on the installed TypeScript
 
@@ -100,7 +100,7 @@ which doesn't exist until `tsc -p tsconfig.json` runs once for that package.
 **Fix**: Root `package.json` now has a `postinstall` script that builds
 `packages/shared` automatically after every `npm install`.
 
-## 11. `lib/api.ts` → `lib/axios.ts` rename done for admin, forgotten for portal
+## 10. `lib/api.ts` → `lib/axios.ts` rename done for admin, forgotten for portal
 
 **Symptom**: `apps/portal/src/pages/auth/LoginPage.tsx` and `apps/portal/src/pages/
 requests/MyRequestPage.tsx` import `from '../../lib/axios'`, but
@@ -116,31 +116,31 @@ both apps' now-orphaned `lib/api.ts`. See `project/decisions.md` #10. Before tru
 any "lib/api → lib/axios" rename again, grep both apps for the old import path, not
 just one.
 
-## 14. Admin's `useAuth.tsx` imported from a doubled `@/src/lib/axios` path
+## 11. Admin's `useAuth.tsx` imported from a doubled `@/src/lib/axios` path
 
 **Symptom**: `apps/admin/src/hooks/useAuth.tsx` imported `{ api } from '@/src/lib/
 axios'` — a doubled `src/src` segment (the `@` alias already resolves to `apps/admin/
 src`), so the module never resolved. This broke the *admin* build too, not just the
-portal one documented in #11 — found while investigating the same axios-hardening
+portal one documented in #10 — found while investigating the same axios-hardening
 migration.
 **Cause**: Manual edit combined the `@/` alias convention with a relative `src/lib/
 axios` path left over from copy-pasting, doubling the segment.
 **Fix**: Changed to the plain relative import `'../lib/axios'`, consistent with how
 every other hook in the codebase imports from `lib/`.
 
-## 15. `sessionStorage` key for "session expired" was French on write, English on read (admin); missing entirely (portal)
+## 12. `sessionStorage` key for "session expired" was French on write, English on read (admin); missing entirely (portal)
 
 **Symptom**: Admin's `LoginPage.tsx` read `sessionStorage.getItem('session_expiree')`
 (French) but `lib/axios.ts`'s refresh-failure redirect wrote `session_expired`
 (English) — the two never matched, so the "votre session a expiré" message never
 appeared after a forced re-login. Portal's `LoginPage.tsx` had no such check at all,
-even though its `lib/axios.ts` (see #11) sets the same flag on refresh failure.
+even though its `lib/axios.ts` (see #10) sets the same flag on refresh failure.
 **Fix**: Standardized on the English key `session_expired` everywhere (matches
 `technical/conventions.md`'s English-code/French-UI split — the key is code, the
 message it triggers is French). Fixed the read side in admin's `LoginPage.tsx` and
 added the matching read+clear `useEffect` to portal's `LoginPage.tsx`.
 
-## 12. `.prettierrc` already specified `singleQuote: true` but wasn't consistently applied
+## 13. `.prettierrc` already specified `singleQuote: true` but wasn't consistently applied
 
 **Symptom**: Most of `apps/admin`/`apps/portal` source still used double-quoted
 strings and un-wrapped long lines despite a repo-root `.prettierrc` with
@@ -153,7 +153,7 @@ nothing enforced it.
 `MyRequestPage.tsx`. Worth running `npx prettier --check .` in CI once a CI pipeline
 exists, so this doesn't silently drift again.
 
-## 13. tsconfig files got mixed up during a manual local edit
+## 14. tsconfig files got mixed up during a manual local edit
 
 **Symptom**: `apps/admin/tsconfig.json` ended up with `apps/api`'s
 `outDir`/`rootDir` fields instead of its own `target`/`jsx`/`moduleResolution`
@@ -162,3 +162,76 @@ fields (and vice versa risk for `apps/api`).
 **Fix**: Direct file replacement of both files with correct content, verified with
 a full `npm install` + typecheck + build afterward — don't assume a "fix applied"
 message means the fix is actually correct; re-verify.
+
+## 15. Controllers crash on an empty request body
+
+**Symptom**: `TypeError: Cannot destructure property 'x' of 'req.body' as it is
+undefined` — a clean `400` was expected, a `500` happened instead.
+**Cause**: When a request has no body and no `Content-Type` header,
+`express.json()` leaves `req.body` as `undefined` rather than `{}`. Every
+controller in the app (Sprint 1 *and* Sprint 2) destructured `req.body`
+directly, assuming it was always at least an empty object.
+**Fix**: Every controller now destructures `req.body ?? {}`. Systemic fix
+applied across `auth`, `users`, `requests`, `applicant-auth`, `bootstrap`,
+`phases`, `meetings`, `document-templates`, `preliminary-evaluation` — not
+just the newly-written Sprint 2 code. Found by deliberately testing an
+endpoint with no body at all, not by reading the code.
+
+## 16. Router-wide middleware silently intercepts unrelated routes
+
+**Symptom**: An applicant calling `GET /api/phases/1/preliminary-evaluation`
+got `401 Non authentifie` even with a valid applicant session.
+**Cause**: `phases.route.ts` applies `router.use(authenticate,
+requireRole(...))` with no path restriction, gating *everything* mounted
+under `/api/phases`. `preliminary-evaluation.route.ts`'s paths originally
+started with `/phases/:phaseId/...`, so when mounted, Express matched the
+`/api/phases` prefix first and ran the staff-only gate before the request
+ever reached the intended (applicant-accessible) route.
+**Fix**: Moved `preliminary-evaluation` to its own mount prefix
+(`/api/preliminary-evaluation`), with paths that share no prefix with any
+other router. **General rule going forward**: never give a router a
+blanket `router.use(authenticate, ...)` if another router's routes might
+ever be nested under its mount path — scope the auth middleware per-route
+instead, or keep mount prefixes strictly non-overlapping.
+
+## 17. Check ordering matters for error clarity, not just correctness
+
+**Symptom**: Opening an already-open phase a second time returned
+`REQUEST_NOT_READY_FOR_PHASE` (technically true — the request had already
+moved to `in_progress` — but a confusing message for what's actually a
+double-open attempt).
+**Fix**: Reordered `openPreliminaryPhase()` to check for an existing phase
+*before* checking the request's status, surfacing the more specific
+`PHASE_ALREADY_OPEN` error. Both checks were always correct; only the
+order affected which error the caller actually sees.
+
+## 18. `packages/shared` drifted from the schema it's supposed to mirror
+
+**Symptom**: none yet observed, but a landmine — `MEETING_STATUSES` in
+`packages/shared/src/statuses.ts` was missing `"scheduled"`, even though
+that's the schema's actual default/initial status for every meeting row.
+**Cause**: The shared constant was written once during Sprint 1 scaffolding
+and never re-synced when the schema's default was decided.
+**Fix**: Added `"scheduled"` to `MEETING_STATUSES`. **No general fix for the
+underlying risk yet** — there's no automated check that `packages/shared`'s
+enums match `schema.ts`'s `pgEnum` definitions; worth a lint rule or test
+once there's time to build one.
+
+## 19. `authenticateEither` could let a stale staff cookie win over a genuine applicant request
+
+**Symptom**: No incident reported, but a real design gap found while building
+Sprint 2's applicant-facing endpoints — admin and portal run on the same top-level
+domain (differ only by port in dev, and possibly by subdomain on-prem), so browser
+cookies aren't isolated between them the way a true cross-domain setup would isolate
+them. If a browser happened to carry both an admin session cookie and an applicant
+session cookie (e.g. the same machine used for both), `authenticateEither`'s
+staff-first check meant a stale staff session would silently win even when the
+caller was genuinely the portal.
+**Fix**: `authenticateEither` (`apps/api/src/shared/guards/auth.middleware.ts`) now
+reads the standard `Origin` header (sent by the browser on every fetch/XHR call, no
+frontend change needed) and checks the *matching* cookie first — applicant cookie
+first if `Origin` matches `PORTAL_ORIGIN`, staff cookie first otherwise — falling
+back to the other cookie only if the preferred one is absent or invalid. Requests
+with no recognized `Origin` (server-to-server, curl, Postman) keep the previous
+staff-first behaviour. New env var `PORTAL_ORIGIN` required for this to work in
+non-dev environments — confirm it's set alongside the others in `.env`.

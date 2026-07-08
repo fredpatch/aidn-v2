@@ -5,6 +5,8 @@ import LoginPage from "./pages/auth/LoginPage";
 import AppShell from "./components/layouts/AppShell";
 import RequestsPage from "./pages/requests/RequestsPage";
 import UsersPage from "./pages/users/UsersPage";
+import PreliminaryPhasePage from "./pages/phases/PreliminaryPhasePage";
+import DocumentTemplatesPage from "./pages/document-templates/DocumentTemplatesPage";
 
 function Gate() {
   const { user, loading, bootstrapInitialised } = useAuth();
@@ -29,6 +31,8 @@ function Gate() {
     <Routes>
       <Route element={<AppShell />}>
         <Route index element={<RequestsPage />} />
+        <Route path="demandes/:requestId/phase-preliminaire" element={<PreliminaryPhasePage />} />
+        <Route path="modeles-documents" element={<DocumentTemplatesPage />} />
         <Route path="utilisateurs" element={<UsersPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

@@ -7,10 +7,11 @@ project evolves. Structure mirrors SICOT's exploration-cache — see
 
 **Project**: AIDN — Application Informatique de la Direction de la Navigabilité —
 ANAC Gabon
-**Last updated**: 2026-07-08 | **Sprint**: 0 + 1 complete (`b64a073`, `2205261`).
-The `2205261` admin polish pass broke both the admin and portal builds; both fixed
-in a 2026-07-08 follow-up (see `active-session/blockers.md` resolved table), ready
-to commit. Sprint 2 is next.
+**Last updated**: 2026-07-08 | **Sprint**: 0, 1, and the axios-migration fix
+committed and pushed (`b64a073`, `2205261`, `a4a5220`). **Sprint 2 (Phase
+Préliminaire, M3) is fully built** — phases, meetings, preliminary evaluation
+declaration, plus a `document_templates` module and an `authenticateEither`
+security fix — uncommitted, ready to push. Sprint 3 (M4) is next.
 
 ---
 
@@ -62,7 +63,7 @@ complete there.
 | File | What Happened |
 |---|---|
 | [`sessions/2026-07-07.md`](sessions/2026-07-07.md) | Sprint 0 + Sprint 1 (full stack), 10 real bugs found and fixed, UI redesign to match SICOT |
-| [`sessions/2026-07-08.md`](sessions/2026-07-08.md) | Fixed both builds broken by the admin polish pass (`2205261`), plus a sessionStorage key mismatch |
+| [`sessions/2026-07-08.md`](sessions/2026-07-08.md) | Fixed both broken builds from `2205261`, then built Sprint 2 (Phase Préliminaire, M3) end to end |
 
 ---
 

@@ -87,3 +87,55 @@ export const handleRequestsError = createErrorHandler(
   },
   "[requests]"
 );
+
+export const handlePhasesError = createErrorHandler(
+  {
+    REQUEST_NOT_FOUND: { status: 404, message: "Demande introuvable." },
+    REQUEST_NOT_READY_FOR_PHASE: {
+      status: 409,
+      message: "La demande doit etre en attente de traitement avant d'ouvrir cette phase.",
+    },
+    PHASE_ALREADY_OPEN: { status: 409, message: "Cette phase est deja ouverte pour cette demande." },
+    PHASE_NOT_FOUND: { status: 404, message: "Phase introuvable." },
+    PHASE_ALREADY_CLOSED: { status: 409, message: "Cette phase est deja cloturee." },
+    CLOSURE_EVIDENCE_REQUIRED: {
+      status: 400,
+      message: "Un document ou une note est requis pour cloturer la phase.",
+    },
+  },
+  "[phases]"
+);
+
+export const handleMeetingsError = createErrorHandler(
+  {
+    PHASE_NOT_FOUND: { status: 404, message: "Phase introuvable." },
+    PHASE_NOT_OPEN: { status: 409, message: "La phase doit etre ouverte pour planifier une reunion." },
+    MEETING_SLOT_CONFLICT: {
+      status: 409,
+      message: "Cet agent DN a deja une reunion planifiee exactement a ce creneau.",
+    },
+    MEETING_NOT_FOUND: { status: 404, message: "Reunion introuvable." },
+    MEETING_NOT_SCHEDULED: {
+      status: 409,
+      message: "Cette reunion n'est plus au statut planifie.",
+    },
+  },
+  "[meetings]"
+);
+
+export const handlePreliminaryEvaluationError = createErrorHandler(
+  {
+    PHASE_NOT_FOUND: { status: 404, message: "Phase introuvable." },
+    WRONG_PHASE: { status: 400, message: "Cette action ne concerne que la phase preliminaire." },
+    PHASE_NOT_OPEN: { status: 409, message: "La phase doit etre ouverte." },
+    TEMPLATE_NOT_CONFIGURED: {
+      status: 409,
+      message: "Le modele de declaration de pre-evaluation n'a pas encore ete configure par la DN.",
+    },
+    NOT_YET_AVAILABLE: {
+      status: 409,
+      message: "La declaration n'a pas encore ete mise a disposition par la DN.",
+    },
+  },
+  "[preliminary-evaluation]"
+);

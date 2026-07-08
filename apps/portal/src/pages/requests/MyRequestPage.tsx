@@ -151,6 +151,127 @@ function ActiveRequestCard({
           Cette demande ne peut plus etre annulee (deja transmise a la DG ou au-dela).
         </p>
       )}
+
+      {(request.circuitStatus === 'pending_review') && <PreliminaryPhaseSection requestId={request.id} />}
+    </div>
+  );
+}
+
+function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
+  const [bundle, setBundle] = useState<{
+    phase: { id: number; status: string } | null;
+    meeting: { id: number; scheduledAt: string; location: string | null; status: string } | null;
+    evaluation: {
+      templateFileUrl: string | null;
+      madeAvailableAt: string | null;
+      returnDeadline: string | null;
+      submittedFileUrl: string | null;
+      submittedAt: string | null;
+    } | null;
+  } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  async function load() {
+    try {
+      const { data } = await api.get(`/preliminary-evaluation/by-request/${requestId}`);
+      setBundle(data);
+    } catch (err) {
+      setError(apiErrorMessage(err, 'Impossible de charger la phase preliminaire.'));
+    }
+  }
+
+  useEffect(() => {
+    load();
+  }, [requestId]);
+
+  async function handleSubmitDeclaration() {
+    if (!file) {
+      setError('Merci de joindre votre declaration remplie.');
+      return;
+    }
+    setError(null);
+    setSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const { data: uploaded } = await api.post('/uploads', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      await api.post(`/preliminary-evaluation/${bundle!.phase!.id}/submit`, {
+        fileUrl: uploaded.fileUrl,
+        mimeType: uploaded.mimeType,
+      });
+      await load();
+    } catch (err) {
+      setError(apiErrorMessage(err, 'Impossible de soumettre la declaration.'));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (!bundle?.phase) return null;
+
+  return (
+    <div className="border-t border-anac-border pt-3 mt-3 space-y-3">
+      <p className="font-medium text-sm text-anac-navy">Phase preliminaire</p>
+      {error && <p className="text-anac-danger text-xs">{error}</p>}
+
+      {bundle.meeting && (
+        <div className="text-sm">
+          <p>
+            Reunion prevue le {new Date(bundle.meeting.scheduledAt).toLocaleString('fr-FR')}
+            {bundle.meeting.location && ` - ${bundle.meeting.location}`}
+          </p>
+          <a
+            href={`http://localhost:4000/api/meetings/${bundle.meeting.id}/ticket`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-anac-blue underline text-xs"
+          >
+            Voir mon invitation
+          </a>
+        </div>
+      )}
+
+      {bundle.evaluation?.madeAvailableAt && (
+        <div className="text-sm space-y-2">
+          <p className="text-anac-muted text-xs">
+            Retour attendu avant le{' '}
+            {bundle.evaluation.returnDeadline && new Date(bundle.evaluation.returnDeadline).toLocaleDateString('fr-FR')}
+          </p>
+          {bundle.evaluation.templateFileUrl && (
+            <a
+              href={`http://localhost:4000${bundle.evaluation.templateFileUrl}`}
+              target="_blank"
+              rel="noreferrer"
+              className="btn-secondary text-xs inline-block px-2 py-1 rounded"
+            >
+              Telecharger le formulaire vierge
+            </a>
+          )}
+
+          {bundle.evaluation.submittedFileUrl ? (
+            <p className="text-anac-success text-xs">Declaration soumise, merci.</p>
+          ) : (
+            <div className="space-y-2">
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              />
+              <button
+                className="btn-primary text-xs px-3 py-1.5 rounded"
+                onClick={handleSubmitDeclaration}
+                disabled={submitting}
+              >
+                {submitting ? 'Envoi...' : 'Soumettre ma declaration remplie'}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

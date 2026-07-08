@@ -27,12 +27,14 @@ difference from SICOT (which mixes both in server code) — see
 
 ```
 branch: main
-last commit: 2205261 feat(admin): harden axios refresh queue, prettier reformat, vite/tsconfig tweaks
-status: DIRTY — a same-day fix pass sits on top of 2205261, repairing the two
-        broken builds that commit left behind (portal's missing lib/axios.ts,
-        admin's doubled @/src/lib/axios import) plus a sessionStorage key
-        mismatch. See active-session/current-task.md's "Done today" section.
-        No known blockers remain; this diff is ready to commit/push.
+last commit: a4a5220 fix(admin,portal): repair both builds broken by axios-hardening migration
+status: DIRTY — Sprint 2 (Phase Preliminaire, M3) sits uncommitted on top of
+        a4a5220: phases/meetings/preliminary-evaluation modules, a
+        document_templates module generalized ahead of M4, and a real
+        authenticateEither security fix (origin-based cookie precedence).
+        All three workspaces typecheck clean. See active-session/
+        current-task.md. No known blockers remain; this diff is ready to
+        commit/push.
 ```
 
 ## Critical Rules (Memorize These)
@@ -59,6 +61,17 @@ status: DIRTY — a same-day fix pass sits on top of 2205261, repairing the two
    shadcn-style `Button`/`Input`/`Label` (no shadcn CLI — same reasoning as SICOT).
    Auth-specific shared pieces live in each app's own `pages/auth/components/`
    (duplicated between admin/portal, not yet extracted to a shared package).
+7. **Always destructure `req.body ?? {}` in controllers** — a request with no
+   body and no `Content-Type` leaves `req.body` `undefined`, not `{}`. This bit
+   every controller written before Sprint 2 too — see `technical/gotchas.md` #15.
+8. **Never give a router a blanket `router.use(authenticate, ...)` if another
+   router's routes might get nested under its mount path** — it silently gates
+   everything underneath before the intended middleware ever runs. See
+   `technical/gotchas.md` #16.
+9. **`authenticateEither` checks the cookie matching the request's `Origin`
+   first**, not staff-always-first — admin and portal share a top-level domain,
+   so both cookies can legitimately be present at once. See `technical/
+   gotchas.md` #19.
 
 ## Environment Assumptions
 

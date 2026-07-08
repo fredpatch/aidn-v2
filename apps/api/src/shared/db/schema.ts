@@ -145,6 +145,19 @@ export const documentOwnerTypeEnum = pgEnum("document_owner_type", [
   "preliminary_evaluation_form",
   "payment_invoice",
   "payment_proof",
+  "document_template",
+]);
+
+/** M3/M4 - blank template forms DN makes available for applicants to download
+ *  and fill (distinct from formal_request_documents, which are the
+ *  applicant's *filled-in* submissions). One active file per key at a time;
+ *  history is versioned via document_versions like every other upload point.
+ *  Extensible - add a value here whenever a new blank form needs hosting. */
+export const documentTemplateKeyEnum = pgEnum("document_template_key", [
+  "preliminary_evaluation_declaration", // M3
+  "dn_air_r2_3_f_e_010", // M4 - demande d'agrement d'OMA
+  "dn_air_r2_3_f_e_011", // M4 - etat de conformite
+  "dn_air_r2_3_f_e_012", // M4 - acceptation du personnel d'encadrement
 ]);
 
 /** M13 - applicant account request review flow (public registration) */
@@ -404,12 +417,28 @@ export const meetings = pgTable(
   ]
 );
 
+/** M3/M4 - one active blank template per key. DN (dn_agent/dn_supervisor) or
+ *  SU can upload/replace; replacing goes through the M8 version/trash
+ *  pattern (document_versions, ownerType='document_template') so history
+ *  is preserved the same way as every other document. */
+export const documentTemplates = pgTable("document_templates", {
+  id: serial("id").primaryKey(),
+  key: documentTemplateKeyEnum("key").notNull().unique(),
+  label: text("label").notNull(),
+  fileUrl: text("file_url"),
+  mimeType: varchar("mime_type", { length: 100 }),
+  uploadedBy: integer("uploaded_by").references(() => users.id),
+  uploadedAt: timestamp("uploaded_at"),
+  active: boolean("active").notNull().default(true),
+});
+
 // ── M3 - Preliminary evaluation declaration ─────────────────────────────────
 export const preliminaryEvaluationForms = pgTable("preliminary_evaluation_forms", {
   id: serial("id").primaryKey(),
   phaseId: integer("phase_id")
     .notNull()
     .references(() => phases.id),
+  templateId: integer("template_id").references(() => documentTemplates.id),
   madeAvailableAt: timestamp("made_available_at"),
   returnDeadline: timestamp("return_deadline"), // set dynamically by DN
   submittedFileUrl: text("submitted_file_url"),

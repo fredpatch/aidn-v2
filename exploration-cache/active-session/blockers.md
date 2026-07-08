@@ -1,10 +1,10 @@
 # 🔴 Active Blockers
 
-Last updated: 2026-07-07
+Last updated: 2026-07-08
 
-No active hard blockers — the last one (B0, portal + admin builds both broken via
-an incomplete axios-hardening migration) was found and fixed same-day, see the
-Resolved table below.
+No active hard blockers. Sprint 2 (Phase Préliminaire, M3) is fully built and
+typechecks clean across all three workspaces, uncommitted and ready to push — see
+`active-session/current-task.md`.
 
 ---
 

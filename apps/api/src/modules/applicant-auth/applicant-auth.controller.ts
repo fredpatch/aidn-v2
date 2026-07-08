@@ -10,7 +10,7 @@ import {
 } from "../../shared/guards/auth.middleware.js";
 
 export async function login(req: Request, res: Response): Promise<void> {
-  const { email, password } = req.body;
+  const { email, password } = req.body ?? {};
 
   if (!email || !password) {
     res.status(400).json({ message: "Email et mot de passe requis." });

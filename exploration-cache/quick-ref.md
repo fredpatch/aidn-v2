@@ -64,6 +64,12 @@ GET  /api/requests/mine           applicant only
 POST /api/requests/:id/mark-signed
 POST /api/requests/:id/mark-pending-review
 POST /api/requests/:id/cancel     either auth type, ownership enforced
+
+POST /api/phases/requests/:requestId/start-preliminary-phase   staff (DN/SU)
+POST /api/meetings                                             staff (DN/SU)
+GET  /api/meetings/:id/ticket                                  either auth type
+GET  /api/document-templates/:key                              either auth type
+GET  /api/preliminary-evaluation/by-request/:requestId         either auth type
 ```
 
 ## 🚫 Rules
@@ -75,6 +81,8 @@ POST /api/requests/:id/cancel     either auth type, ownership enforced
 | Check `error.code` on a Drizzle-thrown error | Check `error.cause.code` |
 | Add `ignoreDeprecations` for a `baseUrl` warning | Remove `baseUrl`, use `"@/*": ["./*"]` |
 | Run the shadcn CLI | Hand-write components in `components/ui/` (Tailwind setup incompatible) |
+| Destructure `req.body` without a fallback | Use `req.body ?? {}` — no body/Content-Type leaves it `undefined` |
+| Give a router a blanket `router.use(authenticate, ...)` | Scope it per-route if anything else might mount underneath |
 
 ## 📊 Sprint Status
 
@@ -82,8 +90,9 @@ POST /api/requests/:id/cancel     either auth type, ownership enforced
 ✅ Sprint 0  — Feasibility, patterns, conventions, stack, schema, scaffold
 ✅ Sprint 1  — Intake & Circuit DG (M1+M2), full API + UI (admin + portal)
 ✅ Prereq    — Auth (staff + applicant), Bootstrap, Users management
-⏳ Sprint 2  — Phase Préliminaire (M3) — next up
-⏳ Sprint 3-12 — not started
+✅ Sprint 2  — Phase Préliminaire (M3), full API + UI, + document_templates module
+⏳ Sprint 3  — Phase Demande formelle (M4) — next up
+⏳ Sprint 4-12 — not started
 ```
 
 ## 🔴 Active Notes
@@ -92,4 +101,4 @@ POST /api/requests/:id/cancel     either auth type, ownership enforced
   applicant for now
 - No browser/visual verification possible from Claude's sandbox — Fred confirms
   UI visually after each diff
-- Legacy repo rename (`aidn-v2` → `aidn-v2-legacy`) still pending, non-blocking
+- `PORTAL_ORIGIN` env var (new in Sprint 2) isn't in `apps/api/.env.example` yet

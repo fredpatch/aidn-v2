@@ -1,0 +1,2288 @@
+diff --git a/apps/admin/src/App.tsx b/apps/admin/src/App.tsx
+index 0f75e27..87c9bb5 100644
+--- a/apps/admin/src/App.tsx
++++ b/apps/admin/src/App.tsx
+@@ -5,6 +5,8 @@ import LoginPage from "./pages/auth/LoginPage";
+ import AppShell from "./components/layouts/AppShell";
+ import RequestsPage from "./pages/requests/RequestsPage";
+ import UsersPage from "./pages/users/UsersPage";
++import PreliminaryPhasePage from "./pages/phases/PreliminaryPhasePage";
++import DocumentTemplatesPage from "./pages/document-templates/DocumentTemplatesPage";
+ 
+ function Gate() {
+   const { user, loading, bootstrapInitialised } = useAuth();
+@@ -29,6 +31,8 @@ function Gate() {
+     <Routes>
+       <Route element={<AppShell />}>
+         <Route index element={<RequestsPage />} />
++        <Route path="demandes/:requestId/phase-preliminaire" element={<PreliminaryPhasePage />} />
++        <Route path="modeles-documents" element={<DocumentTemplatesPage />} />
+         <Route path="utilisateurs" element={<UsersPage />} />
+         <Route path="*" element={<Navigate to="/" replace />} />
+       </Route>
+diff --git a/apps/admin/src/components/layouts/AppShell.tsx b/apps/admin/src/components/layouts/AppShell.tsx
+index 500a4e8..80f7775 100644
+--- a/apps/admin/src/components/layouts/AppShell.tsx
++++ b/apps/admin/src/components/layouts/AppShell.tsx
+@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
+ import {
+   Inbox,
+   Users,
++  FileText,
+   ChevronLeft,
+   ChevronRight,
+   LogOut,
+@@ -24,6 +25,7 @@ interface NavItem {
+ 
+ const NAV_ITEMS: NavItem[] = [
+   { to: '/', label: 'Demandes', icon: Inbox },
++  { to: '/modeles-documents', label: 'Modeles de documents', icon: FileText, roles: ['dn_agent', 'dn_supervisor', 'SU'] },
+   { to: '/utilisateurs', label: 'Gestion des utilisateurs', icon: Users, roles: ['SU'] },
+ ];
+ 
+diff --git a/apps/admin/src/pages/document-templates/DocumentTemplatesPage.tsx b/apps/admin/src/pages/document-templates/DocumentTemplatesPage.tsx
+new file mode 100644
+index 0000000..298676f
+--- /dev/null
++++ b/apps/admin/src/pages/document-templates/DocumentTemplatesPage.tsx
+@@ -0,0 +1,179 @@
++import { useEffect, useState, FormEvent } from "react";
++import { UploadCloud } from "lucide-react";
++import { api, apiErrorMessage } from "../../lib/axios";
++import { Button } from "../../components/ui/button";
++
++interface TemplateView {
++  id: number;
++  key: string;
++  label: string;
++  fileUrl: string | null;
++  mimeType: string | null;
++  uploadedAt: string | null;
++  active: boolean;
++}
++
++// Every key the app currently knows about, whether or not a file has been
++// uploaded for it yet - lets DN see at a glance what's still missing.
++const KNOWN_TEMPLATES: Array<{ key: string; defaultLabel: string }> = [
++  { key: "preliminary_evaluation_declaration", defaultLabel: "Declaration de pre-evaluation (M3)" },
++  { key: "dn_air_r2_3_f_e_010", defaultLabel: "DN-AIR-R2-3-F-E-010 - Demande d'agrement d'OMA (M4)" },
++  { key: "dn_air_r2_3_f_e_011", defaultLabel: "DN-AIR-R2-3-F-E-011 - Etat de conformite (M4)" },
++  { key: "dn_air_r2_3_f_e_012", defaultLabel: "DN-AIR-R2-3-F-E-012 - Acceptation du personnel d'encadrement (M4)" },
++];
++
++export default function DocumentTemplatesPage() {
++  const [templates, setTemplates] = useState<TemplateView[]>([]);
++  const [loading, setLoading] = useState(true);
++  const [error, setError] = useState<string | null>(null);
++  const [editingKey, setEditingKey] = useState<string | null>(null);
++
++  async function load() {
++    setLoading(true);
++    setError(null);
++    try {
++      const { data } = await api.get("/document-templates");
++      setTemplates(data);
++    } catch (err) {
++      setError(apiErrorMessage(err, "Impossible de charger les modeles."));
++    } finally {
++      setLoading(false);
++    }
++  }
++
++  useEffect(() => {
++    load();
++  }, []);
++
++  return (
++    <div className="max-w-3xl mx-auto space-y-6">
++      <div>
++        <h1 className="text-anac-navy text-xl font-semibold">Modeles de documents</h1>
++        <p className="text-anac-muted text-sm">
++          Formulaires vierges mis a disposition des postulants pour telechargement.
++        </p>
++      </div>
++
++      {error && <p className="text-anac-danger text-sm">{error}</p>}
++
++      <div className="space-y-3">
++        {KNOWN_TEMPLATES.map((known) => {
++          const existing = templates.find((t) => t.key === known.key);
++          return (
++            <div key={known.key} className="card flex items-center justify-between">
++              <div>
++                <p className="font-medium text-sm">{existing?.label ?? known.defaultLabel}</p>
++                {existing?.fileUrl ? (
++                  <a
++                    href={`http://localhost:4000${existing.fileUrl}`}
++                    target="_blank"
++                    rel="noreferrer"
++                    className="text-anac-blue underline text-xs"
++                  >
++                    Voir le fichier actuel
++                  </a>
++                ) : (
++                  <p className="text-anac-warning text-xs">Aucun fichier configure</p>
++                )}
++              </div>
++              <Button variant="secondary" size="sm" onClick={() => setEditingKey(known.key)} className="gap-1.5">
++                <UploadCloud size={13} />
++                {existing?.fileUrl ? "Remplacer" : "Configurer"}
++              </Button>
++            </div>
++          );
++        })}
++      </div>
++
++      {editingKey && (
++        <UploadTemplateForm
++          templateKey={editingKey}
++          defaultLabel={KNOWN_TEMPLATES.find((k) => k.key === editingKey)?.defaultLabel ?? editingKey}
++          onDone={() => {
++            setEditingKey(null);
++            load();
++          }}
++          onCancel={() => setEditingKey(null)}
++        />
++      )}
++
++      {loading && <p className="text-anac-muted text-sm">Chargement...</p>}
++    </div>
++  );
++}
++
++function UploadTemplateForm({
++  templateKey,
++  defaultLabel,
++  onDone,
++  onCancel,
++}: {
++  templateKey: string;
++  defaultLabel: string;
++  onDone: () => void;
++  onCancel: () => void;
++}) {
++  const [label, setLabel] = useState(defaultLabel);
++  const [file, setFile] = useState<File | null>(null);
++  const [error, setError] = useState<string | null>(null);
++  const [submitting, setSubmitting] = useState(false);
++
++  async function handleSubmit(e: FormEvent) {
++    e.preventDefault();
++    setError(null);
++
++    if (!file) {
++      setError("Merci de selectionner un fichier.");
++      return;
++    }
++
++    setSubmitting(true);
++    try {
++      const formData = new FormData();
++      formData.append("file", file);
++      const { data: uploaded } = await api.post("/uploads", formData, {
++        headers: { "Content-Type": "multipart/form-data" },
++      });
++
++      await api.post("/document-templates", {
++        key: templateKey,
++        label,
++        fileUrl: uploaded.fileUrl,
++        mimeType: uploaded.mimeType,
++      });
++
++      onDone();
++    } catch (err) {
++      setError(apiErrorMessage(err, "Impossible d'enregistrer le modele."));
++    } finally {
++      setSubmitting(false);
++    }
++  }
++
++  return (
++    <form onSubmit={handleSubmit} className="card space-y-4">
++      {error && <p className="text-anac-danger text-sm">{error}</p>}
++      <div>
++        <label className="label">Libelle</label>
++        <input className="input" value={label} onChange={(e) => setLabel(e.target.value)} required />
++      </div>
++      <div>
++        <label className="label">Fichier (PDF, Word, PNG, JPG)</label>
++        <input
++          type="file"
++          accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
++          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
++          required
++        />
++      </div>
++      <div className="flex gap-2">
++        <Button type="submit" disabled={submitting}>
++          {submitting ? "Enregistrement..." : "Enregistrer"}
++        </Button>
++        <Button type="button" variant="secondary" onClick={onCancel}>
++          Annuler
++        </Button>
++      </div>
++    </form>
++  );
++}
+diff --git a/apps/admin/src/pages/phases/PreliminaryPhasePage.tsx b/apps/admin/src/pages/phases/PreliminaryPhasePage.tsx
+new file mode 100644
+index 0000000..dc39652
+--- /dev/null
++++ b/apps/admin/src/pages/phases/PreliminaryPhasePage.tsx
+@@ -0,0 +1,433 @@
++import { useEffect, useState, FormEvent } from "react";
++import { useParams, useNavigate } from "react-router-dom";
++import { CalendarClock, FileText, CheckCircle2, XCircle, RotateCcw, Ticket } from "lucide-react";
++import { api, apiErrorMessage } from "../../lib/axios";
++import { useAuth } from "../../hooks/useAuth";
++import { Button } from "../../components/ui/button";
++
++interface Bundle {
++  phase: { id: number; status: string; openedAt: string; closedAt: string | null } | null;
++  meeting: { id: number; scheduledAt: string; location: string | null; status: string } | null;
++  evaluation: {
++    id: number;
++    templateFileUrl: string | null;
++    madeAvailableAt: string | null;
++    returnDeadline: string | null;
++    submittedFileUrl: string | null;
++    submittedAt: string | null;
++  } | null;
++}
++
++export default function PreliminaryPhasePage() {
++  const { requestId } = useParams<{ requestId: string }>();
++  const navigate = useNavigate();
++  const { user } = useAuth();
++
++  const [bundle, setBundle] = useState<Bundle | null>(null);
++  const [loading, setLoading] = useState(true);
++  const [error, setError] = useState<string | null>(null);
++  const [actionError, setActionError] = useState<string | null>(null);
++  const [busy, setBusy] = useState(false);
++
++  async function load() {
++    setLoading(true);
++    setError(null);
++    try {
++      const { data } = await api.get(`/preliminary-evaluation/by-request/${requestId}`);
++      setBundle(data);
++    } catch (err) {
++      setError(apiErrorMessage(err, "Impossible de charger la phase."));
++    } finally {
++      setLoading(false);
++    }
++  }
++
++  useEffect(() => {
++    load();
++  }, [requestId]);
++
++  async function startPhase() {
++    setActionError(null);
++    setBusy(true);
++    try {
++      await api.post(`/phases/requests/${requestId}/start-preliminary-phase`);
++      await load();
++    } catch (err) {
++      setActionError(apiErrorMessage(err, "Impossible de demarrer la phase."));
++    } finally {
++      setBusy(false);
++    }
++  }
++
++  if (loading) return <p className="text-anac-muted">Chargement...</p>;
++  if (error) return <p className="text-anac-danger">{error}</p>;
++  if (!bundle) return null;
++
++  return (
++    <div className="max-w-2xl mx-auto space-y-6">
++      <div className="flex items-center justify-between">
++        <div>
++          <h1 className="text-anac-navy text-xl font-semibold">Phase Preliminaire</h1>
++          <p className="text-anac-muted text-sm">Demande #{requestId}</p>
++        </div>
++        <Button variant="secondary" size="sm" onClick={() => navigate("/")}>
++          Retour aux demandes
++        </Button>
++      </div>
++
++      {actionError && <p className="text-anac-danger text-sm">{actionError}</p>}
++
++      {!bundle.phase ? (
++        <div className="card">
++          <p className="text-anac-muted text-sm mb-3">
++            Cette demande est en attente de traitement. Demarrez la phase preliminaire pour commencer.
++          </p>
++          <Button onClick={startPhase} disabled={busy}>
++            {busy ? "Demarrage..." : "Demarrer la Phase Preliminaire"}
++          </Button>
++        </div>
++      ) : (
++        <>
++          <div className="card flex items-center justify-between">
++            <span className="text-sm font-medium">Statut de la phase</span>
++            <span
++              className={`px-2 py-0.5 rounded text-xs font-medium ${
++                bundle.phase.status === "closed" ? "bg-anac-muted/10 text-anac-muted" : "bg-anac-success/10 text-anac-success"
++              }`}
++            >
++              {bundle.phase.status === "closed" ? "Cloturee" : "Ouverte"}
++            </span>
++          </div>
++
++          <MeetingSection
++            phaseId={bundle.phase.id}
++            meeting={bundle.meeting}
++            dnAgentId={user!.id}
++            onChanged={load}
++            setActionError={setActionError}
++          />
++
++          <DeclarationSection phaseId={bundle.phase.id} evaluation={bundle.evaluation} onChanged={load} setActionError={setActionError} />
++
++          {bundle.phase.status === "open" && (
++            <ClosureSection phaseId={bundle.phase.id} onChanged={load} setActionError={setActionError} />
++          )}
++        </>
++      )}
++    </div>
++  );
++}
++
++function MeetingSection({
++  phaseId,
++  meeting,
++  dnAgentId,
++  onChanged,
++  setActionError,
++}: {
++  phaseId: number;
++  meeting: Bundle["meeting"];
++  dnAgentId: number;
++  onChanged: () => void;
++  setActionError: (msg: string | null) => void;
++}) {
++  const [scheduling, setScheduling] = useState(false);
++  const [rescheduling, setRescheduling] = useState(false);
++  const [dateTime, setDateTime] = useState("");
++  const [location, setLocation] = useState("");
++  const [busy, setBusy] = useState(false);
++  const [warning, setWarning] = useState<string | null>(null);
++
++  async function handleSchedule(e: FormEvent) {
++    e.preventDefault();
++    setActionError(null);
++    setWarning(null);
++    setBusy(true);
++    try {
++      const { data } = await api.post("/meetings", {
++        phaseId,
++        meetingType: "preliminary",
++        dnAgentId,
++        scheduledAt: new Date(dateTime).toISOString(),
++        location: location || undefined,
++      });
++      if (data.softOverlapWarning) {
++        setWarning("Attention : vous avez deja une autre reunion ce jour-la, a un horaire different.");
++      }
++      setScheduling(false);
++      onChanged();
++    } catch (err) {
++      setActionError(apiErrorMessage(err, "Impossible de planifier la reunion."));
++    } finally {
++      setBusy(false);
++    }
++  }
++
++  async function handleReschedule(e: FormEvent) {
++    e.preventDefault();
++    setActionError(null);
++    setBusy(true);
++    try {
++      await api.post(`/meetings/${meeting!.id}/reschedule`, { newScheduledAt: new Date(dateTime).toISOString() });
++      setRescheduling(false);
++      onChanged();
++    } catch (err) {
++      setActionError(apiErrorMessage(err, "Impossible de reprogrammer."));
++    } finally {
++      setBusy(false);
++    }
++  }
++
++  async function markStatus(status: "held" | "no_show" | "file_cancelled") {
++    setActionError(null);
++    setBusy(true);
++    try {
++      await api.patch(`/meetings/${meeting!.id}/status`, { status });
++      onChanged();
++    } catch (err) {
++      setActionError(apiErrorMessage(err, "Action impossible."));
++    } finally {
++      setBusy(false);
++    }
++  }
++
++  return (
++    <div className="card space-y-3">
++      <div className="flex items-center gap-2">
++        <CalendarClock size={16} className="text-anac-navy" />
++        <span className="font-medium text-sm">Reunion preliminaire</span>
++      </div>
++
++      {warning && <p className="text-anac-warning text-xs">{warning}</p>}
++
++      {!meeting ? (
++        scheduling ? (
++          <form onSubmit={handleSchedule} className="space-y-3">
++            <div>
++              <label className="label">Date et heure</label>
++              <input
++                type="datetime-local"
++                className="input"
++                value={dateTime}
++                onChange={(e) => setDateTime(e.target.value)}
++                required
++              />
++            </div>
++            <div>
++              <label className="label">Lieu (optionnel)</label>
++              <input className="input" value={location} onChange={(e) => setLocation(e.target.value)} />
++            </div>
++            <div className="flex gap-2">
++              <Button type="submit" size="sm" disabled={busy}>
++                Planifier
++              </Button>
++              <Button type="button" variant="secondary" size="sm" onClick={() => setScheduling(false)}>
++                Annuler
++              </Button>
++            </div>
++          </form>
++        ) : (
++          <Button size="sm" onClick={() => setScheduling(true)}>
++            Planifier la reunion
++          </Button>
++        )
++      ) : rescheduling ? (
++        <form onSubmit={handleReschedule} className="space-y-3">
++          <div>
++            <label className="label">Nouvelle date et heure</label>
++            <input
++              type="datetime-local"
++              className="input"
++              value={dateTime}
++              onChange={(e) => setDateTime(e.target.value)}
++              required
++            />
++          </div>
++          <div className="flex gap-2">
++            <Button type="submit" size="sm" disabled={busy}>
++              Confirmer
++            </Button>
++            <Button type="button" variant="secondary" size="sm" onClick={() => setRescheduling(false)}>
++              Annuler
++            </Button>
++          </div>
++        </form>
++      ) : (
++        <div className="space-y-2">
++          <p className="text-sm">
++            {new Date(meeting.scheduledAt).toLocaleString("fr-FR")}
++            {meeting.location && ` - ${meeting.location}`}
++          </p>
++          <span className="px-2 py-0.5 rounded text-xs font-medium bg-anac-info/10 text-anac-info">
++            {meeting.status}
++          </span>
++          {meeting.status === "scheduled" && (
++            <div className="flex flex-wrap gap-2 pt-1">
++              <a
++                href={`http://localhost:4000/api/meetings/${meeting.id}/ticket`}
++                target="_blank"
++                rel="noreferrer"
++                className="btn-secondary text-xs inline-flex items-center gap-1 px-2 py-1 rounded"
++              >
++                <Ticket size={12} /> Voir le ticket
++              </a>
++              <Button size="sm" variant="secondary" onClick={() => markStatus("held")} disabled={busy} className="gap-1">
++                <CheckCircle2 size={12} /> Tenue
++              </Button>
++              <Button size="sm" variant="secondary" onClick={() => markStatus("no_show")} disabled={busy} className="gap-1">
++                <XCircle size={12} /> No-show
++              </Button>
++              <Button size="sm" variant="secondary" onClick={() => setRescheduling(true)} disabled={busy} className="gap-1">
++                <RotateCcw size={12} /> Reprogrammer
++              </Button>
++              <Button size="sm" variant="destructive" onClick={() => markStatus("file_cancelled")} disabled={busy}>
++                Annuler le dossier
++              </Button>
++            </div>
++          )}
++        </div>
++      )}
++    </div>
++  );
++}
++
++function DeclarationSection({
++  phaseId,
++  evaluation,
++  onChanged,
++  setActionError,
++}: {
++  phaseId: number;
++  evaluation: Bundle["evaluation"];
++  onChanged: () => void;
++  setActionError: (msg: string | null) => void;
++}) {
++  const [busy, setBusy] = useState(false);
++  const [returnDays, setReturnDays] = useState("");
++
++  async function makeAvailable() {
++    setActionError(null);
++    setBusy(true);
++    try {
++      await api.post(`/preliminary-evaluation/${phaseId}/make-available`, {
++        returnDays: returnDays ? Number(returnDays) : undefined,
++      });
++      onChanged();
++    } catch (err) {
++      setActionError(apiErrorMessage(err, "Impossible de rendre la declaration disponible."));
++    } finally {
++      setBusy(false);
++    }
++  }
++
++  return (
++    <div className="card space-y-3">
++      <div className="flex items-center gap-2">
++        <FileText size={16} className="text-anac-navy" />
++        <span className="font-medium text-sm">Declaration de pre-evaluation</span>
++      </div>
++
++      {!evaluation?.madeAvailableAt ? (
++        <div className="space-y-2">
++          <div>
++            <label className="label">Delai de retour (jours, optionnel - 15 par defaut)</label>
++            <input
++              type="number"
++              className="input"
++              value={returnDays}
++              onChange={(e) => setReturnDays(e.target.value)}
++              placeholder="15"
++            />
++          </div>
++          <Button size="sm" onClick={makeAvailable} disabled={busy}>
++            Rendre disponible au postulant
++          </Button>
++        </div>
++      ) : (
++        <div className="text-sm space-y-1">
++          <p>
++            Mise a disposition le {new Date(evaluation.madeAvailableAt).toLocaleDateString("fr-FR")}, retour attendu
++            avant le {evaluation.returnDeadline && new Date(evaluation.returnDeadline).toLocaleDateString("fr-FR")}
++          </p>
++          {evaluation.submittedFileUrl ? (
++            <p className="text-anac-success">
++              Recue le {evaluation.submittedAt && new Date(evaluation.submittedAt).toLocaleDateString("fr-FR")} -{" "}
++              <a
++                href={`http://localhost:4000${evaluation.submittedFileUrl}`}
++                target="_blank"
++                rel="noreferrer"
++                className="underline"
++              >
++                voir le fichier
++              </a>
++            </p>
++          ) : (
++            <p className="text-anac-warning">En attente du retour du postulant</p>
++          )}
++        </div>
++      )}
++    </div>
++  );
++}
++
++function ClosureSection({
++  phaseId,
++  onChanged,
++  setActionError,
++}: {
++  phaseId: number;
++  onChanged: () => void;
++  setActionError: (msg: string | null) => void;
++}) {
++  const [note, setNote] = useState("");
++  const [file, setFile] = useState<File | null>(null);
++  const [busy, setBusy] = useState(false);
++
++  async function handleClose(e: FormEvent) {
++    e.preventDefault();
++    setActionError(null);
++
++    if (!note && !file) {
++      setActionError("Un document ou une note est requis pour cloturer.");
++      return;
++    }
++
++    setBusy(true);
++    try {
++      let closureDocumentUrl: string | undefined;
++      if (file) {
++        const formData = new FormData();
++        formData.append("file", file);
++        const { data: uploaded } = await api.post("/uploads", formData, {
++          headers: { "Content-Type": "multipart/form-data" },
++        });
++        closureDocumentUrl = uploaded.fileUrl;
++      }
++
++      await api.post(`/phases/${phaseId}/close`, { closureDocumentUrl, closureNote: note || undefined });
++      onChanged();
++    } catch (err) {
++      setActionError(apiErrorMessage(err, "Impossible de cloturer la phase."));
++    } finally {
++      setBusy(false);
++    }
++  }
++
++  return (
++    <form onSubmit={handleClose} className="card space-y-3">
++      <span className="font-medium text-sm">Cloturer la phase</span>
++      <p className="text-anac-muted text-xs">Un document OU une note suffit.</p>
++      <div>
++        <label className="label">Note (optionnel)</label>
++        <textarea className="input" rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
++      </div>
++      <div>
++        <label className="label">Document joint (optionnel)</label>
++        <input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
++      </div>
++      <Button type="submit" disabled={busy}>
++        {busy ? "Cloture..." : "Cloturer la phase"}
++      </Button>
++    </form>
++  );
++}
+diff --git a/apps/admin/src/pages/requests/RequestsPage.tsx b/apps/admin/src/pages/requests/RequestsPage.tsx
+index 8e4a1ed..adfa8f7 100644
+--- a/apps/admin/src/pages/requests/RequestsPage.tsx
++++ b/apps/admin/src/pages/requests/RequestsPage.tsx
+@@ -1,4 +1,5 @@
+ import { useEffect, useState, FormEvent } from 'react';
++import { Link } from 'react-router-dom';
+ import { api, apiErrorMessage } from '../../lib/axios';
+ 
+ interface RequestView {
+@@ -187,7 +188,12 @@ export default function RequestsPage() {
+                       </button>
+                     )}
+                     {r.circuitStatus === 'pending_review' && (
+-                      <span className="text-anac-muted text-xs">Pret pour DN</span>
++                      <Link
++                        to={`/demandes/${r.id}/phase-preliminaire`}
++                        className="text-anac-blue underline text-xs"
++                      >
++                        Phase Preliminaire
++                      </Link>
+                     )}
+                   </td>
+                 </tr>
+diff --git a/apps/api/src/modules/applicant-auth/applicant-auth.controller.ts b/apps/api/src/modules/applicant-auth/applicant-auth.controller.ts
+index 6275166..b86ba14 100644
+--- a/apps/api/src/modules/applicant-auth/applicant-auth.controller.ts
++++ b/apps/api/src/modules/applicant-auth/applicant-auth.controller.ts
+@@ -10,7 +10,7 @@ import {
+ } from "../../shared/guards/auth.middleware.js";
+ 
+ export async function login(req: Request, res: Response): Promise<void> {
+-  const { email, password } = req.body;
++  const { email, password } = req.body ?? {};
+ 
+   if (!email || !password) {
+     res.status(400).json({ message: "Email et mot de passe requis." });
+diff --git a/apps/api/src/modules/auth/auth.controller.ts b/apps/api/src/modules/auth/auth.controller.ts
+index 11fd6c6..eedc60a 100644
+--- a/apps/api/src/modules/auth/auth.controller.ts
++++ b/apps/api/src/modules/auth/auth.controller.ts
+@@ -14,7 +14,7 @@ import { eq } from "drizzle-orm";
+ import { buildUserPublic } from "./auth.helpers.js";
+ 
+ export async function login(req: Request, res: Response): Promise<void> {
+-  const { employeeCode, otp, password } = req.body;
++  const { employeeCode, otp, password } = req.body ?? {};
+ 
+   if (!employeeCode) {
+     res.status(400).json({ message: "Matricule requis." });
+@@ -45,7 +45,7 @@ export async function login(req: Request, res: Response): Promise<void> {
+ }
+ 
+ export async function setPassword(req: Request, res: Response): Promise<void> {
+-  const { password, confirmation } = req.body;
++  const { password, confirmation } = req.body ?? {};
+ 
+   if (!password || !confirmation) {
+     res.status(400).json({ message: "Mot de passe et confirmation requis." });
+diff --git a/apps/api/src/modules/bootstrap/bootstrap.controller.ts b/apps/api/src/modules/bootstrap/bootstrap.controller.ts
+index 63dc42f..69ca5b5 100644
+--- a/apps/api/src/modules/bootstrap/bootstrap.controller.ts
++++ b/apps/api/src/modules/bootstrap/bootstrap.controller.ts
+@@ -26,7 +26,7 @@ export async function init(req: Request, res: Response): Promise<void> {
+       return;
+     }
+ 
+-    const { employeeCode, fullName, email, password, confirmation } = req.body;
++    const { employeeCode, fullName, email, password, confirmation } = req.body ?? {};
+ 
+     if (!employeeCode || !fullName || !email || !password || !confirmation) {
+       res.status(400).json({
+diff --git a/apps/api/src/modules/document-templates/document-templates.controller.ts b/apps/api/src/modules/document-templates/document-templates.controller.ts
+new file mode 100644
+index 0000000..78b1db5
+--- /dev/null
++++ b/apps/api/src/modules/document-templates/document-templates.controller.ts
+@@ -0,0 +1,66 @@
++import { Request, Response } from "express";
++import * as templatesService from "./document-templates.service.js";
++import { DOCUMENT_TEMPLATE_KEYS, type DocumentTemplateKey } from "@aidn/shared";
++
++function isValidKey(key: string): key is DocumentTemplateKey {
++  return (DOCUMENT_TEMPLATE_KEYS as readonly string[]).includes(key);
++}
++
++export async function list(_req: Request, res: Response): Promise<void> {
++  try {
++    const templates = await templatesService.listTemplates();
++    res.json(templates);
++  } catch (error) {
++    console.error("[document-templates/list]", error);
++    res.status(500).json({ message: "Erreur interne." });
++  }
++}
++
++/** Reachable by either staff or applicant - both sides need to download the
++ *  current blank form for a given key (M3 declaration, M4 forms). */
++export async function getByKey(req: Request, res: Response): Promise<void> {
++  const key = req.params.key as string;
++  if (!isValidKey(key)) {
++    res.status(400).json({ message: "Cle de modele inconnue." });
++    return;
++  }
++
++  try {
++    const template = await templatesService.getTemplateByKey(key);
++    if (!template || !template.active || !template.fileUrl) {
++      res.status(404).json({ message: "Modele non disponible." });
++      return;
++    }
++    res.json(template);
++  } catch (error) {
++    console.error("[document-templates/getByKey]", error);
++    res.status(500).json({ message: "Erreur interne." });
++  }
++}
++
++export async function upsert(req: Request, res: Response): Promise<void> {
++  const { key, label, fileUrl, mimeType } = req.body ?? {};
++
++  if (!key || !label || !fileUrl || !mimeType) {
++    res.status(400).json({ message: "key, label, fileUrl et mimeType sont requis." });
++    return;
++  }
++  if (!isValidKey(key)) {
++    res.status(400).json({ message: "Cle de modele inconnue." });
++    return;
++  }
++
++  try {
++    const template = await templatesService.upsertTemplate({
++      key,
++      label,
++      fileUrl,
++      mimeType,
++      uploadedByUserId: req.user!.userId,
++    });
++    res.status(201).json(template);
++  } catch (error) {
++    console.error("[document-templates/upsert]", error);
++    res.status(500).json({ message: "Erreur interne." });
++  }
++}
+diff --git a/apps/api/src/modules/document-templates/document-templates.route.ts b/apps/api/src/modules/document-templates/document-templates.route.ts
+new file mode 100644
+index 0000000..72a3c19
+--- /dev/null
++++ b/apps/api/src/modules/document-templates/document-templates.route.ts
+@@ -0,0 +1,15 @@
++import { Router } from "express";
++import { authenticate, authenticateEither, requireRole } from "../../shared/guards/auth.middleware.js";
++import * as templatesController from "./document-templates.controller.js";
++
++const router = Router();
++
++// Management view - staff only.
++router.get("/", authenticate, requireRole("dn_agent", "dn_supervisor", "SU"), templatesController.list);
++router.post("/", authenticate, requireRole("dn_agent", "dn_supervisor", "SU"), templatesController.upsert);
++
++// Download by key - both staff and applicants need this (applicant to fill
++// out a blank form, staff to double-check what's currently published).
++router.get("/:key", authenticateEither, templatesController.getByKey);
++
++export default router;
+diff --git a/apps/api/src/modules/document-templates/document-templates.service.ts b/apps/api/src/modules/document-templates/document-templates.service.ts
+new file mode 100644
+index 0000000..5afaf37
+--- /dev/null
++++ b/apps/api/src/modules/document-templates/document-templates.service.ts
+@@ -0,0 +1,103 @@
++import { eq } from "drizzle-orm";
++import { db } from "../../shared/db/index.js";
++import { documentTemplates, documentVersions } from "../../shared/db/schema.js";
++import { logAudit } from "../auth/auth.service.js";
++import type { DocumentTemplateKey } from "@aidn/shared";
++
++export interface TemplateView {
++  id: number;
++  key: string;
++  label: string;
++  fileUrl: string | null;
++  mimeType: string | null;
++  uploadedAt: Date | null;
++  active: boolean;
++}
++
++function toTemplateView(row: typeof documentTemplates.$inferSelect): TemplateView {
++  return {
++    id: row.id,
++    key: row.key,
++    label: row.label,
++    fileUrl: row.fileUrl,
++    mimeType: row.mimeType,
++    uploadedAt: row.uploadedAt,
++    active: row.active,
++  };
++}
++
++export async function listTemplates(): Promise<TemplateView[]> {
++  const rows = await db.select().from(documentTemplates);
++  return rows.map(toTemplateView);
++}
++
++export async function getTemplateByKey(key: DocumentTemplateKey): Promise<TemplateView | null> {
++  const [row] = await db.select().from(documentTemplates).where(eq(documentTemplates.key, key));
++  return row ? toTemplateView(row) : null;
++}
++
++/** Upload or replace the active file for a template key. The previous file
++ *  (if any) is trashed via the M8 version/trash pattern, never deleted
++ *  outright - same as every other document in the app. */
++export async function upsertTemplate(params: {
++  key: DocumentTemplateKey;
++  label: string;
++  fileUrl: string;
++  mimeType: string;
++  uploadedByUserId: number;
++}): Promise<TemplateView> {
++  const [existing] = await db.select().from(documentTemplates).where(eq(documentTemplates.key, params.key));
++
++  let row: typeof documentTemplates.$inferSelect;
++
++  if (existing) {
++    // Trash the previous version before pointing at the new one.
++    await db
++      .update(documentVersions)
++      .set({ isCurrent: false, trashedAt: new Date() })
++      .where(eq(documentVersions.ownerId, existing.id));
++
++    [row] = await db
++      .update(documentTemplates)
++      .set({
++        label: params.label,
++        fileUrl: params.fileUrl,
++        mimeType: params.mimeType,
++        uploadedBy: params.uploadedByUserId,
++        uploadedAt: new Date(),
++      })
++      .where(eq(documentTemplates.id, existing.id))
++      .returning();
++  } else {
++    [row] = await db
++      .insert(documentTemplates)
++      .values({
++        key: params.key,
++        label: params.label,
++        fileUrl: params.fileUrl,
++        mimeType: params.mimeType,
++        uploadedBy: params.uploadedByUserId,
++        uploadedAt: new Date(),
++      })
++      .returning();
++  }
++
++  await db.insert(documentVersions).values({
++    ownerType: "document_template",
++    ownerId: row.id,
++    fileUrl: params.fileUrl,
++    mimeType: params.mimeType,
++    uploadedBy: params.uploadedByUserId,
++    isCurrent: true,
++  });
++
++  await logAudit({
++    userId: params.uploadedByUserId,
++    action: existing ? "DOCUMENT_TEMPLATE_REPLACED" : "DOCUMENT_TEMPLATE_CREATED",
++    module: "M13",
++    entityId: row.id,
++    details: { key: params.key },
++  });
++
++  return toTemplateView(row);
++}
+diff --git a/apps/api/src/modules/meetings/meetings.controller.ts b/apps/api/src/modules/meetings/meetings.controller.ts
+new file mode 100644
+index 0000000..e99cde7
+--- /dev/null
++++ b/apps/api/src/modules/meetings/meetings.controller.ts
+@@ -0,0 +1,69 @@
++import { Request, Response } from "express";
++import * as meetingsService from "./meetings.service.js";
++import { handleMeetingsError } from "../../shared/utils/error.js";
++
++export async function schedule(req: Request, res: Response): Promise<void> {
++  try {
++    const { phaseId, meetingType, dnAgentId, scheduledAt, location } = req.body ?? {};
++    if (!phaseId || !meetingType || !dnAgentId || !scheduledAt) {
++      res.status(400).json({ message: "phaseId, meetingType, dnAgentId et scheduledAt sont requis." });
++      return;
++    }
++    const result = await meetingsService.scheduleMeeting({
++      phaseId: Number(phaseId),
++      meetingType,
++      dnAgentId: Number(dnAgentId),
++      scheduledAt,
++      location,
++    });
++    res.status(201).json(result);
++  } catch (error) {
++    handleMeetingsError(res, error);
++  }
++}
++
++export async function get(req: Request, res: Response): Promise<void> {
++  try {
++    const meeting = await meetingsService.getMeeting(Number(req.params.id));
++    res.json(meeting);
++  } catch (error) {
++    handleMeetingsError(res, error);
++  }
++}
++
++export async function ticket(req: Request, res: Response): Promise<void> {
++  try {
++    const html = await meetingsService.getMeetingTicketHtml(Number(req.params.id));
++    res.type("html").send(html);
++  } catch (error) {
++    handleMeetingsError(res, error);
++  }
++}
++
++export async function markStatus(req: Request, res: Response): Promise<void> {
++  try {
++    const { status } = req.body ?? {};
++    if (!["held", "no_show", "file_cancelled"].includes(status)) {
++      res.status(400).json({ message: "Statut invalide (held, no_show ou file_cancelled)." });
++      return;
++    }
++    const meeting = await meetingsService.markMeetingStatus(Number(req.params.id), req.user!.userId, status);
++    res.json(meeting);
++  } catch (error) {
++    handleMeetingsError(res, error);
++  }
++}
++
++export async function reschedule(req: Request, res: Response): Promise<void> {
++  try {
++    const { newScheduledAt } = req.body ?? {};
++    if (!newScheduledAt) {
++      res.status(400).json({ message: "newScheduledAt requis." });
++      return;
++    }
++    const result = await meetingsService.rescheduleMeeting(Number(req.params.id), req.user!.userId, newScheduledAt);
++    res.status(201).json(result);
++  } catch (error) {
++    handleMeetingsError(res, error);
++  }
++}
+diff --git a/apps/api/src/modules/meetings/meetings.route.ts b/apps/api/src/modules/meetings/meetings.route.ts
+new file mode 100644
+index 0000000..4c36e55
+--- /dev/null
++++ b/apps/api/src/modules/meetings/meetings.route.ts
+@@ -0,0 +1,17 @@
++import { Router } from "express";
++import { authenticate, authenticateEither, requireRole } from "../../shared/guards/auth.middleware.js";
++import * as meetingsController from "./meetings.controller.js";
++
++const router = Router();
++
++// Scheduling and status changes: dn_agent/dn_supervisor only (per Sprint 2
++// decision - reception/assistant_dg's role stays scoped to the M1 parapheur).
++router.post("/", authenticate, requireRole("dn_agent", "dn_supervisor", "SU"), meetingsController.schedule);
++router.patch("/:id/status", authenticate, requireRole("dn_agent", "dn_supervisor", "SU"), meetingsController.markStatus);
++router.post("/:id/reschedule", authenticate, requireRole("dn_agent", "dn_supervisor", "SU"), meetingsController.reschedule);
++
++// Read access: either side needs to see the meeting/ticket.
++router.get("/:id", authenticateEither, meetingsController.get);
++router.get("/:id/ticket", authenticateEither, meetingsController.ticket);
++
++export default router;
+diff --git a/apps/api/src/modules/meetings/meetings.service.ts b/apps/api/src/modules/meetings/meetings.service.ts
+new file mode 100644
+index 0000000..6d0b924
+--- /dev/null
++++ b/apps/api/src/modules/meetings/meetings.service.ts
+@@ -0,0 +1,196 @@
++import { eq, and, gte, lt, ne } from "drizzle-orm";
++import { db } from "../../shared/db/index.js";
++import { meetings, phases, requests, users } from "../../shared/db/schema.js";
++import { logAudit } from "../auth/auth.service.js";
++import type { ScheduleMeetingParams, MeetingView } from "./meetings.types.js";
++
++export type { ScheduleMeetingParams, MeetingView } from "./meetings.types.js";
++
++function isUniqueViolation(error: unknown): boolean {
++  const pgCode = (error as { code?: string })?.code;
++  const causeCode = (error as { cause?: { code?: string } })?.cause?.code;
++  return pgCode === "23505" || causeCode === "23505";
++}
++
++function toMeetingView(row: typeof meetings.$inferSelect): MeetingView {
++  return {
++    id: row.id,
++    phaseId: row.phaseId,
++    meetingType: row.meetingType,
++    dnAgentId: row.dnAgentId,
++    scheduledAt: row.scheduledAt,
++    location: row.location,
++    status: row.status,
++    createdAt: row.createdAt,
++  };
++}
++
++/** Pattern "Reunion / Visite" (M10 conflict rules):
++ *  - Hard conflict (same agent, exact same slot) -> blocked by the DB's
++ *    unique index, caught here and reported as MEETING_SLOT_CONFLICT.
++ *  - Soft overlap (same agent, same day, different time) -> reported back
++ *    as a warning, never blocking. */
++export async function scheduleMeeting(
++  params: ScheduleMeetingParams
++): Promise<{ meeting: MeetingView; softOverlapWarning: boolean }> {
++  const [phase] = await db.select().from(phases).where(eq(phases.id, params.phaseId));
++  if (!phase) throw new Error("PHASE_NOT_FOUND");
++  if (phase.status !== "open") throw new Error("PHASE_NOT_OPEN");
++
++  const scheduledAt = new Date(params.scheduledAt);
++  const dayStart = new Date(scheduledAt.getFullYear(), scheduledAt.getMonth(), scheduledAt.getDate());
++  const dayEnd = new Date(dayStart);
++  dayEnd.setDate(dayEnd.getDate() + 1);
++
++  const sameDayMeetings = await db
++    .select()
++    .from(meetings)
++    .where(
++      and(
++        eq(meetings.dnAgentId, params.dnAgentId),
++        gte(meetings.scheduledAt, dayStart),
++        lt(meetings.scheduledAt, dayEnd),
++        ne(meetings.status, "file_cancelled"),
++        ne(meetings.status, "rescheduled")
++      )
++    );
++  const softOverlapWarning = sameDayMeetings.length > 0;
++
++  try {
++    const [meeting] = await db
++      .insert(meetings)
++      .values({
++        phaseId: params.phaseId,
++        meetingType: params.meetingType,
++        dnAgentId: params.dnAgentId,
++        scheduledAt,
++        location: params.location,
++        status: "scheduled",
++      })
++      .returning();
++
++    await logAudit({
++      userId: params.dnAgentId,
++      action: "MEETING_SCHEDULED",
++      module: phase.phaseCode,
++      entityId: meeting.id,
++    });
++
++    return { meeting: toMeetingView(meeting), softOverlapWarning };
++  } catch (error) {
++    if (isUniqueViolation(error)) throw new Error("MEETING_SLOT_CONFLICT");
++    throw error;
++  }
++}
++
++export async function getMeeting(meetingId: number): Promise<MeetingView> {
++  const [meeting] = await db.select().from(meetings).where(eq(meetings.id, meetingId));
++  if (!meeting) throw new Error("MEETING_NOT_FOUND");
++  return toMeetingView(meeting);
++}
++
++/** Simple HTML ticket, not a generated PDF - a real PDF generator is a
++ *  cross-phase concern (M3+M4+M6 all need one) better built once, later,
++ *  than three times now. */
++export async function getMeetingTicketHtml(meetingId: number): Promise<string> {
++  const [meeting] = await db.select().from(meetings).where(eq(meetings.id, meetingId));
++  if (!meeting) throw new Error("MEETING_NOT_FOUND");
++
++  const [phase] = await db.select().from(phases).where(eq(phases.id, meeting.phaseId));
++  const [request] = phase ? await db.select().from(requests).where(eq(requests.id, phase.requestId)) : [];
++  const [agent] = await db.select().from(users).where(eq(users.id, meeting.dnAgentId));
++
++  const typeLabels: Record<string, string> = {
++    preliminary: "Reunion preliminaire",
++    formal: "Reunion formelle",
++    site_visit: "Visite sur site",
++  };
++
++  return `<!doctype html>
++<html lang="fr">
++<head>
++<meta charset="utf-8" />
++<title>Invitation - ${typeLabels[meeting.meetingType] ?? meeting.meetingType}</title>
++<style>
++  body { font-family: Arial, sans-serif; max-width: 480px; margin: 40px auto; color: #1a2340; }
++  h1 { color: #1b2a5e; font-size: 18px; }
++  .ref { color: #6b7a99; font-size: 12px; }
++  .box { background: #f4f6fa; border-radius: 8px; padding: 16px; margin-top: 16px; }
++  .label { color: #6b7a99; font-size: 11px; text-transform: uppercase; }
++  .value { font-weight: bold; margin-bottom: 12px; }
++</style>
++</head>
++<body>
++  <h1>AIDN - ${typeLabels[meeting.meetingType] ?? meeting.meetingType}</h1>
++  <p class="ref">ANAC Gabon - Direction de la Navigabilite</p>
++  <div class="box">
++    <div class="label">Reference du dossier</div>
++    <div class="value">${request?.reference ?? "-"}</div>
++    <div class="label">Date et heure</div>
++    <div class="value">${meeting.scheduledAt.toLocaleString("fr-FR")}</div>
++    ${meeting.location ? `<div class="label">Lieu</div><div class="value">${meeting.location}</div>` : ""}
++    <div class="label">Agent DN</div>
++    <div class="value">${agent?.fullName ?? "-"}</div>
++  </div>
++  <p style="margin-top: 24px; font-size: 11px; color: #6b7a99;">
++    Merci de vous presenter a la date et l'heure indiquees. En cas d'empechement,
++    contactez la Direction de la Navigabilite.
++  </p>
++</body>
++</html>`;
++}
++
++/** DN's choice on a no-show or scheduling issue (project/modules-feasibility.md
++ *  M3): held / no_show / file_cancelled are terminal for this meeting row.
++ *  "rescheduled" instead creates a brand-new meeting row for the new slot
++ *  and marks this one rescheduled - keeps the original slot's history
++ *  rather than overwriting it. */
++export async function markMeetingStatus(
++  meetingId: number,
++  actorUserId: number,
++  status: "held" | "no_show" | "file_cancelled"
++): Promise<MeetingView> {
++  const [meeting] = await db.select().from(meetings).where(eq(meetings.id, meetingId));
++  if (!meeting) throw new Error("MEETING_NOT_FOUND");
++  if (meeting.status !== "scheduled") throw new Error("MEETING_NOT_SCHEDULED");
++
++  const [updated] = await db.update(meetings).set({ status }).where(eq(meetings.id, meetingId)).returning();
++
++  if (status === "file_cancelled") {
++    const [phase] = await db.select().from(phases).where(eq(phases.id, meeting.phaseId));
++    if (phase) {
++      await db
++        .update(requests)
++        .set({ status: "rejected", rejectionReason: "Dossier annule suite a absence non justifiee (reunion)." })
++        .where(eq(requests.id, phase.requestId));
++    }
++  }
++
++  await logAudit({ userId: actorUserId, action: `MEETING_${status.toUpperCase()}`, module: "M3", entityId: meetingId });
++
++  return toMeetingView(updated);
++}
++
++export async function rescheduleMeeting(
++  meetingId: number,
++  actorUserId: number,
++  newScheduledAt: string
++): Promise<{ meeting: MeetingView; softOverlapWarning: boolean }> {
++  const [oldMeeting] = await db.select().from(meetings).where(eq(meetings.id, meetingId));
++  if (!oldMeeting) throw new Error("MEETING_NOT_FOUND");
++  if (oldMeeting.status !== "scheduled") throw new Error("MEETING_NOT_SCHEDULED");
++
++  await db.update(meetings).set({ status: "rescheduled" }).where(eq(meetings.id, meetingId));
++
++  const result = await scheduleMeeting({
++    phaseId: oldMeeting.phaseId,
++    meetingType: oldMeeting.meetingType as ScheduleMeetingParams["meetingType"],
++    dnAgentId: oldMeeting.dnAgentId,
++    scheduledAt: newScheduledAt,
++    location: oldMeeting.location ?? undefined,
++  });
++
++  await logAudit({ userId: actorUserId, action: "MEETING_RESCHEDULED", module: "M3", entityId: meetingId, details: { newMeetingId: result.meeting.id } });
++
++  return result;
++}
+diff --git a/apps/api/src/modules/meetings/meetings.types.ts b/apps/api/src/modules/meetings/meetings.types.ts
+new file mode 100644
+index 0000000..255ca19
+--- /dev/null
++++ b/apps/api/src/modules/meetings/meetings.types.ts
+@@ -0,0 +1,18 @@
++export interface ScheduleMeetingParams {
++  phaseId: number;
++  meetingType: "preliminary" | "formal" | "site_visit";
++  dnAgentId: number;
++  scheduledAt: string; // ISO
++  location?: string;
++}
++
++export interface MeetingView {
++  id: number;
++  phaseId: number;
++  meetingType: string;
++  dnAgentId: number;
++  scheduledAt: Date;
++  location: string | null;
++  status: string;
++  createdAt: Date;
++}
+diff --git a/apps/api/src/modules/phases/phases.controller.ts b/apps/api/src/modules/phases/phases.controller.ts
+new file mode 100644
+index 0000000..45d9d09
+--- /dev/null
++++ b/apps/api/src/modules/phases/phases.controller.ts
+@@ -0,0 +1,52 @@
++import { Request, Response } from "express";
++import * as phasesService from "./phases.service.js";
++import { handlePhasesError } from "../../shared/utils/error.js";
++
++export async function startPreliminaryPhase(req: Request, res: Response): Promise<void> {
++  try {
++    const phase = await phasesService.openPreliminaryPhase(Number(req.params.requestId), req.user!.userId);
++    res.status(201).json(phase);
++  } catch (error) {
++    handlePhasesError(res, error);
++  }
++}
++
++export async function get(req: Request, res: Response): Promise<void> {
++  try {
++    const phase = await phasesService.getPhase(Number(req.params.id));
++    res.json(phase);
++  } catch (error) {
++    handlePhasesError(res, error);
++  }
++}
++
++export async function getForRequest(req: Request, res: Response): Promise<void> {
++  try {
++    const code = req.query.phaseCode as "M3" | "M4" | "M5" | "M6" | "M7" | undefined;
++    if (!code) {
++      res.status(400).json({ message: "phaseCode requis en query string." });
++      return;
++    }
++    const phase = await phasesService.getPhaseByRequestAndCode(Number(req.params.requestId), code);
++    if (!phase) {
++      res.status(404).json({ message: "Phase introuvable pour cette demande." });
++      return;
++    }
++    res.json(phase);
++  } catch (error) {
++    handlePhasesError(res, error);
++  }
++}
++
++export async function close(req: Request, res: Response): Promise<void> {
++  try {
++    const { closureDocumentUrl, closureNote } = req.body ?? {};
++    const phase = await phasesService.closePhase(Number(req.params.id), req.user!.userId, {
++      closureDocumentUrl,
++      closureNote,
++    });
++    res.json(phase);
++  } catch (error) {
++    handlePhasesError(res, error);
++  }
++}
+diff --git a/apps/api/src/modules/phases/phases.route.ts b/apps/api/src/modules/phases/phases.route.ts
+new file mode 100644
+index 0000000..d11dc60
+--- /dev/null
++++ b/apps/api/src/modules/phases/phases.route.ts
+@@ -0,0 +1,14 @@
++import { Router } from "express";
++import { authenticate, requireRole } from "../../shared/guards/auth.middleware.js";
++import * as phasesController from "./phases.controller.js";
++
++const router = Router();
++
++router.use(authenticate, requireRole("dn_agent", "dn_supervisor", "SU"));
++
++router.post("/requests/:requestId/start-preliminary-phase", phasesController.startPreliminaryPhase);
++router.get("/requests/:requestId/phase", phasesController.getForRequest);
++router.get("/:id", phasesController.get);
++router.post("/:id/close", phasesController.close);
++
++export default router;
+diff --git a/apps/api/src/modules/phases/phases.service.ts b/apps/api/src/modules/phases/phases.service.ts
+new file mode 100644
+index 0000000..6942c57
+--- /dev/null
++++ b/apps/api/src/modules/phases/phases.service.ts
+@@ -0,0 +1,109 @@
++import { eq, and } from "drizzle-orm";
++import { db } from "../../shared/db/index.js";
++import { phases, requests } from "../../shared/db/schema.js";
++import { logAudit } from "../auth/auth.service.js";
++
++export interface PhaseView {
++  id: number;
++  requestId: number;
++  phaseCode: string;
++  status: string;
++  openedAt: Date;
++  closedAt: Date | null;
++  closureDocumentUrl: string | null;
++  closureNote: string | null;
++}
++
++function toPhaseView(row: typeof phases.$inferSelect): PhaseView {
++  return {
++    id: row.id,
++    requestId: row.requestId,
++    phaseCode: row.phaseCode,
++    status: row.status,
++    openedAt: row.openedAt,
++    closedAt: row.closedAt,
++    closureDocumentUrl: row.closureDocumentUrl,
++    closureNote: row.closureNote,
++  };
++}
++
++/** M3 - opens the Preliminary phase once M1's DG circuit reaches
++ *  pending_review. This is the moment DN actually "starts working" a
++ *  dossier - see project/modules-feasibility.md M1/M3. */
++export async function openPreliminaryPhase(requestId: number, actorUserId: number): Promise<PhaseView> {
++  const [request] = await db.select().from(requests).where(eq(requests.id, requestId));
++  if (!request) throw new Error("REQUEST_NOT_FOUND");
++
++  const [existing] = await db
++    .select()
++    .from(phases)
++    .where(and(eq(phases.requestId, requestId), eq(phases.phaseCode, "M3")));
++  if (existing) throw new Error("PHASE_ALREADY_OPEN");
++
++  if (request.status !== "pending_review") throw new Error("REQUEST_NOT_READY_FOR_PHASE");
++
++  const [phase] = await db.insert(phases).values({ requestId, phaseCode: "M3" }).returning();
++
++  await db.update(requests).set({ status: "in_progress", updatedAt: new Date() }).where(eq(requests.id, requestId));
++
++  await logAudit({
++    userId: actorUserId,
++    action: "PHASE_OPENED",
++    module: "M3",
++    entityId: phase.id,
++    details: { requestId, phaseCode: "M3" },
++  });
++
++  return toPhaseView(phase);
++}
++
++export async function getPhase(phaseId: number): Promise<PhaseView> {
++  const [phase] = await db.select().from(phases).where(eq(phases.id, phaseId));
++  if (!phase) throw new Error("PHASE_NOT_FOUND");
++  return toPhaseView(phase);
++}
++
++export async function getPhaseByRequestAndCode(
++  requestId: number,
++  phaseCode: "M3" | "M4" | "M5" | "M6" | "M7"
++): Promise<PhaseView | null> {
++  const [phase] = await db
++    .select()
++    .from(phases)
++    .where(and(eq(phases.requestId, requestId), eq(phases.phaseCode, phaseCode)));
++  return phase ? toPhaseView(phase) : null;
++}
++
++/** Pattern "Cloture de phase" - doc attached OR note, either suffices, never
++ *  automatic. No completeness gate for M3 specifically (unlike M4/M5) - see
++ *  project/modules-feasibility.md M3. */
++export async function closePhase(
++  phaseId: number,
++  actorUserId: number,
++  params: { closureDocumentUrl?: string; closureNote?: string }
++): Promise<PhaseView> {
++  const [phase] = await db.select().from(phases).where(eq(phases.id, phaseId));
++  if (!phase) throw new Error("PHASE_NOT_FOUND");
++  if (phase.status !== "open") throw new Error("PHASE_ALREADY_CLOSED");
++  if (!params.closureDocumentUrl && !params.closureNote) throw new Error("CLOSURE_EVIDENCE_REQUIRED");
++
++  const [updated] = await db
++    .update(phases)
++    .set({
++      status: "closed",
++      closedAt: new Date(),
++      closureDocumentUrl: params.closureDocumentUrl,
++      closureNote: params.closureNote,
++    })
++    .where(eq(phases.id, phaseId))
++    .returning();
++
++  await logAudit({
++    userId: actorUserId,
++    action: "PHASE_CLOSED",
++    module: phase.phaseCode,
++    entityId: phaseId,
++  });
++
++  return toPhaseView(updated);
++}
+diff --git a/apps/api/src/modules/preliminary-evaluation/preliminary-evaluation.controller.ts b/apps/api/src/modules/preliminary-evaluation/preliminary-evaluation.controller.ts
+new file mode 100644
+index 0000000..5c7cba3
+--- /dev/null
++++ b/apps/api/src/modules/preliminary-evaluation/preliminary-evaluation.controller.ts
+@@ -0,0 +1,80 @@
++import { Request, Response } from "express";
++import * as evalService from "./preliminary-evaluation.service.js";
++import { handlePreliminaryEvaluationError } from "../../shared/utils/error.js";
++import { db } from "../../shared/db/index.js";
++import { requests } from "../../shared/db/schema.js";
++import { eq } from "drizzle-orm";
++
++export async function get(req: Request, res: Response): Promise<void> {
++  try {
++    const view = await evalService.getForPhase(Number(req.params.phaseId));
++    if (!view) {
++      res.status(404).json({ message: "Aucune declaration de pre-evaluation pour cette phase." });
++      return;
++    }
++    res.json(view);
++  } catch (error) {
++    handlePreliminaryEvaluationError(res, error);
++  }
++}
++
++/** Bundle endpoint for the portal - phase + meeting + declaration in one
++ *  call, ownership-checked for applicants. */
++export async function getBundle(req: Request, res: Response): Promise<void> {
++  try {
++    const requestId = Number(req.params.requestId);
++
++    if (req.applicant) {
++      const [request] = await db.select().from(requests).where(eq(requests.id, requestId));
++      if (!request || request.applicantId !== req.applicant.applicantId) {
++        res.status(404).json({ message: "Demande introuvable." });
++        return;
++      }
++    }
++
++    const bundle = await evalService.getBundleForRequest(requestId);
++    res.json(bundle);
++  } catch (error) {
++    handlePreliminaryEvaluationError(res, error);
++  }
++}
++
++export async function makeAvailable(req: Request, res: Response): Promise<void> {
++  try {
++    const { returnDays } = req.body ?? {};
++    const view = await evalService.makeAvailable(
++      Number(req.params.phaseId),
++      req.user!.userId,
++      returnDays ? Number(returnDays) : undefined
++    );
++    res.status(201).json(view);
++  } catch (error) {
++    handlePreliminaryEvaluationError(res, error);
++  }
++}
++
++export async function submit(req: Request, res: Response): Promise<void> {
++  try {
++    const { fileUrl, mimeType } = req.body ?? {};
++    if (!fileUrl || !mimeType) {
++      res.status(400).json({ message: "fileUrl et mimeType sont requis." });
++      return;
++    }
++
++    const phaseId = Number(req.params.phaseId);
++
++    // Ownership check: an applicant can only submit for their own dossier.
++    if (req.applicant) {
++      const context = await evalService.getRequestIdForPhase(phaseId);
++      if (!context || context.applicantId !== req.applicant.applicantId) {
++        res.status(404).json({ message: "Phase introuvable." });
++        return;
++      }
++    }
++
++    const view = await evalService.submit(phaseId, fileUrl, mimeType);
++    res.json(view);
++  } catch (error) {
++    handlePreliminaryEvaluationError(res, error);
++  }
++}
+diff --git a/apps/api/src/modules/preliminary-evaluation/preliminary-evaluation.route.ts b/apps/api/src/modules/preliminary-evaluation/preliminary-evaluation.route.ts
+new file mode 100644
+index 0000000..f53d178
+--- /dev/null
++++ b/apps/api/src/modules/preliminary-evaluation/preliminary-evaluation.route.ts
+@@ -0,0 +1,22 @@
++import { Router } from "express";
++import { authenticate, authenticateEither, requireRole } from "../../shared/guards/auth.middleware.js";
++import * as evalController from "./preliminary-evaluation.controller.js";
++
++const router = Router();
++
++// Mounted at /api/preliminary-evaluation - deliberately NOT under /api/phases,
++// since phases.route.ts applies a router-wide staff-only `authenticate` gate
++// to everything under that prefix (router.use with no path restriction).
++// Nesting these routes there would silently block applicant access before
++// authenticateEither ever got a chance to run.
++router.get("/by-request/:requestId", authenticateEither, evalController.getBundle);
++router.get("/:phaseId", authenticateEither, evalController.get);
++router.post(
++  "/:phaseId/make-available",
++  authenticate,
++  requireRole("dn_agent", "dn_supervisor", "SU"),
++  evalController.makeAvailable
++);
++router.post("/:phaseId/submit", authenticateEither, evalController.submit);
++
++export default router;
+diff --git a/apps/api/src/modules/preliminary-evaluation/preliminary-evaluation.service.ts b/apps/api/src/modules/preliminary-evaluation/preliminary-evaluation.service.ts
+new file mode 100644
+index 0000000..bdb4cdb
+--- /dev/null
++++ b/apps/api/src/modules/preliminary-evaluation/preliminary-evaluation.service.ts
+@@ -0,0 +1,176 @@
++import { eq, and, desc } from "drizzle-orm";
++import { db } from "../../shared/db/index.js";
++import { preliminaryEvaluationForms, phases, requests, documentTemplates, meetings } from "../../shared/db/schema.js";
++import { getIntegerValue } from "../system-parameters/system-parameters.service.js";
++import { logAudit } from "../auth/auth.service.js";
++
++export interface PreliminaryEvaluationView {
++  id: number;
++  phaseId: number;
++  templateFileUrl: string | null;
++  madeAvailableAt: Date | null;
++  returnDeadline: Date | null;
++  submittedFileUrl: string | null;
++  submittedAt: Date | null;
++}
++
++async function toView(
++  row: typeof preliminaryEvaluationForms.$inferSelect
++): Promise<PreliminaryEvaluationView> {
++  let templateFileUrl: string | null = null;
++  if (row.templateId) {
++    const [template] = await db.select().from(documentTemplates).where(eq(documentTemplates.id, row.templateId));
++    templateFileUrl = template?.fileUrl ?? null;
++  }
++  return {
++    id: row.id,
++    phaseId: row.phaseId,
++    templateFileUrl,
++    madeAvailableAt: row.madeAvailableAt,
++    returnDeadline: row.returnDeadline,
++    submittedFileUrl: row.submittedFileUrl,
++    submittedAt: row.submittedAt,
++  };
++}
++
++export async function getForPhase(phaseId: number): Promise<PreliminaryEvaluationView | null> {
++  const [row] = await db.select().from(preliminaryEvaluationForms).where(eq(preliminaryEvaluationForms.phaseId, phaseId));
++  return row ? toView(row) : null;
++}
++
++/** M3 - DN makes the blank declaration available to the applicant, after
++ *  the preliminary meeting. Uses whatever template is currently active for
++ *  the 'preliminary_evaluation_declaration' key (see document-templates
++ *  module) - must be configured first. */
++export async function makeAvailable(
++  phaseId: number,
++  actorUserId: number,
++  returnDays?: number
++): Promise<PreliminaryEvaluationView> {
++  const [phase] = await db.select().from(phases).where(eq(phases.id, phaseId));
++  if (!phase) throw new Error("PHASE_NOT_FOUND");
++  if (phase.phaseCode !== "M3") throw new Error("WRONG_PHASE");
++  if (phase.status !== "open") throw new Error("PHASE_NOT_OPEN");
++
++  const [template] = await db
++    .select()
++    .from(documentTemplates)
++    .where(eq(documentTemplates.key, "preliminary_evaluation_declaration"));
++  if (!template || !template.active || !template.fileUrl) {
++    throw new Error("TEMPLATE_NOT_CONFIGURED");
++  }
++
++  const days = returnDays ?? (await getIntegerValue("preliminary_evaluation_return_days", 15));
++  const deadline = new Date();
++  deadline.setDate(deadline.getDate() + days);
++
++  const [existing] = await db
++    .select()
++    .from(preliminaryEvaluationForms)
++    .where(eq(preliminaryEvaluationForms.phaseId, phaseId));
++
++  let row: typeof preliminaryEvaluationForms.$inferSelect;
++  if (existing) {
++    [row] = await db
++      .update(preliminaryEvaluationForms)
++      .set({ templateId: template.id, madeAvailableAt: new Date(), returnDeadline: deadline })
++      .where(eq(preliminaryEvaluationForms.id, existing.id))
++      .returning();
++  } else {
++    [row] = await db
++      .insert(preliminaryEvaluationForms)
++      .values({ phaseId, templateId: template.id, madeAvailableAt: new Date(), returnDeadline: deadline })
++      .returning();
++  }
++
++  await logAudit({
++    userId: actorUserId,
++    action: "PRELIMINARY_EVALUATION_MADE_AVAILABLE",
++    module: "M3",
++    entityId: row.id,
++    details: { returnDays: days },
++  });
++
++  return toView(row);
++}
++
++/** Ownership is enforced by the controller (phase -> request -> applicantId
++ *  check) before this is called. */
++export async function submit(
++  phaseId: number,
++  fileUrl: string,
++  mimeType: string
++): Promise<PreliminaryEvaluationView> {
++  const [row] = await db
++    .select()
++    .from(preliminaryEvaluationForms)
++    .where(eq(preliminaryEvaluationForms.phaseId, phaseId));
++  if (!row) throw new Error("NOT_YET_AVAILABLE");
++  if (!row.madeAvailableAt) throw new Error("NOT_YET_AVAILABLE");
++
++  const [updated] = await db
++    .update(preliminaryEvaluationForms)
++    .set({ submittedFileUrl: fileUrl, submittedAt: new Date() })
++    .where(eq(preliminaryEvaluationForms.id, row.id))
++    .returning();
++
++  await logAudit({ action: "PRELIMINARY_EVALUATION_SUBMITTED", module: "M3", entityId: row.id, details: { mimeType } });
++
++  return toView(updated);
++}
++
++/** Helper for controllers doing the ownership check: phase -> request -> applicantId. */
++export async function getRequestIdForPhase(phaseId: number): Promise<{ requestId: number; applicantId: number } | null> {
++  const [phase] = await db.select().from(phases).where(eq(phases.id, phaseId));
++  if (!phase) return null;
++  const [request] = await db.select().from(requests).where(eq(requests.id, phase.requestId));
++  if (!request) return null;
++  return { requestId: request.id, applicantId: request.applicantId };
++}
++
++export interface PreliminaryPhaseBundle {
++  phase: { id: number; status: string; openedAt: Date; closedAt: Date | null } | null;
++  meeting: {
++    id: number;
++    scheduledAt: Date;
++    location: string | null;
++    status: string;
++  } | null;
++  evaluation: PreliminaryEvaluationView | null;
++}
++
++/** Single-call bundle for the portal - avoids exposing the staff-only
++ *  phases/meetings endpoints to applicants just to assemble one screen.
++ *  Ownership (does this request belong to the calling applicant) is
++ *  enforced by the controller before this runs. */
++export async function getBundleForRequest(requestId: number): Promise<PreliminaryPhaseBundle> {
++  const [phase] = await db
++    .select()
++    .from(phases)
++    .where(and(eq(phases.requestId, requestId), eq(phases.phaseCode, "M3")));
++
++  if (!phase) {
++    return { phase: null, meeting: null, evaluation: null };
++  }
++
++  const [meetingRow] = await db
++    .select()
++    .from(meetings)
++    .where(and(eq(meetings.phaseId, phase.id), eq(meetings.status, "scheduled")))
++    .orderBy(desc(meetings.scheduledAt));
++
++  const evaluation = await getForPhase(phase.id);
++
++  return {
++    phase: { id: phase.id, status: phase.status, openedAt: phase.openedAt, closedAt: phase.closedAt },
++    meeting: meetingRow
++      ? {
++          id: meetingRow.id,
++          scheduledAt: meetingRow.scheduledAt,
++          location: meetingRow.location,
++          status: meetingRow.status,
++        }
++      : null,
++    evaluation,
++  };
++}
+diff --git a/apps/api/src/modules/requests/requests.controller.ts b/apps/api/src/modules/requests/requests.controller.ts
+index 741a60b..bd16dc6 100644
+--- a/apps/api/src/modules/requests/requests.controller.ts
++++ b/apps/api/src/modules/requests/requests.controller.ts
+@@ -4,7 +4,7 @@ import { handleRequestsError } from "../../shared/utils/error.js";
+ 
+ export async function submit(req: Request, res: Response): Promise<void> {
+   try {
+-    const { requestType, message, fileUrl, mimeType } = req.body;
++    const { requestType, message, fileUrl, mimeType, applicantId: bodyApplicantId } = req.body ?? {};
+ 
+     // Applicant (portal, self-submission) - applicantId always comes from
+     // their own session, never trusted from the request body.
+@@ -16,11 +16,11 @@ export async function submit(req: Request, res: Response): Promise<void> {
+     if (req.applicant) {
+       applicantId = req.applicant.applicantId;
+     } else if (req.user) {
+-      if (!req.body.applicantId) {
++      if (!bodyApplicantId) {
+         res.status(400).json({ message: "applicantId requis pour une saisie manuelle." });
+         return;
+       }
+-      applicantId = Number(req.body.applicantId);
++      applicantId = Number(bodyApplicantId);
+       submittedByUserId = req.user.userId;
+     } else {
+       res.status(401).json({ message: "Non authentifie." });
+@@ -107,7 +107,7 @@ export async function mine(req: Request, res: Response): Promise<void> {
+ 
+ export async function replaceDocument(req: Request, res: Response): Promise<void> {
+   try {
+-    const { fileUrl, mimeType } = req.body;
++    const { fileUrl, mimeType } = req.body ?? {};
+     if (!fileUrl || !mimeType) {
+       res.status(400).json({ message: "fileUrl et mimeType sont requis." });
+       return;
+diff --git a/apps/api/src/modules/users/users.controller.ts b/apps/api/src/modules/users/users.controller.ts
+index ec0d118..0b3eb66 100644
+--- a/apps/api/src/modules/users/users.controller.ts
++++ b/apps/api/src/modules/users/users.controller.ts
+@@ -29,7 +29,7 @@ export async function get(req: Request, res: Response): Promise<void> {
+ 
+ export async function create(req: Request, res: Response): Promise<void> {
+   try {
+-    const { employeeCode, fullName, email, roles } = req.body;
++    const { employeeCode, fullName, email, roles } = req.body ?? {};
+     if (!employeeCode || !fullName || !email || !Array.isArray(roles) || roles.length === 0) {
+       res.status(400).json({ message: "employeeCode, fullName, email et roles (non vide) sont requis." });
+       return;
+@@ -50,7 +50,7 @@ export async function create(req: Request, res: Response): Promise<void> {
+ 
+ export async function update(req: Request, res: Response): Promise<void> {
+   try {
+-    const { email, active, roles } = req.body;
++    const { email, active, roles } = req.body ?? {};
+     const user = await usersService.updateUser(Number(req.params.id), {
+       email,
+       active,
+@@ -65,7 +65,7 @@ export async function update(req: Request, res: Response): Promise<void> {
+ 
+ export async function toggleActivation(req: Request, res: Response): Promise<void> {
+   try {
+-    const { active } = req.body;
++    const { active } = req.body ?? {};
+     const user = await usersService.toggleActivation(
+       Number(req.params.id),
+       Boolean(active),
+diff --git a/apps/api/src/scripts/seed-system-parameters.ts b/apps/api/src/scripts/seed-system-parameters.ts
+index 896a783..9db8cb6 100644
+--- a/apps/api/src/scripts/seed-system-parameters.ts
++++ b/apps/api/src/scripts/seed-system-parameters.ts
+@@ -41,6 +41,13 @@ const DEFAULTS: Array<{
+     module: "M1",
+     description: "Seuil (jours ouvres) avant alerte de blocage du circuit DG.",
+   },
++  {
++    key: "preliminary_evaluation_return_days",
++    value: "15",
++    type: "integer",
++    module: "M3",
++    description: "Delai par defaut (jours) pour le retour de la declaration de pre-evaluation, configurable par DN a chaque envoi.",
++  },
+ ];
+ 
+ async function seed(): Promise<void> {
+diff --git a/apps/api/src/server.ts b/apps/api/src/server.ts
+index 39b2404..cf65037 100644
+--- a/apps/api/src/server.ts
++++ b/apps/api/src/server.ts
+@@ -13,6 +13,10 @@ import applicantAuthRoute from "./modules/applicant-auth/applicant-auth.route.js
+ import usersRoute from "./modules/users/users.route.js";
+ import requestsRoute from "./modules/requests/requests.route.js";
+ import uploadsRoute from "./modules/uploads/uploads.route.js";
++import phasesRoute from "./modules/phases/phases.route.js";
++import meetingsRoute from "./modules/meetings/meetings.route.js";
++import documentTemplatesRoute from "./modules/document-templates/document-templates.route.js";
++import preliminaryEvaluationRoute from "./modules/preliminary-evaluation/preliminary-evaluation.route.js";
+ import { startDgCircuitAlertJob } from "./jobs/dg-circuit-alert.job.js";
+ import { verifyEmailConnection } from "./shared/utils/email.js";
+ 
+@@ -47,6 +51,10 @@ app.use("/api/applicant-auth", applicantAuthRoute);
+ app.use("/api/users", usersRoute);
+ app.use("/api/requests", requestsRoute);
+ app.use("/api/uploads", uploadsRoute);
++app.use("/api/phases", phasesRoute);
++app.use("/api/meetings", meetingsRoute);
++app.use("/api/document-templates", documentTemplatesRoute);
++app.use("/api/preliminary-evaluation", preliminaryEvaluationRoute);
+ 
+ app.listen(port, () => {
+   console.log(`AIDN API listening on port ${port}`);
+diff --git a/apps/api/src/shared/db/schema.ts b/apps/api/src/shared/db/schema.ts
+index 1fe78bf..0d5e331 100644
+--- a/apps/api/src/shared/db/schema.ts
++++ b/apps/api/src/shared/db/schema.ts
+@@ -145,6 +145,19 @@ export const documentOwnerTypeEnum = pgEnum("document_owner_type", [
+   "preliminary_evaluation_form",
+   "payment_invoice",
+   "payment_proof",
++  "document_template",
++]);
++
++/** M3/M4 - blank template forms DN makes available for applicants to download
++ *  and fill (distinct from formal_request_documents, which are the
++ *  applicant's *filled-in* submissions). One active file per key at a time;
++ *  history is versioned via document_versions like every other upload point.
++ *  Extensible - add a value here whenever a new blank form needs hosting. */
++export const documentTemplateKeyEnum = pgEnum("document_template_key", [
++  "preliminary_evaluation_declaration", // M3
++  "dn_air_r2_3_f_e_010", // M4 - demande d'agrement d'OMA
++  "dn_air_r2_3_f_e_011", // M4 - etat de conformite
++  "dn_air_r2_3_f_e_012", // M4 - acceptation du personnel d'encadrement
+ ]);
+ 
+ /** M13 - applicant account request review flow (public registration) */
+@@ -404,12 +417,28 @@ export const meetings = pgTable(
+   ]
+ );
+ 
++/** M3/M4 - one active blank template per key. DN (dn_agent/dn_supervisor) or
++ *  SU can upload/replace; replacing goes through the M8 version/trash
++ *  pattern (document_versions, ownerType='document_template') so history
++ *  is preserved the same way as every other document. */
++export const documentTemplates = pgTable("document_templates", {
++  id: serial("id").primaryKey(),
++  key: documentTemplateKeyEnum("key").notNull().unique(),
++  label: text("label").notNull(),
++  fileUrl: text("file_url"),
++  mimeType: varchar("mime_type", { length: 100 }),
++  uploadedBy: integer("uploaded_by").references(() => users.id),
++  uploadedAt: timestamp("uploaded_at"),
++  active: boolean("active").notNull().default(true),
++});
++
+ // ── M3 - Preliminary evaluation declaration ─────────────────────────────────
+ export const preliminaryEvaluationForms = pgTable("preliminary_evaluation_forms", {
+   id: serial("id").primaryKey(),
+   phaseId: integer("phase_id")
+     .notNull()
+     .references(() => phases.id),
++  templateId: integer("template_id").references(() => documentTemplates.id),
+   madeAvailableAt: timestamp("made_available_at"),
+   returnDeadline: timestamp("return_deadline"), // set dynamically by DN
+   submittedFileUrl: text("submitted_file_url"),
+diff --git a/apps/api/src/shared/utils/error.ts b/apps/api/src/shared/utils/error.ts
+index d27c95d..46f32a8 100644
+--- a/apps/api/src/shared/utils/error.ts
++++ b/apps/api/src/shared/utils/error.ts
+@@ -87,3 +87,55 @@ export const handleRequestsError = createErrorHandler(
+   },
+   "[requests]"
+ );
++
++export const handlePhasesError = createErrorHandler(
++  {
++    REQUEST_NOT_FOUND: { status: 404, message: "Demande introuvable." },
++    REQUEST_NOT_READY_FOR_PHASE: {
++      status: 409,
++      message: "La demande doit etre en attente de traitement avant d'ouvrir cette phase.",
++    },
++    PHASE_ALREADY_OPEN: { status: 409, message: "Cette phase est deja ouverte pour cette demande." },
++    PHASE_NOT_FOUND: { status: 404, message: "Phase introuvable." },
++    PHASE_ALREADY_CLOSED: { status: 409, message: "Cette phase est deja cloturee." },
++    CLOSURE_EVIDENCE_REQUIRED: {
++      status: 400,
++      message: "Un document ou une note est requis pour cloturer la phase.",
++    },
++  },
++  "[phases]"
++);
++
++export const handleMeetingsError = createErrorHandler(
++  {
++    PHASE_NOT_FOUND: { status: 404, message: "Phase introuvable." },
++    PHASE_NOT_OPEN: { status: 409, message: "La phase doit etre ouverte pour planifier une reunion." },
++    MEETING_SLOT_CONFLICT: {
++      status: 409,
++      message: "Cet agent DN a deja une reunion planifiee exactement a ce creneau.",
++    },
++    MEETING_NOT_FOUND: { status: 404, message: "Reunion introuvable." },
++    MEETING_NOT_SCHEDULED: {
++      status: 409,
++      message: "Cette reunion n'est plus au statut planifie.",
++    },
++  },
++  "[meetings]"
++);
++
++export const handlePreliminaryEvaluationError = createErrorHandler(
++  {
++    PHASE_NOT_FOUND: { status: 404, message: "Phase introuvable." },
++    WRONG_PHASE: { status: 400, message: "Cette action ne concerne que la phase preliminaire." },
++    PHASE_NOT_OPEN: { status: 409, message: "La phase doit etre ouverte." },
++    TEMPLATE_NOT_CONFIGURED: {
++      status: 409,
++      message: "Le modele de declaration de pre-evaluation n'a pas encore ete configure par la DN.",
++    },
++    NOT_YET_AVAILABLE: {
++      status: 409,
++      message: "La declaration n'a pas encore ete mise a disposition par la DN.",
++    },
++  },
++  "[preliminary-evaluation]"
++);
+diff --git a/apps/portal/src/pages/requests/MyRequestPage.tsx b/apps/portal/src/pages/requests/MyRequestPage.tsx
+index b661b02..64152ea 100644
+--- a/apps/portal/src/pages/requests/MyRequestPage.tsx
++++ b/apps/portal/src/pages/requests/MyRequestPage.tsx
+@@ -151,6 +151,127 @@ function ActiveRequestCard({
+           Cette demande ne peut plus etre annulee (deja transmise a la DG ou au-dela).
+         </p>
+       )}
++
++      {(request.circuitStatus === 'pending_review') && <PreliminaryPhaseSection requestId={request.id} />}
++    </div>
++  );
++}
++
++function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
++  const [bundle, setBundle] = useState<{
++    phase: { id: number; status: string } | null;
++    meeting: { id: number; scheduledAt: string; location: string | null; status: string } | null;
++    evaluation: {
++      templateFileUrl: string | null;
++      madeAvailableAt: string | null;
++      returnDeadline: string | null;
++      submittedFileUrl: string | null;
++      submittedAt: string | null;
++    } | null;
++  } | null>(null);
++  const [error, setError] = useState<string | null>(null);
++  const [file, setFile] = useState<File | null>(null);
++  const [submitting, setSubmitting] = useState(false);
++
++  async function load() {
++    try {
++      const { data } = await api.get(`/preliminary-evaluation/by-request/${requestId}`);
++      setBundle(data);
++    } catch (err) {
++      setError(apiErrorMessage(err, 'Impossible de charger la phase preliminaire.'));
++    }
++  }
++
++  useEffect(() => {
++    load();
++  }, [requestId]);
++
++  async function handleSubmitDeclaration() {
++    if (!file) {
++      setError('Merci de joindre votre declaration remplie.');
++      return;
++    }
++    setError(null);
++    setSubmitting(true);
++    try {
++      const formData = new FormData();
++      formData.append('file', file);
++      const { data: uploaded } = await api.post('/uploads', formData, {
++        headers: { 'Content-Type': 'multipart/form-data' },
++      });
++      await api.post(`/preliminary-evaluation/${bundle!.phase!.id}/submit`, {
++        fileUrl: uploaded.fileUrl,
++        mimeType: uploaded.mimeType,
++      });
++      await load();
++    } catch (err) {
++      setError(apiErrorMessage(err, 'Impossible de soumettre la declaration.'));
++    } finally {
++      setSubmitting(false);
++    }
++  }
++
++  if (!bundle?.phase) return null;
++
++  return (
++    <div className="border-t border-anac-border pt-3 mt-3 space-y-3">
++      <p className="font-medium text-sm text-anac-navy">Phase preliminaire</p>
++      {error && <p className="text-anac-danger text-xs">{error}</p>}
++
++      {bundle.meeting && (
++        <div className="text-sm">
++          <p>
++            Reunion prevue le {new Date(bundle.meeting.scheduledAt).toLocaleString('fr-FR')}
++            {bundle.meeting.location && ` - ${bundle.meeting.location}`}
++          </p>
++          <a
++            href={`http://localhost:4000/api/meetings/${bundle.meeting.id}/ticket`}
++            target="_blank"
++            rel="noreferrer"
++            className="text-anac-blue underline text-xs"
++          >
++            Voir mon invitation
++          </a>
++        </div>
++      )}
++
++      {bundle.evaluation?.madeAvailableAt && (
++        <div className="text-sm space-y-2">
++          <p className="text-anac-muted text-xs">
++            Retour attendu avant le{' '}
++            {bundle.evaluation.returnDeadline && new Date(bundle.evaluation.returnDeadline).toLocaleDateString('fr-FR')}
++          </p>
++          {bundle.evaluation.templateFileUrl && (
++            <a
++              href={`http://localhost:4000${bundle.evaluation.templateFileUrl}`}
++              target="_blank"
++              rel="noreferrer"
++              className="btn-secondary text-xs inline-block px-2 py-1 rounded"
++            >
++              Telecharger le formulaire vierge
++            </a>
++          )}
++
++          {bundle.evaluation.submittedFileUrl ? (
++            <p className="text-anac-success text-xs">Declaration soumise, merci.</p>
++          ) : (
++            <div className="space-y-2">
++              <input
++                type="file"
++                accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
++                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
++              />
++              <button
++                className="btn-primary text-xs px-3 py-1.5 rounded"
++                onClick={handleSubmitDeclaration}
++                disabled={submitting}
++              >
++                {submitting ? 'Envoi...' : 'Soumettre ma declaration remplie'}
++              </button>
++            </div>
++          )}
++        </div>
++      )}
+     </div>
+   );
+ }
+diff --git a/docs/TASKS.md b/docs/TASKS.md
+index 5842092..8002bab 100644
+--- a/docs/TASKS.md
++++ b/docs/TASKS.md
+@@ -129,12 +129,75 @@ build + flow complet contre un vrai Postgres). Détail complet dans
+ 
+ ## Sprint 2 — Phase Préliminaire (M3)
+ 
+-- [ ] Planification réunion (date, ticket/PDF téléchargeable, email optionnel)
+-- [ ] Statuts réunion : tenue / No-Show / Reportée / Dossier annulé
+-- [ ] Mise à disposition Déclaration de pré-évaluation (post-réunion)
+-- [ ] Upload retour formulaire par postulant
+-- [ ] Clôture de phase (doc attaché ou note facultative)
+-- [ ] Délai de retour configurable dynamiquement par DN
++- [x] Ouverture de phase M3 (`POST /api/phases/requests/:requestId/start-preliminary-phase`,
++      dn_agent/dn_supervisor/SU) — passe la demande en `in_progress`
++- [x] Planification réunion (date, ticket HTML simple téléchargeable — pas de
++      génération PDF réelle ce sprint, voir décision ci-dessous)
++- [x] Statuts réunion : tenue / No-Show / Reportée / Dossier annulé
++      (`PATCH /api/meetings/:id/status`, `POST /api/meetings/:id/reschedule`)
++- [x] Conflit dur (même agent, même créneau exact) → bloqué par contrainte DB ;
++      chevauchement doux (même jour) → avertissement non bloquant
++- [x] Mise à disposition Déclaration de pré-évaluation (post-réunion),
++      s'appuie sur un modèle configurable par DN (voir module Modèles de
++      documents ci-dessous)
++- [x] Upload retour formulaire par postulant (portail)
++- [x] Clôture de phase (doc attaché ou note facultative)
++- [x] Délai de retour configurable dynamiquement par DN (paramètre par
++      défaut 15 jours dans `system_parameters`, ajustable par instance)
++- [x] UI admin complète : ouverture phase, planification/statuts réunion,
++      ticket, mise à disposition + suivi déclaration, clôture
++- [x] UI portail : ticket de réunion, téléchargement du formulaire vierge,
++      soumission de la déclaration remplie
++
++### Module ajouté, anticipant M4 : Modèles de documents (`document_templates`)
++
++Généralisé au-delà du seul besoin M3, sur demande explicite — les mêmes
++formulaires DN-AIR-R2-3-F-E-010/011/012 de M4 en auront besoin :
++
++- [x] Table `document_templates` (clé, libellé, fichier, historique via le
++      pattern M8 version/corbeille)
++- [x] 4 clés initiales : déclaration de pré-évaluation (M3),
++      DN-AIR-R2-3-F-E-010/011/012 (M4, prêtes pour Sprint 3)
++- [x] Page admin `Modèles de documents` (dn_agent/dn_supervisor/SU) —
++      upload/remplacement par clé
++- [x] Endpoint de téléchargement accessible aux deux types d'auth (staff +
++      postulant)
++
++### Décision : ticket HTML simple, pas de PDF généré
++
++Confirmé avec Fred — un vrai générateur PDF est un besoin transverse (M3 + M4
+++ M6 en ont tous besoin) mieux construit une seule fois plus tard que trois
++fois maintenant. Le ticket de réunion est du HTML servi directement
++(`GET /api/meetings/:id/ticket`), pas un fichier stocké.
++
++### 6 bugs réels trouvés et corrigés pendant ce sprint
++
++1. **Contrôleurs plantant sur un corps de requête vide** (`req.body`
++   `undefined` quand aucun body/Content-Type n'est envoyé) — bug systémique
++   présent depuis le Sprint 1 (login, création d'utilisateur, soumission de
++   demande...), pas seulement dans le nouveau code. Tous les contrôleurs
++   déstructurent désormais `req.body ?? {}`.
++2. **Collision de routage** : `phases.route.ts` applique un `router.use(authenticate,
++   requireRole(...))` global sans restriction de chemin ; monter les routes
++   de `preliminary-evaluation` sous `/api/phases/*` les faisait intercepter
++   par ce garde staff-only avant même d'atteindre `authenticateEither` —
++   bloquant tout accès postulant. Déplacé vers son propre préfixe
++   `/api/preliminary-evaluation`.
++3. Ordre de vérification dans `openPreliminaryPhase` corrigé : la phase
++   déjà-ouverte est maintenant détectée avant l'état de la demande, pour un
++   message d'erreur plus clair en cas de double-ouverture.
++4. Dérive trouvée entre schéma et `packages/shared` : `MEETING_STATUSES`
++   dans `packages/shared` n'incluait pas `"scheduled"` (statut initial réel
++   en base) — corrigé.
++5. Nouvel endpoint `by-request/:requestId` ajouté pour que le portail
++   assemble phase+réunion+déclaration en un seul appel, sans dépendre des
++   routes staff-only de `phases`/`meetings` — testé avec isolation
++   inter-postulant confirmée (un postulant ne peut pas lire la phase d'un
++   autre).
++6. `and`/`desc`/`meetings` manquants aux imports lors de l'ajout du bundle —
++   détecté immédiatement par le typecheck.
++
++Voir `exploration-cache/technical/gotchas.md` pour le détail complet.
+ 
+ ## Sprint 3 — Phase Demande formelle (M4)
+ 
+diff --git a/exploration-cache/technical/gotchas.md b/exploration-cache/technical/gotchas.md
+index b8c689e..2c5d1f7 100644
+--- a/exploration-cache/technical/gotchas.md
++++ b/exploration-cache/technical/gotchas.md
+@@ -162,3 +162,58 @@ fields (and vice versa risk for `apps/api`).
+ **Fix**: Direct file replacement of both files with correct content, verified with
+ a full `npm install` + typecheck + build afterward — don't assume a "fix applied"
+ message means the fix is actually correct; re-verify.
++
++## 14. Controllers crash on an empty request body
++
++**Symptom**: `TypeError: Cannot destructure property 'x' of 'req.body' as it is
++undefined` — a clean `400` was expected, a `500` happened instead.
++**Cause**: When a request has no body and no `Content-Type` header,
++`express.json()` leaves `req.body` as `undefined` rather than `{}`. Every
++controller in the app (Sprint 1 *and* Sprint 2) destructured `req.body`
++directly, assuming it was always at least an empty object.
++**Fix**: Every controller now destructures `req.body ?? {}`. Systemic fix
++applied across `auth`, `users`, `requests`, `applicant-auth`, `bootstrap`,
++`phases`, `meetings`, `document-templates`, `preliminary-evaluation` — not
++just the newly-written Sprint 2 code. Found by deliberately testing an
++endpoint with no body at all, not by reading the code.
++
++## 15. Router-wide middleware silently intercepts unrelated routes
++
++**Symptom**: An applicant calling `GET /api/phases/1/preliminary-evaluation`
++got `401 Non authentifie` even with a valid applicant session.
++**Cause**: `phases.route.ts` applies `router.use(authenticate,
++requireRole(...))` with no path restriction, gating *everything* mounted
++under `/api/phases`. `preliminary-evaluation.route.ts`'s paths originally
++started with `/phases/:phaseId/...`, so when mounted, Express matched the
++`/api/phases` prefix first and ran the staff-only gate before the request
++ever reached the intended (applicant-accessible) route.
++**Fix**: Moved `preliminary-evaluation` to its own mount prefix
++(`/api/preliminary-evaluation`), with paths that share no prefix with any
++other router. **General rule going forward**: never give a router a
++blanket `router.use(authenticate, ...)` if another router's routes might
++ever be nested under its mount path — scope the auth middleware per-route
++instead, or keep mount prefixes strictly non-overlapping.
++
++## 16. Check ordering matters for error clarity, not just correctness
++
++**Symptom**: Opening an already-open phase a second time returned
++`REQUEST_NOT_READY_FOR_PHASE` (technically true — the request had already
++moved to `in_progress` — but a confusing message for what's actually a
++double-open attempt).
++**Fix**: Reordered `openPreliminaryPhase()` to check for an existing phase
++*before* checking the request's status, surfacing the more specific
++`PHASE_ALREADY_OPEN` error. Both checks were always correct; only the
++order affected which error the caller actually sees.
++
++## 17. `packages/shared` drifted from the schema it's supposed to mirror
++
++**Symptom**: none yet observed, but a landmine — `MEETING_STATUSES` in
++`packages/shared/src/statuses.ts` was missing `"scheduled"`, even though
++that's the schema's actual default/initial status for every meeting row.
++**Cause**: The shared constant was written once during Sprint 1 scaffolding
++and never re-synced when the schema's default was decided.
++**Fix**: Added `"scheduled"` to `MEETING_STATUSES`. **No general fix for the
++underlying risk yet** — there's no automated check that `packages/shared`'s
++enums match `schema.ts`'s `pgEnum` definitions; worth a lint rule or test
++once there's time to build one.
++
+diff --git a/packages/shared/src/statuses.ts b/packages/shared/src/statuses.ts
+index caaf536..af76aad 100644
+--- a/packages/shared/src/statuses.ts
++++ b/packages/shared/src/statuses.ts
+@@ -9,9 +9,24 @@ export const REQUEST_STATUSES = ["submitted", "signed", "pending_review"] as con
+ export type RequestStatus = (typeof REQUEST_STATUSES)[number];
+ 
+ /** Pattern "Reunion / Visite" (M3, M4, M6) */
+-export const MEETING_STATUSES = ["held", "no_show", "rescheduled", "file_cancelled"] as const;
++export const MEETING_STATUSES = [
++  "scheduled",
++  "held",
++  "no_show",
++  "rescheduled",
++  "file_cancelled",
++] as const;
+ export type MeetingStatus = (typeof MEETING_STATUSES)[number];
+ 
++/** M3/M4 - blank template forms DN makes available for applicants */
++export const DOCUMENT_TEMPLATE_KEYS = [
++  "preliminary_evaluation_declaration",
++  "dn_air_r2_3_f_e_010",
++  "dn_air_r2_3_f_e_011",
++  "dn_air_r2_3_f_e_012",
++] as const;
++export type DocumentTemplateKey = (typeof DOCUMENT_TEMPLATE_KEYS)[number];
++
+ /** M5 - per-document evaluation verdict */
+ export const DOCUMENT_VERDICTS = ["validated", "rejected", "needs_correction"] as const;
+ export type DocumentVerdict = (typeof DOCUMENT_VERDICTS)[number];

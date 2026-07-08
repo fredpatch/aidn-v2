@@ -14,7 +14,7 @@ import { eq } from "drizzle-orm";
 import { buildUserPublic } from "./auth.helpers.js";
 
 export async function login(req: Request, res: Response): Promise<void> {
-  const { employeeCode, otp, password } = req.body;
+  const { employeeCode, otp, password } = req.body ?? {};
 
   if (!employeeCode) {
     res.status(400).json({ message: "Matricule requis." });
@@ -45,7 +45,7 @@ export async function login(req: Request, res: Response): Promise<void> {
 }
 
 export async function setPassword(req: Request, res: Response): Promise<void> {
-  const { password, confirmation } = req.body;
+  const { password, confirmation } = req.body ?? {};
 
   if (!password || !confirmation) {
     res.status(400).json({ message: "Mot de passe et confirmation requis." });

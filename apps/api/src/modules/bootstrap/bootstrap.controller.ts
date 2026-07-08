@@ -26,7 +26,7 @@ export async function init(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    const { employeeCode, fullName, email, password, confirmation } = req.body;
+    const { employeeCode, fullName, email, password, confirmation } = req.body ?? {};
 
     if (!employeeCode || !fullName || !email || !password || !confirmation) {
       res.status(400).json({

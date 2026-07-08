@@ -1,0 +1,36 @@
+diff --git a/docs/TASKS.md b/docs/TASKS.md
+index 5842092..49222e5 100644
+--- a/docs/TASKS.md
++++ b/docs/TASKS.md
+@@ -90,6 +90,9 @@ admin → retour portail, pas seulement des tests API isolés) :
+ - [x] Bootstrap du premier Super Admin (`/api/bootstrap/status`, `/init`)
+ - [x] Gestion des utilisateurs (création avec envoi OTP, liste, mise à jour,
+       activation/désactivation, réinitialisation OTP) - réservé au rôle `SU`
++      **— provisoire** : création manuelle (matricule/nom/email saisis à la
++      main). Sera remplacée par une activation depuis l'annuaire personnel
++      ANAC une fois construite (voir note sous Sprint 12)
+ - [x] `system_parameters` (équivalent des `parametres` SICOT) : seuils OTP,
+       verrouillage, alerte parapheur - configurables sans redéploiement
+ - [x] Emails réels via Nodemailer (mêmes noms de variables d'env que SICOT :
+@@ -210,6 +213,21 @@ build + flow complet contre un vrai Postgres). Détail complet dans
+       Principal/Secondaire/Tertiaire
+ - [ ] Panneau SU : gestion utilisateurs, corbeille documents, configuration
+       (seuils d'alerte, délais dynamiques)
++- [ ] **Remplacer la création manuelle d'utilisateur (Sprint 1) par une
++      activation depuis l'annuaire personnel ANAC** — le legacy
++      `aidn-v2-legacy` a déjà un module `personnel/` complet et fonctionnel
++      à reprendre comme référence : interface `PersonnelAdapter` avec 2
++      intégrations réelles (`ApiPersonnelAdapter` — API personnel ANAC
++      externe ; `MariaPersonnelAdapter` — base MariaDB existante), plus un
++      adaptateur mock pour le dev, sélectionnées via `PERSONNEL_SOURCE`.
++      Flux : SU recherche dans l'annuaire par matricule/nom, puis
++      `activateInternalAccount` crée le compte AIDN en récupérant
++      fullName/email/service/direction depuis la fiche personnel (pas de
++      saisie manuelle). **Attention** : le legacy est mono-rôle
++      (`role: Role`) — garder notre modèle multi-rôle (`user_roles`) plutôt
++      que reprendre cette limitation. Vérifier l'implémentation réelle côté
++      SICOT une fois construite là-bas avant de bâtir la version AIDN
++      (Idées & Pistes Notion, 2026-07-08)
+ 
+ ---
+ 

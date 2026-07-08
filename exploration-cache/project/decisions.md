@@ -94,3 +94,35 @@ refreshing in response to a failed login itself) and redirects to `/login` with 
 admin version, pointed at `/applicant-auth/refresh`; `useApplicantAuth.tsx` switched
 over to it; both now-orphaned `lib/api.ts` files deleted. See `technical/gotchas.md`
 #11 and #14, `active-session/blockers.md` resolved-blockers table.
+
+## 11. `document_templates` generalized beyond M3's immediate need, on request
+
+M3 only strictly needs one blank template (the déclaration de pré-évaluation), but
+M4's DN-AIR-R2-3-F-E-010/011/012 forms have the identical shape (DN uploads/replaces
+a blank form by key, either auth type downloads it, history via the M8 version/trash
+pattern). Confirmed with Fred to build the table and module generically now —
+`document_templates` keyed by `documentTemplateKeyEnum` — with all 4 keys seeded,
+rather than building a one-off M3 feature and repeating the same pattern for M4 next
+sprint. Only the M3 key (`preliminary_evaluation_declaration`) has real UI/endpoint
+usage yet; the M4 keys are schema-ready for Sprint 3.
+
+## 12. Meeting tickets are server-rendered HTML, not generated PDFs
+
+A real PDF generator is a cross-cutting need — M3, M4, and M6 all want a
+downloadable/printable ticket or document. Confirmed with Fred that building it once
+properly (later, once the shape of that need is clearer across all three modules)
+beats building three throwaway one-off PDF generators now. Sprint 2's meeting ticket
+is served as plain HTML at `GET /api/meetings/:id/ticket` — not a stored file, not
+a PDF — good enough to view/print from a browser, revisit once M4 or M6 need
+something the HTML approach can't do.
+
+## 13. `authenticateEither` prefers the cookie matching request `Origin`
+
+See `technical/gotchas.md` #19 for the full incident. Because admin and portal share
+a top-level domain, a browser could legitimately carry both a staff and an applicant
+session cookie at once; `authenticateEither` used to always try the staff cookie
+first, which could let a stale staff session silently win over a genuine applicant
+request. Now it reads `Origin` and checks the matching cookie (staff vs. applicant)
+first, falling back to the other only if that one's absent or invalid — with the
+old staff-first behavior preserved as a fallback for requests with no recognizable
+`Origin` (curl, server-to-server, Postman).

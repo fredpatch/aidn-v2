@@ -1,94 +1,70 @@
 # 🎯 Current Task
 
-**Session date**: 2026-07-08 (follow-up fix session; prior work below is 2026-07-07)
-**Status**: Sprint 0 + Sprint 1 committed and pushed (`b64a073`, `2205261`). The
-admin polish/hardening pass from 2026-07-07 left both the admin and portal builds
-broken; this session found and fixed both, plus a related sessionStorage bug, and
-is ready to commit/push. Next up after that: Sprint 2 (Phase Préliminaire, M3).
+**Session date**: 2026-07-08 (second session of the day — build-fix session below,
+then this Sprint 2 session on top)
+**Status**: Sprint 0, Sprint 1, and the Sprint 2 axios-migration fix are committed
+and pushed (`b64a073`, `2205261`, `a4a5220`). **Sprint 2 (Phase Préliminaire, M3) is
+now fully built** — API + admin/portal UI, verified via typecheck across all three
+workspaces — and uncommitted as of this writing, ready to commit/push. A
+`document_templates` module was also built, generalized ahead of M4's identical need.
 
-## ✅ Done today (2026-07-08): fixed both broken builds, ready to commit
+## ✅ Done today (2026-07-08, this session): Sprint 2 — Phase Préliminaire (M3)
 
-- Created `apps/portal/src/lib/axios.ts`, mirroring `apps/admin/src/lib/axios.ts`'s
-  queued-refresh logic but pointed at `/applicant-auth/refresh` — closes
-  `technical/gotchas.md` #11
-- Switched `apps/portal/src/hooks/useApplicantAuth.tsx` off the old `lib/api.ts`
-  onto the new `lib/axios.ts`; deleted both now-orphaned `lib/api.ts` files
-  (admin + portal)
-- Fixed a second, previously-undocumented broken build: `apps/admin/src/hooks/
-  useAuth.tsx` imported from a doubled `@/src/lib/axios` path — changed to the
-  plain relative `../lib/axios` — see `technical/gotchas.md` #14
-- Fixed a related bug found in the same investigation: the `sessionStorage` key for
-  the "session expired" message was written as `session_expired` (English) but read
-  as `session_expiree` (French) in admin's `LoginPage.tsx` — never matched.
-  Standardized on `session_expired`, and added the same read+clear check to portal's
-  `LoginPage.tsx` (which had none) — see `technical/gotchas.md` #15
-- `apps/portal/vite.config.ts` brought up to parity with admin's: `@` alias, dev
-  proxy to the API (`/api`, `/uploads`), explicit build output config
-- `docs/TASKS.md` and `active-session/blockers.md` updated to mark the prior
-  session's blocker resolved
-- All verified via typecheck + build + dev-server-boot (see `active-session/
-  blockers.md` B2 — no browser rendering available in this sandbox)
+- **Phase lifecycle**: `POST /api/phases/requests/:requestId/start-preliminary-phase`
+  opens M3 (moves the request to `in_progress`); `POST /api/phases/:id/close` closes
+  it (doc attached or note, per the cross-cutting "Clôture de phase" pattern)
+- **Meetings**: scheduling, status changes (`held`/`no_show`/`rescheduled`/
+  `file_cancelled`, plus `scheduled` as the real initial status), reschedule.
+  Hard conflict (same DN agent, exact same slot) blocked by the existing
+  `meetings` DB constraint; same-day soft overlap surfaces as a non-blocking
+  warning. Tickets are server-rendered HTML at `GET /api/meetings/:id/ticket` —
+  **not** a generated/stored PDF, a deliberate scope decision (`project/
+  decisions.md` #12) since a real PDF generator is a cross-cutting M3/M4/M6 need
+  better built once, later
+- **Déclaration de pré-évaluation**: made available post-meeting (backed by a
+  configurable template, see below), submitted by the applicant from the portal,
+  dynamic return deadline (`system_parameters`, default 15 days)
+- **New module, generalized ahead of M4**: `document_templates` — DN uploads/
+  replaces blank template forms by key (versioned via the M8 pattern). Seeded with
+  4 keys: `preliminary_evaluation_declaration` (M3, in use now) plus
+  `dn_air_r2_3_f_e_010/011/012` (M4, schema-ready for Sprint 3). See
+  `project/decisions.md` #11
+- **Real security fix, not just a Sprint 2 feature**: `authenticateEither` could let
+  a stale staff cookie win over a genuine applicant request, since admin/portal
+  share a top-level domain and cookies aren't isolated between them. Now checks the
+  cookie matching the request's `Origin` header first. See `technical/gotchas.md`
+  #18 and `project/decisions.md` #13
+- **6 real bugs found and fixed this sprint** (controllers crashing on empty
+  request bodies — systemic, not just new code; a router-mount collision that
+  silently blocked applicant access; check-ordering for a clearer error message;
+  `packages/shared` drift from the schema's actual `meeting_status` default; a
+  missing bundle endpoint for the portal; missing imports caught by typecheck) —
+  full detail in `technical/gotchas.md` #15-#18
+- Full admin UI (phase open/close, meeting scheduling/status/ticket, declaration
+  tracking, document templates management page) and portal UI (ticket view, blank
+  form download, filled declaration submission)
+- Legacy repo actually renamed: `aidn-v2-legacy` — https://github.com/fredpatch/aidn-v2-legacy.git
+- Verified via typecheck across `apps/api`, `apps/admin`, `apps/portal` — no browser
+  rendering available in this sandbox (`active-session/blockers.md` B2, as usual)
 
-## 🟢 Previously done (2026-07-07, uncommitted at the time): admin polish pass
+## 🟢 Earlier today (2026-07-08, first session): fixed both broken builds
 
-- Hardened `apps/admin/src/lib/axios.ts` with a proper concurrent-401 refresh queue,
-  replacing the naive single-promise version in `lib/api.ts` — see
-  `project/decisions.md` #10
-- Applied the repo's existing (but never-enforced) `.prettierrc` across admin/portal
-  source — `technical/gotchas.md` #12
-- `apps/admin/vite.config.ts`: added `@` alias + dev proxy to the API (`/api`,
-  `/uploads`) + explicit build output config
-- `apps/admin/tsconfig.json`: target dropped `ES2022` → `ES2020`, added
-  `allowImportingTsExtensions` — reason not yet documented, confirm with Fred before
-  relying on it
-- `apps/api/package.json`: added `seed:params` script wrapping
-  `seed-system-parameters.ts`
-- `apps/admin/components.json` appeared (shadcn config) — worth confirming this
-  wasn't produced by actually running the shadcn CLI, since `project/decisions.md`
-  #8 and `technical/cheat-sheet.md` both say not to
-- AppShell: sidebar widened (174→226 / 45→60 px), "Utilisateurs" nav label renamed to
-  "Gestion des utilisateurs"
-- `docs/TASKS.md` corrected (19→20 tables) and caught up with a
-  "Correction post-implémentation" section documenting the earlier UI redesign
-- This pass was committed as `2205261` — but it left the two build-breaking bugs
-  above, found and fixed in today's session
+The `2205261` admin polish pass had left both apps' builds broken. Fixed and pushed
+as `a4a5220` before starting Sprint 2 above:
+- Created `apps/portal/src/lib/axios.ts` (was referenced but never created) and
+  switched `useApplicantAuth.tsx` onto it; deleted both apps' orphaned `lib/api.ts`
+- Fixed a doubled `@/src/lib/axios` import in admin's `useAuth.tsx` (broke the admin
+  build too, previously undocumented)
+- Fixed a `session_expired`/`session_expiree` sessionStorage key mismatch (admin) and
+  added the missing check to portal
+- Full detail in `sessions/2026-07-08.md` and `technical/gotchas.md` #10/#11/#12
 
-## Previously done (committed, `b64a073`): Sprint 0 + Sprint 1 + full UI redesign
+## Previously done (committed, `b64a073`, `2205261`): Sprint 0 + Sprint 1 + UI + admin polish
 
-## ✅ Done today: Sprint 0 (feasibility study + scaffold)
-
-Full detail in `sessions/2026-07-07.md`. Summary:
-
-- 13-module Q&A feasibility study conducted against the CDC (mirrors the SICOT
-  methodology) — see `project/modules-feasibility.md`
-- 6 cross-cutting patterns identified and documented before any code —
-  `technical/cross-cutting-patterns.md`
-- Stack decided: React+TS+Tailwind / Express+TS / **PostgreSQL + Drizzle** (not
-  Mongo, despite the legacy `aidn-v2-legacy` using it) — see `project/decisions.md` #1
-- Monorepo scaffolded (`apps/api|admin|portal`, `packages/shared`), verified with a
-  real `npm install` + typecheck + build + API boot, not just written
-- Full PostgreSQL schema written (20 tables), verified with `drizzle-kit generate`
-  producing real migration SQL
-
-## ✅ Done today: Sprint 1 (Intake & Circuit DG, M1+M2) — API + full UI
-
-- Auth prerequisite built first: staff auth (matricule+OTP, mirrors SICOT), bootstrap
-  SU flow, users management API, `system_parameters` (SICOT's `parametres`
-  equivalent)
-- M1 business logic: submit/sign/pending-review/cancel, one-active-request DB
-  constraint, `DEM-YYYY-MM-DD-ORGCODE-NN` reference generator, stuck-parapheur alert
-  cron (notifications only, email deferred to Sprint 10)
-- **Gap caught by Fred, not by me**: initial "testing" used a staff token standing
-  in for a postulant — applicant auth didn't exist. Built properly afterward
-  (`modules/applicant-auth/`), see `project/decisions.md` #5
-- **UI/UX gap caught by Fred, not by me**: first pass at admin/portal auth screens
-  only reused SICOT's color tokens, not its actual component structure. Rebuilt
-  Bootstrap/Login/Layout to genuinely match — react-hook-form+zod, framer-motion,
-  shadcn-style primitives. Added a Users management page in the process (SU-only,
-  not originally scoped — needed to make the multi-role system usable at all via UI)
-- 10 real bugs found and fixed along the way — all documented with symptom/cause/fix
-  in `technical/gotchas.md`, most notably a confirmed upstream `drizzle-kit` CLI bug
-  that silently swallows migration errors
+Full detail in `sessions/2026-07-07.md`. Summary: 13-module feasibility study,
+PostgreSQL+Drizzle scaffold, full M1+M2 API/UI, staff+applicant dual auth, Users
+management, UI redesign to structurally match SICOT (not just color tokens), admin
+axios refresh-queue hardening — 10+ real bugs found and fixed along the way.
 
 ## Progress Tracker
 
@@ -96,18 +72,24 @@ Full detail in `sessions/2026-07-07.md`. Summary:
 Sprint 0  Feasibility, patterns, conventions, stack, schema, scaffold   ██████████ 100% ✅
 Sprint 1  Intake & Circuit DG (M1+M2), API + full UI                    ██████████ 100% ✅
 Auth/Users/Bootstrap (prerequisite, added mid-Sprint-1)                 ██████████ 100% ✅
+Sprint 2  Phase Préliminaire (M3), API + full UI + document_templates   ██████████ 100% ✅
 ──────────────────────────────────────────────────────────────────────────────────
-Sprint 2  Phase Préliminaire (M3)                                       ░░░░░░░░░░   0%
-Sprint 3-12                                                             ░░░░░░░░░░   0%
+Sprint 3  Phase Demande formelle (M4)                                   ░░░░░░░░░░   0%
+Sprint 4-12                                                             ░░░░░░░░░░   0%
 ```
 
 ## Leftover items (not blocking, tracked in `docs/TASKS.md`)
 
-- [ ] Rename `aidn-v2` (legacy) → `aidn-v2-legacy` (pure housekeeping, Sprint 0 task,
-      never blocking)
 - [ ] M13 applicant account creation (self-registration, anti-bot, org dedup) — the
       portal login only works today for applicants already seeded directly in the DB
 - [ ] Admin/portal production bundle exceeds 500kB after minification (Vite warning,
       not an error) — worth code-splitting once more pages exist, not urgent now
-- [ ] Visual verification of the redesigned Bootstrap/Login/Layout — Claude cannot
-      render a browser in its sandbox; typechecked/built/dev-server-booted only
+- [ ] Visual verification of the Sprint 1 + Sprint 2 UI — Claude cannot render a
+      browser in its sandbox; typechecked/built/dev-server-booted only
+- [ ] `PORTAL_ORIGIN` env var (new this sprint, see `project/architecture.md`) isn't
+      in `apps/api/.env.example` yet — add it before handing the env template to
+      anyone else
+- [ ] Personnel/annuaire ANAC integration to replace Sprint 1's manual user creation
+      — noted for Sprint 12 area, legacy `aidn-v2-legacy`'s `personnel/` module is
+      the reference to check against once SICOT's real implementation exists
+      (see `docs/TASKS.md`'s Sprint 12 section)

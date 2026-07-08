@@ -41,6 +41,13 @@ const DEFAULTS: Array<{
     module: "M1",
     description: "Seuil (jours ouvres) avant alerte de blocage du circuit DG.",
   },
+  {
+    key: "preliminary_evaluation_return_days",
+    value: "15",
+    type: "integer",
+    module: "M3",
+    description: "Delai par defaut (jours) pour le retour de la declaration de pre-evaluation, configurable par DN a chaque envoi.",
+  },
 ];
 
 async function seed(): Promise<void> {

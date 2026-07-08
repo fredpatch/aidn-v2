@@ -29,7 +29,7 @@ export async function get(req: Request, res: Response): Promise<void> {
 
 export async function create(req: Request, res: Response): Promise<void> {
   try {
-    const { employeeCode, fullName, email, roles } = req.body;
+    const { employeeCode, fullName, email, roles } = req.body ?? {};
     if (!employeeCode || !fullName || !email || !Array.isArray(roles) || roles.length === 0) {
       res.status(400).json({ message: "employeeCode, fullName, email et roles (non vide) sont requis." });
       return;
@@ -50,7 +50,7 @@ export async function create(req: Request, res: Response): Promise<void> {
 
 export async function update(req: Request, res: Response): Promise<void> {
   try {
-    const { email, active, roles } = req.body;
+    const { email, active, roles } = req.body ?? {};
     const user = await usersService.updateUser(Number(req.params.id), {
       email,
       active,
@@ -65,7 +65,7 @@ export async function update(req: Request, res: Response): Promise<void> {
 
 export async function toggleActivation(req: Request, res: Response): Promise<void> {
   try {
-    const { active } = req.body;
+    const { active } = req.body ?? {};
     const user = await usersService.toggleActivation(
       Number(req.params.id),
       Boolean(active),
