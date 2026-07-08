@@ -77,19 +77,20 @@ table + full CRUD API) had no UI at all — there was no way to create a
 (list, create with multi-role selection, activate/deactivate, reset OTP) was added
 to close that gap, since the backend already existed and was tested.
 
-## 10. Axios client hardened with a proper refresh queue (admin app, in progress)
+## 10. Axios client hardened with a proper refresh queue (admin + portal)
 
 The original `lib/api.ts` (both admin and portal) used a single shared `refreshing`
 promise to de-dupe concurrent 401-triggered refresh calls — functionally OK for one
 in-flight request, but any request that arrived *while* a refresh was already running
-would still race it instead of being queued behind it cleanly. `apps/admin/src/lib/
-axios.ts` replaces this with an explicit `isRefreshing` flag + a `failedQueue` array:
-every request that 401s while a refresh is already in flight is queued and replayed
-only after that single refresh resolves, rather than each one kicking off its own
-check. It also skips the refresh dance entirely for `/auth/*` requests (avoids
+would still race it instead of being queued behind it cleanly. `lib/axios.ts` (now in
+both `apps/admin/src/lib/` and `apps/portal/src/lib/`) replaces this with an explicit
+`isRefreshing` flag + a `failedQueue` array: every request that 401s while a refresh
+is already in flight is queued and replayed only after that single refresh resolves,
+rather than each one kicking off its own check. It also skips the refresh dance
+entirely for `/auth/*` (admin) or `/applicant-auth/*` (portal) requests (avoids
 refreshing in response to a failed login itself) and redirects to `/login` with a
 `session_expired` flag on final failure.
-**Not yet finished**: this was only built for the admin app. Portal's imports were
-updated to point at the same `lib/axios` path but the file was never created there —
-see `active-session/blockers.md` #B0. Do not treat the migration as done until
-`apps/portal/src/lib/axios.ts` exists and `useApplicantAuth.tsx` is switched over too.
+**Finished 2026-07-08**: `apps/portal/src/lib/axios.ts` was created mirroring the
+admin version, pointed at `/applicant-auth/refresh`; `useApplicantAuth.tsx` switched
+over to it; both now-orphaned `lib/api.ts` files deleted. See `technical/gotchas.md`
+#11 and #14, `active-session/blockers.md` resolved-blockers table.

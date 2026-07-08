@@ -110,9 +110,35 @@ will fail to resolve the module.
 *paths* in both apps consistently, but only the admin app actually got the new file
 written. The archived `docs/*.diff` reference files were regenerated and confirm the
 intent was portal-wide.
-**Fix**: Not yet applied — see `active-session/blockers.md` #B0 and
-`project/decisions.md` #10. Before trusting any "lib/api → lib/axios" rename again,
-grep both apps for the old import path, not just one.
+**Fix**: Created `apps/portal/src/lib/axios.ts` mirroring the admin version (pointed
+at `/applicant-auth/refresh`), switched `useApplicantAuth.tsx` over to it, deleted
+both apps' now-orphaned `lib/api.ts`. See `project/decisions.md` #10. Before trusting
+any "lib/api → lib/axios" rename again, grep both apps for the old import path, not
+just one.
+
+## 14. Admin's `useAuth.tsx` imported from a doubled `@/src/lib/axios` path
+
+**Symptom**: `apps/admin/src/hooks/useAuth.tsx` imported `{ api } from '@/src/lib/
+axios'` — a doubled `src/src` segment (the `@` alias already resolves to `apps/admin/
+src`), so the module never resolved. This broke the *admin* build too, not just the
+portal one documented in #11 — found while investigating the same axios-hardening
+migration.
+**Cause**: Manual edit combined the `@/` alias convention with a relative `src/lib/
+axios` path left over from copy-pasting, doubling the segment.
+**Fix**: Changed to the plain relative import `'../lib/axios'`, consistent with how
+every other hook in the codebase imports from `lib/`.
+
+## 15. `sessionStorage` key for "session expired" was French on write, English on read (admin); missing entirely (portal)
+
+**Symptom**: Admin's `LoginPage.tsx` read `sessionStorage.getItem('session_expiree')`
+(French) but `lib/axios.ts`'s refresh-failure redirect wrote `session_expired`
+(English) — the two never matched, so the "votre session a expiré" message never
+appeared after a forced re-login. Portal's `LoginPage.tsx` had no such check at all,
+even though its `lib/axios.ts` (see #11) sets the same flag on refresh failure.
+**Fix**: Standardized on the English key `session_expired` everywhere (matches
+`technical/conventions.md`'s English-code/French-UI split — the key is code, the
+message it triggers is French). Fixed the read side in admin's `LoginPage.tsx` and
+added the matching read+clear `useEffect` to portal's `LoginPage.tsx`.
 
 ## 12. `.prettierrc` already specified `singleQuote: true` but wasn't consistently applied
 

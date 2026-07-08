@@ -1,6 +1,6 @@
 # 🧠 Session Context
 
-Last updated: 2026-07-07
+Last updated: 2026-07-08
 
 ## What a Fresh Session Needs to Know
 
@@ -27,11 +27,12 @@ difference from SICOT (which mixes both in server code) — see
 
 ```
 branch: main
-last commit: b64a073 feat: admin/portal auth UI, applicant auth, uploads module, requests flow
-status: DIRTY — an uncommitted admin polish/hardening pass sits on top of b64a073.
-        See active-session/current-task.md's "In progress today" section and
-        active-session/blockers.md #B0 (portal build is currently broken) before
-        assuming main is in a clean, runnable state.
+last commit: 2205261 feat(admin): harden axios refresh queue, prettier reformat, vite/tsconfig tweaks
+status: DIRTY — a same-day fix pass sits on top of 2205261, repairing the two
+        broken builds that commit left behind (portal's missing lib/axios.ts,
+        admin's doubled @/src/lib/axios import) plus a sessionStorage key
+        mismatch. See active-session/current-task.md's "Done today" section.
+        No known blockers remain; this diff is ready to commit/push.
 ```
 
 ## Critical Rules (Memorize These)

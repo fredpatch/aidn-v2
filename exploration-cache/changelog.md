@@ -1,10 +1,28 @@
 # 📝 AIDN v2 — Changelog
 
-Commit-level history. Covers `be9fce9` through `b64a073` (2026-07-07, single day).
+Commit-level history. Covers `be9fce9` through `2205261` (2026-07-07), plus an
+uncommitted fix pass from 2026-07-08.
 
-## (uncommitted) — admin polish/hardening pass, portal left broken
+## (uncommitted) — fix both builds broken by the axios-hardening migration
 
-Not yet committed as of this update. On top of `b64a073`:
+On top of `2205261`, 2026-07-08:
+- `apps/portal/src/lib/axios.ts` created, mirroring `apps/admin/src/lib/axios.ts`
+  but pointed at `/applicant-auth/refresh` — portal build was broken without it
+  (`technical/gotchas.md` #11)
+- `apps/portal/src/hooks/useApplicantAuth.tsx` switched onto the new `lib/axios.ts`;
+  both apps' now-orphaned `lib/api.ts` deleted
+- `apps/admin/src/hooks/useAuth.tsx`: fixed a doubled `@/src/lib/axios` import path
+  that also broke the admin build (`technical/gotchas.md` #14)
+- `sessionStorage` "session expired" key mismatch fixed (`session_expiree` vs
+  `session_expired`) in admin's `LoginPage.tsx`; same check added to portal's
+  `LoginPage.tsx`, which had none (`technical/gotchas.md` #15)
+- `apps/portal/vite.config.ts` brought to parity with admin's (`@` alias, dev proxy,
+  build config)
+- `docs/TASKS.md` and `active-session/blockers.md` updated to reflect the fix
+
+## `2205261` — feat(admin): harden axios refresh queue, prettier reformat, vite/tsconfig tweaks
+
+The admin polish/hardening pass, on top of `b64a073`:
 - `apps/admin/src/lib/axios.ts` added — hardened refresh-queue axios client,
   replacing `lib/api.ts`'s single-promise version (`project/decisions.md` #10)
 - Repo-wide `.prettierrc` (present since Sprint 0, never enforced) actually applied
@@ -17,9 +35,14 @@ Not yet committed as of this update. On top of `b64a073`:
   produced by running the shadcn CLI, which the project has deliberately avoided
 - AppShell sidebar widened; "Utilisateurs" nav label → "Gestion des utilisateurs"
 - `docs/TASKS.md` corrected/caught up (19→20 tables, UI-redesign section documented)
-- **Left broken**: portal's `LoginPage.tsx`/`MyRequestPage.tsx` now import a
-  `lib/axios` that was never created for the portal app — see
-  `active-session/blockers.md` #B0. Do not push this diff as-is.
+- **Left broken**: portal's `LoginPage.tsx`/`MyRequestPage.tsx` imported a
+  `lib/axios` that was never created for the portal app, and admin's `useAuth.tsx`
+  had a doubled-path import bug of its own — see the uncommitted fix pass above.
+
+## `f07c6ed` — docs(exploration-cache): add cache and record uncommitted admin polish pass
+
+Initial exploration-cache scaffold (this folder), documenting the then-uncommitted
+admin polish pass and its broken-portal-build blocker.
 
 ## `be9fce9`, `7fce228`, `623139a` — first/second/third commit
 

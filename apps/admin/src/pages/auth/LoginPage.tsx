@@ -77,8 +77,8 @@ export default function LoginPage() {
   const confirmId = useId();
 
   useEffect(() => {
-    if (sessionStorage.getItem('session_expiree')) {
-      sessionStorage.removeItem('session_expiree');
+    if (sessionStorage.getItem('session_expired')) {
+      sessionStorage.removeItem('session_expired');
       setServerError('Votre session a expire. Veuillez vous reconnecter.');
     }
   }, []);

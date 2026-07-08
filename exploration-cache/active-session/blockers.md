@@ -2,31 +2,9 @@
 
 Last updated: 2026-07-07
 
-## 🔴 Hard Blockers (breaks the build/run today)
-
-### B0 — `apps/portal/src/lib/axios.ts` referenced but never created
-
-**Impact**: `apps/portal/src/pages/auth/LoginPage.tsx` and
-`apps/portal/src/pages/requests/MyRequestPage.tsx` now `import { api, apiErrorMessage }
-from '../../lib/axios'` — but only `apps/admin/src/lib/axios.ts` was actually created
-this session. `apps/portal/src/lib/axios.ts` does not exist. The portal app will fail
-to resolve this module (Vite dev server / build will error).
-**Cause**: The admin app's naive `lib/api.ts` (a single shared `refreshing` promise) was
-replaced with a hardened `lib/axios.ts` that queues concurrent 401s properly instead of
-racing them — see `project/decisions.md` #10. The portal app's imports were updated to
-match (`docs/aidn-v2-redesign.diff` / `aidn-v2-sprint1-ui.diff` were regenerated with
-`lib/axios` throughout, confirming the *intent* was portal-wide), but the portal
-equivalent file was never written, and `apps/portal/src/hooks/useApplicantAuth.tsx`
-still imports the old `apps/portal/src/lib/api.ts` — so the migration is half-done.
-**Fix needed**: Create `apps/portal/src/lib/axios.ts` mirroring
-`apps/admin/src/lib/axios.ts`'s queued-refresh logic, but pointed at
-`/applicant-auth/refresh` (not `/auth/refresh`) and without the `/login` redirect
-literal being staff-specific. Then decide whether to delete the now-orphaned
-`apps/admin/src/lib/api.ts` and `apps/portal/src/lib/api.ts`, or keep the old ones
-around for anything still referencing them (currently just
-`useApplicantAuth.tsx`).
-**Status**: Not yet fixed — flagged mid-session, left for the next diff since this is
-uncommitted work in progress.
+No active hard blockers — the last one (B0, portal + admin builds both broken via
+an incomplete axios-hardening migration) was found and fixed same-day, see the
+Resolved table below.
 
 ---
 
@@ -65,3 +43,4 @@ something to remember when a UI diff is handed over.
 | Uploads endpoint had no authentication | 2026-07-07 | `authenticateEither` middleware added |
 | Applicant auth didn't exist (Sprint 1 "tested" with a staff token) | 2026-07-07 | Built `modules/applicant-auth/` with a `kind`-discriminated JWT |
 | UI/UX only matched SICOT's colors, not its structure | 2026-07-07 | Rebuilt Bootstrap/Login/Layout with the same component/animation system |
+| Portal *and* admin builds both broken (incomplete axios-hardening migration: missing `portal/lib/axios.ts`, a doubled-`src` broken import in admin's `useAuth.tsx`, and a French/English sessionStorage key mismatch) | 2026-07-07 | Created portal's `lib/axios.ts` mirroring admin's, fixed the broken import path, standardized the key on English `session_expired`, deleted both apps' now-orphaned `lib/api.ts` |

@@ -1,15 +1,8 @@
 # ⚡ Next Actions
 
-Last updated: 2026-07-07
+Last updated: 2026-07-08
 
 ## 🔥 Immediate (start here next session)
-
-0. **Fix the broken portal build before committing/pushing the current diff** — create
-   `apps/portal/src/lib/axios.ts` (mirror `apps/admin/src/lib/axios.ts`, pointed at
-   `/applicant-auth/refresh`), then decide whether to also switch
-   `useApplicantAuth.tsx` off the old `lib/api.ts` for consistency, and whether the
-   now-orphaned `apps/admin/src/lib/api.ts` / `apps/portal/src/lib/api.ts` should be
-   deleted. See `active-session/blockers.md` #B0 and `project/decisions.md` #10.
 
 1. **Sprint 2 — Phase Préliminaire (M3)**
    - Réunion scheduling (reuse the "Réunion/Visite" pattern — `meetings` table

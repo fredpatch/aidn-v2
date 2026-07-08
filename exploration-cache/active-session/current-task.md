@@ -1,11 +1,35 @@
 # 🎯 Current Task
 
-**Session date**: 2026-07-07
-**Status**: Sprint 0 + Sprint 1 committed and pushed (`b64a073`). This session's work
-is a follow-up polish/hardening pass on top of that — **uncommitted as of this
-writing**. Not yet pushed.
+**Session date**: 2026-07-08 (follow-up fix session; prior work below is 2026-07-07)
+**Status**: Sprint 0 + Sprint 1 committed and pushed (`b64a073`, `2205261`). The
+admin polish/hardening pass from 2026-07-07 left both the admin and portal builds
+broken; this session found and fixed both, plus a related sessionStorage bug, and
+is ready to commit/push. Next up after that: Sprint 2 (Phase Préliminaire, M3).
 
-## 🟡 In progress today (uncommitted): admin polish pass + portal parity (incomplete)
+## ✅ Done today (2026-07-08): fixed both broken builds, ready to commit
+
+- Created `apps/portal/src/lib/axios.ts`, mirroring `apps/admin/src/lib/axios.ts`'s
+  queued-refresh logic but pointed at `/applicant-auth/refresh` — closes
+  `technical/gotchas.md` #11
+- Switched `apps/portal/src/hooks/useApplicantAuth.tsx` off the old `lib/api.ts`
+  onto the new `lib/axios.ts`; deleted both now-orphaned `lib/api.ts` files
+  (admin + portal)
+- Fixed a second, previously-undocumented broken build: `apps/admin/src/hooks/
+  useAuth.tsx` imported from a doubled `@/src/lib/axios` path — changed to the
+  plain relative `../lib/axios` — see `technical/gotchas.md` #14
+- Fixed a related bug found in the same investigation: the `sessionStorage` key for
+  the "session expired" message was written as `session_expired` (English) but read
+  as `session_expiree` (French) in admin's `LoginPage.tsx` — never matched.
+  Standardized on `session_expired`, and added the same read+clear check to portal's
+  `LoginPage.tsx` (which had none) — see `technical/gotchas.md` #15
+- `apps/portal/vite.config.ts` brought up to parity with admin's: `@` alias, dev
+  proxy to the API (`/api`, `/uploads`), explicit build output config
+- `docs/TASKS.md` and `active-session/blockers.md` updated to mark the prior
+  session's blocker resolved
+- All verified via typecheck + build + dev-server-boot (see `active-session/
+  blockers.md` B2 — no browser rendering available in this sandbox)
+
+## 🟢 Previously done (2026-07-07, uncommitted at the time): admin polish pass
 
 - Hardened `apps/admin/src/lib/axios.ts` with a proper concurrent-401 refresh queue,
   replacing the naive single-promise version in `lib/api.ts` — see
@@ -26,10 +50,8 @@ writing**. Not yet pushed.
   "Gestion des utilisateurs"
 - `docs/TASKS.md` corrected (19→20 tables) and caught up with a
   "Correction post-implémentation" section documenting the earlier UI redesign
-- **Left broken**: portal's `LoginPage.tsx`/`MyRequestPage.tsx` now import
-  `../../lib/axios`, which doesn't exist in `apps/portal/src/lib/` — see
-  `active-session/blockers.md` #B0. This needs to be fixed before this diff is safe
-  to commit/push.
+- This pass was committed as `2205261` — but it left the two build-breaking bugs
+  above, found and fixed in today's session
 
 ## Previously done (committed, `b64a073`): Sprint 0 + Sprint 1 + full UI redesign
 

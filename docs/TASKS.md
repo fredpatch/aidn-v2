@@ -115,15 +115,17 @@ Corrigé après retour explicite :
       utilisable via l'UI (sans elle, aucun moyen de créer un compte
       `dn_agent`/`reception` autrement qu'en curl)
 
-### ⚠️ À corriger en priorité au prochain démarrage de session
+### ✅ Résolu au début de la session suivante : builds admin ET portail cassés
 
-- [ ] **Build du portail cassé** : `apps/admin/src/lib/axios.ts` (client axios
-      durci, file d'attente de refresh concurrent) a été créé pour l'admin, mais
-      `LoginPage.tsx`/`MyRequestPage.tsx` du portail importent désormais
-      `../../lib/axios` — fichier qui n'existe pas dans `apps/portal/src/lib/`.
-      À créer (miroir de la version admin, pointé vers `/applicant-auth/refresh`)
-      avant tout `npm run dev`/build du portail. Détail complet dans
-      `exploration-cache/active-session/blockers.md` #B0.
+Deux bugs réels trouvés en vérifiant l'état du repo avant de démarrer le Sprint 2 :
+`apps/portal/src/lib/axios.ts` était référencé mais jamais créé (build portail cassé),
+et `apps/admin/src/hooks/useAuth.tsx` importait depuis un chemin `@/src/lib/axios`
+avec un `src/src` doublé (build admin cassé aussi, pas seulement le portail). Un
+troisième bug lié a été trouvé au passage : la clé `sessionStorage` pour le message
+« session expirée » était écrite en anglais (`session_expired`) mais lue en français
+(`session_expiree`) — ne correspondait jamais. Tout corrigé et re-vérifié (typecheck +
+build + flow complet contre un vrai Postgres). Détail complet dans
+`exploration-cache/active-session/blockers.md`.
 
 ## Sprint 2 — Phase Préliminaire (M3)
 

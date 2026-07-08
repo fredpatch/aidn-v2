@@ -1,0 +1,337 @@
+diff --git a/apps/admin/src/hooks/useAuth.tsx b/apps/admin/src/hooks/useAuth.tsx
+index c666118..53d2fd8 100644
+--- a/apps/admin/src/hooks/useAuth.tsx
++++ b/apps/admin/src/hooks/useAuth.tsx
+@@ -1,5 +1,5 @@
+ import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+-import { api } from '@/src/lib/axios';
++import { api } from '../lib/axios';
+ 
+ interface UserPublic {
+   id: number;
+diff --git a/apps/admin/src/lib/api.ts b/apps/admin/src/lib/api.ts
+deleted file mode 100644
+index bf9fe5c..0000000
+--- a/apps/admin/src/lib/api.ts
++++ /dev/null
+@@ -1,34 +0,0 @@
+-import axios from 'axios';
+-
+-export const api = axios.create({
+-  baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api',
+-  withCredentials: true,
+-});
+-
+-// On a 401 caused by an expired access token, try refreshing once and
+-// replay the original request - avoids forcing a full re-login every 15
+-// minutes for an otherwise-valid session.
+-let refreshing: Promise<unknown> | null = null;
+-
+-api.interceptors.response.use(
+-  (response) => response,
+-  async (error) => {
+-    const original = error.config;
+-    if (
+-      error.response?.status === 401 &&
+-      error.response?.data?.code === 'TOKEN_EXPIRED' &&
+-      !original._retried
+-    ) {
+-      original._retried = true;
+-      try {
+-        refreshing = refreshing ?? api.post('/auth/refresh');
+-        await refreshing;
+-        refreshing = null;
+-        return api(original);
+-      } catch {
+-        refreshing = null;
+-      }
+-    }
+-    return Promise.reject(error);
+-  }
+-);
+diff --git a/apps/admin/src/pages/auth/LoginPage.tsx b/apps/admin/src/pages/auth/LoginPage.tsx
+index c201d90..5e8dfef 100644
+--- a/apps/admin/src/pages/auth/LoginPage.tsx
++++ b/apps/admin/src/pages/auth/LoginPage.tsx
+@@ -77,8 +77,8 @@ export default function LoginPage() {
+   const confirmId = useId();
+ 
+   useEffect(() => {
+-    if (sessionStorage.getItem('session_expiree')) {
+-      sessionStorage.removeItem('session_expiree');
++    if (sessionStorage.getItem('session_expired')) {
++      sessionStorage.removeItem('session_expired');
+       setServerError('Votre session a expire. Veuillez vous reconnecter.');
+     }
+   }, []);
+diff --git a/apps/portal/src/hooks/useApplicantAuth.tsx b/apps/portal/src/hooks/useApplicantAuth.tsx
+index f8ae7eb..c36d772 100644
+--- a/apps/portal/src/hooks/useApplicantAuth.tsx
++++ b/apps/portal/src/hooks/useApplicantAuth.tsx
+@@ -1,5 +1,5 @@
+ import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+-import { api } from "../lib/api";
++import { api } from "../lib/axios";
+ 
+ interface ApplicantPublic {
+   id: number;
+diff --git a/apps/portal/src/lib/api.ts b/apps/portal/src/lib/api.ts
+deleted file mode 100644
+index 4081737..0000000
+--- a/apps/portal/src/lib/api.ts
++++ /dev/null
+@@ -1,34 +0,0 @@
+-import axios from "axios";
+-
+-export const api = axios.create({
+-  baseURL: import.meta.env.VITE_API_URL ?? "http://localhost:4000/api",
+-  withCredentials: true,
+-});
+-
+-let refreshing: Promise<unknown> | null = null;
+-
+-api.interceptors.response.use(
+-  (response) => response,
+-  async (error) => {
+-    const original = error.config;
+-    if (error.response?.status === 401 && error.response?.data?.code === "TOKEN_EXPIRED" && !original._retried) {
+-      original._retried = true;
+-      try {
+-        refreshing = refreshing ?? api.post("/applicant-auth/refresh");
+-        await refreshing;
+-        refreshing = null;
+-        return api(original);
+-      } catch {
+-        refreshing = null;
+-      }
+-    }
+-    return Promise.reject(error);
+-  }
+-);
+-
+-export function apiErrorMessage(error: unknown, fallback = "Une erreur est survenue."): string {
+-  if (axios.isAxiosError(error) && error.response?.data?.message) {
+-    return error.response.data.message as string;
+-  }
+-  return fallback;
+-}
+diff --git a/apps/portal/src/lib/axios.ts b/apps/portal/src/lib/axios.ts
+new file mode 100644
+index 0000000..8ee9d54
+--- /dev/null
++++ b/apps/portal/src/lib/axios.ts
+@@ -0,0 +1,79 @@
++import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
++
++export const api: AxiosInstance = axios.create({
++  baseURL: '/api',
++  withCredentials: true,
++  headers: {
++    'Content-Type': 'application/json',
++  },
++  timeout: 15000, // 15 seconds
++});
++
++// On a 401 caused by an expired access token, try refreshing once and
++// replay the original request - avoids forcing a full re-login every 30
++// minutes for an otherwise-valid session.
++let isRefreshing = false;
++
++let failedQueue: Array<{
++  resolve: (value: unknown) => void;
++  reject: (reason?: unknown) => void;
++}> = [];
++
++function processQueue(error: AxiosError | null): void {
++  failedQueue.forEach(({ resolve, reject }) => {
++    if (error) {
++      reject(error);
++    } else {
++      resolve(null);
++    }
++  });
++  failedQueue = [];
++}
++
++api.interceptors.response.use(
++  (response) => response,
++
++  async (error: AxiosError) => {
++    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
++
++    const isAuthRequest = originalRequest.url?.includes('/applicant-auth/');
++
++    if (error.response?.status !== 401 || originalRequest._retry || isAuthRequest) {
++      return Promise.reject(error);
++    }
++
++    if (isRefreshing) {
++      return new Promise((resolve, reject) => {
++        failedQueue.push({ resolve, reject });
++      })
++        .then(() => api(originalRequest))
++        .catch((err) => Promise.reject(err));
++    }
++
++    originalRequest._retry = true;
++    isRefreshing = true;
++
++    try {
++      await api.post('/applicant-auth/refresh');
++      processQueue(null);
++      return api(originalRequest);
++    } catch (refreshError) {
++      processQueue(refreshError as AxiosError);
++      if (window.location.pathname !== '/login') {
++        sessionStorage.setItem('session_expired', '1');
++        window.location.href = '/login';
++      }
++
++      return Promise.reject(refreshError);
++    } finally {
++      isRefreshing = false;
++    }
++  }
++);
++
++export function apiErrorMessage(error: unknown, fallback = 'Une erreur est survenue.'): string {
++  if (axios.isAxiosError(error) && error.response?.data?.message) {
++    return error.response.data.message as string;
++  }
++  return fallback;
++}
+diff --git a/apps/portal/src/pages/auth/LoginPage.tsx b/apps/portal/src/pages/auth/LoginPage.tsx
+index e159dd1..94fb313 100644
+--- a/apps/portal/src/pages/auth/LoginPage.tsx
++++ b/apps/portal/src/pages/auth/LoginPage.tsx
+@@ -1,4 +1,4 @@
+-import { useId, useState } from 'react';
++import { useId, useState, useEffect } from 'react';
+ import { useForm } from 'react-hook-form';
+ import { zodResolver } from '@hookform/resolvers/zod';
+ import { z } from 'zod';
+@@ -28,6 +28,13 @@ export default function LoginPage() {
+   const emailId = useId();
+   const passwordId = useId();
+ 
++  useEffect(() => {
++    if (sessionStorage.getItem('session_expired')) {
++      sessionStorage.removeItem('session_expired');
++      setServerError('Votre session a expire. Veuillez vous reconnecter.');
++    }
++  }, []);
++
+   const form = useForm<LoginFormData>({
+     resolver: zodResolver(loginSchema),
+     defaultValues: { email: '', password: '' },
+diff --git a/apps/portal/vite.config.ts b/apps/portal/vite.config.ts
+index a930ad5..fa4165f 100644
+--- a/apps/portal/vite.config.ts
++++ b/apps/portal/vite.config.ts
+@@ -1,9 +1,29 @@
+-import react from "@vitejs/plugin-react";
+-import { defineConfig } from "vite";
++import react from '@vitejs/plugin-react';
++import path from 'path';
++import { defineConfig } from 'vite';
+ 
+ export default defineConfig({
+   plugins: [react()],
++  resolve: {
++    alias: {
++      '@': path.resolve(__dirname, './src'),
++    },
++  },
+   server: {
+     port: 5174,
++    proxy: {
++      '/api': {
++        target: 'http://localhost:4000',
++        changeOrigin: true,
++      },
++      '/uploads': {
++        target: 'http://localhost:4000',
++        changeOrigin: true,
++      },
++    },
++  },
++  build: {
++    outDir: 'dist',
++    sourcemap: true,
+   },
+ });
+diff --git a/docs/TASKS.md b/docs/TASKS.md
+index 423096e..5842092 100644
+--- a/docs/TASKS.md
++++ b/docs/TASKS.md
+@@ -115,15 +115,17 @@ Corrigé après retour explicite :
+       utilisable via l'UI (sans elle, aucun moyen de créer un compte
+       `dn_agent`/`reception` autrement qu'en curl)
+ 
+-### ⚠️ À corriger en priorité au prochain démarrage de session
+-
+-- [ ] **Build du portail cassé** : `apps/admin/src/lib/axios.ts` (client axios
+-      durci, file d'attente de refresh concurrent) a été créé pour l'admin, mais
+-      `LoginPage.tsx`/`MyRequestPage.tsx` du portail importent désormais
+-      `../../lib/axios` — fichier qui n'existe pas dans `apps/portal/src/lib/`.
+-      À créer (miroir de la version admin, pointé vers `/applicant-auth/refresh`)
+-      avant tout `npm run dev`/build du portail. Détail complet dans
+-      `exploration-cache/active-session/blockers.md` #B0.
++### ✅ Résolu au début de la session suivante : builds admin ET portail cassés
++
++Deux bugs réels trouvés en vérifiant l'état du repo avant de démarrer le Sprint 2 :
++`apps/portal/src/lib/axios.ts` était référencé mais jamais créé (build portail cassé),
++et `apps/admin/src/hooks/useAuth.tsx` importait depuis un chemin `@/src/lib/axios`
++avec un `src/src` doublé (build admin cassé aussi, pas seulement le portail). Un
++troisième bug lié a été trouvé au passage : la clé `sessionStorage` pour le message
++« session expirée » était écrite en anglais (`session_expired`) mais lue en français
++(`session_expiree`) — ne correspondait jamais. Tout corrigé et re-vérifié (typecheck +
++build + flow complet contre un vrai Postgres). Détail complet dans
++`exploration-cache/active-session/blockers.md`.
+ 
+ ## Sprint 2 — Phase Préliminaire (M3)
+ 
+diff --git a/exploration-cache/active-session/blockers.md b/exploration-cache/active-session/blockers.md
+index a27c7dc..a1cbf4c 100644
+--- a/exploration-cache/active-session/blockers.md
++++ b/exploration-cache/active-session/blockers.md
+@@ -2,31 +2,9 @@
+ 
+ Last updated: 2026-07-07
+ 
+-## 🔴 Hard Blockers (breaks the build/run today)
+-
+-### B0 — `apps/portal/src/lib/axios.ts` referenced but never created
+-
+-**Impact**: `apps/portal/src/pages/auth/LoginPage.tsx` and
+-`apps/portal/src/pages/requests/MyRequestPage.tsx` now `import { api, apiErrorMessage }
+-from '../../lib/axios'` — but only `apps/admin/src/lib/axios.ts` was actually created
+-this session. `apps/portal/src/lib/axios.ts` does not exist. The portal app will fail
+-to resolve this module (Vite dev server / build will error).
+-**Cause**: The admin app's naive `lib/api.ts` (a single shared `refreshing` promise) was
+-replaced with a hardened `lib/axios.ts` that queues concurrent 401s properly instead of
+-racing them — see `project/decisions.md` #10. The portal app's imports were updated to
+-match (`docs/aidn-v2-redesign.diff` / `aidn-v2-sprint1-ui.diff` were regenerated with
+-`lib/axios` throughout, confirming the *intent* was portal-wide), but the portal
+-equivalent file was never written, and `apps/portal/src/hooks/useApplicantAuth.tsx`
+-still imports the old `apps/portal/src/lib/api.ts` — so the migration is half-done.
+-**Fix needed**: Create `apps/portal/src/lib/axios.ts` mirroring
+-`apps/admin/src/lib/axios.ts`'s queued-refresh logic, but pointed at
+-`/applicant-auth/refresh` (not `/auth/refresh`) and without the `/login` redirect
+-literal being staff-specific. Then decide whether to delete the now-orphaned
+-`apps/admin/src/lib/api.ts` and `apps/portal/src/lib/api.ts`, or keep the old ones
+-around for anything still referencing them (currently just
+-`useApplicantAuth.tsx`).
+-**Status**: Not yet fixed — flagged mid-session, left for the next diff since this is
+-uncommitted work in progress.
++No active hard blockers — the last one (B0, portal + admin builds both broken via
++an incomplete axios-hardening migration) was found and fixed same-day, see the
++Resolved table below.
+ 
+ ---
+ 
+@@ -65,3 +43,4 @@ something to remember when a UI diff is handed over.
+ | Uploads endpoint had no authentication | 2026-07-07 | `authenticateEither` middleware added |
+ | Applicant auth didn't exist (Sprint 1 "tested" with a staff token) | 2026-07-07 | Built `modules/applicant-auth/` with a `kind`-discriminated JWT |
+ | UI/UX only matched SICOT's colors, not its structure | 2026-07-07 | Rebuilt Bootstrap/Login/Layout with the same component/animation system |
++| Portal *and* admin builds both broken (incomplete axios-hardening migration: missing `portal/lib/axios.ts`, a doubled-`src` broken import in admin's `useAuth.tsx`, and a French/English sessionStorage key mismatch) | 2026-07-07 | Created portal's `lib/axios.ts` mirroring admin's, fixed the broken import path, standardized the key on English `session_expired`, deleted both apps' now-orphaned `lib/api.ts` |

@@ -88,10 +88,6 @@ POST /api/requests/:id/cancel     either auth type, ownership enforced
 
 ## 🔴 Active Notes
 
-- **Uncommitted admin polish pass on top of `b64a073` currently breaks the portal
-  app** — `apps/portal/src/pages/auth/LoginPage.tsx` and `MyRequestPage.tsx` import
-  `../../lib/axios`, which doesn't exist in `apps/portal/src/lib/`. Fix before
-  committing/pushing. See `active-session/blockers.md` #B0.
 - M13 applicant self-registration not built — portal login needs a manually-seeded
   applicant for now
 - No browser/visual verification possible from Claude's sandbox — Fred confirms
