@@ -1,29 +1,38 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { makeDeclarationAvailable } from '../api';
-import { useAsyncAction } from './useAsyncAction';
+import { apiErrorMessage } from '../../../../lib/axios';
+import { queryKeys } from '../../../../lib/react-query/queryKeys';
 
 export function useDeclarationActions(
   setActionError: (message: string | null) => void,
-  onChanged: () => void
+  requestId: string | undefined
 ) {
-  const { busy, run } = useAsyncAction();
+  const queryClient = useQueryClient();
+
+  const makeAvailableMutation = useMutation({
+    mutationFn: ({ phaseId, returnDays }: { phaseId: number; returnDays?: number }) =>
+      makeDeclarationAvailable(phaseId, returnDays),
+    onSuccess: async () => {
+      if (requestId) {
+        await queryClient.invalidateQueries({ queryKey: queryKeys.preliminary.bundle(requestId) });
+      }
+    },
+    onError: (err) =>
+      setActionError(apiErrorMessage(err, 'Impossible de rendre la declaration disponible.')),
+  });
 
   async function makeAvailable(phaseId: number, returnDays?: number): Promise<boolean> {
     setActionError(null);
-    const result = await run(async () => {
-      await makeDeclarationAvailable(phaseId, returnDays);
-    });
-
-    if (result !== undefined) {
-      onChanged();
+    try {
+      await makeAvailableMutation.mutateAsync({ phaseId, returnDays });
       return true;
+    } catch {
+      return false;
     }
-
-    setActionError('Impossible de rendre la declaration disponible.');
-    return false;
   }
 
   return {
-    busy,
+    busy: makeAvailableMutation.isPending,
     makeAvailable,
   };
 }

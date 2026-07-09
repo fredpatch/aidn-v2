@@ -1,20 +1,16 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { closePhase, uploadFile } from '../api';
-import { useAsyncAction } from './useAsyncAction';
+import { apiErrorMessage } from '../../../../lib/axios';
+import { queryKeys } from '../../../../lib/react-query/queryKeys';
 
 export function usePhaseCloseAction(
   setActionError: (message: string | null) => void,
-  onChanged: () => void
+  requestId: string | undefined
 ) {
-  const { busy, run } = useAsyncAction();
+  const queryClient = useQueryClient();
 
-  async function close(params: {
-    phaseId: number;
-    note?: string;
-    file?: File | null;
-  }): Promise<boolean> {
-    setActionError(null);
-
-    const result = await run(async () => {
+  const closeMutation = useMutation({
+    mutationFn: async (params: { phaseId: number; note?: string; file?: File | null }) => {
       let closureDocumentUrl: string | undefined;
       let closureDocumentMimeType: string | undefined;
 
@@ -30,19 +26,31 @@ export function usePhaseCloseAction(
         closureDocumentMimeType,
         closureNote: params.note || undefined,
       });
-    });
+    },
+    onSuccess: async () => {
+      if (requestId) {
+        await queryClient.invalidateQueries({ queryKey: queryKeys.preliminary.bundle(requestId) });
+      }
+    },
+    onError: (err) => setActionError(apiErrorMessage(err, 'Impossible de cloturer la phase.')),
+  });
 
-    if (result !== undefined) {
-      onChanged();
+  async function close(params: {
+    phaseId: number;
+    note?: string;
+    file?: File | null;
+  }): Promise<boolean> {
+    setActionError(null);
+    try {
+      await closeMutation.mutateAsync(params);
       return true;
+    } catch {
+      return false;
     }
-
-    setActionError('Impossible de cloturer la phase.');
-    return false;
   }
 
   return {
-    busy,
+    busy: closeMutation.isPending,
     close,
   };
 }

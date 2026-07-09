@@ -4,14 +4,14 @@ import { usePhaseCloseAction } from '../hooks/usePhaseCloseAction';
 
 interface ClosureCardProps {
   phaseId: number;
-  onChanged: () => void;
+  requestId: string | undefined;
   setActionError: (message: string | null) => void;
 }
 
-export default function ClosureCard({ phaseId, onChanged, setActionError }: ClosureCardProps) {
+export default function ClosureCard({ phaseId, requestId, setActionError }: ClosureCardProps) {
   const [note, setNote] = useState('');
   const [file, setFile] = useState<File | null>(null);
-  const { busy, close } = usePhaseCloseAction(setActionError, onChanged);
+  const { busy, close } = usePhaseCloseAction(setActionError, requestId);
 
   async function handleClose(e: FormEvent) {
     e.preventDefault();

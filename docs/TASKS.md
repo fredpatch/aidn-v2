@@ -157,8 +157,14 @@ build + flow complet contre un vrai Postgres). Détail complet dans
 - [x] Refactor de `PreliminaryPhasePage.tsx` en architecture modulaire
       (composants, hooks, helpers, API layer, types/constants) pour réduire
       le couplage et faciliter Sprint 3+
-- [x] Ajout d'un hook utilitaire partagé `useAsyncAction` pour homogénéiser
-      la gestion des actions asynchrones (busy-state, flow centralisé)
+- [x] Migration des hooks M3 vers **React Query** (`useQuery`/`useMutation`)
+      avec invalidation ciblée via clés de requêtes centralisées
+- [x] Déplacement de la logique d'appels API M3 dans `src/lib/api/`
+      (couche partagée, séparée du feature folder)
+- [x] Infrastructure React Query globale branchée dans `main.tsx`
+      (`QueryClientProvider` + defaults + devtools)
+- [x] Préparation état global léger avec **Zustand** (`src/lib/stores/ui.store.ts`)
+      pour usages UI cross-feature (sans mélange avec le server-state)
 - [x] Extraction d'un composant de badge de statut réutilisable
       (`PhaseStatusBadge`) pour éviter la duplication de mapping visuel
 - [x] Ajout d'un scaffold de tests helpers (`helpers.test.ts`) pour valider

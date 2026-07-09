@@ -18,7 +18,7 @@ export default function PreliminaryPhasePage() {
 
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const { bundle, loading, error, reload, startPhase, startingPhase } = usePreliminaryBundle(
+  const { bundle, loading, error, startPhase, startingPhase } = usePreliminaryBundle(
     requestId,
     setActionError
   );
@@ -74,7 +74,7 @@ export default function PreliminaryPhasePage() {
               phaseId={bundle.phase.id}
               meeting={bundle.meeting}
               dnAgentId={user?.id ?? 0}
-              onChanged={reload}
+              requestId={requestId}
               setActionError={setActionError}
             />
 
@@ -82,14 +82,14 @@ export default function PreliminaryPhasePage() {
               phaseId={bundle.phase.id}
               evaluation={bundle.evaluation}
               meetingHeld={bundle.meeting?.status === 'held'}
-              onChanged={reload}
+              requestId={requestId}
               setActionError={setActionError}
             />
 
             {bundle.phase.status === 'open' && canClose && (
               <ClosureCard
                 phaseId={bundle.phase.id}
-                onChanged={reload}
+                requestId={requestId}
                 setActionError={setActionError}
               />
             )}

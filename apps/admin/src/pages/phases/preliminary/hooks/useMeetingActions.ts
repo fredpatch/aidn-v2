@@ -1,3 +1,4 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   attachMeetingReport,
   markMeetingStatus,
@@ -5,13 +6,64 @@ import {
   scheduleMeeting,
   uploadFile,
 } from '../api';
-import { useAsyncAction } from './useAsyncAction';
+import { apiErrorMessage } from '../../../../lib/axios';
+import { queryKeys } from '../../../../lib/react-query/queryKeys';
 
 export function useMeetingActions(
   setActionError: (message: string | null) => void,
-  onChanged: () => void
+  requestId: string | undefined
 ) {
-  const { busy, run } = useAsyncAction();
+  const queryClient = useQueryClient();
+
+  const scheduleMutation = useMutation({
+    mutationFn: scheduleMeeting,
+    onSuccess: async () => {
+      if (requestId) {
+        await queryClient.invalidateQueries({ queryKey: queryKeys.preliminary.bundle(requestId) });
+      }
+    },
+    onError: (err) => setActionError(apiErrorMessage(err, 'Impossible de planifier la reunion.')),
+  });
+
+  const rescheduleMutation = useMutation({
+    mutationFn: ({ meetingId, dateTime }: { meetingId: number; dateTime: string }) =>
+      rescheduleMeeting(meetingId, new Date(dateTime).toISOString()),
+    onSuccess: async () => {
+      if (requestId) {
+        await queryClient.invalidateQueries({ queryKey: queryKeys.preliminary.bundle(requestId) });
+      }
+    },
+    onError: (err) => setActionError(apiErrorMessage(err, 'Impossible de reprogrammer.')),
+  });
+
+  const markStatusMutation = useMutation({
+    mutationFn: ({
+      meetingId,
+      status,
+    }: {
+      meetingId: number;
+      status: 'held' | 'no_show' | 'file_cancelled';
+    }) => markMeetingStatus(meetingId, status),
+    onSuccess: async () => {
+      if (requestId) {
+        await queryClient.invalidateQueries({ queryKey: queryKeys.preliminary.bundle(requestId) });
+      }
+    },
+    onError: (err) => setActionError(apiErrorMessage(err, 'Action impossible.')),
+  });
+
+  const sendReportMutation = useMutation({
+    mutationFn: async ({ meetingId, file }: { meetingId: number; file: File }) => {
+      const uploaded = await uploadFile(file);
+      await attachMeetingReport(meetingId, uploaded.fileUrl, uploaded.mimeType);
+    },
+    onSuccess: async () => {
+      if (requestId) {
+        await queryClient.invalidateQueries({ queryKey: queryKeys.preliminary.bundle(requestId) });
+      }
+    },
+    onError: (err) => setActionError(apiErrorMessage(err, "Impossible d'envoyer le compte-rendu.")),
+  });
 
   async function schedule(params: {
     phaseId: number;
@@ -20,37 +72,27 @@ export function useMeetingActions(
     location?: string;
   }): Promise<{ softOverlapWarning: boolean } | undefined> {
     setActionError(null);
-    const result = await run(async () => {
-      return await scheduleMeeting({
+    try {
+      const result = await scheduleMutation.mutateAsync({
         phaseId: params.phaseId,
         dnAgentId: params.dnAgentId,
         scheduledAtIso: new Date(params.dateTime).toISOString(),
         location: params.location,
       });
-    });
-
-    if (result !== undefined) {
-      onChanged();
       return result;
+    } catch {
+      return undefined;
     }
-
-    setActionError('Impossible de planifier la reunion.');
-    return undefined;
   }
 
   async function reschedule(meetingId: number, dateTime: string): Promise<boolean> {
     setActionError(null);
-    const result = await run(async () => {
-      await rescheduleMeeting(meetingId, new Date(dateTime).toISOString());
-    });
-
-    if (result !== undefined) {
-      onChanged();
+    try {
+      await rescheduleMutation.mutateAsync({ meetingId, dateTime });
       return true;
+    } catch {
+      return false;
     }
-
-    setActionError('Impossible de reprogrammer.');
-    return false;
   }
 
   async function markStatus(
@@ -58,34 +100,29 @@ export function useMeetingActions(
     status: 'held' | 'no_show' | 'file_cancelled'
   ): Promise<boolean> {
     setActionError(null);
-    const result = await run(async () => {
-      await markMeetingStatus(meetingId, status);
-    });
-
-    if (result !== undefined) {
-      onChanged();
+    try {
+      await markStatusMutation.mutateAsync({ meetingId, status });
       return true;
+    } catch {
+      return false;
     }
-
-    setActionError('Action impossible.');
-    return false;
   }
 
   async function sendReport(meetingId: number, file: File): Promise<boolean> {
     setActionError(null);
-    const result = await run(async () => {
-      const uploaded = await uploadFile(file);
-      await attachMeetingReport(meetingId, uploaded.fileUrl, uploaded.mimeType);
-    });
-
-    if (result !== undefined) {
-      onChanged();
+    try {
+      await sendReportMutation.mutateAsync({ meetingId, file });
       return true;
+    } catch {
+      return false;
     }
-
-    setActionError("Impossible d'envoyer le compte-rendu.");
-    return false;
   }
+
+  const busy =
+    scheduleMutation.isPending ||
+    rescheduleMutation.isPending ||
+    markStatusMutation.isPending ||
+    sendReportMutation.isPending;
 
   return {
     busy,

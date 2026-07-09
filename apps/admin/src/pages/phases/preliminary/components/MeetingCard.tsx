@@ -11,7 +11,7 @@ interface MeetingCardProps {
   phaseId: number;
   meeting: MeetingView | null;
   dnAgentId: number;
-  onChanged: () => void;
+  requestId: string | undefined;
   setActionError: (message: string | null) => void;
 }
 
@@ -19,7 +19,7 @@ export default function MeetingCard({
   phaseId,
   meeting,
   dnAgentId,
-  onChanged,
+  requestId,
   setActionError,
 }: MeetingCardProps) {
   const [scheduling, setScheduling] = useState(false);
@@ -32,7 +32,7 @@ export default function MeetingCard({
 
   const { busy, schedule, reschedule, markStatus, sendReport } = useMeetingActions(
     setActionError,
-    onChanged
+    requestId
   );
 
   async function handleSchedule(e: FormEvent) {

@@ -9,7 +9,7 @@ interface DeclarationCardProps {
   phaseId: number;
   evaluation: EvaluationView | null;
   meetingHeld: boolean;
-  onChanged: () => void;
+  requestId: string | undefined;
   setActionError: (message: string | null) => void;
 }
 
@@ -17,11 +17,11 @@ export default function DeclarationCard({
   phaseId,
   evaluation,
   meetingHeld,
-  onChanged,
+  requestId,
   setActionError,
 }: DeclarationCardProps) {
   const [returnDays, setReturnDays] = useState('');
-  const { busy, makeAvailable } = useDeclarationActions(setActionError, onChanged);
+  const { busy, makeAvailable } = useDeclarationActions(setActionError, requestId);
 
   async function handleMakeAvailable() {
     const parsedReturnDays = returnDays ? Number(returnDays) : undefined;

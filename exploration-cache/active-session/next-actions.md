@@ -4,11 +4,12 @@ Last updated: 2026-07-09
 
 ## 🔥 Immediate (start here next session)
 
-1. **Commit and push the ongoing 2026-07-09 hardening + refactor diff** — settings page,
+1. **Commit and push the ongoing 2026-07-09 hardening + refactor + React Query migration diff** — settings page,
    system-parameters API wiring, dev reset module, meeting compte-rendu flow,
    M3 closure gating fixes, plus the modular refactor of `PreliminaryPhasePage`
-   (hooks/helpers/components/api/types) and enhancements (`useAsyncAction`,
-   `PhaseStatusBadge`, helper test scaffold).
+   (hooks/helpers/components/api/types), React Query hooks with query-key
+   invalidation, shared lib API relocation, Zustand baseline store,
+   `PhaseStatusBadge`, and helper test scaffold.
 
 2. **Sprint 3 — Phase Demande formelle (M4)**
    - Reuses `dg_circuit_documents` (already generic across M1/M4, see

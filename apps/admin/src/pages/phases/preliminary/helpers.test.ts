@@ -4,7 +4,7 @@ import {
   isDeclarationSubmitted,
   isMeetingResolved,
 } from './helpers';
-import type { PreliminaryBundle } from './types';
+import type { PreliminaryBundle } from '../../../lib/api/preliminary.types';
 
 function assert(condition: boolean, message: string): void {
   if (!condition) {

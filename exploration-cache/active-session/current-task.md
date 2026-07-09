@@ -29,7 +29,10 @@ in progress and queued for commit.
 - Added `in_progress` badge styling in admin requests list for clearer lifecycle
 - Refactored admin M3 page into a maintainable module:
   - split `PreliminaryPhasePage.tsx` into dedicated components/hooks/helpers/api/types
-  - introduced shared `useAsyncAction` utility for async action patterns
+  - migrated M3 hooks to React Query with query invalidation and centralized query keys
+  - moved M3 api/types to shared `apps/admin/src/lib/api/`
+  - wired global QueryClient in `apps/admin/src/main.tsx`
+  - prepared lightweight Zustand store in `apps/admin/src/lib/stores/ui.store.ts`
   - introduced reusable `PhaseStatusBadge` visual primitive
   - added helper test scaffold (`runPreliminaryHelpersTests` in `helpers.test.ts`)
 

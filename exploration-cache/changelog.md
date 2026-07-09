@@ -31,7 +31,11 @@ On top of `0e29d06`, 2026-07-09 ongoing session:
   - extracted `types.ts`, `constants.ts`, `helpers.ts`, `api.ts`
   - extracted hooks (`usePreliminaryBundle`, `useMeetingActions`, `useDeclarationActions`, `usePhaseCloseAction`)
   - extracted UI components (`PhaseSidebar`, `MeetingCard`, `DeclarationCard`, `ClosureCard`, `PhaseStatusBadge`)
-  - added shared async action utility (`useAsyncAction`)
+  - migrated hooks from custom local async state to **React Query** (`useQuery`/`useMutation`) with cache invalidation
+  - centralized query key management in `src/lib/react-query/queryKeys.ts`
+  - relocated M3 API calls/types to shared `src/lib/api/preliminary.api.ts` and `src/lib/api/preliminary.types.ts`
+  - wired global Query Client in `main.tsx` (`QueryClientProvider` + devtools)
+  - prepared Zustand baseline store (`src/lib/stores/ui.store.ts`) for future client-state needs
   - added helper test scaffold (`helpers.test.ts`, `runPreliminaryHelpersTests`)
 
 ## (uncommitted) — Sprint 2: Phase Préliminaire (M3), full API + UI
