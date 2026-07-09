@@ -13,4 +13,8 @@ export const queryKeys = {
     all: ['preliminary'] as const,
     bundle: (requestId: string) => ['preliminary', 'bundle', requestId] as const,
   },
+  formal: {
+    all: ['formal'] as const,
+    bundle: (requestId: string) => ['formal', 'bundle', requestId] as const,
+  },
 };

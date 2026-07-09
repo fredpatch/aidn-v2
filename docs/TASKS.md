@@ -255,7 +255,15 @@ Voir `exploration-cache/technical/gotchas.md` pour le détail complet.
 - [x] Bundle `by-request/:requestId` (phase, circuit lettre, checklist docs, réunion, completionRate)
 - [x] Upload par slot des documents formels + versioning M8 (`document_versions`, trash à remplacement)
 - [x] Contrôles de clôture M4 : lettre transmise, 11/11 documents soumis, réunion résolue
-- [ ] UI admin/portail M4 à implémenter
+
+### Sprint 3 — avancement frontend admin (2026-07-09, en cours)
+
+- [x] Route admin M4 ajoutée : `/demandes/:requestId/phase-formelle`
+- [x] Nouveau module UI `pages/phases/formal/*` (page, hooks, cartes, helpers, constantes)
+- [x] Couche API admin M4 dans `apps/admin/src/lib/api/formal.api.ts` + types associés
+- [x] Intégration React Query M4 (query keys `formal.*`, hooks mutations + invalidation)
+- [~] UI admin M4 amorcée (lettre DG, checklist documents, réunion, clôture)
+- [ ] UI portail M4 à implémenter
 
 ## Sprint 4 — Évaluation approfondie (M5)
 

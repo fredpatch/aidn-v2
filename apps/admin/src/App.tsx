@@ -8,6 +8,7 @@ import UsersPage from './pages/users/UsersPage';
 import PreliminaryPhasePage from './pages/phases/PreliminaryPhasePage';
 import DocumentTemplatesPage from './pages/document-templates/DocumentTemplatesPage';
 import SettingsPage from './pages/settings/SettingsPage';
+import FormalPhasePage from './pages/phases/formal/FormalPhasePage';
 
 function Gate() {
   const { user, loading, bootstrapInitialised } = useAuth();
@@ -33,6 +34,9 @@ function Gate() {
       <Route element={<AppShell />}>
         <Route index element={<RequestsPage />} />
         <Route path="demandes/:requestId/phase-preliminaire" element={<PreliminaryPhasePage />} />
+
+        <Route path="demandes/:requestId/phase-formelle" element={<FormalPhasePage />} />
+
         <Route path="modeles-documents" element={<DocumentTemplatesPage />} />
         <Route path="utilisateurs" element={<UsersPage />} />
         <Route path="parametres" element={<SettingsPage />} />

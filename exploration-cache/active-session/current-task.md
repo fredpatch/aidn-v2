@@ -49,6 +49,11 @@ kickoff with the `formal-request` module (M4) while continuing cache/docs sync.
   - added `formal-request` API module and mounted `/api/formal-request`
   - implemented M4 open/bundle/letter circuit/document slots/close gates
   - added formal-request domain error handler and shared formal slot status constants
+- Started Sprint 3 admin frontend groundwork (M4 formal phase):
+  - added route `/demandes/:requestId/phase-formelle` in admin router
+  - added new `pages/phases/formal/*` feature module with React Query hooks/actions
+  - added `apps/admin/src/lib/api/formal.api.ts` + `formal.types.ts`
+  - wired requests list/actions toward M4 page entrypoints
 
 ## ✅ Done today (2026-07-08, this session): Sprint 2 — Phase Préliminaire (M3)
 

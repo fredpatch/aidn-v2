@@ -4,9 +4,9 @@ Last updated: 2026-07-09
 
 ## 🔥 Immediate (start here next session)
 
-1. **Commit and push the ongoing 2026-07-09 Sprint 3 backend kickoff diff** —
-   new `formal-request` module (M4), route mounting in API server,
-   formal-request error mapping, and shared formal slot constants.
+1. **Commit and push the ongoing 2026-07-09 Sprint 3 admin frontend kickoff diff** —
+   M4 formal phase route/page/module, React Query formal hooks/query keys,
+   admin formal API types/calls, and requests-page navigation updates.
 
 2. **Sprint 3 — Phase Demande formelle (M4)**
    - Reuses `dg_circuit_documents` (already generic across M1/M4, see
@@ -15,7 +15,7 @@ Last updated: 2026-07-09
      (`dn_air_r2_3_f_e_010/011/012`) — build the endpoints/UI that actually use them
    - Consider whether the meeting-ticket HTML approach (`project/decisions.md` #12)
      still holds or whether M4's needs finally justify a real PDF generator
-   - **Delta**: backend `formal-request` module is now started; next is admin/portal UI wiring and end-to-end flow tests
+   - **Delta**: backend `formal-request` module is started and admin M4 UI kickoff is in progress; next is end-to-end wiring and portal M4 UI
 
 3. **Add `PORTAL_ORIGIN` to `apps/api/.env.example`** — currently only in local
    `.env`, needed for `authenticateEither`'s origin-based cookie check

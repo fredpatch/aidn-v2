@@ -2,44 +2,27 @@ import { useState } from 'react';
 import { CheckCircle, Circle, CircleDashed, Lock } from 'lucide-react';
 import { PHASE_ROADMAP } from '../constants';
 import { buildChecklist } from '../helpers';
-import type { PreliminaryBundle } from '../types';
+import type { ChecklistItem, PreliminaryBundle } from '../types';
 
 interface PhaseSidebarProps {
   bundle: PreliminaryBundle | null;
+  currentCode?: string;
+  checklistTitle?: string;
+  checklist?: ChecklistItem[];
 }
 
-export default function PhaseSidebar({ bundle }: PhaseSidebarProps) {
+export default function PhaseSidebar({
+  bundle,
+  currentCode = 'M3',
+  checklistTitle,
+  checklist: externalChecklist,
+}: PhaseSidebarProps) {
   const [lockedTooltip, setLockedTooltip] = useState<string | null>(null);
 
-  if (!bundle?.phase) {
-    return (
-      <div className="card p-4 space-y-1">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-anac-muted mb-3">
-          Phases du dossier
-        </p>
-        {PHASE_ROADMAP.map((phase) => {
-          const isCurrent = phase.code === 'M3';
-          return (
-            <div
-              key={phase.code}
-              className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded text-xs"
-            >
-              {isCurrent ? (
-                <Circle size={12} className="text-anac-blue fill-anac-blue flex-shrink-0" />
-              ) : (
-                <Lock size={11} className="flex-shrink-0 opacity-40" />
-              )}
-              <span className={isCurrent ? 'text-anac-blue font-semibold' : 'text-anac-muted/60'}>
-                {phase.label}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    );
-  }
-
-  const checklist = buildChecklist(bundle);
+  const checklist = externalChecklist ?? (bundle ? buildChecklist(bundle) : []);
+  const title =
+    checklistTitle ??
+    `Checklist - ${PHASE_ROADMAP.find((p) => p.code === currentCode)?.label ?? currentCode}`;
 
   return (
     <div className="space-y-4">
@@ -48,7 +31,7 @@ export default function PhaseSidebar({ bundle }: PhaseSidebarProps) {
           Phases du dossier
         </p>
         {PHASE_ROADMAP.map((phase) => {
-          const isCurrent = phase.code === 'M3';
+          const isCurrent = phase.code === currentCode;
           return (
             <div key={phase.code} className="relative">
               <button
@@ -89,40 +72,42 @@ export default function PhaseSidebar({ bundle }: PhaseSidebarProps) {
         })}
       </div>
 
-      <div className="card p-4 space-y-1">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-anac-muted mb-3">
-          Checklist - Phase Preliminaire
-        </p>
-        <div className="space-y-2">
-          {checklist.map((item, i) => (
-            <div key={i} className="flex items-start gap-2">
-              {item.done ? (
-                <CheckCircle size={13} className="text-anac-success flex-shrink-0 mt-0.5" />
-              ) : item.optional ? (
-                <CircleDashed size={13} className="text-anac-muted/50 flex-shrink-0 mt-0.5" />
-              ) : (
-                <Circle size={13} className="text-anac-muted/40 flex-shrink-0 mt-0.5" />
-              )}
-              <span
-                className={`text-xs leading-tight ${
-                  item.done
-                    ? 'text-anac-navy line-through decoration-anac-muted/40'
-                    : item.optional
-                      ? 'text-anac-muted/60 italic'
-                      : 'text-anac-navy'
-                }`}
-              >
-                {item.label}
-                {item.optional && (
-                  <span className="ml-1 text-[9px] text-anac-muted/50 not-italic font-medium uppercase tracking-wide">
-                    facultatif
-                  </span>
+      {checklist.length > 0 && (
+        <div className="card p-4 space-y-1">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-anac-muted mb-3">
+            {title}
+          </p>
+          <div className="space-y-2">
+            {checklist.map((item, i) => (
+              <div key={i} className="flex items-start gap-2">
+                {item.done ? (
+                  <CheckCircle size={13} className="text-anac-success flex-shrink-0 mt-0.5" />
+                ) : item.optional ? (
+                  <CircleDashed size={13} className="text-anac-muted/50 flex-shrink-0 mt-0.5" />
+                ) : (
+                  <Circle size={13} className="text-anac-muted/40 flex-shrink-0 mt-0.5" />
                 )}
-              </span>
-            </div>
-          ))}
+                <span
+                  className={`text-xs leading-tight ${
+                    item.done
+                      ? 'text-anac-navy line-through decoration-anac-muted/40'
+                      : item.optional
+                        ? 'text-anac-muted/60 italic'
+                        : 'text-anac-navy'
+                  }`}
+                >
+                  {item.label}
+                  {item.optional && (
+                    <span className="ml-1 text-[9px] text-anac-muted/50 not-italic font-medium uppercase tracking-wide">
+                      facultatif
+                    </span>
+                  )}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

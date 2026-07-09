@@ -1,7 +1,7 @@
 # 📝 AIDN v2 — Changelog
 
-Commit-level history. Covers `be9fce9` through `14efd94` (2026-07-07/09), plus
-the current uncommitted 2026-07-09 hardening/Sprint-3-backend pass.
+Commit-level history. Covers `be9fce9` through `cac1805` (2026-07-07/09), plus
+the current uncommitted 2026-07-09 Sprint-3 admin-frontend pass.
 
 ## (uncommitted) — 2026-07-09 hardening pass (post-Sprint 2)
 
@@ -60,6 +60,12 @@ On top of `0e29d06`, 2026-07-09 ongoing session:
   - M4 closure gates implemented: letter transmitted + 11/11 docs submitted + meeting resolved
   - added domain error mapping `handleFormalRequestError`
   - added `apps/api/src/shared/statuses.ts` with formal document slot constants/labels
+- **Sprint 3 kickoff (M4) — admin frontend started**:
+  - new admin formal-phase route `/demandes/:requestId/phase-formelle`
+  - new feature module `apps/admin/src/pages/phases/formal/*` (page, hooks, cards, helpers, constants)
+  - new admin API/types layer `apps/admin/src/lib/api/formal.api.ts` + `formal.types.ts`
+  - React Query integration for M4 (`queryKeys.formal.bundle(requestId)` + invalidation flows)
+  - requests list now links to both M3 and M4 pages when dossier is `in_progress`
 
 ## (uncommitted) — Sprint 2: Phase Préliminaire (M3), full API + UI
 

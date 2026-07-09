@@ -6,12 +6,12 @@
   "lastUpdated": "2026-07-09T17:30:00Z",
   "lastCommit": "14efd94 feat(ui): add sonner notifications across admin and portal",
   "currentSprint": "Sprint 2 (M3) committed; Sprint 3 (Phase Demande formelle, M4) backend kickoff started",
-  "currentSprintFocus": "Sprint 0, Sprint 1, and Sprint 2 are committed. Current work continues post-Sprint-2 hardening while starting Sprint 3 backend: formal-request module, M4 lifecycle endpoints, letter DG circuit, 11-slot document checklist, and closure gates.",
-  "status": "Sprint 0 COMPLETE. Sprint 1 COMPLETE. Sprint 2 COMPLETE and committed. Post-sprint hardening delivered React Query/lib-api conventions and Sonner notifications. Sprint 3 has started on backend with new formal-request APIs (open/bundle/letter-circuit/document-slots/close), with admin+portal UI wiring still pending.",
+  "currentSprintFocus": "Sprint 0, Sprint 1, and Sprint 2 are committed. Current work continues Sprint 3 with the M4 backend already started and the admin frontend now being wired (formal route/page/module, formal API client, and React Query formal keys/hooks).",
+  "status": "Sprint 0 COMPLETE. Sprint 1 COMPLETE. Sprint 2 COMPLETE and committed. Post-sprint hardening delivered React Query/lib-api conventions and Sonner notifications. Sprint 3 now has backend APIs for M4 plus an in-progress admin frontend kickoff (formal phase page and orchestration), with portal M4 UI still pending.",
   "activeSession": {
-    "task": "Post-Sprint-2 hardening pass is committed; active work now includes Sprint 3 backend kickoff with formal-request APIs for M4 (open/bundle/letter circuit/document slots/close gates). exploration-cache update and commit in progress.",
+    "task": "Post-Sprint-2 hardening is committed; active work now includes Sprint 3 admin frontend kickoff for M4 on top of formal-request backend APIs (route/page/module, formal API client, React Query hooks/keys). exploration-cache update and commit in progress.",
     "startedAt": "2026-07-09",
-    "nextAction": "Commit and push current formal-request backend kickoff diff, then wire admin/portal UI for Sprint 3 M4 flows. Add PORTAL_ORIGIN to apps/api/.env.example first."
+    "nextAction": "Commit and push current admin M4 frontend kickoff diff, then continue Sprint 3 end-to-end admin wiring and portal M4 UI. Add PORTAL_ORIGIN to apps/api/.env.example first."
   },
   "index": [
     {
@@ -36,7 +36,7 @@
       "path": "active-session/current-task.md",
       "type": "session",
       "tags": ["current", "sprint2", "sprint3", "m3", "m4", "document-templates"],
-      "summary": "Current session now includes Sprint 3 backend kickoff with formal-request APIs"
+      "summary": "Current session now includes Sprint 3 backend + admin frontend kickoff for M4 formal phase"
     },
     {
       "path": "active-session/blockers.md",
@@ -48,7 +48,7 @@
       "path": "active-session/next-actions.md",
       "type": "session",
       "tags": ["actions", "sprint3", "phase-demande-formelle", "m4"],
-      "summary": "Commit M4 backend kickoff diff, then implement Sprint 3 admin/portal UI integration"
+      "summary": "Commit M4 admin frontend kickoff diff, then continue end-to-end admin and portal UI integration"
     },
     {
       "path": "active-session/context.md",
@@ -83,7 +83,15 @@
     {
       "path": "project/decisions.md",
       "type": "project",
-      "tags": ["decisions", "rationale", "postgres", "auth", "ui-redesign", "document-templates", "pdf"],
+      "tags": [
+        "decisions",
+        "rationale",
+        "postgres",
+        "auth",
+        "ui-redesign",
+        "document-templates",
+        "pdf"
+      ],
       "summary": "Non-obvious technical decisions with rationale"
     },
     {
@@ -131,8 +139,16 @@
     {
       "path": "sessions/2026-07-09.md",
       "type": "session-log",
-      "tags": ["hardening", "settings", "system-parameters", "dev-tools", "meeting-report", "session-log", "sprint3"],
-      "summary": "Post-Sprint-2 hardening plus Sprint 3 kickoff with formal-request module and M4 lifecycle endpoints"
+      "tags": [
+        "hardening",
+        "settings",
+        "system-parameters",
+        "dev-tools",
+        "meeting-report",
+        "session-log",
+        "sprint3"
+      ],
+      "summary": "Post-Sprint-2 hardening plus Sprint 3 kickoff with formal-request backend and admin M4 frontend scaffolding"
     }
   ]
 }

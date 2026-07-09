@@ -188,13 +188,29 @@ export default function RequestsPage() {
                         Marquer en attente de traitement
                       </button>
                     )}
-                    {r.circuitStatus === 'pending_review' && (
+                    {r.circuitStatus === 'pending_review' && r.status === 'pending_review' && (
                       <Link
                         to={`/demandes/${r.id}/phase-preliminaire`}
                         className="text-anac-blue underline text-xs"
                       >
-                        Phase Preliminaire
+                        Phase Préliminaire
                       </Link>
+                    )}
+                    {r.status === 'in_progress' && (
+                      <>
+                        <Link
+                          to={`/demandes/${r.id}/phase-preliminaire`}
+                          className="text-anac-muted underline text-xs"
+                        >
+                          Phase Préliminaire
+                        </Link>
+                        <Link
+                          to={`/demandes/${r.id}/phase-formelle`}
+                          className="text-anac-blue underline text-xs"
+                        >
+                          Phase Formelle
+                        </Link>
+                      </>
                     )}
                   </td>
                 </tr>
