@@ -5,6 +5,7 @@ import {
   Inbox,
   Users,
   FileText,
+  Settings2,
   ChevronLeft,
   ChevronRight,
   LogOut,
@@ -25,8 +26,14 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { to: '/', label: 'Demandes', icon: Inbox },
-  { to: '/modeles-documents', label: 'Modeles de documents', icon: FileText, roles: ['dn_agent', 'dn_supervisor', 'SU'] },
+  {
+    to: '/modeles-documents',
+    label: 'Modeles de documents',
+    icon: FileText,
+    roles: ['dn_agent', 'dn_supervisor', 'SU'],
+  },
   { to: '/utilisateurs', label: 'Gestion des utilisateurs', icon: Users, roles: ['SU'] },
+  { to: '/parametres', label: 'Parametres', icon: Settings2, roles: ['SU'] },
 ];
 
 export default function AppShell() {

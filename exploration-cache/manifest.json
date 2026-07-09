@@ -3,16 +3,16 @@
   "client": "ANAC Gabon",
   "repo": "fredpatch/aidn-v2",
   "branch": "main",
-  "lastUpdated": "2026-07-08T12:00:00Z",
-  "lastCommit": "a4a5220 fix(admin,portal): repair both builds broken by axios-hardening migration",
-  "currentSprint": "Sprint 2 (Phase Preliminaire, M3) complete, uncommitted; Sprint 3 (Phase Demande formelle, M4) not started",
-  "currentSprintFocus": "Sprint 0, Sprint 1, and the axios-migration fix (a4a5220) are committed and pushed. Sprint 2 (Phase Preliminaire, M3) is now fully built on top of that - phase lifecycle, meetings, preliminary evaluation declaration, plus a document_templates module generalized ahead of M4 and a real security fix to authenticateEither's cookie precedence. All three workspaces typecheck clean. Uncommitted as of this writing, ready to commit/push.",
-  "status": "Sprint 0 COMPLETE. Sprint 1 COMPLETE. The 2026-07-08 axios-migration fix (a4a5220) is committed and pushed. Sprint 2 COMPLETE (API + full admin/portal UI) as of this session, uncommitted: phase open/close, meeting scheduling/status/ticket (HTML, not PDF), declaration make-available/submit, document_templates module (4 keys, 1 in use + 3 ready for Sprint 3), authenticateEither origin-based cookie fix. 6 real bugs found and fixed this sprint (empty-body controller crashes, router-mount collision, check ordering, packages/shared drift, missing portal bundle endpoint, missing imports). Legacy repo actually renamed to aidn-v2-legacy. Next: commit/push this diff, then Sprint 3 (Phase Demande formelle, M4).",
+  "lastUpdated": "2026-07-09T12:00:00Z",
+  "lastCommit": "0e29d06 feat(api,admin,portal): Sprint 2 - Phase Preliminaire (M3), full API + UI",
+  "currentSprint": "Sprint 2 (Phase Preliminaire, M3) committed; post-sprint hardening in progress; Sprint 3 (Phase Demande formelle, M4) not started",
+  "currentSprintFocus": "Sprint 0, Sprint 1, and Sprint 2 are committed. Current work is a post-Sprint-2 hardening pass: admin settings page, system-parameters API management routes, dev reset tooling, meeting compte-rendu upload flow, and closure gating checks that require resolved meeting + submitted declaration before closing M3.",
+  "status": "Sprint 0 COMPLETE. Sprint 1 COMPLETE. Sprint 2 COMPLETE and committed (0e29d06). Ongoing hardening adds settings/system-parameters management, dev reset module (SU + env gated), meeting report upload/display, and stricter M3 closure/readiness enforcement. Next: commit current hardening diff, then start Sprint 3 (M4).",
 
   "activeSession": {
-    "task": "Built Sprint 2 (Phase Preliminaire, M3) end to end: phases/meetings/preliminary-evaluation modules, document_templates module generalized ahead of M4, authenticateEither origin-based cookie security fix, admin+portal UI, 6 bugs found and fixed. exploration-cache updated to match. Ready to commit and push.",
-    "startedAt": "2026-07-08",
-    "nextAction": "Commit and push this Sprint 2 diff, then start Sprint 3 (Phase Demande formelle, M4). Add PORTAL_ORIGIN to apps/api/.env.example first."
+    "task": "Post-Sprint-2 hardening pass: settings page + parameter management, dev reset tools, meeting report upload/display, and stricter M3 closure gates. exploration-cache update and commit in progress.",
+    "startedAt": "2026-07-09",
+    "nextAction": "Commit and push this hardening diff, then start Sprint 3 (Phase Demande formelle, M4). Add PORTAL_ORIGIN to apps/api/.env.example first."
   },
 
   "index": [
@@ -34,6 +34,7 @@
     { "path": "technical/cross-cutting-patterns.md", "type": "reference", "tags": ["circuit-dg", "reunion", "cloture", "facture", "checklist"], "summary": "6 business-rule patterns reused across modules" },
     { "path": "technical/gotchas.md", "type": "reference", "tags": ["bugs", "drizzle-kit", "postgres", "tsconfig", "axios", "auth", "gotchas"], "summary": "18 real pitfalls found across sessions, with symptom/cause/fix" },
     { "path": "sessions/2026-07-07.md", "type": "session-log", "tags": ["sprint0", "sprint1", "session-log"], "summary": "Full session log: Sprint 0+1, 10 bugs, UI redesign" },
-    { "path": "sessions/2026-07-08.md", "type": "session-log", "tags": ["axios", "bugfix", "sprint2", "phase-preliminaire", "session-log"], "summary": "Fixed both broken builds, then built Sprint 2 (Phase Preliminaire, M3) end to end" }
+    { "path": "sessions/2026-07-08.md", "type": "session-log", "tags": ["axios", "bugfix", "sprint2", "phase-preliminaire", "session-log"], "summary": "Fixed both broken builds, then built Sprint 2 (Phase Preliminaire, M3) end to end" },
+    { "path": "sessions/2026-07-09.md", "type": "session-log", "tags": ["hardening", "settings", "system-parameters", "dev-tools", "meeting-report", "session-log"], "summary": "Post-Sprint-2 hardening: settings and system parameters management, dev reset tools, meeting report upload, and stricter phase closure gates" }
   ]
 }

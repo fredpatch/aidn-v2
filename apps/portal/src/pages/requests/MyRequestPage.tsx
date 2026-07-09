@@ -152,7 +152,9 @@ function ActiveRequestCard({
         </p>
       )}
 
-      {(request.circuitStatus === 'pending_review') && <PreliminaryPhaseSection requestId={request.id} />}
+      {request.circuitStatus === 'pending_review' && (
+        <PreliminaryPhaseSection requestId={request.id} />
+      )}
     </div>
   );
 }
@@ -160,7 +162,14 @@ function ActiveRequestCard({
 function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
   const [bundle, setBundle] = useState<{
     phase: { id: number; status: string } | null;
-    meeting: { id: number; scheduledAt: string; location: string | null; status: string } | null;
+    meeting: {
+      id: number;
+      scheduledAt: string;
+      location: string | null;
+      status: string;
+      crDocumentUrl: string | null;
+      crUploadedAt: string | null;
+    } | null;
     evaluation: {
       templateFileUrl: string | null;
       madeAvailableAt: string | null;
@@ -219,19 +228,45 @@ function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
       {error && <p className="text-anac-danger text-xs">{error}</p>}
 
       {bundle.meeting && (
-        <div className="text-sm">
+        <div className="text-sm space-y-1">
           <p>
             Reunion prevue le {new Date(bundle.meeting.scheduledAt).toLocaleString('fr-FR')}
             {bundle.meeting.location && ` - ${bundle.meeting.location}`}
           </p>
-          <a
-            href={`http://localhost:4000/api/meetings/${bundle.meeting.id}/ticket`}
-            target="_blank"
-            rel="noreferrer"
-            className="text-anac-blue underline text-xs"
-          >
-            Voir mon invitation
-          </a>
+          <p>
+            Statut :{' '}
+            <span className="font-medium">
+              {{
+                scheduled: 'Planifiee',
+                held: 'Tenue',
+                no_show: 'Absence constatee',
+                rescheduled: 'Reprogrammee',
+                file_cancelled: 'Dossier annule',
+              }[bundle.meeting.status] ?? bundle.meeting.status}
+            </span>
+          </p>
+          {bundle.meeting.status === 'scheduled' && (
+            <a
+              href={`http://localhost:4000/api/meetings/${bundle.meeting.id}/ticket`}
+              target="_blank"
+              rel="noreferrer"
+              className="text-anac-blue underline text-xs"
+            >
+              Voir mon invitation
+            </a>
+          )}
+          {bundle.meeting.crDocumentUrl && (
+            <p>
+              <a
+                href={`http://localhost:4000${bundle.meeting.crDocumentUrl}`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-anac-blue underline text-xs"
+              >
+                Consulter le compte-rendu de la reunion
+              </a>
+            </p>
+          )}
         </div>
       )}
 
@@ -239,7 +274,8 @@ function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
         <div className="text-sm space-y-2">
           <p className="text-anac-muted text-xs">
             Retour attendu avant le{' '}
-            {bundle.evaluation.returnDeadline && new Date(bundle.evaluation.returnDeadline).toLocaleDateString('fr-FR')}
+            {bundle.evaluation.returnDeadline &&
+              new Date(bundle.evaluation.returnDeadline).toLocaleDateString('fr-FR')}
           </p>
           {bundle.evaluation.templateFileUrl && (
             <a

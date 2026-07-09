@@ -1,6 +1,6 @@
 # 🧠 Session Context
 
-Last updated: 2026-07-08
+Last updated: 2026-07-09
 
 ## What a Fresh Session Needs to Know
 
@@ -27,14 +27,11 @@ difference from SICOT (which mixes both in server code) — see
 
 ```
 branch: main
-last commit: a4a5220 fix(admin,portal): repair both builds broken by axios-hardening migration
-status: DIRTY — Sprint 2 (Phase Preliminaire, M3) sits uncommitted on top of
-        a4a5220: phases/meetings/preliminary-evaluation modules, a
-        document_templates module generalized ahead of M4, and a real
-        authenticateEither security fix (origin-based cookie precedence).
-        All three workspaces typecheck clean. See active-session/
-        current-task.md. No known blockers remain; this diff is ready to
-        commit/push.
+last commit: 0e29d06 feat(api,admin,portal): Sprint 2 - Phase Preliminaire (M3), full API + UI
+status: DIRTY — post-Sprint-2 hardening pass in progress: admin settings page,
+   system-parameters API route/controller exposure, dev reset module,
+   meeting compte-rendu upload flow, and stricter M3 closure gates.
+   See active-session/current-task.md.
 ```
 
 ## Critical Rules (Memorize These)

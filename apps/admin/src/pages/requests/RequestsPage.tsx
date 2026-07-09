@@ -44,6 +44,7 @@ function StatusBadge({ status, labels }: { status: string; labels: Record<string
     submitted: 'bg-anac-info/10 text-anac-info',
     signed: 'bg-anac-warning/10 text-anac-warning',
     pending_review: 'bg-anac-success/10 text-anac-success',
+    in_progress: 'bg-anac-blue/10 text-anac-blue',
     rejected: 'bg-anac-danger/10 text-anac-danger',
     cancelled: 'bg-anac-muted/10 text-anac-muted',
   };

@@ -7,11 +7,11 @@ project evolves. Structure mirrors SICOT's exploration-cache — see
 
 **Project**: AIDN — Application Informatique de la Direction de la Navigabilité —
 ANAC Gabon
-**Last updated**: 2026-07-08 | **Sprint**: 0, 1, and the axios-migration fix
-committed and pushed (`b64a073`, `2205261`, `a4a5220`). **Sprint 2 (Phase
-Préliminaire, M3) is fully built** — phases, meetings, preliminary evaluation
-declaration, plus a `document_templates` module and an `authenticateEither`
-security fix — uncommitted, ready to push. Sprint 3 (M4) is next.
+**Last updated**: 2026-07-09 | **Sprint**: 0, 1, and 2 (M3) are committed
+(`b64a073`, `2205261`, `a4a5220`, `0e29d06`). Current session is a hardening
+pass on top of Sprint 2: settings page + system parameters API wiring, dev-only
+reset tools, meeting report upload, and stricter M3 closure gates. Sprint 3
+(M4) is next.
 
 ---
 
@@ -64,6 +64,7 @@ complete there.
 |---|---|
 | [`sessions/2026-07-07.md`](sessions/2026-07-07.md) | Sprint 0 + Sprint 1 (full stack), 10 real bugs found and fixed, UI redesign to match SICOT |
 | [`sessions/2026-07-08.md`](sessions/2026-07-08.md) | Fixed both broken builds from `2205261`, then built Sprint 2 (Phase Préliminaire, M3) end to end |
+| [`sessions/2026-07-09.md`](sessions/2026-07-09.md) | Sprint 2 hardening pass: settings/system-parameters UI+API, dev reset tools, meeting CR upload, closure gating fixes |
 
 ---
 

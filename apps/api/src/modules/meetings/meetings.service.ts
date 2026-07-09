@@ -1,15 +1,15 @@
-import { eq, and, gte, lt, ne } from "drizzle-orm";
-import { db } from "../../shared/db/index.js";
-import { meetings, phases, requests, users } from "../../shared/db/schema.js";
-import { logAudit } from "../auth/auth.service.js";
-import type { ScheduleMeetingParams, MeetingView } from "./meetings.types.js";
+import { eq, and, gte, lt, ne } from 'drizzle-orm';
+import { db } from '../../shared/db/index.js';
+import { meetings, phases, requests, users, documentVersions } from '../../shared/db/schema.js';
+import { logAudit } from '../auth/auth.service.js';
+import type { ScheduleMeetingParams, MeetingView } from './meetings.types.js';
 
-export type { ScheduleMeetingParams, MeetingView } from "./meetings.types.js";
+export type { ScheduleMeetingParams, MeetingView } from './meetings.types.js';
 
 function isUniqueViolation(error: unknown): boolean {
   const pgCode = (error as { code?: string })?.code;
   const causeCode = (error as { cause?: { code?: string } })?.cause?.code;
-  return pgCode === "23505" || causeCode === "23505";
+  return pgCode === '23505' || causeCode === '23505';
 }
 
 function toMeetingView(row: typeof meetings.$inferSelect): MeetingView {
@@ -21,6 +21,8 @@ function toMeetingView(row: typeof meetings.$inferSelect): MeetingView {
     scheduledAt: row.scheduledAt,
     location: row.location,
     status: row.status,
+    crDocumentUrl: row.crDocumentUrl,
+    crUploadedAt: row.crUploadedAt,
     createdAt: row.createdAt,
   };
 }
@@ -34,11 +36,15 @@ export async function scheduleMeeting(
   params: ScheduleMeetingParams
 ): Promise<{ meeting: MeetingView; softOverlapWarning: boolean }> {
   const [phase] = await db.select().from(phases).where(eq(phases.id, params.phaseId));
-  if (!phase) throw new Error("PHASE_NOT_FOUND");
-  if (phase.status !== "open") throw new Error("PHASE_NOT_OPEN");
+  if (!phase) throw new Error('PHASE_NOT_FOUND');
+  if (phase.status !== 'open') throw new Error('PHASE_NOT_OPEN');
 
   const scheduledAt = new Date(params.scheduledAt);
-  const dayStart = new Date(scheduledAt.getFullYear(), scheduledAt.getMonth(), scheduledAt.getDate());
+  const dayStart = new Date(
+    scheduledAt.getFullYear(),
+    scheduledAt.getMonth(),
+    scheduledAt.getDate()
+  );
   const dayEnd = new Date(dayStart);
   dayEnd.setDate(dayEnd.getDate() + 1);
 
@@ -50,8 +56,8 @@ export async function scheduleMeeting(
         eq(meetings.dnAgentId, params.dnAgentId),
         gte(meetings.scheduledAt, dayStart),
         lt(meetings.scheduledAt, dayEnd),
-        ne(meetings.status, "file_cancelled"),
-        ne(meetings.status, "rescheduled")
+        ne(meetings.status, 'file_cancelled'),
+        ne(meetings.status, 'rescheduled')
       )
     );
   const softOverlapWarning = sameDayMeetings.length > 0;
@@ -65,27 +71,27 @@ export async function scheduleMeeting(
         dnAgentId: params.dnAgentId,
         scheduledAt,
         location: params.location,
-        status: "scheduled",
+        status: 'scheduled',
       })
       .returning();
 
     await logAudit({
       userId: params.dnAgentId,
-      action: "MEETING_SCHEDULED",
+      action: 'MEETING_SCHEDULED',
       module: phase.phaseCode,
       entityId: meeting.id,
     });
 
     return { meeting: toMeetingView(meeting), softOverlapWarning };
   } catch (error) {
-    if (isUniqueViolation(error)) throw new Error("MEETING_SLOT_CONFLICT");
+    if (isUniqueViolation(error)) throw new Error('MEETING_SLOT_CONFLICT');
     throw error;
   }
 }
 
 export async function getMeeting(meetingId: number): Promise<MeetingView> {
   const [meeting] = await db.select().from(meetings).where(eq(meetings.id, meetingId));
-  if (!meeting) throw new Error("MEETING_NOT_FOUND");
+  if (!meeting) throw new Error('MEETING_NOT_FOUND');
   return toMeetingView(meeting);
 }
 
@@ -94,16 +100,18 @@ export async function getMeeting(meetingId: number): Promise<MeetingView> {
  *  than three times now. */
 export async function getMeetingTicketHtml(meetingId: number): Promise<string> {
   const [meeting] = await db.select().from(meetings).where(eq(meetings.id, meetingId));
-  if (!meeting) throw new Error("MEETING_NOT_FOUND");
+  if (!meeting) throw new Error('MEETING_NOT_FOUND');
 
   const [phase] = await db.select().from(phases).where(eq(phases.id, meeting.phaseId));
-  const [request] = phase ? await db.select().from(requests).where(eq(requests.id, phase.requestId)) : [];
+  const [request] = phase
+    ? await db.select().from(requests).where(eq(requests.id, phase.requestId))
+    : [];
   const [agent] = await db.select().from(users).where(eq(users.id, meeting.dnAgentId));
 
   const typeLabels: Record<string, string> = {
-    preliminary: "Reunion preliminaire",
-    formal: "Reunion formelle",
-    site_visit: "Visite sur site",
+    preliminary: 'Reunion preliminaire',
+    formal: 'Reunion formelle',
+    site_visit: 'Visite sur site',
   };
 
   return `<!doctype html>
@@ -125,12 +133,12 @@ export async function getMeetingTicketHtml(meetingId: number): Promise<string> {
   <p class="ref">ANAC Gabon - Direction de la Navigabilite</p>
   <div class="box">
     <div class="label">Reference du dossier</div>
-    <div class="value">${request?.reference ?? "-"}</div>
+    <div class="value">${request?.reference ?? '-'}</div>
     <div class="label">Date et heure</div>
-    <div class="value">${meeting.scheduledAt.toLocaleString("fr-FR")}</div>
-    ${meeting.location ? `<div class="label">Lieu</div><div class="value">${meeting.location}</div>` : ""}
+    <div class="value">${meeting.scheduledAt.toLocaleString('fr-FR')}</div>
+    ${meeting.location ? `<div class="label">Lieu</div><div class="value">${meeting.location}</div>` : ''}
     <div class="label">Agent DN</div>
-    <div class="value">${agent?.fullName ?? "-"}</div>
+    <div class="value">${agent?.fullName ?? '-'}</div>
   </div>
   <p style="margin-top: 24px; font-size: 11px; color: #6b7a99;">
     Merci de vous presenter a la date et l'heure indiquees. En cas d'empechement,
@@ -148,25 +156,37 @@ export async function getMeetingTicketHtml(meetingId: number): Promise<string> {
 export async function markMeetingStatus(
   meetingId: number,
   actorUserId: number,
-  status: "held" | "no_show" | "file_cancelled"
+  status: 'held' | 'no_show' | 'file_cancelled'
 ): Promise<MeetingView> {
   const [meeting] = await db.select().from(meetings).where(eq(meetings.id, meetingId));
-  if (!meeting) throw new Error("MEETING_NOT_FOUND");
-  if (meeting.status !== "scheduled") throw new Error("MEETING_NOT_SCHEDULED");
+  if (!meeting) throw new Error('MEETING_NOT_FOUND');
+  if (meeting.status !== 'scheduled') throw new Error('MEETING_NOT_SCHEDULED');
 
-  const [updated] = await db.update(meetings).set({ status }).where(eq(meetings.id, meetingId)).returning();
+  const [updated] = await db
+    .update(meetings)
+    .set({ status })
+    .where(eq(meetings.id, meetingId))
+    .returning();
 
-  if (status === "file_cancelled") {
+  if (status === 'file_cancelled') {
     const [phase] = await db.select().from(phases).where(eq(phases.id, meeting.phaseId));
     if (phase) {
       await db
         .update(requests)
-        .set({ status: "rejected", rejectionReason: "Dossier annule suite a absence non justifiee (reunion)." })
+        .set({
+          status: 'rejected',
+          rejectionReason: 'Dossier annule suite a absence non justifiee (reunion).',
+        })
         .where(eq(requests.id, phase.requestId));
     }
   }
 
-  await logAudit({ userId: actorUserId, action: `MEETING_${status.toUpperCase()}`, module: "M3", entityId: meetingId });
+  await logAudit({
+    userId: actorUserId,
+    action: `MEETING_${status.toUpperCase()}`,
+    module: 'M3',
+    entityId: meetingId,
+  });
 
   return toMeetingView(updated);
 }
@@ -177,20 +197,72 @@ export async function rescheduleMeeting(
   newScheduledAt: string
 ): Promise<{ meeting: MeetingView; softOverlapWarning: boolean }> {
   const [oldMeeting] = await db.select().from(meetings).where(eq(meetings.id, meetingId));
-  if (!oldMeeting) throw new Error("MEETING_NOT_FOUND");
-  if (oldMeeting.status !== "scheduled") throw new Error("MEETING_NOT_SCHEDULED");
+  if (!oldMeeting) throw new Error('MEETING_NOT_FOUND');
+  if (oldMeeting.status !== 'scheduled') throw new Error('MEETING_NOT_SCHEDULED');
 
-  await db.update(meetings).set({ status: "rescheduled" }).where(eq(meetings.id, meetingId));
+  await db.update(meetings).set({ status: 'rescheduled' }).where(eq(meetings.id, meetingId));
 
   const result = await scheduleMeeting({
     phaseId: oldMeeting.phaseId,
-    meetingType: oldMeeting.meetingType as ScheduleMeetingParams["meetingType"],
+    meetingType: oldMeeting.meetingType as ScheduleMeetingParams['meetingType'],
     dnAgentId: oldMeeting.dnAgentId,
     scheduledAt: newScheduledAt,
     location: oldMeeting.location ?? undefined,
   });
 
-  await logAudit({ userId: actorUserId, action: "MEETING_RESCHEDULED", module: "M3", entityId: meetingId, details: { newMeetingId: result.meeting.id } });
+  await logAudit({
+    userId: actorUserId,
+    action: 'MEETING_RESCHEDULED',
+    module: 'M3',
+    entityId: meetingId,
+    details: { newMeetingId: result.meeting.id },
+  });
 
   return result;
+}
+
+/** Optional compte-rendu, only after the meeting is "held" - never
+ *  required, DN can send it whenever they want (including replacing an
+ *  earlier one, which goes through the M8 version/trash pattern like every
+ *  other document in the app). */
+export async function attachMeetingReport(
+  meetingId: number,
+  actorUserId: number,
+  fileUrl: string,
+  mimeType: string
+): Promise<MeetingView> {
+  const [meeting] = await db.select().from(meetings).where(eq(meetings.id, meetingId));
+  if (!meeting) throw new Error('MEETING_NOT_FOUND');
+  if (meeting.status !== 'held') throw new Error('MEETING_NOT_HELD');
+
+  if (meeting.crDocumentUrl) {
+    await db
+      .update(documentVersions)
+      .set({ isCurrent: false, trashedAt: new Date() })
+      .where(eq(documentVersions.ownerId, meetingId));
+  }
+
+  await db.insert(documentVersions).values({
+    ownerType: 'meeting_report',
+    ownerId: meetingId,
+    fileUrl,
+    mimeType,
+    uploadedBy: actorUserId,
+    isCurrent: true,
+  });
+
+  const [updated] = await db
+    .update(meetings)
+    .set({ crDocumentUrl: fileUrl, crUploadedAt: new Date() })
+    .where(eq(meetings.id, meetingId))
+    .returning();
+
+  await logAudit({
+    userId: actorUserId,
+    action: 'MEETING_REPORT_ATTACHED',
+    module: 'M3',
+    entityId: meetingId,
+  });
+
+  return toMeetingView(updated);
 }

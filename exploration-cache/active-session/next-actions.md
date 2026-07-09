@@ -1,13 +1,12 @@
 # ⚡ Next Actions
 
-Last updated: 2026-07-08
+Last updated: 2026-07-09
 
 ## 🔥 Immediate (start here next session)
 
-1. **Commit and push the Sprint 2 diff** — Phase Préliminaire (M3), full API +
-   admin/portal UI, plus the `document_templates` module and the
-   `authenticateEither` origin-based cookie fix. All three workspaces typecheck
-   clean. See `active-session/current-task.md`.
+1. **Commit and push the ongoing 2026-07-09 hardening diff** — settings page,
+   system-parameters API wiring, dev reset module, meeting compte-rendu flow,
+   and M3 closure gating fixes.
 
 2. **Sprint 3 — Phase Demande formelle (M4)**
    - Reuses `dg_circuit_documents` (already generic across M1/M4, see
@@ -17,13 +16,12 @@ Last updated: 2026-07-08
    - Consider whether the meeting-ticket HTML approach (`project/decisions.md` #12)
      still holds or whether M4's needs finally justify a real PDF generator
 
-3. **Add `PORTAL_ORIGIN` to `apps/api/.env.example`** — currently only in the local
+3. **Add `PORTAL_ORIGIN` to `apps/api/.env.example`** — currently only in local
    `.env`, needed for `authenticateEither`'s origin-based cookie check
-   (`technical/gotchas.md` #19) to work anywhere else
 
-4. **Visual QA of Sprint 1 + Sprint 2 UI** — Fred to confirm Bootstrap/Login/Layout/
-   phase/meeting/document-templates screens actually render as intended; Claude's
-   sandbox can't screenshot a browser
+4. **Visual QA of Sprint 1 + Sprint 2 + hardening UI** — Fred to confirm
+   phase/meeting/report/settings flows render as intended; Claude's sandbox
+   cannot screenshot a browser
 
 ## 📅 Later (not urgent, don't start until Sprint 3+ is underway)
 

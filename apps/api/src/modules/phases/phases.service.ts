@@ -1,7 +1,13 @@
-import { eq, and } from "drizzle-orm";
-import { db } from "../../shared/db/index.js";
-import { phases, requests } from "../../shared/db/schema.js";
-import { logAudit } from "../auth/auth.service.js";
+import { eq, and, ne, desc } from 'drizzle-orm';
+import { db } from '../../shared/db/index.js';
+import {
+  phases,
+  requests,
+  documentVersions,
+  meetings,
+  preliminaryEvaluationForms,
+} from '../../shared/db/schema.js';
+import { logAudit } from '../auth/auth.service.js';
 
 export interface PhaseView {
   id: number;
@@ -30,28 +36,34 @@ function toPhaseView(row: typeof phases.$inferSelect): PhaseView {
 /** M3 - opens the Preliminary phase once M1's DG circuit reaches
  *  pending_review. This is the moment DN actually "starts working" a
  *  dossier - see project/modules-feasibility.md M1/M3. */
-export async function openPreliminaryPhase(requestId: number, actorUserId: number): Promise<PhaseView> {
+export async function openPreliminaryPhase(
+  requestId: number,
+  actorUserId: number
+): Promise<PhaseView> {
   const [request] = await db.select().from(requests).where(eq(requests.id, requestId));
-  if (!request) throw new Error("REQUEST_NOT_FOUND");
+  if (!request) throw new Error('REQUEST_NOT_FOUND');
 
   const [existing] = await db
     .select()
     .from(phases)
-    .where(and(eq(phases.requestId, requestId), eq(phases.phaseCode, "M3")));
-  if (existing) throw new Error("PHASE_ALREADY_OPEN");
+    .where(and(eq(phases.requestId, requestId), eq(phases.phaseCode, 'M3')));
+  if (existing) throw new Error('PHASE_ALREADY_OPEN');
 
-  if (request.status !== "pending_review") throw new Error("REQUEST_NOT_READY_FOR_PHASE");
+  if (request.status !== 'pending_review') throw new Error('REQUEST_NOT_READY_FOR_PHASE');
 
-  const [phase] = await db.insert(phases).values({ requestId, phaseCode: "M3" }).returning();
+  const [phase] = await db.insert(phases).values({ requestId, phaseCode: 'M3' }).returning();
 
-  await db.update(requests).set({ status: "in_progress", updatedAt: new Date() }).where(eq(requests.id, requestId));
+  await db
+    .update(requests)
+    .set({ status: 'in_progress', updatedAt: new Date() })
+    .where(eq(requests.id, requestId));
 
   await logAudit({
     userId: actorUserId,
-    action: "PHASE_OPENED",
-    module: "M3",
+    action: 'PHASE_OPENED',
+    module: 'M3',
     entityId: phase.id,
-    details: { requestId, phaseCode: "M3" },
+    details: { requestId, phaseCode: 'M3' },
   });
 
   return toPhaseView(phase);
@@ -59,13 +71,13 @@ export async function openPreliminaryPhase(requestId: number, actorUserId: numbe
 
 export async function getPhase(phaseId: number): Promise<PhaseView> {
   const [phase] = await db.select().from(phases).where(eq(phases.id, phaseId));
-  if (!phase) throw new Error("PHASE_NOT_FOUND");
+  if (!phase) throw new Error('PHASE_NOT_FOUND');
   return toPhaseView(phase);
 }
 
 export async function getPhaseByRequestAndCode(
   requestId: number,
-  phaseCode: "M3" | "M4" | "M5" | "M6" | "M7"
+  phaseCode: 'M3' | 'M4' | 'M5' | 'M6' | 'M7'
 ): Promise<PhaseView | null> {
   const [phase] = await db
     .select()
@@ -74,23 +86,59 @@ export async function getPhaseByRequestAndCode(
   return phase ? toPhaseView(phase) : null;
 }
 
-/** Pattern "Cloture de phase" - doc attached OR note, either suffices, never
- *  automatic. No completeness gate for M3 specifically (unlike M4/M5) - see
- *  project/modules-feasibility.md M3. */
+/** Pattern "Cloture de phase" - doc attached and/or note, both fully
+ *  optional (relaxed on Fred's explicit call after live testing,
+ *  2026-07-08 - DN should never be blocked from closing just for not
+ *  typing something).
+ *
+ *  Two separate gates, added after further live testing the same day -
+ *  neither is about the note/doc fields, both are about whether closing
+ *  is reachable at all: (1) the phase's meeting must actually be resolved
+ *  (held/no_show/file_cancelled), and (2) the postulant must have
+ *  returned their filled-in declaration de pre-evaluation. */
 export async function closePhase(
   phaseId: number,
   actorUserId: number,
-  params: { closureDocumentUrl?: string; closureNote?: string }
+  params: { closureDocumentUrl?: string; closureDocumentMimeType?: string; closureNote?: string }
 ): Promise<PhaseView> {
   const [phase] = await db.select().from(phases).where(eq(phases.id, phaseId));
-  if (!phase) throw new Error("PHASE_NOT_FOUND");
-  if (phase.status !== "open") throw new Error("PHASE_ALREADY_CLOSED");
-  if (!params.closureDocumentUrl && !params.closureNote) throw new Error("CLOSURE_EVIDENCE_REQUIRED");
+  if (!phase) throw new Error('PHASE_NOT_FOUND');
+  if (phase.status !== 'open') throw new Error('PHASE_ALREADY_CLOSED');
+
+  const [currentMeeting] = await db
+    .select()
+    .from(meetings)
+    .where(and(eq(meetings.phaseId, phaseId), ne(meetings.status, 'rescheduled')))
+    .orderBy(desc(meetings.scheduledAt));
+
+  if (!currentMeeting || currentMeeting.status === 'scheduled') {
+    throw new Error('MEETING_NOT_RESOLVED');
+  }
+
+  const [evaluation] = await db
+    .select()
+    .from(preliminaryEvaluationForms)
+    .where(eq(preliminaryEvaluationForms.phaseId, phaseId));
+
+  if (!evaluation || !evaluation.submittedFileUrl) {
+    throw new Error('DECLARATION_NOT_SUBMITTED');
+  }
+
+  if (params.closureDocumentUrl) {
+    await db.insert(documentVersions).values({
+      ownerType: 'phase_closure_document',
+      ownerId: phaseId,
+      fileUrl: params.closureDocumentUrl,
+      mimeType: params.closureDocumentMimeType ?? 'application/octet-stream',
+      uploadedBy: actorUserId,
+      isCurrent: true,
+    });
+  }
 
   const [updated] = await db
     .update(phases)
     .set({
-      status: "closed",
+      status: 'closed',
       closedAt: new Date(),
       closureDocumentUrl: params.closureDocumentUrl,
       closureNote: params.closureNote,
@@ -100,7 +148,7 @@ export async function closePhase(
 
   await logAudit({
     userId: actorUserId,
-    action: "PHASE_CLOSED",
+    action: 'PHASE_CLOSED',
     module: phase.phaseCode,
     entityId: phaseId,
   });

@@ -1,10 +1,10 @@
 # 🔴 Active Blockers
 
-Last updated: 2026-07-08
+Last updated: 2026-07-09
 
-No active hard blockers. Sprint 2 (Phase Préliminaire, M3) is fully built and
-typechecks clean across all three workspaces, uncommitted and ready to push — see
-`active-session/current-task.md`.
+No active hard blockers. Sprint 2 (Phase Préliminaire, M3) is already committed
+as `0e29d06`. The current 2026-07-09 hardening pass is in progress and ready to
+commit once exploration-cache and commit message are finalized.
 
 ---
 

@@ -68,8 +68,13 @@ POST /api/requests/:id/cancel     either auth type, ownership enforced
 POST /api/phases/requests/:requestId/start-preliminary-phase   staff (DN/SU)
 POST /api/meetings                                             staff (DN/SU)
 GET  /api/meetings/:id/ticket                                  either auth type
+POST /api/meetings/:id/report                                  staff (DN/SU)
 GET  /api/document-templates/:key                              either auth type
 GET  /api/preliminary-evaluation/by-request/:requestId         either auth type
+GET  /api/system-parameters                                    SU only
+PATCH /api/system-parameters/:key                              SU only
+GET  /api/dev-tools/status                                     SU only
+POST /api/dev-tools/reset                                      SU only + ENABLE_DEV_RESET=true
 ```
 
 ## 🚫 Rules
@@ -91,6 +96,7 @@ GET  /api/preliminary-evaluation/by-request/:requestId         either auth type
 ✅ Sprint 1  — Intake & Circuit DG (M1+M2), full API + UI (admin + portal)
 ✅ Prereq    — Auth (staff + applicant), Bootstrap, Users management
 ✅ Sprint 2  — Phase Préliminaire (M3), full API + UI, + document_templates module
+🛠️ Hardening — settings/system-parameters/dev-tools + meeting CR flow (in progress)
 ⏳ Sprint 3  — Phase Demande formelle (M4) — next up
 ⏳ Sprint 4-12 — not started
 ```
@@ -102,3 +108,4 @@ GET  /api/preliminary-evaluation/by-request/:requestId         either auth type
 - No browser/visual verification possible from Claude's sandbox — Fred confirms
   UI visually after each diff
 - `PORTAL_ORIGIN` env var (new in Sprint 2) isn't in `apps/api/.env.example` yet
+- Dev reset endpoint is intentionally gated by role + env flag (`ENABLE_DEV_RESET`)

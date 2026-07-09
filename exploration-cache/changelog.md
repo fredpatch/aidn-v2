@@ -1,7 +1,30 @@
 # 📝 AIDN v2 — Changelog
 
-Commit-level history. Covers `be9fce9` through `a4a5220` (2026-07-07/08), plus an
-uncommitted Sprint 2 pass from 2026-07-08.
+Commit-level history. Covers `be9fce9` through `0e29d06` (2026-07-07/08), plus
+the current uncommitted 2026-07-09 hardening pass.
+
+## (uncommitted) — 2026-07-09 hardening pass (post-Sprint 2)
+
+On top of `0e29d06`, 2026-07-09 ongoing session:
+- **Admin settings area**: new `Parametres` route/page (`apps/admin/src/pages/settings/SettingsPage.tsx`) wired into `App.tsx` and `AppShell.tsx`
+- **System parameters management surfaced in API/admin**:
+  - new routes/controllers: `modules/system-parameters/system-parameters.route.ts`, `modules/system-parameters/system-parameters.controller.ts`
+  - route mounted in `server.ts` at `GET /api/system-parameters` and `PATCH /api/system-parameters/:key` (SU-only)
+- **Dev-only data reset tooling**:
+  - new `modules/dev-tools/*` (status + scoped reset)
+  - mounted at `/api/dev-tools` (SU-only + `ENABLE_DEV_RESET=true` gate)
+  - supports scoped cleanup (`requests_and_workflow`, `organisations_and_applicants`, `notifications`, `audit_logs`, `reports`)
+- **M3 meeting report flow completed**:
+  - added meeting CR fields to schema/views (`meetings.cr_document_url`, `meetings.cr_uploaded_at`)
+  - new endpoint `POST /api/meetings/:id/report`
+  - admin phase page now uploads CR after meeting is held
+  - portal request page now shows CR link when available
+- **M3 closure logic tightened**:
+  - phase close now requires a resolved meeting and submitted pre-evaluation declaration
+  - closure note/document remain optional, but closure reachability is now guarded by workflow completeness
+  - added explicit errors: `MEETING_NOT_RESOLVED`, `DECLARATION_NOT_SUBMITTED`, `MEETING_NOT_HELD`
+- **Preliminary evaluation submission now versioned** through `document_versions` (same M8 version/trash pattern as other document flows)
+- **Admin requests badge polish**: added `in_progress` status color mapping
 
 ## (uncommitted) — Sprint 2: Phase Préliminaire (M3), full API + UI
 

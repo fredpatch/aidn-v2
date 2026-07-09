@@ -1,12 +1,32 @@
 # 🎯 Current Task
 
-**Session date**: 2026-07-08 (second session of the day — build-fix session below,
-then this Sprint 2 session on top)
-**Status**: Sprint 0, Sprint 1, and the Sprint 2 axios-migration fix are committed
-and pushed (`b64a073`, `2205261`, `a4a5220`). **Sprint 2 (Phase Préliminaire, M3) is
-now fully built** — API + admin/portal UI, verified via typecheck across all three
-workspaces — and uncommitted as of this writing, ready to commit/push. A
-`document_templates` module was also built, generalized ahead of M4's identical need.
+**Session date**: 2026-07-09
+**Status**: Sprint 0, Sprint 1, and Sprint 2 (M3) are now committed (`b64a073`,
+`2205261`, `a4a5220`, `0e29d06`). The current session is a post-Sprint-2
+hardening pass: admin settings area, system parameters API exposure, dev reset
+tooling, meeting report upload flow, and stricter M3 closure gates. This work is
+in progress and queued for commit.
+
+## ✅ Done today (2026-07-09, ongoing): post-Sprint-2 hardening pass
+
+- Added **Parametres** page in admin (`pages/settings/SettingsPage.tsx`) and wired
+  navigation/routing (`AppShell`, `App.tsx`)
+- Exposed **system parameters** management API to match admin UI:
+  `GET /api/system-parameters`, `PATCH /api/system-parameters/:key` (SU-only)
+- Added **dev-tools reset module** (`/api/dev-tools/status`, `/api/dev-tools/reset`),
+  SU-only and additionally gated by `ENABLE_DEV_RESET=true`
+- Completed **meeting compte-rendu flow**:
+  - API endpoint `POST /api/meetings/:id/report`
+  - schema/view support via `cr_document_url` / `cr_uploaded_at`
+  - admin upload action after meeting is marked held
+  - portal display link when CR exists
+- Tightened **phase closure business gate** for M3:
+  - closure now requires a resolved meeting (not `scheduled`)
+  - closure now requires a submitted preliminary declaration
+  - note/document remain optional evidence
+- Aligned preliminary declaration submission with M8-style document versioning
+  (`document_versions` with trash-on-replace behavior)
+- Added `in_progress` badge styling in admin requests list for clearer lifecycle
 
 ## ✅ Done today (2026-07-08, this session): Sprint 2 — Phase Préliminaire (M3)
 

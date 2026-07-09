@@ -1,4 +1,4 @@
-import { Response } from "express";
+import { Response } from 'express';
 
 type ErrorMap = Record<string, { status: number; message: string }>;
 type PrefixHandler = { prefix: string; status: number; message: (id: string) => string };
@@ -12,11 +12,11 @@ function createErrorHandler(
   prefixHandlers: PrefixHandler[] = []
 ) {
   return (res: Response, error: unknown): void => {
-    const message = error instanceof Error ? error.message : "UNKNOWN_ERROR";
+    const message = error instanceof Error ? error.message : 'UNKNOWN_ERROR';
 
     for (const { prefix, status, message: buildMessage } of prefixHandlers) {
       if (message.startsWith(prefix)) {
-        const id = message.split(":")[1];
+        const id = message.split(':')[1];
         res.status(status).json({ message: buildMessage(id), code: prefix });
         return;
       }
@@ -29,113 +29,150 @@ function createErrorHandler(
     }
 
     console.error(logPrefix, error);
-    res.status(500).json({ message: "Erreur interne du serveur." });
+    res.status(500).json({ message: 'Erreur interne du serveur.' });
   };
 }
 
 export const handleAuthError = createErrorHandler(
   {
-    ACCOUNT_NOT_FOUND: { status: 401, message: "Compte introuvable ou inactif." },
-    ACCOUNT_LOCKED: { status: 423, message: "Compte temporairement bloque. Reessayez plus tard." },
-    ACCOUNT_INACTIVE: { status: 401, message: "Compte inactif." },
-    OTP_REQUIRED: { status: 400, message: "Code OTP requis." },
-    OTP_NOT_GENERATED: { status: 400, message: "Aucun OTP genere pour ce compte." },
-    OTP_EXPIRED: { status: 400, message: "Code OTP expire." },
-    OTP_INVALID: { status: 401, message: "Code OTP invalide." },
-    PASSWORD_REQUIRED: { status: 400, message: "Mot de passe requis." },
-    PASSWORD_NOT_SET: { status: 400, message: "Mot de passe non defini." },
-    PASSWORD_INVALID: { status: 401, message: "Mot de passe invalide." },
-    PASSWORDS_DO_NOT_MATCH: { status: 400, message: "Les mots de passe ne correspondent pas." },
+    ACCOUNT_NOT_FOUND: { status: 401, message: 'Compte introuvable ou inactif.' },
+    ACCOUNT_LOCKED: { status: 423, message: 'Compte temporairement bloque. Reessayez plus tard.' },
+    ACCOUNT_INACTIVE: { status: 401, message: 'Compte inactif.' },
+    OTP_REQUIRED: { status: 400, message: 'Code OTP requis.' },
+    OTP_NOT_GENERATED: { status: 400, message: 'Aucun OTP genere pour ce compte.' },
+    OTP_EXPIRED: { status: 400, message: 'Code OTP expire.' },
+    OTP_INVALID: { status: 401, message: 'Code OTP invalide.' },
+    PASSWORD_REQUIRED: { status: 400, message: 'Mot de passe requis.' },
+    PASSWORD_NOT_SET: { status: 400, message: 'Mot de passe non defini.' },
+    PASSWORD_INVALID: { status: 401, message: 'Mot de passe invalide.' },
+    PASSWORDS_DO_NOT_MATCH: { status: 400, message: 'Les mots de passe ne correspondent pas.' },
     PASSWORD_TOO_SHORT: {
       status: 400,
-      message: "Le mot de passe doit contenir au moins 8 caracteres.",
+      message: 'Le mot de passe doit contenir au moins 8 caracteres.',
     },
   },
-  "[auth]"
+  '[auth]'
 );
 
 export const handleUsersError = createErrorHandler(
   {
-    USER_NOT_FOUND: { status: 404, message: "Utilisateur introuvable." },
-    EMPLOYEE_CODE_EXISTS: { status: 409, message: "Ce matricule est deja utilise." },
-    EMAIL_EXISTS: { status: 409, message: "Cet email est deja utilise." },
+    USER_NOT_FOUND: { status: 404, message: 'Utilisateur introuvable.' },
+    EMPLOYEE_CODE_EXISTS: { status: 409, message: 'Ce matricule est deja utilise.' },
+    EMAIL_EXISTS: { status: 409, message: 'Cet email est deja utilise.' },
     SU_CANNOT_BE_DEACTIVATED: {
       status: 403,
-      message: "Le Super Admin ne peut pas etre desactive.",
+      message: 'Le Super Admin ne peut pas etre desactive.',
     },
   },
-  "[users]"
+  '[users]'
 );
 
 export const handleRequestsError = createErrorHandler(
   {
     REQUEST_ALREADY_ACTIVE: {
       status: 409,
-      message: "Une demande est deja active pour cet organisme.",
+      message: 'Une demande est deja active pour cet organisme.',
     },
-    REQUEST_NOT_FOUND: { status: 404, message: "Demande introuvable." },
+    REQUEST_NOT_FOUND: { status: 404, message: 'Demande introuvable.' },
     REQUEST_NOT_CANCELLABLE: {
       status: 409,
-      message: "Cette demande ne peut plus etre annulee (deja signee ou au-dela).",
+      message: 'Cette demande ne peut plus etre annulee (deja signee ou au-dela).',
     },
-    APPLICANT_NOT_FOUND: { status: 404, message: "Postulant introuvable." },
-    DG_CIRCUIT_NOT_FOUND: { status: 404, message: "Circuit DG introuvable pour cette demande." },
+    APPLICANT_NOT_FOUND: { status: 404, message: 'Postulant introuvable.' },
+    DG_CIRCUIT_NOT_FOUND: { status: 404, message: 'Circuit DG introuvable pour cette demande.' },
     INVALID_CIRCUIT_TRANSITION: {
       status: 409,
-      message: "Transition de statut invalide pour ce circuit.",
+      message: 'Transition de statut invalide pour ce circuit.',
     },
   },
-  "[requests]"
+  '[requests]'
 );
 
 export const handlePhasesError = createErrorHandler(
   {
-    REQUEST_NOT_FOUND: { status: 404, message: "Demande introuvable." },
+    REQUEST_NOT_FOUND: { status: 404, message: 'Demande introuvable.' },
     REQUEST_NOT_READY_FOR_PHASE: {
       status: 409,
       message: "La demande doit etre en attente de traitement avant d'ouvrir cette phase.",
     },
-    PHASE_ALREADY_OPEN: { status: 409, message: "Cette phase est deja ouverte pour cette demande." },
-    PHASE_NOT_FOUND: { status: 404, message: "Phase introuvable." },
-    PHASE_ALREADY_CLOSED: { status: 409, message: "Cette phase est deja cloturee." },
-    CLOSURE_EVIDENCE_REQUIRED: {
-      status: 400,
-      message: "Un document ou une note est requis pour cloturer la phase.",
+    PHASE_ALREADY_OPEN: {
+      status: 409,
+      message: 'Cette phase est deja ouverte pour cette demande.',
+    },
+    PHASE_NOT_FOUND: { status: 404, message: 'Phase introuvable.' },
+    PHASE_ALREADY_CLOSED: { status: 409, message: 'Cette phase est deja cloturee.' },
+    MEETING_NOT_RESOLVED: {
+      status: 409,
+      message:
+        "La reunion doit d'abord etre resolue (tenue, absence, ou dossier annule) avant de cloturer la phase.",
+    },
+    DECLARATION_NOT_SUBMITTED: {
+      status: 409,
+      message:
+        "Le postulant doit d'abord retourner sa declaration de pre-evaluation remplie avant de cloturer la phase.",
     },
   },
-  "[phases]"
+  '[phases]'
 );
 
 export const handleMeetingsError = createErrorHandler(
   {
-    PHASE_NOT_FOUND: { status: 404, message: "Phase introuvable." },
-    PHASE_NOT_OPEN: { status: 409, message: "La phase doit etre ouverte pour planifier une reunion." },
+    PHASE_NOT_FOUND: { status: 404, message: 'Phase introuvable.' },
+    PHASE_NOT_OPEN: {
+      status: 409,
+      message: 'La phase doit etre ouverte pour planifier une reunion.',
+    },
     MEETING_SLOT_CONFLICT: {
       status: 409,
-      message: "Cet agent DN a deja une reunion planifiee exactement a ce creneau.",
+      message: 'Cet agent DN a deja une reunion planifiee exactement a ce creneau.',
     },
-    MEETING_NOT_FOUND: { status: 404, message: "Reunion introuvable." },
+    MEETING_NOT_FOUND: { status: 404, message: 'Reunion introuvable.' },
     MEETING_NOT_SCHEDULED: {
       status: 409,
       message: "Cette reunion n'est plus au statut planifie.",
     },
+    MEETING_NOT_HELD: {
+      status: 409,
+      message: "Le compte-rendu ne peut etre envoye qu'une fois la reunion tenue.",
+    },
   },
-  "[meetings]"
+  '[meetings]'
 );
 
 export const handlePreliminaryEvaluationError = createErrorHandler(
   {
-    PHASE_NOT_FOUND: { status: 404, message: "Phase introuvable." },
-    WRONG_PHASE: { status: 400, message: "Cette action ne concerne que la phase preliminaire." },
-    PHASE_NOT_OPEN: { status: 409, message: "La phase doit etre ouverte." },
+    PHASE_NOT_FOUND: { status: 404, message: 'Phase introuvable.' },
+    WRONG_PHASE: { status: 400, message: 'Cette action ne concerne que la phase preliminaire.' },
+    PHASE_NOT_OPEN: { status: 409, message: 'La phase doit etre ouverte.' },
     TEMPLATE_NOT_CONFIGURED: {
       status: 409,
       message: "Le modele de declaration de pre-evaluation n'a pas encore ete configure par la DN.",
+    },
+    MEETING_NOT_HELD_YET: {
+      status: 409,
+      message:
+        "La reunion preliminaire doit d'abord etre marquee tenue avant de rendre la declaration disponible.",
     },
     NOT_YET_AVAILABLE: {
       status: 409,
       message: "La declaration n'a pas encore ete mise a disposition par la DN.",
     },
   },
-  "[preliminary-evaluation]"
+  '[preliminary-evaluation]'
+);
+
+export const handleDevToolsError = createErrorHandler(
+  {
+    STATUS_NOT_FOUND: { status: 404, message: 'Statut introuvable.' },
+    RESET_FAILED: { status: 500, message: 'La reinitialisation a echoue.' },
+  },
+  '[dev-tools]'
+);
+
+export const handleSystemParametersError = createErrorHandler(
+  {
+    PARAMETER_NOT_FOUND: { status: 404, message: 'Parametre introuvable.' },
+    INVALID_PARAMETER_VALUE: { status: 400, message: 'Valeur de parametre invalide.' },
+  },
+  '[system-parameters]'
 );

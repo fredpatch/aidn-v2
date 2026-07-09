@@ -1,6 +1,6 @@
 export interface ScheduleMeetingParams {
   phaseId: number;
-  meetingType: "preliminary" | "formal" | "site_visit";
+  meetingType: 'preliminary' | 'formal' | 'site_visit';
   dnAgentId: number;
   scheduledAt: string; // ISO
   location?: string;
@@ -14,5 +14,7 @@ export interface MeetingView {
   scheduledAt: Date;
   location: string | null;
   status: string;
+  crDocumentUrl: string | null;
+  crUploadedAt: Date | null;
   createdAt: Date;
 }
