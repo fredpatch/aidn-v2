@@ -8,7 +8,8 @@ import { Loader2, Settings2, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
-import { api, apiErrorMessage } from '../../lib/axios';
+import { apiErrorMessage } from '../../lib/axios';
+import { bootstrapInit } from '../../lib/api/auth.api';
 import { useAuth } from '../../hooks/useAuth';
 
 import { fadeUp } from './animations';
@@ -60,7 +61,7 @@ export default function BootstrapPage() {
   async function onSubmit(data: BootstrapFormData) {
     setServerError(null);
     try {
-      await api.post('/bootstrap/init', data);
+      await bootstrapInit(data);
       setSuccess(true);
       await refreshBootstrapStatus();
     } catch (err) {

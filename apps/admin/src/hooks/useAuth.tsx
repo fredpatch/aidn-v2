@@ -1,12 +1,8 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { api } from '../lib/axios';
-
-interface UserPublic {
-  id: number;
-  employeeCode: string;
-  fullName: string;
-  roles: string[];
-}
+import { createContext, useContext, ReactNode } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { fetchAuthMe, fetchBootstrapStatus, logout as logoutRequest } from '../lib/api/auth.api';
+import type { UserPublic } from '../lib/api/auth.types';
+import { queryKeys } from '../lib/react-query/queryKeys';
 
 interface AuthContextValue {
   user: UserPublic | null;
@@ -20,36 +16,50 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<UserPublic | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [bootstrapInitialised, setBootstrapInitialised] = useState<boolean | null>(null);
+  const queryClient = useQueryClient();
+
+  const bootstrapStatusQuery = useQuery({
+    queryKey: queryKeys.auth.bootstrapStatus(),
+    queryFn: fetchBootstrapStatus,
+    retry: false,
+  });
+
+  const meQuery = useQuery({
+    queryKey: queryKeys.auth.me(),
+    queryFn: fetchAuthMe,
+    retry: false,
+  });
+
+  const logoutMutation = useMutation({
+    mutationFn: logoutRequest,
+    onSettled: async () => {
+      queryClient.setQueryData(queryKeys.auth.me(), null);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.auth.all });
+    },
+  });
+
+  const loading = bootstrapStatusQuery.isLoading || meQuery.isLoading;
+  const bootstrapInitialised =
+    bootstrapStatusQuery.data?.initialised ?? (bootstrapStatusQuery.isLoading ? null : false);
+  const user = meQuery.data ?? null;
 
   async function refreshBootstrapStatus() {
-    const { data } = await api.get('/bootstrap/status');
-    setBootstrapInitialised(data.initialised);
+    await queryClient.invalidateQueries({ queryKey: queryKeys.auth.bootstrapStatus() });
+    await queryClient.refetchQueries({
+      queryKey: queryKeys.auth.bootstrapStatus(),
+      type: 'active',
+    });
   }
 
   async function refreshMe() {
-    try {
-      const { data } = await api.get('/auth/me');
-      setUser(data);
-    } catch {
-      setUser(null);
-    }
+    await queryClient.invalidateQueries({ queryKey: queryKeys.auth.me() });
+    await queryClient.refetchQueries({ queryKey: queryKeys.auth.me(), type: 'active' });
   }
 
   async function logout() {
-    await api.post('/auth/logout').catch(() => undefined);
-    setUser(null);
+    await logoutMutation.mutateAsync().catch(() => undefined);
+    queryClient.setQueryData(queryKeys.auth.me(), null);
   }
-
-  useEffect(() => {
-    (async () => {
-      await refreshBootstrapStatus().catch(() => setBootstrapInitialised(false));
-      await refreshMe();
-      setLoading(false);
-    })();
-  }, []);
 
   return (
     <AuthContext.Provider

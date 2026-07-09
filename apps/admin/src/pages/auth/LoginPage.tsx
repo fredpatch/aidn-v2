@@ -8,7 +8,8 @@ import { Loader2, ShieldCheck } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
-import { api, apiErrorMessage } from '../../lib/axios';
+import { apiErrorMessage } from '../../lib/axios';
+import { login, setPassword } from '../../lib/api/auth.api';
 import { useAuth } from '../../hooks/useAuth';
 
 import { slideVariants, slideTx, fadeUp } from './animations';
@@ -111,7 +112,7 @@ export default function LoginPage() {
   async function onLoginSubmit(data: LoginFormData) {
     setServerError(null);
     try {
-      const { data: result } = await api.post('/auth/login', {
+      const result = await login({
         employeeCode: data.employeeCode,
         ...(data.mode === 'otp' ? { otp: data.otp } : { password: data.password }),
       });
@@ -130,7 +131,7 @@ export default function LoginPage() {
   async function onSetPasswordSubmit(data: SetPasswordFormData) {
     setServerError(null);
     try {
-      await api.post('/auth/set-password', {
+      await setPassword({
         password: data.password,
         confirmation: data.confirmation,
       });

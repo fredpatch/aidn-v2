@@ -35,6 +35,12 @@ in progress and queued for commit.
   - prepared lightweight Zustand store in `apps/admin/src/lib/stores/ui.store.ts`
   - introduced reusable `PhaseStatusBadge` visual primitive
   - added helper test scaffold (`runPreliminaryHelpersTests` in `helpers.test.ts`)
+- Extended the same convention to other admin domains:
+  - migrated auth state flow to React Query in `useAuth`
+  - moved auth HTTP calls to `apps/admin/src/lib/api/auth.api.ts`
+  - moved settings/dev-tools HTTP calls to `apps/admin/src/lib/api/settings.api.ts`
+  - added settings domain hooks (`useSystemParameters`, `useDevReset`) and made
+    `SettingsPage` an orchestration-only UI layer
 
 ## ✅ Done today (2026-07-08, this session): Sprint 2 — Phase Préliminaire (M3)
 

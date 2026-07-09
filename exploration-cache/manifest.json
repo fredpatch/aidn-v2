@@ -6,11 +6,11 @@
   "lastUpdated": "2026-07-09T12:00:00Z",
   "lastCommit": "0e29d06 feat(api,admin,portal): Sprint 2 - Phase Preliminaire (M3), full API + UI",
   "currentSprint": "Sprint 2 (Phase Preliminaire, M3) committed; post-sprint hardening in progress; Sprint 3 (Phase Demande formelle, M4) not started",
-  "currentSprintFocus": "Sprint 0, Sprint 1, and Sprint 2 are committed. Current work is a post-Sprint-2 hardening + maintainability pass: admin settings page, system-parameters API management routes, dev reset tooling, meeting compte-rendu upload flow, closure gating checks, and a modular refactor of PreliminaryPhasePage with React Query hooks/invalidation and shared lib API extraction.",
-  "status": "Sprint 0 COMPLETE. Sprint 1 COMPLETE. Sprint 2 COMPLETE and committed (0e29d06). Ongoing hardening adds settings/system-parameters management, dev reset module (SU + env gated), meeting report upload/display, stricter M3 closure/readiness enforcement, and an M3 UI refactor now migrated to React Query (query keys + invalidation), shared lib API/types, plus Zustand baseline store and helper-test scaffold. Next: commit/push current diff, then start Sprint 3 (M4).",
+  "currentSprintFocus": "Sprint 0, Sprint 1, and Sprint 2 are committed. Current work is a post-Sprint-2 hardening + maintainability pass: admin settings page, system-parameters API management routes, dev reset tooling, meeting compte-rendu upload flow, closure gating checks, and a modular refactor of PreliminaryPhasePage with React Query hooks/invalidation and shared lib API extraction, now extended to auth and settings/dev-tools domains.",
+  "status": "Sprint 0 COMPLETE. Sprint 1 COMPLETE. Sprint 2 COMPLETE and committed (0e29d06). Ongoing hardening adds settings/system-parameters management, dev reset module (SU + env gated), meeting report upload/display, stricter M3 closure/readiness enforcement, and an admin frontend data-layer convention migrated to React Query (query keys + invalidation) with shared lib API/types across preliminary + auth + settings/dev-tools, plus Zustand baseline store and helper-test scaffold. Next: commit/push current diff, then start Sprint 3 (M4).",
 
   "activeSession": {
-    "task": "Post-Sprint-2 hardening + maintainability pass: settings page + parameter management, dev reset tools, meeting report upload/display, stricter M3 closure gates, and modular refactor of PreliminaryPhasePage migrated to React Query with lib API extraction and helper-test scaffold. exploration-cache update and commit in progress.",
+    "task": "Post-Sprint-2 hardening + maintainability pass: settings page + parameter management, dev reset tools, meeting report upload/display, stricter M3 closure gates, and modular refactor of PreliminaryPhasePage migrated to React Query with lib API extraction and helper-test scaffold, with convention rollout to auth and settings/dev-tools. exploration-cache update and commit in progress.",
     "startedAt": "2026-07-09",
     "nextAction": "Commit and push this hardening + refactor + React Query/lib API migration diff, then start Sprint 3 (Phase Demande formelle, M4). Add PORTAL_ORIGIN to apps/api/.env.example first."
   },
@@ -45,7 +45,7 @@
         "document-templates",
         "auth-security"
       ],
-      "summary": "Sprint 0/1/2 committed; current session tracks hardening + M3 page modular refactor and is ready to push"
+      "summary": "Sprint 0/1/2 committed; current session tracks hardening, M3 modular refactor, and convention rollout to auth/settings via shared lib API + React Query"
     },
     {
       "path": "active-session/blockers.md",
@@ -57,7 +57,7 @@
       "path": "active-session/next-actions.md",
       "type": "session",
       "tags": ["actions", "sprint3", "phase-demande-formelle", "m4"],
-      "summary": "Commit hardening + refactor diff, then Sprint 3 (Phase Demande formelle, M4) is next"
+      "summary": "Commit hardening + refactor + convention-rollout diff, then Sprint 3 (Phase Demande formelle, M4) is next"
     },
     {
       "path": "active-session/context.md",
@@ -156,7 +156,7 @@
         "meeting-report",
         "session-log"
       ],
-      "summary": "Post-Sprint-2 hardening + M3 refactor with React Query: settings/system-parameters, dev reset tools, meeting report upload, stricter closure gates, modular page split, and shared lib API migration"
+      "summary": "Post-Sprint-2 hardening + M3 refactor with React Query: settings/system-parameters, dev reset tools, meeting report upload, stricter closure gates, modular page split, shared lib API migration, and auth/settings convention rollout"
     }
   ]
 }

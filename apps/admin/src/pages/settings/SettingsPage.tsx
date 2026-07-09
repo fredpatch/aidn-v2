@@ -1,17 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Settings2, Save, Loader2, Trash2, AlertTriangle, CheckCircle2 } from 'lucide-react';
-import { api, apiErrorMessage } from '../../lib/axios';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
-
-interface ParameterView {
-  id: number;
-  key: string;
-  value: string;
-  type: 'integer' | 'boolean' | 'text';
-  module: string;
-  description: string | null;
-}
+import type { ParameterView } from '../../lib/api/settings.types';
+import { useSystemParameters } from './hooks/useSystemParameters';
+import { useDevReset } from './hooks/useDevReset';
 
 const MODULE_LABELS: Record<string, string> = {
   AUTH: 'Authentification',
@@ -37,26 +30,7 @@ export default function SettingsPage() {
 }
 
 function SystemParametersSection() {
-  const [parameters, setParameters] = useState<ParameterView[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  async function load() {
-    setLoading(true);
-    setError(null);
-    try {
-      const { data } = await api.get('/system-parameters');
-      setParameters(data);
-    } catch (err) {
-      setError(apiErrorMessage(err, 'Impossible de charger les parametres.'));
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    load();
-  }, []);
+  const { parameters, loading, error, saveParameter } = useSystemParameters();
 
   const grouped = parameters.reduce<Record<string, ParameterView[]>>((acc, param) => {
     (acc[param.module] ??= []).push(param);
@@ -77,7 +51,7 @@ function SystemParametersSection() {
           <p className="text-anac-navy font-medium text-sm">{MODULE_LABELS[module] ?? module}</p>
           <div className="space-y-3">
             {params.map((param) => (
-              <ParameterRow key={param.id} parameter={param} onSaved={load} />
+              <ParameterRow key={param.id} parameter={param} onSaved={saveParameter} />
             ))}
           </div>
         </div>
@@ -86,11 +60,21 @@ function SystemParametersSection() {
   );
 }
 
-function ParameterRow({ parameter, onSaved }: { parameter: ParameterView; onSaved: () => void }) {
+function ParameterRow({
+  parameter,
+  onSaved,
+}: {
+  parameter: ParameterView;
+  onSaved: (key: string, value: string) => Promise<string | null>;
+}) {
   const [value, setValue] = useState(parameter.value);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    setValue(parameter.value);
+  }, [parameter.value]);
 
   const modified = value !== parameter.value;
 
@@ -98,12 +82,13 @@ function ParameterRow({ parameter, onSaved }: { parameter: ParameterView; onSave
     setError(null);
     setSaving(true);
     try {
-      await api.patch(`/system-parameters/${parameter.key}`, { value });
+      const saveError = await onSaved(parameter.key, value);
+      if (saveError) {
+        setError(saveError);
+        return;
+      }
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
-      onSaved();
-    } catch (err) {
-      setError(apiErrorMessage(err, "Impossible d'enregistrer."));
     } finally {
       setSaving(false);
     }
@@ -152,25 +137,11 @@ function ParameterRow({ parameter, onSaved }: { parameter: ParameterView; onSave
 }
 
 function DevResetSection() {
-  const [enabled, setEnabled] = useState<boolean | null>(null);
-  const [scopes, setScopes] = useState<string[]>([]);
-  const [labels, setLabels] = useState<Record<string, string>>({});
+  const { enabled, scopes, labels, loadingStatus, busy, runReset } = useDevReset();
   const [selected, setSelected] = useState<string[]>([]);
   const [confirming, setConfirming] = useState(false);
-  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
-
-  useEffect(() => {
-    api
-      .get('/dev-tools/status')
-      .then(({ data }) => {
-        setEnabled(data.enabled);
-        setScopes(data.scopes);
-        setLabels(data.labels);
-      })
-      .catch(() => setEnabled(false));
-  }, []);
 
   function toggleScope(scope: string) {
     setSelected((prev) =>
@@ -180,20 +151,18 @@ function DevResetSection() {
 
   async function handleReset() {
     setError(null);
-    setBusy(true);
-    try {
-      const { data } = await api.post('/dev-tools/reset', { scopes: selected });
-      setResult(`Reinitialise : ${data.scopesCleared.join(', ')}`);
+    const resetState = await runReset(selected);
+    if (resetState.error) {
+      setError(resetState.error);
+    }
+    if (resetState.result) {
+      setResult(resetState.result);
       setSelected([]);
       setConfirming(false);
-    } catch (err) {
-      setError(apiErrorMessage(err, 'Impossible de reinitialiser.'));
-    } finally {
-      setBusy(false);
     }
   }
 
-  if (enabled === null) return null;
+  if (loadingStatus) return null;
   if (!enabled) return null; // Not shown at all when the env flag is off - not even a disabled hint.
 
   return (

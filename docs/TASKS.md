@@ -163,12 +163,24 @@ build + flow complet contre un vrai Postgres). Détail complet dans
       (couche partagée, séparée du feature folder)
 - [x] Infrastructure React Query globale branchée dans `main.tsx`
       (`QueryClientProvider` + defaults + devtools)
+- [x] Extension de la convention React Query + `src/lib/api` aux domaines
+      **Auth** et **Paramètres/Dev-tools** (hooks dédiés + query keys +
+      invalidation)
 - [x] Préparation état global léger avec **Zustand** (`src/lib/stores/ui.store.ts`)
       pour usages UI cross-feature (sans mélange avec le server-state)
 - [x] Extraction d'un composant de badge de statut réutilisable
       (`PhaseStatusBadge`) pour éviter la duplication de mapping visuel
 - [x] Ajout d'un scaffold de tests helpers (`helpers.test.ts`) pour valider
       la logique pure de checklist/gating M3
+
+### Convention frontend data-layer (adoptée le 2026-07-09)
+
+- [x] Les appels API métier ne sont plus faits directement dans les pages :
+      ils vivent dans `apps/admin/src/lib/api/*`
+- [x] Les états serveur sont pilotés par React Query (`useQuery`/
+      `useMutation`) avec invalidation via `queryKeys`
+- [x] Les hooks feature/domain encapsulent les mutations et messages d'erreur,
+      les pages restent des orchestrateurs UI
 
 ### Module ajouté, anticipant M4 : Modèles de documents (`document_templates`)
 

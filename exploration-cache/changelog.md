@@ -37,6 +37,13 @@ On top of `0e29d06`, 2026-07-09 ongoing session:
   - wired global Query Client in `main.tsx` (`QueryClientProvider` + devtools)
   - prepared Zustand baseline store (`src/lib/stores/ui.store.ts`) for future client-state needs
   - added helper test scaffold (`helpers.test.ts`, `runPreliminaryHelpersTests`)
+- **Convention generalized beyond M3** (admin frontend data layer):
+  - `useAuth` migrated from manual `useEffect/useState` fetch lifecycle to React Query-backed state
+  - auth endpoints centralized in shared `src/lib/api/auth.api.ts` (+ `auth.types.ts`)
+  - `LoginPage`/`BootstrapPage` now call shared auth API helpers (no direct auth HTTP calls in page code)
+  - settings/dev-tools endpoints centralized in `src/lib/api/settings.api.ts` (+ `settings.types.ts`)
+  - new domain hooks `pages/settings/hooks/useSystemParameters.ts` and `useDevReset.ts`
+    use React Query + query-key invalidation, with `SettingsPage` reduced to orchestration/UI concerns
 
 ## (uncommitted) — Sprint 2: Phase Préliminaire (M3), full API + UI
 

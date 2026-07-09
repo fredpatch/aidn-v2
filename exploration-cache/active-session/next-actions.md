@@ -9,7 +9,8 @@ Last updated: 2026-07-09
    M3 closure gating fixes, plus the modular refactor of `PreliminaryPhasePage`
    (hooks/helpers/components/api/types), React Query hooks with query-key
    invalidation, shared lib API relocation, Zustand baseline store,
-   `PhaseStatusBadge`, and helper test scaffold.
+   `PhaseStatusBadge`, helper test scaffold, and the same convention rollout to
+   auth + settings/dev-tools domains.
 
 2. **Sprint 3 — Phase Demande formelle (M4)**
    - Reuses `dg_circuit_documents` (already generic across M1/M4, see
