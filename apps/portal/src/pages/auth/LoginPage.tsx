@@ -8,6 +8,7 @@ import { Loader2, Plane } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { api, apiErrorMessage } from '../../lib/axios';
+import { notify } from '../../lib/notify';
 import { useApplicantAuth } from '../../hooks/useApplicantAuth';
 
 import { fadeUp } from './animations';
@@ -31,7 +32,9 @@ export default function LoginPage() {
   useEffect(() => {
     if (sessionStorage.getItem('session_expired')) {
       sessionStorage.removeItem('session_expired');
-      setServerError('Votre session a expire. Veuillez vous reconnecter.');
+      const message = 'Votre session a expire. Veuillez vous reconnecter.';
+      setServerError(message);
+      notify.warning(message);
     }
   }, []);
 
@@ -48,8 +51,11 @@ export default function LoginPage() {
     try {
       await api.post('/applicant-auth/login', data);
       await refreshMe();
+      notify.success('Connexion reussie.');
     } catch (err) {
-      setServerError(apiErrorMessage(err, 'Connexion impossible.'));
+      const message = apiErrorMessage(err, 'Connexion impossible.');
+      setServerError(message);
+      notify.error(message);
     }
   }
 

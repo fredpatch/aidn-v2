@@ -44,6 +44,13 @@ On top of `0e29d06`, 2026-07-09 ongoing session:
   - settings/dev-tools endpoints centralized in `src/lib/api/settings.api.ts` (+ `settings.types.ts`)
   - new domain hooks `pages/settings/hooks/useSystemParameters.ts` and `useDevReset.ts`
     use React Query + query-key invalidation, with `SettingsPage` reduced to orchestration/UI concerns
+- **Cross-app notifications standardized with shadcn Sonner**:
+  - added global toaster wiring to both admin and portal roots
+  - added app-level `notify` helpers (`src/lib/notify.ts`) in both apps
+  - connected notifications to key auth/settings/request actions (success/error/warning)
+- **Portal convention refactor intentionally deferred**:
+  - scheduled a dedicated follow-up task to migrate portal domains to the same
+    React Query + shared lib API pattern already adopted in admin
 
 ## (uncommitted) — Sprint 2: Phase Préliminaire (M3), full API + UI
 

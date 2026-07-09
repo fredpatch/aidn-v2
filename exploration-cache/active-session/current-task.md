@@ -41,6 +41,12 @@ in progress and queued for commit.
   - moved settings/dev-tools HTTP calls to `apps/admin/src/lib/api/settings.api.ts`
   - added settings domain hooks (`useSystemParameters`, `useDevReset`) and made
     `SettingsPage` an orchestration-only UI layer
+- Added cross-app notification stack with shadcn Sonner:
+  - toaster mounted in admin and portal app roots
+  - `notify` helpers added in both apps
+  - key login/settings/request flows now emit toast feedback
+- Planned follow-up: portal-side React Query + shared `lib/api` migration will be
+  executed in a dedicated task (tracked in `docs/TASKS.md`), not in this pass
 
 ## ✅ Done today (2026-07-08, this session): Sprint 2 — Phase Préliminaire (M3)
 

@@ -166,6 +166,8 @@ build + flow complet contre un vrai Postgres). Détail complet dans
 - [x] Extension de la convention React Query + `src/lib/api` aux domaines
       **Auth** et **Paramètres/Dev-tools** (hooks dédiés + query keys +
       invalidation)
+- [x] Intégration de **shadcn Sonner** dans `apps/admin` et `apps/portal`
+      (toaster global + helpers `notify` + notifications sur actions clés)
 - [x] Préparation état global léger avec **Zustand** (`src/lib/stores/ui.store.ts`)
       pour usages UI cross-feature (sans mélange avec le server-state)
 - [x] Extraction d'un composant de badge de statut réutilisable
@@ -181,6 +183,9 @@ build + flow complet contre un vrai Postgres). Détail complet dans
       `useMutation`) avec invalidation via `queryKeys`
 - [x] Les hooks feature/domain encapsulent les mutations et messages d'erreur,
       les pages restent des orchestrateurs UI
+- [ ] **Suivi planifié (portail)** : appliquer la même convention
+      React Query + `src/lib/api` au portail (auth/demandes/phase préliminaire)
+      dans une passe dédiée, sans bloquer Sprint 3
 
 ### Module ajouté, anticipant M4 : Modèles de documents (`document_templates`)
 

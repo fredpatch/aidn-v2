@@ -26,6 +26,10 @@ Last updated: 2026-07-09
 4. **Visual QA of Sprint 1 + Sprint 2 + hardening/refactor UI** — Fred to confirm
    phase/meeting/report/settings flows render as intended after the M3 page split; Claude's sandbox
    cannot screenshot a browser
+5. **Portal convention refactor (scheduled follow-up)** — migrate portal auth/request/
+   preliminary flows to the same React Query + shared `src/lib/api` architecture
+   now used in admin; tracked as a dedicated item under Sprint 2 maintenance in
+   `docs/TASKS.md`.
 
 ## 📅 Later (not urgent, don't start until Sprint 3+ is underway)
 

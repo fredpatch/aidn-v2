@@ -3,6 +3,7 @@ import { Settings2, Save, Loader2, Trash2, AlertTriangle, CheckCircle2 } from 'l
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import type { ParameterView } from '../../lib/api/settings.types';
+import { notify } from '../../lib/notify';
 import { useSystemParameters } from './hooks/useSystemParameters';
 import { useDevReset } from './hooks/useDevReset';
 
@@ -85,9 +86,11 @@ function ParameterRow({
       const saveError = await onSaved(parameter.key, value);
       if (saveError) {
         setError(saveError);
+        notify.error(saveError);
         return;
       }
       setSaved(true);
+      notify.success('Parametre enregistre.');
       setTimeout(() => setSaved(false), 2000);
     } finally {
       setSaving(false);
@@ -154,9 +157,11 @@ function DevResetSection() {
     const resetState = await runReset(selected);
     if (resetState.error) {
       setError(resetState.error);
+      notify.error(resetState.error);
     }
     if (resetState.result) {
       setResult(resetState.result);
+      notify.success(resetState.result);
       setSelected([]);
       setConfirming(false);
     }

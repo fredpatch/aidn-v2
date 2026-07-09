@@ -10,6 +10,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { apiErrorMessage } from '../../lib/axios';
 import { login, setPassword } from '../../lib/api/auth.api';
+import { notify } from '../../lib/notify';
 import { useAuth } from '../../hooks/useAuth';
 
 import { slideVariants, slideTx, fadeUp } from './animations';
@@ -80,7 +81,9 @@ export default function LoginPage() {
   useEffect(() => {
     if (sessionStorage.getItem('session_expired')) {
       sessionStorage.removeItem('session_expired');
-      setServerError('Votre session a expire. Veuillez vous reconnecter.');
+      const message = 'Votre session a expire. Veuillez vous reconnecter.';
+      setServerError(message);
+      notify.warning(message);
     }
   }, []);
 
@@ -120,11 +123,15 @@ export default function LoginPage() {
       if (result.firstLogin) {
         setDirection(1);
         setStep('set-password');
+        notify.info('Premiere connexion detectee. Definissez votre mot de passe.');
       } else {
         await refreshMe();
+        notify.success('Connexion reussie.');
       }
     } catch (err) {
-      setServerError(apiErrorMessage(err, 'Identifiants invalides. Veuillez reessayer.'));
+      const message = apiErrorMessage(err, 'Identifiants invalides. Veuillez reessayer.');
+      setServerError(message);
+      notify.error(message);
     }
   }
 
@@ -136,8 +143,11 @@ export default function LoginPage() {
         confirmation: data.confirmation,
       });
       await refreshMe();
+      notify.success('Mot de passe defini. Connexion active.');
     } catch (err) {
-      setServerError(apiErrorMessage(err, 'Erreur lors de la definition du mot de passe.'));
+      const message = apiErrorMessage(err, 'Erreur lors de la definition du mot de passe.');
+      setServerError(message);
+      notify.error(message);
     }
   }
 

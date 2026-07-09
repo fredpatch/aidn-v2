@@ -1,5 +1,6 @@
 import { useEffect, useState, FormEvent } from 'react';
 import { api, apiErrorMessage } from '../../lib/axios';
+import { notify } from '../../lib/notify';
 
 interface RequestView {
   id: number;
@@ -114,9 +115,12 @@ function ActiveRequestCard({
     setCancelling(true);
     try {
       await api.post(`/requests/${request.id}/cancel`);
+      notify.success('Demande annulee.');
       onChanged();
     } catch (err) {
-      setError(apiErrorMessage(err, 'Annulation impossible.'));
+      const message = apiErrorMessage(err, 'Annulation impossible.');
+      setError(message);
+      notify.error(message);
     } finally {
       setCancelling(false);
     }
@@ -197,7 +201,9 @@ function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
 
   async function handleSubmitDeclaration() {
     if (!file) {
-      setError('Merci de joindre votre declaration remplie.');
+      const message = 'Merci de joindre votre declaration remplie.';
+      setError(message);
+      notify.warning(message);
       return;
     }
     setError(null);
@@ -212,9 +218,12 @@ function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
         fileUrl: uploaded.fileUrl,
         mimeType: uploaded.mimeType,
       });
+      notify.success('Declaration soumise avec succes.');
       await load();
     } catch (err) {
-      setError(apiErrorMessage(err, 'Impossible de soumettre la declaration.'));
+      const message = apiErrorMessage(err, 'Impossible de soumettre la declaration.');
+      setError(message);
+      notify.error(message);
     } finally {
       setSubmitting(false);
     }
@@ -324,7 +333,9 @@ function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
     setError(null);
 
     if (!file) {
-      setError('Merci de joindre votre demande scannee (PDF, Word, PNG ou JPG).');
+      const message = 'Merci de joindre votre demande scannee (PDF, Word, PNG ou JPG).';
+      setError(message);
+      notify.warning(message);
       return;
     }
 
@@ -343,9 +354,12 @@ function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
         mimeType: uploaded.mimeType,
       });
 
+      notify.success('Demande soumise avec succes.');
       onSubmitted();
     } catch (err) {
-      setError(apiErrorMessage(err, 'Impossible de soumettre la demande.'));
+      const message = apiErrorMessage(err, 'Impossible de soumettre la demande.');
+      setError(message);
+      notify.error(message);
     } finally {
       setSubmitting(false);
     }
