@@ -6,6 +6,7 @@ the current uncommitted 2026-07-09 hardening pass.
 ## (uncommitted) — 2026-07-09 hardening pass (post-Sprint 2)
 
 On top of `0e29d06`, 2026-07-09 ongoing session:
+
 - **Admin settings area**: new `Parametres` route/page (`apps/admin/src/pages/settings/SettingsPage.tsx`) wired into `App.tsx` and `AppShell.tsx`
 - **System parameters management surfaced in API/admin**:
   - new routes/controllers: `modules/system-parameters/system-parameters.route.ts`, `modules/system-parameters/system-parameters.controller.ts`
@@ -29,6 +30,7 @@ On top of `0e29d06`, 2026-07-09 ongoing session:
 ## (uncommitted) — Sprint 2: Phase Préliminaire (M3), full API + UI
 
 On top of `a4a5220`, 2026-07-08:
+
 - Phase lifecycle (`modules/phases/`): open M3 on a `pending_review` request,
   close with a doc or note
 - Meetings (`modules/meetings/`): schedule, status changes (added `scheduled` as
@@ -66,6 +68,7 @@ Full detail in `sessions/2026-07-08.md`.
 ## `2205261` — feat(admin): harden axios refresh queue, prettier reformat, vite/tsconfig tweaks
 
 The admin polish/hardening pass, on top of `b64a073`:
+
 - `apps/admin/src/lib/axios.ts` added — hardened refresh-queue axios client,
   replacing `lib/api.ts`'s single-promise version (`project/decisions.md` #10)
 - Repo-wide `.prettierrc` (present since Sprint 0, never enforced) actually applied
@@ -124,6 +127,7 @@ raw `drizzle-kit migrate` CLI (`technical/gotchas.md` #3).
 ## `b64a073` — feat: admin/portal auth UI, applicant auth, uploads module, requests flow
 
 Two things bundled into one push:
+
 1. The missing applicant-auth module (`technical/gotchas.md` #7) and the generic
    uploads module (`technical/gotchas.md` #6, including the auth-gap fix)
 2. The full UI redesign — Bootstrap/Login/Layout rebuilt to structurally match

@@ -15,14 +15,14 @@ npm run dev                                             # API :4000, admin :5173
 
 ## 📁 Where Is…
 
-| Thing | Path |
-|---|---|
-| ANAC color tokens | `apps/admin/src/index.css` and `apps/portal/src/index.css` |
-| DB schema | `apps/api/src/shared/db/schema.ts` |
-| Server entry | `apps/api/src/server.ts` |
-| Staff auth context | `apps/admin/src/hooks/useAuth.tsx` |
-| Applicant auth context | `apps/portal/src/hooks/useApplicantAuth.tsx` |
-| Env vars | `apps/api/.env` (copy from `.env.example`) |
+| Thing                  | Path                                                       |
+| ---------------------- | ---------------------------------------------------------- |
+| ANAC color tokens      | `apps/admin/src/index.css` and `apps/portal/src/index.css` |
+| DB schema              | `apps/api/src/shared/db/schema.ts`                         |
+| Server entry           | `apps/api/src/server.ts`                                   |
+| Staff auth context     | `apps/admin/src/hooks/useAuth.tsx`                         |
+| Applicant auth context | `apps/portal/src/hooks/useApplicantAuth.tsx`               |
+| Env vars               | `apps/api/.env` (copy from `.env.example`)                 |
 
 ## 🎨 Key CSS Classes
 
@@ -40,10 +40,12 @@ bg-anac-success (success #16A34A)
 ## 🔒 Auth Model
 
 Two separate systems, one API:
+
 ```
 Staff (users table):      matricule + OTP first-login, multi-role via user_roles
 Applicant (applicants):   email + password, no OTP, no roles
 ```
+
 Both JWTs carry `kind: "staff" | "applicant"` — never interchangeable.
 
 ## 📡 Key API Endpoints
@@ -79,15 +81,15 @@ POST /api/dev-tools/reset                                      SU only + ENABLE_
 
 ## 🚫 Rules
 
-| ❌ Never | ✅ Instead |
-|---|---|
-| Run `drizzle-kit migrate` directly | Use `npm run db:migrate` (→ `scripts/migrate.ts`) |
-| Trust `applicantId` from an applicant's request body | Take it from `req.applicant.applicantId` |
-| Check `error.code` on a Drizzle-thrown error | Check `error.cause.code` |
-| Add `ignoreDeprecations` for a `baseUrl` warning | Remove `baseUrl`, use `"@/*": ["./*"]` |
-| Run the shadcn CLI | Hand-write components in `components/ui/` (Tailwind setup incompatible) |
-| Destructure `req.body` without a fallback | Use `req.body ?? {}` — no body/Content-Type leaves it `undefined` |
-| Give a router a blanket `router.use(authenticate, ...)` | Scope it per-route if anything else might mount underneath |
+| ❌ Never                                                | ✅ Instead                                                              |
+| ------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Run `drizzle-kit migrate` directly                      | Use `npm run db:migrate` (→ `scripts/migrate.ts`)                       |
+| Trust `applicantId` from an applicant's request body    | Take it from `req.applicant.applicantId`                                |
+| Check `error.code` on a Drizzle-thrown error            | Check `error.cause.code`                                                |
+| Add `ignoreDeprecations` for a `baseUrl` warning        | Remove `baseUrl`, use `"@/*": ["./*"]`                                  |
+| Run the shadcn CLI                                      | Hand-write components in `components/ui/` (Tailwind setup incompatible) |
+| Destructure `req.body` without a fallback               | Use `req.body ?? {}` — no body/Content-Type leaves it `undefined`       |
+| Give a router a blanket `router.use(authenticate, ...)` | Scope it per-route if anything else might mount underneath              |
 
 ## 📊 Sprint Status
 

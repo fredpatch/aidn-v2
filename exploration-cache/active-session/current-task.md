@@ -39,7 +39,7 @@ in progress and queued for commit.
   `meetings` DB constraint; same-day soft overlap surfaces as a non-blocking
   warning. Tickets are server-rendered HTML at `GET /api/meetings/:id/ticket` —
   **not** a generated/stored PDF, a deliberate scope decision (`project/
-  decisions.md` #12) since a real PDF generator is a cross-cutting M3/M4/M6 need
+decisions.md` #12) since a real PDF generator is a cross-cutting M3/M4/M6 need
   better built once, later
 - **Déclaration de pré-évaluation**: made available post-meeting (backed by a
   configurable template, see below), submitted by the applicant from the portal,
@@ -71,6 +71,7 @@ in progress and queued for commit.
 
 The `2205261` admin polish pass had left both apps' builds broken. Fixed and pushed
 as `a4a5220` before starting Sprint 2 above:
+
 - Created `apps/portal/src/lib/axios.ts` (was referenced but never created) and
   switched `useApplicantAuth.tsx` onto it; deleted both apps' orphaned `lib/api.ts`
 - Fixed a doubled `@/src/lib/axios` import in admin's `useAuth.tsx` (broke the admin

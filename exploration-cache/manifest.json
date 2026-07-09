@@ -16,25 +16,147 @@
   },
 
   "index": [
-    { "path": "index.md", "type": "navigation", "tags": ["index", "overview", "navigation"], "summary": "Human-readable index of all files" },
-    { "path": "quick-ref.md", "type": "reference", "tags": ["commands", "api", "colors", "rules", "sprint"], "summary": "One-page quick reference" },
-    { "path": "changelog.md", "type": "history", "tags": ["git", "commits", "history"], "summary": "Commit history, be9fce9 through a4a5220, plus uncommitted Sprint 2" },
-    { "path": "active-session/current-task.md", "type": "session", "tags": ["current", "sprint2", "phase-preliminaire", "m3", "document-templates", "auth-security"], "summary": "Sprint 0+1+axios-fix committed; Sprint 2 (M3) fully built this session, uncommitted, ready to push" },
-    { "path": "active-session/blockers.md", "type": "session", "tags": ["blockers", "m13", "applicant-registration", "visual-qa"], "summary": "No hard blockers + 2 soft blockers (M13 registration, no browser verification)" },
-    { "path": "active-session/next-actions.md", "type": "session", "tags": ["actions", "sprint3", "phase-demande-formelle", "m4"], "summary": "Commit Sprint 2, then Sprint 3 (Phase Demande formelle, M4) is next" },
-    { "path": "active-session/context.md", "type": "session", "tags": ["orientation", "rules", "environment", "auth", "dual-auth"], "summary": "Fresh-session orientation: dual auth system, critical rules, environment assumptions" },
-    { "path": "project/overview.md", "type": "project", "tags": ["overview", "cdc", "context"], "summary": "What AIDN is, CDC summary" },
-    { "path": "project/modules-feasibility.md", "type": "project", "tags": ["modules", "feasibility", "business-rules", "m1-m13"], "summary": "Full 13-module feasibility study with locked decisions" },
-    { "path": "project/architecture.md", "type": "project", "tags": ["stack", "auth", "env-vars", "data-flow"], "summary": "Stack, dual auth flow, env vars, M1 data flow example, origin-based cookie precedence" },
-    { "path": "project/database-schema.md", "type": "project", "tags": ["schema", "tables", "enums", "drizzle", "document-templates"], "summary": "All tables and enums, including Sprint 2's document_templates" },
-    { "path": "project/decisions.md", "type": "project", "tags": ["decisions", "rationale", "postgres", "auth", "ui-redesign", "document-templates", "pdf"], "summary": "13 non-obvious technical decisions with rationale" },
-    { "path": "technical/cheat-sheet.md", "type": "reference", "tags": ["commands", "api-routes", "paths", "sprint2"], "summary": "Dev commands, key file paths, API endpoint list (Sprint 0-2)" },
-    { "path": "technical/patterns.md", "type": "reference", "tags": ["service-controller-route", "error-handling", "frontend-gate"], "summary": "Code patterns used across all modules" },
-    { "path": "technical/conventions.md", "type": "reference", "tags": ["naming", "language-policy", "css"], "summary": "Naming, English-code/French-UI policy, file structure" },
-    { "path": "technical/cross-cutting-patterns.md", "type": "reference", "tags": ["circuit-dg", "reunion", "cloture", "facture", "checklist"], "summary": "6 business-rule patterns reused across modules" },
-    { "path": "technical/gotchas.md", "type": "reference", "tags": ["bugs", "drizzle-kit", "postgres", "tsconfig", "axios", "auth", "gotchas"], "summary": "18 real pitfalls found across sessions, with symptom/cause/fix" },
-    { "path": "sessions/2026-07-07.md", "type": "session-log", "tags": ["sprint0", "sprint1", "session-log"], "summary": "Full session log: Sprint 0+1, 10 bugs, UI redesign" },
-    { "path": "sessions/2026-07-08.md", "type": "session-log", "tags": ["axios", "bugfix", "sprint2", "phase-preliminaire", "session-log"], "summary": "Fixed both broken builds, then built Sprint 2 (Phase Preliminaire, M3) end to end" },
-    { "path": "sessions/2026-07-09.md", "type": "session-log", "tags": ["hardening", "settings", "system-parameters", "dev-tools", "meeting-report", "session-log"], "summary": "Post-Sprint-2 hardening: settings and system parameters management, dev reset tools, meeting report upload, and stricter phase closure gates" }
+    {
+      "path": "index.md",
+      "type": "navigation",
+      "tags": ["index", "overview", "navigation"],
+      "summary": "Human-readable index of all files"
+    },
+    {
+      "path": "quick-ref.md",
+      "type": "reference",
+      "tags": ["commands", "api", "colors", "rules", "sprint"],
+      "summary": "One-page quick reference"
+    },
+    {
+      "path": "changelog.md",
+      "type": "history",
+      "tags": ["git", "commits", "history"],
+      "summary": "Commit history, be9fce9 through a4a5220, plus uncommitted Sprint 2"
+    },
+    {
+      "path": "active-session/current-task.md",
+      "type": "session",
+      "tags": [
+        "current",
+        "sprint2",
+        "phase-preliminaire",
+        "m3",
+        "document-templates",
+        "auth-security"
+      ],
+      "summary": "Sprint 0+1+axios-fix committed; Sprint 2 (M3) fully built this session, uncommitted, ready to push"
+    },
+    {
+      "path": "active-session/blockers.md",
+      "type": "session",
+      "tags": ["blockers", "m13", "applicant-registration", "visual-qa"],
+      "summary": "No hard blockers + 2 soft blockers (M13 registration, no browser verification)"
+    },
+    {
+      "path": "active-session/next-actions.md",
+      "type": "session",
+      "tags": ["actions", "sprint3", "phase-demande-formelle", "m4"],
+      "summary": "Commit Sprint 2, then Sprint 3 (Phase Demande formelle, M4) is next"
+    },
+    {
+      "path": "active-session/context.md",
+      "type": "session",
+      "tags": ["orientation", "rules", "environment", "auth", "dual-auth"],
+      "summary": "Fresh-session orientation: dual auth system, critical rules, environment assumptions"
+    },
+    {
+      "path": "project/overview.md",
+      "type": "project",
+      "tags": ["overview", "cdc", "context"],
+      "summary": "What AIDN is, CDC summary"
+    },
+    {
+      "path": "project/modules-feasibility.md",
+      "type": "project",
+      "tags": ["modules", "feasibility", "business-rules", "m1-m13"],
+      "summary": "Full 13-module feasibility study with locked decisions"
+    },
+    {
+      "path": "project/architecture.md",
+      "type": "project",
+      "tags": ["stack", "auth", "env-vars", "data-flow"],
+      "summary": "Stack, dual auth flow, env vars, M1 data flow example, origin-based cookie precedence"
+    },
+    {
+      "path": "project/database-schema.md",
+      "type": "project",
+      "tags": ["schema", "tables", "enums", "drizzle", "document-templates"],
+      "summary": "All tables and enums, including Sprint 2's document_templates"
+    },
+    {
+      "path": "project/decisions.md",
+      "type": "project",
+      "tags": [
+        "decisions",
+        "rationale",
+        "postgres",
+        "auth",
+        "ui-redesign",
+        "document-templates",
+        "pdf"
+      ],
+      "summary": "13 non-obvious technical decisions with rationale"
+    },
+    {
+      "path": "technical/cheat-sheet.md",
+      "type": "reference",
+      "tags": ["commands", "api-routes", "paths", "sprint2"],
+      "summary": "Dev commands, key file paths, API endpoint list (Sprint 0-2)"
+    },
+    {
+      "path": "technical/patterns.md",
+      "type": "reference",
+      "tags": ["service-controller-route", "error-handling", "frontend-gate"],
+      "summary": "Code patterns used across all modules"
+    },
+    {
+      "path": "technical/conventions.md",
+      "type": "reference",
+      "tags": ["naming", "language-policy", "css"],
+      "summary": "Naming, English-code/French-UI policy, file structure"
+    },
+    {
+      "path": "technical/cross-cutting-patterns.md",
+      "type": "reference",
+      "tags": ["circuit-dg", "reunion", "cloture", "facture", "checklist"],
+      "summary": "6 business-rule patterns reused across modules"
+    },
+    {
+      "path": "technical/gotchas.md",
+      "type": "reference",
+      "tags": ["bugs", "drizzle-kit", "postgres", "tsconfig", "axios", "auth", "gotchas"],
+      "summary": "18 real pitfalls found across sessions, with symptom/cause/fix"
+    },
+    {
+      "path": "sessions/2026-07-07.md",
+      "type": "session-log",
+      "tags": ["sprint0", "sprint1", "session-log"],
+      "summary": "Full session log: Sprint 0+1, 10 bugs, UI redesign"
+    },
+    {
+      "path": "sessions/2026-07-08.md",
+      "type": "session-log",
+      "tags": ["axios", "bugfix", "sprint2", "phase-preliminaire", "session-log"],
+      "summary": "Fixed both broken builds, then built Sprint 2 (Phase Preliminaire, M3) end to end"
+    },
+    {
+      "path": "sessions/2026-07-09.md",
+      "type": "session-log",
+      "tags": [
+        "hardening",
+        "settings",
+        "system-parameters",
+        "dev-tools",
+        "meeting-report",
+        "session-log"
+      ],
+      "summary": "Post-Sprint-2 hardening: settings and system parameters management, dev reset tools, meeting report upload, and stricter phase closure gates"
+    }
   ]
 }

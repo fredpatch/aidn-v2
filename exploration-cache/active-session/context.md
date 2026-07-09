@@ -11,6 +11,7 @@ version (`aidn-v2-legacy`), following the same methodology as the sister project
 **SICOT** — feasibility study before code, exploration-cache for continuity.
 
 **TypeScript monorepo, npm workspaces:**
+
 - `apps/api` — Express 5 + Drizzle ORM + PostgreSQL
 - `apps/admin` — React 18 + Vite + Tailwind — internal ANAC staff
 - `apps/portal` — React 18 + Vite + Tailwind — postulant (applicant)
@@ -47,7 +48,7 @@ status: DIRTY — post-Sprint-2 hardening pass in progress: admin settings page,
    reachable by both (like demande submission) uses `authenticateEither`.
 4. **Never trust `applicantId` from an applicant's own request body** — always take
    it from `req.applicant.applicantId` after `authenticateEither`/
-   `authenticateApplicant`. Staff callers *do* pass `applicantId` explicitly (manual
+   `authenticateApplicant`. Staff callers _do_ pass `applicantId` explicitly (manual
    entry on a postulant's behalf).
 5. **The "one active demande" rule is a real DB constraint**
    (`requests_one_active_per_organisation_idx`), not just an app-level check —
@@ -68,7 +69,7 @@ status: DIRTY — post-Sprint-2 hardening pass in progress: admin settings page,
 9. **`authenticateEither` checks the cookie matching the request's `Origin`
    first**, not staff-always-first — admin and portal share a top-level domain,
    so both cookies can legitimately be present at once. See `technical/
-   gotchas.md` #19.
+gotchas.md` #19.
 
 ## Environment Assumptions
 
