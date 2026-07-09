@@ -1,11 +1,9 @@
 # 🎯 Current Task
 
 **Session date**: 2026-07-09
-**Status**: Sprint 0, Sprint 1, and Sprint 2 (M3) are now committed (`b64a073`,
-`2205261`, `a4a5220`, `0e29d06`). The current session is a post-Sprint-2
-hardening pass: admin settings area, system parameters API exposure, dev reset
-tooling, meeting report upload flow, and stricter M3 closure gates. This work is
-in progress and queued for commit.
+**Status**: Sprint 0, Sprint 1, and Sprint 2 (M3) are committed, including the
+latest hardening/refactor pushes. Current work has moved into Sprint 3 backend
+kickoff with the `formal-request` module (M4) while continuing cache/docs sync.
 
 ## ✅ Done today (2026-07-09, ongoing): post-Sprint-2 hardening pass
 
@@ -47,6 +45,10 @@ in progress and queued for commit.
   - key login/settings/request flows now emit toast feedback
 - Planned follow-up: portal-side React Query + shared `lib/api` migration will be
   executed in a dedicated task (tracked in `docs/TASKS.md`), not in this pass
+- Started Sprint 3 backend groundwork (M4 formal request):
+  - added `formal-request` API module and mounted `/api/formal-request`
+  - implemented M4 open/bundle/letter circuit/document slots/close gates
+  - added formal-request domain error handler and shared formal slot status constants
 
 ## ✅ Done today (2026-07-08, this session): Sprint 2 — Phase Préliminaire (M3)
 

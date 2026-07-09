@@ -4,13 +4,9 @@ Last updated: 2026-07-09
 
 ## 🔥 Immediate (start here next session)
 
-1. **Commit and push the ongoing 2026-07-09 hardening + refactor + React Query migration diff** — settings page,
-   system-parameters API wiring, dev reset module, meeting compte-rendu flow,
-   M3 closure gating fixes, plus the modular refactor of `PreliminaryPhasePage`
-   (hooks/helpers/components/api/types), React Query hooks with query-key
-   invalidation, shared lib API relocation, Zustand baseline store,
-   `PhaseStatusBadge`, helper test scaffold, and the same convention rollout to
-   auth + settings/dev-tools domains.
+1. **Commit and push the ongoing 2026-07-09 Sprint 3 backend kickoff diff** —
+   new `formal-request` module (M4), route mounting in API server,
+   formal-request error mapping, and shared formal slot constants.
 
 2. **Sprint 3 — Phase Demande formelle (M4)**
    - Reuses `dg_circuit_documents` (already generic across M1/M4, see
@@ -19,6 +15,7 @@ Last updated: 2026-07-09
      (`dn_air_r2_3_f_e_010/011/012`) — build the endpoints/UI that actually use them
    - Consider whether the meeting-ticket HTML approach (`project/decisions.md` #12)
      still holds or whether M4's needs finally justify a real PDF generator
+   - **Delta**: backend `formal-request` module is now started; next is admin/portal UI wiring and end-to-end flow tests
 
 3. **Add `PORTAL_ORIGIN` to `apps/api/.env.example`** — currently only in local
    `.env`, needed for `authenticateEither`'s origin-based cookie check

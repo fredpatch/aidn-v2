@@ -240,12 +240,22 @@ Voir `exploration-cache/technical/gotchas.md` pour le détail complet.
 
 ## Sprint 3 — Phase Demande formelle (M4)
 
-- [ ] Checklist 11 documents (Soumis / Manquant)
-- [ ] Circuit DG limité à la lettre de demande officielle
-- [ ] Upload direct des 10 autres documents (avant/après réunion)
+- [~] Checklist 11 documents (Soumis / Manquant) — API amorcée
+- [~] Circuit DG limité à la lettre de demande officielle — API amorcée
+- [~] Upload direct des 10 autres documents (avant/après réunion) — API amorcée
 - [ ] Réunion formelle (réutilise pattern M3)
-- [ ] Clôture de phase (sans décision recevable/non-recevable dans l'app)
-- [ ] Verrou : phase non-clôturable tant que 11/11 documents non soumis
+- [~] Clôture de phase (sans décision recevable/non-recevable dans l'app) — API amorcée
+- [~] Verrou : phase non-clôturable tant que 11/11 documents non soumis — API amorcée
+
+### Sprint 3 — avancement backend (2026-07-09, en cours)
+
+- [x] Nouveau module API `formal-request` monté sous `/api/formal-request`
+- [x] Démarrage phase M4 conditionné à la clôture M3
+- [x] Circuit DG de la lettre de demande formelle (`submitted` -> `signed` -> `pending_review`)
+- [x] Bundle `by-request/:requestId` (phase, circuit lettre, checklist docs, réunion, completionRate)
+- [x] Upload par slot des documents formels + versioning M8 (`document_versions`, trash à remplacement)
+- [x] Contrôles de clôture M4 : lettre transmise, 11/11 documents soumis, réunion résolue
+- [ ] UI admin/portail M4 à implémenter
 
 ## Sprint 4 — Évaluation approfondie (M5)
 

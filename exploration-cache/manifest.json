@@ -3,18 +3,16 @@
   "client": "ANAC Gabon",
   "repo": "fredpatch/aidn-v2",
   "branch": "main",
-  "lastUpdated": "2026-07-09T12:00:00Z",
-  "lastCommit": "0e29d06 feat(api,admin,portal): Sprint 2 - Phase Preliminaire (M3), full API + UI",
-  "currentSprint": "Sprint 2 (Phase Preliminaire, M3) committed; post-sprint hardening in progress; Sprint 3 (Phase Demande formelle, M4) not started",
-  "currentSprintFocus": "Sprint 0, Sprint 1, and Sprint 2 are committed. Current work is a post-Sprint-2 hardening + maintainability pass: admin settings page, system-parameters API management routes, dev reset tooling, meeting compte-rendu upload flow, closure gating checks, and a modular refactor of PreliminaryPhasePage with React Query hooks/invalidation and shared lib API extraction, extended to auth and settings/dev-tools domains, plus cross-app Sonner notifications.",
-  "status": "Sprint 0 COMPLETE. Sprint 1 COMPLETE. Sprint 2 COMPLETE and committed (0e29d06). Ongoing hardening adds settings/system-parameters management, dev reset module (SU + env gated), meeting report upload/display, stricter M3 closure/readiness enforcement, and an admin frontend data-layer convention migrated to React Query (query keys + invalidation) with shared lib API/types across preliminary + auth + settings/dev-tools, plus Zustand baseline store, helper-test scaffold, and shadcn Sonner notifications in admin+portal. Portal parity refactor is tracked as a dedicated follow-up task.",
-
+  "lastUpdated": "2026-07-09T17:30:00Z",
+  "lastCommit": "14efd94 feat(ui): add sonner notifications across admin and portal",
+  "currentSprint": "Sprint 2 (M3) committed; Sprint 3 (Phase Demande formelle, M4) backend kickoff started",
+  "currentSprintFocus": "Sprint 0, Sprint 1, and Sprint 2 are committed. Current work continues post-Sprint-2 hardening while starting Sprint 3 backend: formal-request module, M4 lifecycle endpoints, letter DG circuit, 11-slot document checklist, and closure gates.",
+  "status": "Sprint 0 COMPLETE. Sprint 1 COMPLETE. Sprint 2 COMPLETE and committed. Post-sprint hardening delivered React Query/lib-api conventions and Sonner notifications. Sprint 3 has started on backend with new formal-request APIs (open/bundle/letter-circuit/document-slots/close), with admin+portal UI wiring still pending.",
   "activeSession": {
-    "task": "Post-Sprint-2 hardening + maintainability pass: settings page + parameter management, dev reset tools, meeting report upload/display, stricter M3 closure gates, and modular refactor of PreliminaryPhasePage migrated to React Query with lib API extraction and helper-test scaffold, with convention rollout to auth and settings/dev-tools and Sonner notifications in admin+portal. exploration-cache update and commit in progress.",
+    "task": "Post-Sprint-2 hardening pass is committed; active work now includes Sprint 3 backend kickoff with formal-request APIs for M4 (open/bundle/letter circuit/document slots/close gates). exploration-cache update and commit in progress.",
     "startedAt": "2026-07-09",
-    "nextAction": "Commit and push this hardening + refactor + React Query/lib API migration diff, then start Sprint 3 (Phase Demande formelle, M4). Add PORTAL_ORIGIN to apps/api/.env.example first."
+    "nextAction": "Commit and push current formal-request backend kickoff diff, then wire admin/portal UI for Sprint 3 M4 flows. Add PORTAL_ORIGIN to apps/api/.env.example first."
   },
-
   "index": [
     {
       "path": "index.md",
@@ -32,32 +30,25 @@
       "path": "changelog.md",
       "type": "history",
       "tags": ["git", "commits", "history"],
-      "summary": "Commit history, be9fce9 through 0e29d06, plus uncommitted 2026-07-09 hardening/refactor pass"
+      "summary": "Commit history through latest hardening, Sonner rollout, and M4 backend kickoff"
     },
     {
       "path": "active-session/current-task.md",
       "type": "session",
-      "tags": [
-        "current",
-        "sprint2",
-        "phase-preliminaire",
-        "m3",
-        "document-templates",
-        "auth-security"
-      ],
-      "summary": "Sprint 0/1/2 committed; current session tracks hardening, M3 modular refactor, convention rollout to auth/settings, and Sonner notifications across admin+portal"
+      "tags": ["current", "sprint2", "sprint3", "m3", "m4", "document-templates"],
+      "summary": "Current session now includes Sprint 3 backend kickoff with formal-request APIs"
     },
     {
       "path": "active-session/blockers.md",
       "type": "session",
       "tags": ["blockers", "m13", "applicant-registration", "visual-qa"],
-      "summary": "No hard blockers + 2 soft blockers (M13 registration, no browser verification)"
+      "summary": "No hard blockers + soft blockers tracked"
     },
     {
       "path": "active-session/next-actions.md",
       "type": "session",
       "tags": ["actions", "sprint3", "phase-demande-formelle", "m4"],
-      "summary": "Commit hardening + refactor + convention-rollout + Sonner diff, then Sprint 3 (Phase Demande formelle, M4) is next; portal parity refactor stays scheduled"
+      "summary": "Commit M4 backend kickoff diff, then implement Sprint 3 admin/portal UI integration"
     },
     {
       "path": "active-session/context.md",
@@ -92,28 +83,20 @@
     {
       "path": "project/decisions.md",
       "type": "project",
-      "tags": [
-        "decisions",
-        "rationale",
-        "postgres",
-        "auth",
-        "ui-redesign",
-        "document-templates",
-        "pdf"
-      ],
-      "summary": "13 non-obvious technical decisions with rationale"
+      "tags": ["decisions", "rationale", "postgres", "auth", "ui-redesign", "document-templates", "pdf"],
+      "summary": "Non-obvious technical decisions with rationale"
     },
     {
       "path": "technical/cheat-sheet.md",
       "type": "reference",
-      "tags": ["commands", "api-routes", "paths", "sprint2"],
-      "summary": "Dev commands, key file paths, API endpoint list (Sprint 0-2)"
+      "tags": ["commands", "api-routes", "paths", "sprint2", "sprint3"],
+      "summary": "Dev commands, key file paths, API endpoint list"
     },
     {
       "path": "technical/patterns.md",
       "type": "reference",
       "tags": ["service-controller-route", "error-handling", "frontend-gate"],
-      "summary": "Code patterns used across all modules"
+      "summary": "Code patterns used across modules"
     },
     {
       "path": "technical/conventions.md",
@@ -125,38 +108,31 @@
       "path": "technical/cross-cutting-patterns.md",
       "type": "reference",
       "tags": ["circuit-dg", "reunion", "cloture", "facture", "checklist"],
-      "summary": "6 business-rule patterns reused across modules"
+      "summary": "Business-rule patterns reused across modules"
     },
     {
       "path": "technical/gotchas.md",
       "type": "reference",
       "tags": ["bugs", "drizzle-kit", "postgres", "tsconfig", "axios", "auth", "gotchas"],
-      "summary": "18 real pitfalls found across sessions, with symptom/cause/fix"
+      "summary": "Real pitfalls found across sessions, with symptom/cause/fix"
     },
     {
       "path": "sessions/2026-07-07.md",
       "type": "session-log",
       "tags": ["sprint0", "sprint1", "session-log"],
-      "summary": "Full session log: Sprint 0+1, 10 bugs, UI redesign"
+      "summary": "Full session log: Sprint 0+1"
     },
     {
       "path": "sessions/2026-07-08.md",
       "type": "session-log",
       "tags": ["axios", "bugfix", "sprint2", "phase-preliminaire", "session-log"],
-      "summary": "Fixed both broken builds, then built Sprint 2 (Phase Preliminaire, M3) end to end"
+      "summary": "Fixed both broken builds, then built Sprint 2 (M3) end to end"
     },
     {
       "path": "sessions/2026-07-09.md",
       "type": "session-log",
-      "tags": [
-        "hardening",
-        "settings",
-        "system-parameters",
-        "dev-tools",
-        "meeting-report",
-        "session-log"
-      ],
-      "summary": "Post-Sprint-2 hardening + M3 refactor with React Query: settings/system-parameters, dev reset tools, meeting report upload, stricter closure gates, modular page split, shared lib API migration, auth/settings convention rollout, and Sonner notifications"
+      "tags": ["hardening", "settings", "system-parameters", "dev-tools", "meeting-report", "session-log", "sprint3"],
+      "summary": "Post-Sprint-2 hardening plus Sprint 3 kickoff with formal-request module and M4 lifecycle endpoints"
     }
   ]
 }

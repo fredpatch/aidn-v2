@@ -21,6 +21,7 @@ import systemParameterRoute from './modules/system-parameters/system-parameters.
 import devToolsRoute from './modules/dev-tools/dev-tools.route.js';
 import { startDgCircuitAlertJob } from './jobs/dg-circuit-alert.job.js';
 import { verifyEmailConnection } from './shared/utils/email.js';
+import formalRequestRoute from './modules/formal-request/formal-request.route.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -59,6 +60,7 @@ app.use('/api/document-templates', documentTemplatesRoute);
 app.use('/api/preliminary-evaluation', preliminaryEvaluationRoute);
 app.use('/api/system-parameters', systemParameterRoute);
 app.use('/api/dev-tools', devToolsRoute);
+app.use('/api/formal-request', formalRequestRoute);
 
 app.listen(port, () => {
   console.log(`AIDN API listening on port ${port}`);

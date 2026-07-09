@@ -176,3 +176,45 @@ export const handleSystemParametersError = createErrorHandler(
   },
   '[system-parameters]'
 );
+
+export const handleFormalRequestError = createErrorHandler(
+  {
+    REQUEST_NOT_FOUND: { status: 404, message: 'Demande introuvable.' },
+    M3_NOT_CLOSED: {
+      status: 409,
+      message:
+        "La phase préliminaire doit être clôturée avant d'ouvrir la phase de demande formelle.",
+    },
+    PHASE_ALREADY_OPEN: {
+      status: 409,
+      message: 'Cette phase est déjà ouverte pour cette demande.',
+    },
+    PHASE_NOT_FOUND: { status: 404, message: 'Phase introuvable.' },
+    PHASE_NOT_OPEN: { status: 409, message: 'La phase doit être ouverte.' },
+    PHASE_ALREADY_CLOSED: { status: 409, message: 'Cette phase est déjà clôturée.' },
+    LETTER_ALREADY_SUBMITTED: {
+      status: 409,
+      message: 'La lettre de demande formelle a déjà été soumise.',
+    },
+    LETTER_NOT_FOUND: { status: 404, message: 'Lettre de demande formelle introuvable.' },
+    LETTER_NOT_TRANSMITTED: {
+      status: 409,
+      message:
+        "La lettre de demande formelle doit d'abord être transmise à la DN avant de clôturer.",
+    },
+    SLOT_NOT_FOUND: { status: 404, message: 'Créneau de document introuvable pour cette phase.' },
+    DOCUMENTS_INCOMPLETE: {
+      status: 409,
+      message: 'Les 11 documents doivent tous être soumis avant de clôturer la phase.',
+    },
+    MEETING_NOT_RESOLVED: {
+      status: 409,
+      message: "La réunion formelle doit d'abord être résolue avant de clôturer la phase.",
+    },
+    INVALID_CIRCUIT_TRANSITION: {
+      status: 409,
+      message: 'Transition de statut invalide pour ce circuit.',
+    },
+  },
+  '[formal-request]'
+);

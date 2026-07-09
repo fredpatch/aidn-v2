@@ -1,7 +1,7 @@
 # 📝 AIDN v2 — Changelog
 
-Commit-level history. Covers `be9fce9` through `0e29d06` (2026-07-07/08), plus
-the current uncommitted 2026-07-09 hardening pass.
+Commit-level history. Covers `be9fce9` through `14efd94` (2026-07-07/09), plus
+the current uncommitted 2026-07-09 hardening/Sprint-3-backend pass.
 
 ## (uncommitted) — 2026-07-09 hardening pass (post-Sprint 2)
 
@@ -51,6 +51,15 @@ On top of `0e29d06`, 2026-07-09 ongoing session:
 - **Portal convention refactor intentionally deferred**:
   - scheduled a dedicated follow-up task to migrate portal domains to the same
     React Query + shared lib API pattern already adopted in admin
+- **Sprint 3 kickoff (M4) — formal request backend started**:
+  - new module `apps/api/src/modules/formal-request/*` (route/controller/service/types)
+  - route mounted in `server.ts`: `/api/formal-request`
+  - M4 opening gated by M3 closure; pre-creates 11 formal document slots
+  - formal letter DG circuit implemented (`submitted` -> `signed` -> `pending_review`)
+  - document slot uploads implemented with M8 version/trash pattern (`document_versions`)
+  - M4 closure gates implemented: letter transmitted + 11/11 docs submitted + meeting resolved
+  - added domain error mapping `handleFormalRequestError`
+  - added `apps/api/src/shared/statuses.ts` with formal document slot constants/labels
 
 ## (uncommitted) — Sprint 2: Phase Préliminaire (M3), full API + UI
 
