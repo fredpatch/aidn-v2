@@ -26,6 +26,13 @@ On top of `0e29d06`, 2026-07-09 ongoing session:
   - added explicit errors: `MEETING_NOT_RESOLVED`, `DECLARATION_NOT_SUBMITTED`, `MEETING_NOT_HELD`
 - **Preliminary evaluation submission now versioned** through `document_versions` (same M8 version/trash pattern as other document flows)
 - **Admin requests badge polish**: added `in_progress` status color mapping
+- **Admin M3 page refactor for maintainability**:
+  - split `pages/phases/PreliminaryPhasePage.tsx` into a compositional page + dedicated module folder `pages/phases/preliminary/`
+  - extracted `types.ts`, `constants.ts`, `helpers.ts`, `api.ts`
+  - extracted hooks (`usePreliminaryBundle`, `useMeetingActions`, `useDeclarationActions`, `usePhaseCloseAction`)
+  - extracted UI components (`PhaseSidebar`, `MeetingCard`, `DeclarationCard`, `ClosureCard`, `PhaseStatusBadge`)
+  - added shared async action utility (`useAsyncAction`)
+  - added helper test scaffold (`helpers.test.ts`, `runPreliminaryHelpersTests`)
 
 ## (uncommitted) — Sprint 2: Phase Préliminaire (M3), full API + UI
 

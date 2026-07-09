@@ -1,0 +1,49 @@
+import { FormEvent, useState } from 'react';
+import { Button } from '../../../../components/ui/button';
+import { usePhaseCloseAction } from '../hooks/usePhaseCloseAction';
+
+interface ClosureCardProps {
+  phaseId: number;
+  onChanged: () => void;
+  setActionError: (message: string | null) => void;
+}
+
+export default function ClosureCard({ phaseId, onChanged, setActionError }: ClosureCardProps) {
+  const [note, setNote] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  const { busy, close } = usePhaseCloseAction(setActionError, onChanged);
+
+  async function handleClose(e: FormEvent) {
+    e.preventDefault();
+    const ok = await close({ phaseId, note, file });
+    if (ok) {
+      setNote('');
+      setFile(null);
+    }
+  }
+
+  return (
+    <form onSubmit={handleClose} className="card space-y-3">
+      <span className="font-medium text-sm">Cloturer la phase</span>
+      <p className="text-anac-muted text-xs">
+        Document et note sont tous les deux facultatifs - vous pouvez cloturer directement.
+      </p>
+      <div>
+        <label className="label">Note (optionnel)</label>
+        <textarea
+          className="input"
+          rows={2}
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+        />
+      </div>
+      <div>
+        <label className="label">Document joint (optionnel)</label>
+        <input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+      </div>
+      <Button type="submit" disabled={busy}>
+        {busy ? 'Cloture...' : 'Cloturer la phase'}
+      </Button>
+    </form>
+  );
+}

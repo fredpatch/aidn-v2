@@ -6,13 +6,13 @@
   "lastUpdated": "2026-07-09T12:00:00Z",
   "lastCommit": "0e29d06 feat(api,admin,portal): Sprint 2 - Phase Preliminaire (M3), full API + UI",
   "currentSprint": "Sprint 2 (Phase Preliminaire, M3) committed; post-sprint hardening in progress; Sprint 3 (Phase Demande formelle, M4) not started",
-  "currentSprintFocus": "Sprint 0, Sprint 1, and Sprint 2 are committed. Current work is a post-Sprint-2 hardening pass: admin settings page, system-parameters API management routes, dev reset tooling, meeting compte-rendu upload flow, and closure gating checks that require resolved meeting + submitted declaration before closing M3.",
-  "status": "Sprint 0 COMPLETE. Sprint 1 COMPLETE. Sprint 2 COMPLETE and committed (0e29d06). Ongoing hardening adds settings/system-parameters management, dev reset module (SU + env gated), meeting report upload/display, and stricter M3 closure/readiness enforcement. Next: commit current hardening diff, then start Sprint 3 (M4).",
+  "currentSprintFocus": "Sprint 0, Sprint 1, and Sprint 2 are committed. Current work is a post-Sprint-2 hardening + maintainability pass: admin settings page, system-parameters API management routes, dev reset tooling, meeting compte-rendu upload flow, closure gating checks, and a modular refactor of PreliminaryPhasePage into hooks/helpers/components/api/types.",
+  "status": "Sprint 0 COMPLETE. Sprint 1 COMPLETE. Sprint 2 COMPLETE and committed (0e29d06). Ongoing hardening adds settings/system-parameters management, dev reset module (SU + env gated), meeting report upload/display, stricter M3 closure/readiness enforcement, and an M3 UI refactor with useAsyncAction + PhaseStatusBadge + helper-test scaffold. Next: commit/push current diff, then start Sprint 3 (M4).",
 
   "activeSession": {
-    "task": "Post-Sprint-2 hardening pass: settings page + parameter management, dev reset tools, meeting report upload/display, and stricter M3 closure gates. exploration-cache update and commit in progress.",
+    "task": "Post-Sprint-2 hardening + maintainability pass: settings page + parameter management, dev reset tools, meeting report upload/display, stricter M3 closure gates, and modular refactor of PreliminaryPhasePage with helper-test scaffold. exploration-cache update and commit in progress.",
     "startedAt": "2026-07-09",
-    "nextAction": "Commit and push this hardening diff, then start Sprint 3 (Phase Demande formelle, M4). Add PORTAL_ORIGIN to apps/api/.env.example first."
+    "nextAction": "Commit and push this hardening + refactor diff, then start Sprint 3 (Phase Demande formelle, M4). Add PORTAL_ORIGIN to apps/api/.env.example first."
   },
 
   "index": [
@@ -32,7 +32,7 @@
       "path": "changelog.md",
       "type": "history",
       "tags": ["git", "commits", "history"],
-      "summary": "Commit history, be9fce9 through a4a5220, plus uncommitted Sprint 2"
+      "summary": "Commit history, be9fce9 through 0e29d06, plus uncommitted 2026-07-09 hardening/refactor pass"
     },
     {
       "path": "active-session/current-task.md",
@@ -45,7 +45,7 @@
         "document-templates",
         "auth-security"
       ],
-      "summary": "Sprint 0+1+axios-fix committed; Sprint 2 (M3) fully built this session, uncommitted, ready to push"
+      "summary": "Sprint 0/1/2 committed; current session tracks hardening + M3 page modular refactor and is ready to push"
     },
     {
       "path": "active-session/blockers.md",
@@ -57,7 +57,7 @@
       "path": "active-session/next-actions.md",
       "type": "session",
       "tags": ["actions", "sprint3", "phase-demande-formelle", "m4"],
-      "summary": "Commit Sprint 2, then Sprint 3 (Phase Demande formelle, M4) is next"
+      "summary": "Commit hardening + refactor diff, then Sprint 3 (Phase Demande formelle, M4) is next"
     },
     {
       "path": "active-session/context.md",
@@ -156,7 +156,7 @@
         "meeting-report",
         "session-log"
       ],
-      "summary": "Post-Sprint-2 hardening: settings and system parameters management, dev reset tools, meeting report upload, and stricter phase closure gates"
+      "summary": "Post-Sprint-2 hardening + M3 refactor: settings/system-parameters, dev reset tools, meeting report upload, stricter closure gates, and modular page split"
     }
   ]
 }

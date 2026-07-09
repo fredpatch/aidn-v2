@@ -152,6 +152,18 @@ build + flow complet contre un vrai Postgres). Détail complet dans
 - [x] UI portail : ticket de réunion, téléchargement du formulaire vierge,
       soumission de la déclaration remplie
 
+### Maintenance post-Sprint 2 (2026-07-09) — refactor de maintenabilité UI M3
+
+- [x] Refactor de `PreliminaryPhasePage.tsx` en architecture modulaire
+      (composants, hooks, helpers, API layer, types/constants) pour réduire
+      le couplage et faciliter Sprint 3+
+- [x] Ajout d'un hook utilitaire partagé `useAsyncAction` pour homogénéiser
+      la gestion des actions asynchrones (busy-state, flow centralisé)
+- [x] Extraction d'un composant de badge de statut réutilisable
+      (`PhaseStatusBadge`) pour éviter la duplication de mapping visuel
+- [x] Ajout d'un scaffold de tests helpers (`helpers.test.ts`) pour valider
+      la logique pure de checklist/gating M3
+
 ### Module ajouté, anticipant M4 : Modèles de documents (`document_templates`)
 
 Généralisé au-delà du seul besoin M3, sur demande explicite — les mêmes
@@ -169,9 +181,10 @@ formulaires DN-AIR-R2-3-F-E-010/011/012 de M4 en auront besoin :
 ### Décision : ticket HTML simple, pas de PDF généré
 
 Confirmé avec Fred — un vrai générateur PDF est un besoin transverse (M3 + M4
-+ M6 en ont tous besoin) mieux construit une seule fois plus tard que trois
-fois maintenant. Le ticket de réunion est du HTML servi directement
-(`GET /api/meetings/:id/ticket`), pas un fichier stocké.
+
+- M6 en ont tous besoin) mieux construit une seule fois plus tard que trois
+  fois maintenant. Le ticket de réunion est du HTML servi directement
+  (`GET /api/meetings/:id/ticket`), pas un fichier stocké.
 
 ### 6 bugs réels trouvés et corrigés pendant ce sprint
 
@@ -181,7 +194,7 @@ fois maintenant. Le ticket de réunion est du HTML servi directement
    demande...), pas seulement dans le nouveau code. Tous les contrôleurs
    déstructurent désormais `req.body ?? {}`.
 2. **Collision de routage** : `phases.route.ts` applique un `router.use(authenticate,
-   requireRole(...))` global sans restriction de chemin ; monter les routes
+requireRole(...))` global sans restriction de chemin ; monter les routes
    de `preliminary-evaluation` sous `/api/phases/*` les faisait intercepter
    par ce garde staff-only avant même d'atteindre `authenticateEither` —
    bloquant tout accès postulant. Déplacé vers son propre préfixe

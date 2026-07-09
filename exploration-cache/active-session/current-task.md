@@ -27,6 +27,11 @@ in progress and queued for commit.
 - Aligned preliminary declaration submission with M8-style document versioning
   (`document_versions` with trash-on-replace behavior)
 - Added `in_progress` badge styling in admin requests list for clearer lifecycle
+- Refactored admin M3 page into a maintainable module:
+  - split `PreliminaryPhasePage.tsx` into dedicated components/hooks/helpers/api/types
+  - introduced shared `useAsyncAction` utility for async action patterns
+  - introduced reusable `PhaseStatusBadge` visual primitive
+  - added helper test scaffold (`runPreliminaryHelpersTests` in `helpers.test.ts`)
 
 ## ✅ Done today (2026-07-08, this session): Sprint 2 — Phase Préliminaire (M3)
 
