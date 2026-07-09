@@ -1,18 +1,14 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useAuth } from '@/src/hooks/useAuth';
-import { Button } from '@/src/components/ui/button';
-import PhaseSidebar from '@/src/pages/phases/preliminary/components/PhaseSidebar';
-import PhaseStatusBadge from '@/src/pages/phases/preliminary/components/PhaseStatusBadge';
-import FormalLetterCard from '@/src/pages/phases/formal/components/FormalLetterCard';
-import DocumentsChecklistCard from '@/src/pages/phases/formal/components/DocumentsChecklistCard';
-import FormalMeetingCard from '@/src/pages/phases/formal/components/FormalMeetingCard';
-import FormalClosureCard from '@/src/pages/phases/formal/components/FormalClosureCard';
-import {
-  buildChecklist,
-  canCloseFormalPhase,
-  closureBlockReason,
-} from '@/src/pages/phases/formal/helpers';
+import { useAuth } from '../../../hooks/useAuth';
+import { Button } from '../../../components/ui/button';
+import PhaseSidebar from '../../phases/preliminary/components/PhaseSidebar';
+import PhaseStatusBadge from '../../phases/preliminary/components/PhaseStatusBadge';
+import FormalLetterCard from './components/FormalLetterCard';
+import DocumentsChecklistCard from './components/DocumentsChecklistCard';
+import FormalMeetingCard from './components/FormalMeetingCard';
+import FormalClosureCard from './components/FormalClosureCard';
+import { buildChecklist, canCloseFormalPhase, closureBlockReason } from './helpers';
 import { useFormalBundle } from './hooks/useFormalBundle';
 
 export default function FormalPhasePage() {
