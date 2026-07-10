@@ -80,16 +80,23 @@ export async function reschedule(req: Request, res: Response): Promise<void> {
 
 export async function attachReport(req: Request, res: Response): Promise<void> {
   try {
-    const { fileUrl, mimeType } = req.body ?? {};
+    const { fileUrl, mimeType, uploadAssetId } = req.body ?? {};
     if (!fileUrl || !mimeType) {
       res.status(400).json({ message: 'fileUrl et mimeType sont requis.' });
+      return;
+    }
+    const parsedUploadAssetId =
+      uploadAssetId === undefined || uploadAssetId === null ? undefined : Number(uploadAssetId);
+    if (parsedUploadAssetId !== undefined && !Number.isInteger(parsedUploadAssetId)) {
+      res.status(400).json({ message: 'uploadAssetId invalide.' });
       return;
     }
     const meeting = await meetingsService.attachMeetingReport(
       Number(req.params.id),
       req.user!.userId,
       fileUrl,
-      mimeType
+      mimeType,
+      parsedUploadAssetId
     );
     res.json(meeting);
   } catch (error) {

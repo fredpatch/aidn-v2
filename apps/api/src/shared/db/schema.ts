@@ -193,6 +193,12 @@ export const aiAnalysisStatusEnum = pgEnum('ai_analysis_status', [
   'reviewed',
   'rejected',
 ]);
+export const uploadSourceAppEnum = pgEnum('upload_source_app', [
+  'admin',
+  'portal',
+  'api',
+  'unknown',
+]);
 
 // ── M13 - Internal users & roles ────────────────────────────────────────────
 /** Mirrors SICOT's login model: employee code as login identifier, OTP-based
@@ -602,6 +608,37 @@ export const reports = pgTable('reports', {
   reviewedAt: timestamp('reviewed_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
+
+// ── Upload ingestion metadata (cross-module) ───────────────────────────────
+export const uploadAssets = pgTable(
+  'upload_assets',
+  {
+    id: serial('id').primaryKey(),
+    fileUrl: text('file_url').notNull(),
+    storageKey: text('storage_key').notNull(),
+    originalName: text('original_name').notNull(),
+    mimeType: varchar('mime_type', { length: 100 }).notNull(),
+    sizeBytes: integer('size_bytes').notNull(),
+    uploadedByUserId: integer('uploaded_by_user_id').references(() => users.id),
+    uploadedByApplicantId: integer('uploaded_by_applicant_id').references(() => applicants.id),
+    uploadedFromApp: uploadSourceAppEnum('uploaded_from_app').notNull().default('unknown'),
+    uploadedFromOrigin: text('uploaded_from_origin'),
+    uploadedFromIp: varchar('uploaded_from_ip', { length: 45 }),
+    uploadedUserAgent: text('uploaded_user_agent'),
+    moduleHint: varchar('module_hint', { length: 20 }),
+    linkedOwnerType: documentOwnerTypeEnum('linked_owner_type'),
+    linkedOwnerId: integer('linked_owner_id'),
+    linkedAt: timestamp('linked_at'),
+    orphanedAt: timestamp('orphaned_at'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => [
+    index('upload_assets_created_idx').on(t.createdAt),
+    index('upload_assets_linked_idx').on(t.linkedOwnerType, t.linkedOwnerId),
+    index('upload_assets_user_idx').on(t.uploadedByUserId),
+    index('upload_assets_applicant_idx').on(t.uploadedByApplicantId),
+  ]
+);
 
 // ── M13 - Audit log ──────────────────────────────────────────────────────────
 export const auditLogs = pgTable(

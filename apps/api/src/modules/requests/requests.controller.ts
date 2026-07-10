@@ -4,7 +4,14 @@ import { handleRequestsError } from "../../shared/utils/error.js";
 
 export async function submit(req: Request, res: Response): Promise<void> {
   try {
-    const { requestType, message, fileUrl, mimeType, applicantId: bodyApplicantId } = req.body ?? {};
+    const {
+      requestType,
+      message,
+      fileUrl,
+      mimeType,
+      uploadAssetId,
+      applicantId: bodyApplicantId,
+    } = req.body ?? {};
 
     // Applicant (portal, self-submission) - applicantId always comes from
     // their own session, never trusted from the request body.
@@ -32,12 +39,20 @@ export async function submit(req: Request, res: Response): Promise<void> {
       return;
     }
 
+    const parsedUploadAssetId =
+      uploadAssetId === undefined || uploadAssetId === null ? undefined : Number(uploadAssetId);
+    if (parsedUploadAssetId !== undefined && !Number.isInteger(parsedUploadAssetId)) {
+      res.status(400).json({ message: 'uploadAssetId invalide.' });
+      return;
+    }
+
     const result = await requestsService.submitRequest({
       applicantId,
       requestType,
       message,
       fileUrl,
       mimeType,
+      uploadAssetId: parsedUploadAssetId,
       submittedByUserId,
     });
 
@@ -107,16 +122,25 @@ export async function mine(req: Request, res: Response): Promise<void> {
 
 export async function replaceDocument(req: Request, res: Response): Promise<void> {
   try {
-    const { fileUrl, mimeType } = req.body ?? {};
+    const { fileUrl, mimeType, uploadAssetId } = req.body ?? {};
     if (!fileUrl || !mimeType) {
       res.status(400).json({ message: "fileUrl et mimeType sont requis." });
       return;
     }
+
+    const parsedUploadAssetId =
+      uploadAssetId === undefined || uploadAssetId === null ? undefined : Number(uploadAssetId);
+    if (parsedUploadAssetId !== undefined && !Number.isInteger(parsedUploadAssetId)) {
+      res.status(400).json({ message: 'uploadAssetId invalide.' });
+      return;
+    }
+
     await requestsService.replaceCircuitDocument(
       Number(req.params.id),
       fileUrl,
       mimeType,
-      req.user!.userId
+      req.user!.userId,
+      parsedUploadAssetId
     );
     res.status(204).send();
   } catch (error) {

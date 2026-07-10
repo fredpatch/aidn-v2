@@ -8,6 +8,7 @@ import {
   preliminaryEvaluationForms,
 } from '../../shared/db/schema.js';
 import { logAudit } from '../auth/auth.service.js';
+import { linkUploadAssetToOwner } from '../uploads/uploads.service.js';
 
 export interface PhaseView {
   id: number;
@@ -99,7 +100,12 @@ export async function getPhaseByRequestAndCode(
 export async function closePhase(
   phaseId: number,
   actorUserId: number,
-  params: { closureDocumentUrl?: string; closureDocumentMimeType?: string; closureNote?: string }
+  params: {
+    closureDocumentUrl?: string;
+    closureDocumentMimeType?: string;
+    closureNote?: string;
+    closureDocumentUploadAssetId?: number;
+  }
 ): Promise<PhaseView> {
   const [phase] = await db.select().from(phases).where(eq(phases.id, phaseId));
   if (!phase) throw new Error('PHASE_NOT_FOUND');
@@ -132,6 +138,13 @@ export async function closePhase(
       mimeType: params.closureDocumentMimeType ?? 'application/octet-stream',
       uploadedBy: actorUserId,
       isCurrent: true,
+    });
+
+    await linkUploadAssetToOwner({
+      uploadAssetId: params.closureDocumentUploadAssetId,
+      ownerType: 'phase_closure_document',
+      ownerId: phaseId,
+      expectedFileUrl: params.closureDocumentUrl,
     });
   }
 

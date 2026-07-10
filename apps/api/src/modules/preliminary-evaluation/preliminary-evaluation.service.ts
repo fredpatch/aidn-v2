@@ -10,6 +10,7 @@ import {
 } from '../../shared/db/schema.js';
 import { getIntegerValue } from '../system-parameters/system-parameters.service.js';
 import { logAudit } from '../auth/auth.service.js';
+import { linkUploadAssetToOwner } from '../uploads/uploads.service.js';
 
 export interface PreliminaryEvaluationView {
   id: number;
@@ -123,7 +124,8 @@ export async function makeAvailable(
 export async function submit(
   phaseId: number,
   fileUrl: string,
-  mimeType: string
+  mimeType: string,
+  uploadAssetId?: number
 ): Promise<PreliminaryEvaluationView> {
   const [row] = await db
     .select()
@@ -153,6 +155,13 @@ export async function submit(
     fileUrl,
     mimeType,
     isCurrent: true,
+  });
+
+  await linkUploadAssetToOwner({
+    uploadAssetId,
+    ownerType: 'preliminary_evaluation_form',
+    ownerId: row.id,
+    expectedFileUrl: fileUrl,
   });
 
   const [updated] = await db

@@ -55,9 +55,16 @@ export async function makeAvailable(req: Request, res: Response): Promise<void> 
 
 export async function submit(req: Request, res: Response): Promise<void> {
   try {
-    const { fileUrl, mimeType } = req.body ?? {};
+    const { fileUrl, mimeType, uploadAssetId } = req.body ?? {};
     if (!fileUrl || !mimeType) {
       res.status(400).json({ message: "fileUrl et mimeType sont requis." });
+      return;
+    }
+
+    const parsedUploadAssetId =
+      uploadAssetId === undefined || uploadAssetId === null ? undefined : Number(uploadAssetId);
+    if (parsedUploadAssetId !== undefined && !Number.isInteger(parsedUploadAssetId)) {
+      res.status(400).json({ message: 'uploadAssetId invalide.' });
       return;
     }
 
@@ -72,7 +79,12 @@ export async function submit(req: Request, res: Response): Promise<void> {
       }
     }
 
-    const view = await evalService.submit(phaseId, fileUrl, mimeType);
+    const view = await evalService.submit(
+      phaseId,
+      fileUrl,
+      mimeType,
+      parsedUploadAssetId
+    );
     res.json(view);
   } catch (error) {
     handlePreliminaryEvaluationError(res, error);

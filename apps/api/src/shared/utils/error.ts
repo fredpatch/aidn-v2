@@ -84,6 +84,15 @@ export const handleRequestsError = createErrorHandler(
       status: 409,
       message: 'Transition de statut invalide pour ce circuit.',
     },
+    UPLOAD_ASSET_NOT_FOUND: { status: 400, message: 'Fichier upload introuvable.' },
+    UPLOAD_ASSET_FILE_MISMATCH: {
+      status: 400,
+      message: "Le fichier upload ne correspond pas à l'URL soumise.",
+    },
+    UPLOAD_ASSET_ALREADY_LINKED: {
+      status: 409,
+      message: 'Ce fichier upload est déjà lié à une autre pièce.',
+    },
   },
   '[requests]'
 );
@@ -111,6 +120,15 @@ export const handlePhasesError = createErrorHandler(
       message:
         "Le postulant doit d'abord retourner sa declaration de pre-evaluation remplie avant de cloturer la phase.",
     },
+    UPLOAD_ASSET_NOT_FOUND: { status: 400, message: 'Fichier upload introuvable.' },
+    UPLOAD_ASSET_FILE_MISMATCH: {
+      status: 400,
+      message: "Le fichier upload ne correspond pas à l'URL soumise.",
+    },
+    UPLOAD_ASSET_ALREADY_LINKED: {
+      status: 409,
+      message: 'Ce fichier upload est déjà lié à une autre pièce.',
+    },
   },
   '[phases]'
 );
@@ -135,6 +153,15 @@ export const handleMeetingsError = createErrorHandler(
       status: 409,
       message: "Le compte-rendu ne peut etre envoye qu'une fois la reunion tenue.",
     },
+    UPLOAD_ASSET_NOT_FOUND: { status: 400, message: 'Fichier upload introuvable.' },
+    UPLOAD_ASSET_FILE_MISMATCH: {
+      status: 400,
+      message: "Le fichier upload ne correspond pas à l'URL soumise.",
+    },
+    UPLOAD_ASSET_ALREADY_LINKED: {
+      status: 409,
+      message: 'Ce fichier upload est déjà lié à une autre pièce.',
+    },
   },
   '[meetings]'
 );
@@ -156,6 +183,15 @@ export const handlePreliminaryEvaluationError = createErrorHandler(
     NOT_YET_AVAILABLE: {
       status: 409,
       message: "La declaration n'a pas encore ete mise a disposition par la DN.",
+    },
+    UPLOAD_ASSET_NOT_FOUND: { status: 400, message: 'Fichier upload introuvable.' },
+    UPLOAD_ASSET_FILE_MISMATCH: {
+      status: 400,
+      message: "Le fichier upload ne correspond pas à l'URL soumise.",
+    },
+    UPLOAD_ASSET_ALREADY_LINKED: {
+      status: 409,
+      message: 'Ce fichier upload est déjà lié à une autre pièce.',
     },
   },
   '[preliminary-evaluation]'
@@ -218,6 +254,15 @@ export const handleFormalRequestError = createErrorHandler(
     INVALID_CIRCUIT_TRANSITION: {
       status: 409,
       message: 'Transition de statut invalide pour ce circuit.',
+    },
+    UPLOAD_ASSET_NOT_FOUND: { status: 400, message: 'Fichier upload introuvable.' },
+    UPLOAD_ASSET_FILE_MISMATCH: {
+      status: 400,
+      message: "Le fichier upload ne correspond pas à l'URL soumise.",
+    },
+    UPLOAD_ASSET_ALREADY_LINKED: {
+      status: 409,
+      message: 'Ce fichier upload est déjà lié à une autre pièce.',
     },
   },
   '[formal-request]'

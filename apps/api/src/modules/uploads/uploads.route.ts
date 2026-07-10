@@ -1,15 +1,48 @@
 import { Router } from "express";
 import multer from "multer";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 import { authenticateEither } from "../../shared/guards/auth.middleware.js";
 import * as uploadsController from "./uploads.controller.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const uploadDir = path.resolve(__dirname, "../../../uploads");
+const uploadRootDir = path.resolve(__dirname, "../../../uploads");
+
+function sourceAppFromOrigin(origin: string | undefined): "admin" | "portal" | "api" | "unknown" {
+  if (!origin) return "unknown";
+  if (process.env.ADMIN_ORIGIN && origin === process.env.ADMIN_ORIGIN) return "admin";
+  if (process.env.PORTAL_ORIGIN && origin === process.env.PORTAL_ORIGIN) return "portal";
+  if (process.env.API_ORIGIN && origin === process.env.API_ORIGIN) return "api";
+  return "unknown";
+}
+
+function sanitizeSegment(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9-_]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 24);
+}
+
+type UploadRequest = Express.Request & { uploadRelativeDir?: string };
 
 const storage = multer.diskStorage({
-  destination: uploadDir,
+  destination: (req, _file, cb) => {
+    const now = new Date();
+    const year = String(now.getFullYear());
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    const sourceApp = sourceAppFromOrigin(req.get("origin"));
+    const moduleHintRaw = typeof req.body?.moduleHint === "string" ? req.body.moduleHint : "misc";
+    const moduleHint = sanitizeSegment(moduleHintRaw) || "misc";
+
+    const relativeDir = path.posix.join(year, month, day, sourceApp, moduleHint);
+    const absoluteDir = path.join(uploadRootDir, relativeDir);
+    fs.mkdirSync(absoluteDir, { recursive: true });
+    (req as UploadRequest).uploadRelativeDir = relativeDir;
+    cb(null, absoluteDir);
+  },
   filename: (_req, file, cb) => {
     const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
     cb(null, `${unique}${path.extname(file.originalname)}`);

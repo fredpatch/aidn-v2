@@ -43,11 +43,21 @@ export async function getForRequest(req: Request, res: Response): Promise<void> 
 
 export async function close(req: Request, res: Response): Promise<void> {
   try {
-    const { closureDocumentUrl, closureDocumentMimeType, closureNote } = req.body ?? {};
+    const { closureDocumentUrl, closureDocumentMimeType, closureNote, closureDocumentUploadAssetId } =
+      req.body ?? {};
+    const parsedClosureUploadAssetId =
+      closureDocumentUploadAssetId === undefined || closureDocumentUploadAssetId === null
+        ? undefined
+        : Number(closureDocumentUploadAssetId);
+    if (parsedClosureUploadAssetId !== undefined && !Number.isInteger(parsedClosureUploadAssetId)) {
+      res.status(400).json({ message: 'closureDocumentUploadAssetId invalide.' });
+      return;
+    }
     const phase = await phasesService.closePhase(Number(req.params.id), req.user!.userId, {
       closureDocumentUrl,
       closureDocumentMimeType,
       closureNote,
+      closureDocumentUploadAssetId: parsedClosureUploadAssetId,
     });
     res.json(phase);
   } catch (error) {

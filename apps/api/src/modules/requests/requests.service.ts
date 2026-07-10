@@ -10,6 +10,7 @@ import {
 import { logAudit } from "../auth/auth.service.js";
 import { generateRequestReference } from "./requests.helpers.js";
 import type { SubmitRequestParams, RequestView } from "./requests.types.js";
+import { linkUploadAssetToOwner } from "../uploads/uploads.service.js";
 
 export type { SubmitRequestParams, RequestView } from "./requests.types.js";
 
@@ -87,6 +88,13 @@ export async function submitRequest(params: SubmitRequestParams): Promise<Reques
       mimeType: params.mimeType,
       uploadedBy: params.submittedByUserId,
       isCurrent: true,
+    });
+
+    await linkUploadAssetToOwner({
+      uploadAssetId: params.uploadAssetId,
+      ownerType: 'dg_circuit_document',
+      ownerId: circuitDoc.id,
+      expectedFileUrl: params.fileUrl,
     });
 
     await logAudit({
@@ -263,7 +271,8 @@ export async function replaceCircuitDocument(
   requestId: number,
   newFileUrl: string,
   mimeType: string,
-  actorUserId: number
+  actorUserId: number,
+  uploadAssetId?: number
 ): Promise<void> {
   const [circuitDoc] = await db
     .select()
@@ -283,6 +292,13 @@ export async function replaceCircuitDocument(
     mimeType,
     uploadedBy: actorUserId,
     isCurrent: true,
+  });
+
+  await linkUploadAssetToOwner({
+    uploadAssetId,
+    ownerType: 'dg_circuit_document',
+    ownerId: circuitDoc.id,
+    expectedFileUrl: newFileUrl,
   });
 
   await logAudit({

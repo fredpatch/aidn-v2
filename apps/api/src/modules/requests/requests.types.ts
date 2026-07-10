@@ -4,6 +4,7 @@ export interface SubmitRequestParams {
   message?: string;
   fileUrl: string;
   mimeType: string;
+  uploadAssetId?: number;
   submittedByUserId?: number; // set when reception/assistant_dg enters it manually
 }
 

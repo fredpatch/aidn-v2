@@ -2,6 +2,7 @@ import { eq, and, gte, lt, ne } from 'drizzle-orm';
 import { db } from '../../shared/db/index.js';
 import { meetings, phases, requests, users, documentVersions } from '../../shared/db/schema.js';
 import { logAudit } from '../auth/auth.service.js';
+import { linkUploadAssetToOwner } from '../uploads/uploads.service.js';
 import type { ScheduleMeetingParams, MeetingView } from './meetings.types.js';
 
 export type { ScheduleMeetingParams, MeetingView } from './meetings.types.js';
@@ -229,7 +230,8 @@ export async function attachMeetingReport(
   meetingId: number,
   actorUserId: number,
   fileUrl: string,
-  mimeType: string
+  mimeType: string,
+  uploadAssetId?: number
 ): Promise<MeetingView> {
   const [meeting] = await db.select().from(meetings).where(eq(meetings.id, meetingId));
   if (!meeting) throw new Error('MEETING_NOT_FOUND');
@@ -249,6 +251,13 @@ export async function attachMeetingReport(
     mimeType,
     uploadedBy: actorUserId,
     isCurrent: true,
+  });
+
+  await linkUploadAssetToOwner({
+    uploadAssetId,
+    ownerType: 'meeting_report',
+    ownerId: meetingId,
+    expectedFileUrl: fileUrl,
   });
 
   const [updated] = await db

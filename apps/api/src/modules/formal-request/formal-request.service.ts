@@ -9,6 +9,7 @@ import {
   meetings,
 } from '../../shared/db/schema.js';
 import { logAudit } from '../auth/auth.service.js';
+import { linkUploadAssetToOwner } from '../uploads/uploads.service.js';
 import type {
   FormalDocumentView,
   FormalLetterCircuitView,
@@ -95,7 +96,8 @@ export async function submitFormalLetter(
   requestId: number,
   fileUrl: string,
   mimeType: string,
-  submittedByApplicantId?: number
+  submittedByApplicantId?: number,
+  uploadAssetId?: number
 ): Promise<FormalLetterCircuitView> {
   const [phase] = await db
     .select()
@@ -131,6 +133,13 @@ export async function submitFormalLetter(
     mimeType,
     uploadedBy: submittedByApplicantId,
     isCurrent: true,
+  });
+
+  await linkUploadAssetToOwner({
+    uploadAssetId,
+    ownerType: 'formal_request_document',
+    ownerId: circuit.id,
+    expectedFileUrl: fileUrl,
   });
 
   if (submittedByApplicantId) {
@@ -218,7 +227,8 @@ export async function submitDocument(
   fileUrl: string,
   mimeType: string,
   actorUserId?: number,
-  isApplicant = false
+  isApplicant = false,
+  uploadAssetId?: number
 ): Promise<FormalDocumentView> {
   const [phase] = await db
     .select()
@@ -266,6 +276,13 @@ export async function submitDocument(
     mimeType,
     uploadedBy: actorUserId,
     isCurrent: true,
+  });
+
+  await linkUploadAssetToOwner({
+    uploadAssetId,
+    ownerType: 'formal_request_document',
+    ownerId: doc.id,
+    expectedFileUrl: fileUrl,
   });
 
   const [updated] = await db
@@ -368,7 +385,12 @@ export async function getBundleForRequest(requestId: number): Promise<FormalPhas
 export async function closeFormalPhase(
   phaseId: number,
   actorUserId: number,
-  params: { closureDocumentUrl?: string; closureDocumentMimeType?: string; closureNote?: string }
+  params: {
+    closureDocumentUrl?: string;
+    closureDocumentMimeType?: string;
+    closureNote?: string;
+    closureDocumentUploadAssetId?: number;
+  }
 ): Promise<void> {
   const [phase] = await db.select().from(phases).where(eq(phases.id, phaseId));
   if (!phase) throw new Error('PHASE_NOT_FOUND');
@@ -411,6 +433,13 @@ export async function closeFormalPhase(
       mimeType: params.closureDocumentMimeType ?? 'application/octet-stream',
       uploadedBy: actorUserId,
       isCurrent: true,
+    });
+
+    await linkUploadAssetToOwner({
+      uploadAssetId: params.closureDocumentUploadAssetId,
+      ownerType: 'phase_closure_document',
+      ownerId: phaseId,
+      expectedFileUrl: params.closureDocumentUrl,
     });
   }
 

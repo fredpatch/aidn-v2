@@ -39,9 +39,15 @@ export async function getBundle(req: Request, res: Response): Promise<void> {
 
 export async function submitLetter(req: Request, res: Response): Promise<void> {
   try {
-    const { fileUrl, mimeType } = req.body ?? {};
+    const { fileUrl, mimeType, uploadAssetId } = req.body ?? {};
     if (!fileUrl || !mimeType) {
       res.status(400).json({ message: 'fileUrl et mimeType sont requis.' });
+      return;
+    }
+    const parsedUploadAssetId =
+      uploadAssetId === undefined || uploadAssetId === null ? undefined : Number(uploadAssetId);
+    if (parsedUploadAssetId !== undefined && !Number.isInteger(parsedUploadAssetId)) {
+      res.status(400).json({ message: 'uploadAssetId invalide.' });
       return;
     }
     const requestId = Number(req.params.requestId);
@@ -53,7 +59,8 @@ export async function submitLetter(req: Request, res: Response): Promise<void> {
       requestId,
       fileUrl,
       mimeType,
-      req.applicant?.applicantId
+      req.applicant?.applicantId,
+      parsedUploadAssetId
     );
     res.status(201).json(circuit);
   } catch (error) {
@@ -87,9 +94,15 @@ export async function markPendingReview(req: Request, res: Response): Promise<vo
 
 export async function submitDocument(req: Request, res: Response): Promise<void> {
   try {
-    const { slot, fileUrl, mimeType } = req.body ?? {};
+    const { slot, fileUrl, mimeType, uploadAssetId } = req.body ?? {};
     if (!slot || !fileUrl || !mimeType) {
       res.status(400).json({ message: 'slot, fileUrl et mimeType sont requis.' });
+      return;
+    }
+    const parsedUploadAssetId =
+      uploadAssetId === undefined || uploadAssetId === null ? undefined : Number(uploadAssetId);
+    if (parsedUploadAssetId !== undefined && !Number.isInteger(parsedUploadAssetId)) {
+      res.status(400).json({ message: 'uploadAssetId invalide.' });
       return;
     }
     const requestId = Number(req.params.requestId);
@@ -103,7 +116,8 @@ export async function submitDocument(req: Request, res: Response): Promise<void>
       fileUrl,
       mimeType,
       req.user?.userId ?? req.applicant?.applicantId,
-      !!req.applicant
+      !!req.applicant,
+      parsedUploadAssetId
     );
     res.json(doc);
   } catch (error) {
@@ -113,11 +127,21 @@ export async function submitDocument(req: Request, res: Response): Promise<void>
 
 export async function closePhase(req: Request, res: Response): Promise<void> {
   try {
-    const { closureDocumentUrl, closureDocumentMimeType, closureNote } = req.body ?? {};
+    const { closureDocumentUrl, closureDocumentMimeType, closureNote, closureDocumentUploadAssetId } =
+      req.body ?? {};
+    const parsedClosureUploadAssetId =
+      closureDocumentUploadAssetId === undefined || closureDocumentUploadAssetId === null
+        ? undefined
+        : Number(closureDocumentUploadAssetId);
+    if (parsedClosureUploadAssetId !== undefined && !Number.isInteger(parsedClosureUploadAssetId)) {
+      res.status(400).json({ message: 'closureDocumentUploadAssetId invalide.' });
+      return;
+    }
     await formalService.closeFormalPhase(Number(req.params.phaseId), req.user!.userId, {
       closureDocumentUrl,
       closureDocumentMimeType,
       closureNote,
+      closureDocumentUploadAssetId: parsedClosureUploadAssetId,
     });
     res.json({ message: 'Phase clôturée.' });
   } catch (error) {
