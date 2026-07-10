@@ -16,3 +16,17 @@ export interface DevToolsStatus {
 export interface DevToolsResetResult {
   scopesCleared: string[];
 }
+
+export interface UploadDiagnostics {
+  total: number;
+  linked: number;
+  unlinked: number;
+  orphanMarked: number;
+  bySource: Array<{ source: string; total: number }>;
+}
+
+export interface UploadCleanupResult {
+  retentionDays: number;
+  marked: number;
+  deleted: number;
+}

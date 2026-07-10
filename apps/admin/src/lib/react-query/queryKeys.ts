@@ -8,6 +8,7 @@ export const queryKeys = {
     all: ['settings'] as const,
     systemParameters: () => ['settings', 'system-parameters'] as const,
     devToolsStatus: () => ['settings', 'dev-tools-status'] as const,
+    uploadDiagnostics: () => ['settings', 'upload-diagnostics'] as const,
   },
   preliminary: {
     all: ['preliminary'] as const,

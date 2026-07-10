@@ -267,3 +267,51 @@ export const handleFormalRequestError = createErrorHandler(
   },
   '[formal-request]'
 );
+
+export const handleDeepEvaluationError = createErrorHandler(
+  {
+    REQUEST_NOT_FOUND: { status: 404, message: 'Demande introuvable.' },
+    M4_NOT_CLOSED: {
+      status: 409,
+      message:
+        "La phase de demande formelle doit être clôturée avant d'ouvrir l'évaluation approfondie.",
+    },
+    PHASE_ALREADY_OPEN: {
+      status: 409,
+      message: 'Cette phase est déjà ouverte pour cette demande.',
+    },
+    PHASE_NOT_FOUND: { status: 404, message: 'Phase introuvable.' },
+    PHASE_ALREADY_CLOSED: {
+      status: 409,
+      message: 'Cette phase est déjà clôturée.',
+    },
+    PAYMENT_NOT_FOUND: { status: 404, message: 'Paiement introuvable.' },
+    INVOICE_NOT_UPLOADED: {
+      status: 409,
+      message:
+        "La facture doit d'abord être mise en ligne par S5 avant que le postulant puisse soumettre sa preuve.",
+    },
+    PAYMENT_ALREADY_VALIDATED: {
+      status: 409,
+      message: 'Ce paiement a déjà été validé.',
+    },
+    PAYMENT_NOT_PENDING: {
+      status: 409,
+      message: "La preuve de paiement doit être au statut 'en attente de validation'.",
+    },
+    PAYMENT_NOT_VALIDATED: {
+      status: 409,
+      message: 'Le paiement doit être validé avant de clôturer la phase.',
+    },
+    EVALUATION_NOT_FOUND: { status: 404, message: 'Évaluation introuvable.' },
+    RESUBMISSION_NOT_ALLOWED: {
+      status: 409,
+      message: "La re-soumission n'est possible que pour les documents rejetés ou à corriger.",
+    },
+    DOCUMENTS_NOT_ALL_VALIDATED: {
+      status: 409,
+      message: 'Tous les documents doivent être validés avant de clôturer la phase.',
+    },
+  },
+  '[deep-evaluation]'
+);

@@ -6,6 +6,7 @@ import type { ParameterView } from '../../lib/api/settings.types';
 import { notify } from '../../lib/notify';
 import { useSystemParameters } from './hooks/useSystemParameters';
 import { useDevReset } from './hooks/useDevReset';
+import { useUploadMaintenance } from './hooks/useUploadMaintenance';
 
 const MODULE_LABELS: Record<string, string> = {
   AUTH: 'Authentification',
@@ -25,6 +26,7 @@ export default function SettingsPage() {
       </div>
 
       <SystemParametersSection />
+      <UploadsMaintenanceSection />
       <DevResetSection />
     </div>
   );
@@ -229,6 +231,112 @@ function DevResetSection() {
             </Button>
           </div>
         )}
+      </div>
+    </section>
+  );
+}
+
+function UploadsMaintenanceSection() {
+  const { diagnostics, loading, error, busy, runCleanup } = useUploadMaintenance();
+  const [retentionDays, setRetentionDays] = useState('');
+  const [result, setResult] = useState<string | null>(null);
+  const [runError, setRunError] = useState<string | null>(null);
+
+  async function handleCleanup() {
+    setResult(null);
+    setRunError(null);
+
+    const retention = retentionDays.trim();
+    if (retention && !Number.isInteger(Number(retention))) {
+      const msg = 'Le delai de retention doit etre un entier.';
+      setRunError(msg);
+      notify.error(msg);
+      return;
+    }
+
+    const response = await runCleanup(retention ? Number(retention) : undefined);
+    if (response.error) {
+      setRunError(response.error);
+      notify.error(response.error);
+      return;
+    }
+
+    if (response.result) {
+      setResult(response.result);
+      notify.success('Nettoyage des uploads termine.');
+      setRetentionDays('');
+    }
+  }
+
+  return (
+    <section className="space-y-3">
+      <h2 className="text-anac-navy font-semibold text-sm uppercase tracking-wide">
+        Uploads et tracabilite
+      </h2>
+
+      <div className="card space-y-4">
+        {loading && <p className="text-anac-muted text-sm">Chargement des diagnostics...</p>}
+        {error && <p className="text-anac-danger text-sm">{error}</p>}
+
+        {diagnostics && (
+          <div className="grid sm:grid-cols-2 gap-3 text-sm">
+            <div className="rounded border border-anac-border p-3">
+              <p className="text-anac-muted text-xs">Uploads total</p>
+              <p className="font-semibold text-anac-navy text-lg">{diagnostics.total}</p>
+            </div>
+            <div className="rounded border border-anac-border p-3">
+              <p className="text-anac-muted text-xs">Lies a une piece</p>
+              <p className="font-semibold text-anac-success text-lg">{diagnostics.linked}</p>
+            </div>
+            <div className="rounded border border-anac-border p-3">
+              <p className="text-anac-muted text-xs">Non lies</p>
+              <p className="font-semibold text-anac-warning text-lg">{diagnostics.unlinked}</p>
+            </div>
+            <div className="rounded border border-anac-border p-3">
+              <p className="text-anac-muted text-xs">Orphelins marques</p>
+              <p className="font-semibold text-anac-danger text-lg">{diagnostics.orphanMarked}</p>
+            </div>
+          </div>
+        )}
+
+        {diagnostics && diagnostics.bySource.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs uppercase tracking-wide text-anac-muted">
+              Repartition par source
+            </p>
+            <div className="space-y-1.5">
+              {diagnostics.bySource.map((row) => (
+                <div key={row.source} className="flex items-center justify-between text-sm">
+                  <span className="text-anac-muted">{row.source}</span>
+                  <span className="font-medium text-anac-navy">{row.total}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="border-t border-anac-border pt-3 space-y-2">
+          <p className="text-anac-muted text-xs">
+            Lance un nettoyage manuel des uploads non lies. Laisser vide pour utiliser le delai
+            configure dans les parametres systeme.
+          </p>
+
+          <div className="flex items-center gap-2">
+            <Input
+              type="number"
+              className="h-8 text-sm w-44"
+              placeholder="Retention (jours)"
+              value={retentionDays}
+              onChange={(e) => setRetentionDays(e.target.value)}
+            />
+            <Button size="sm" onClick={handleCleanup} disabled={busy}>
+              {busy ? 'Nettoyage...' : 'Nettoyer les orphelins'}
+            </Button>
+          </div>
+
+          {runError && <p className="text-anac-danger text-xs">{runError}</p>}
+          {result && <p className="text-anac-success text-xs">{result}</p>}
+        </div>
       </div>
     </section>
   );
