@@ -10,6 +10,7 @@ interface DocumentsChecklistCardProps {
   requestId: string | undefined;
   documents: FormalDocumentView[];
   completionRate: number;
+  phaseClosed: boolean;
   setActionError: (message: string | null) => void;
 }
 
@@ -17,6 +18,7 @@ export default function DocumentsChecklistCard({
   requestId,
   documents,
   completionRate,
+  phaseClosed,
   setActionError,
 }: DocumentsChecklistCardProps) {
   const { busy, submit } = useFormalDocumentActions(requestId, setActionError);
@@ -72,7 +74,7 @@ export default function DocumentsChecklistCard({
                 </p>
                 {doc.status === 'submitted' && doc.fileUrl && (
                   <p className="text-[10px] text-anac-muted mt-0.5">
-                    Soumis le {formatDate(doc.submittedAt)} —{' '}
+                    Soumis le {formatDate(doc.submittedAt)} -{' '}
                     <a
                       href={`${API_ORIGIN}${doc.fileUrl}`}
                       target="_blank"
@@ -81,14 +83,18 @@ export default function DocumentsChecklistCard({
                     >
                       voir le fichier
                     </a>
-                    {' — '}
-                    <button
-                      type="button"
-                      className="underline text-anac-muted"
-                      onClick={() => setUploadingSlot(doc.slot)}
-                    >
-                      remplacer
-                    </button>
+                    {!phaseClosed && (
+                      <>
+                        {' - '}
+                        <button
+                          type="button"
+                          className="underline text-anac-muted"
+                          onClick={() => setUploadingSlot(doc.slot)}
+                        >
+                          remplacer (DN uniquement)
+                        </button>
+                      </>
+                    )}
                   </p>
                 )}
               </div>

@@ -1,6 +1,6 @@
 # 🎯 Current Task
 
-**Session date**: 2026-07-09
+**Session date**: 2026-07-10
 **Status**: Sprint 0, Sprint 1, and Sprint 2 (M3) are committed, including the
 latest hardening/refactor pushes. Current work has moved into Sprint 3 backend
 kickoff with the `formal-request` module (M4) while continuing cache/docs sync.
@@ -43,8 +43,12 @@ kickoff with the `formal-request` module (M4) while continuing cache/docs sync.
   - toaster mounted in admin and portal app roots
   - `notify` helpers added in both apps
   - key login/settings/request flows now emit toast feedback
-- Planned follow-up: portal-side React Query + shared `lib/api` migration will be
-  executed in a dedicated task (tracked in `docs/TASKS.md`), not in this pass
+- Completed the portal-side React Query + shared `lib/api` migration for
+  `MyRequestPage`:
+  - split the page into `components/`, `hooks/`, `constants.ts`, and `lib/api/`
+  - added portal `queryKeys` and `QueryClientProvider` wiring so request data
+    uses React Query invalidation instead of manual reload state
+  - kept the existing M3/M4 behavior intact while making the page easier to extend
 - Started Sprint 3 backend groundwork (M4 formal request):
   - added `formal-request` API module and mounted `/api/formal-request`
   - implemented M4 open/bundle/letter circuit/document slots/close gates
@@ -54,10 +58,11 @@ kickoff with the `formal-request` module (M4) while continuing cache/docs sync.
   - added new `pages/phases/formal/*` feature module with React Query hooks/actions
   - added `apps/admin/src/lib/api/formal.api.ts` + `formal.types.ts`
   - wired requests list/actions toward M4 page entrypoints
-- Started Sprint 3 portal frontend groundwork (M4, incremental):
+- Started Sprint 3 portal frontend groundwork (M4, incremental), then refactored it:
   - upgraded `apps/portal/src/pages/requests/MyRequestPage.tsx` with improved M3 labels/status rendering
   - added initial `FormalPhaseSection` for portal M4 letter/documents/meeting visibility and submissions
-  - deferred modular + React Query migration to the planned portal convention task
+  - extracted portal request logic into dedicated API/hook/component modules and adopted the same React Query/data-layer convention as admin
+  - included the current admin/api/portal changes in the same working batch so the cache reflects the full tree
 
 ## ✅ Done today (2026-07-08, this session): Sprint 2 — Phase Préliminaire (M3)
 

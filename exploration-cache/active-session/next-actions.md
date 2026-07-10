@@ -1,11 +1,12 @@
 # ⚡ Next Actions
 
-Last updated: 2026-07-09
+Last updated: 2026-07-10
 
 ## 🔥 Immediate (start here next session)
 
-1. **Commit and push the ongoing Sprint 3 frontend incremental diff** —
-   admin M4 formal module kickoff + portal `MyRequestPage` M3 polish and initial M4 section.
+1. **Commit and push the combined Sprint 3 diff** —
+   admin M4 formal module kickoff, api formal-request refinements, and the portal
+   `MyRequestPage` refactor/M3-M4 split.
 
 2. **Sprint 3 — Phase Demande formelle (M4)**
    - Reuses `dg_circuit_documents` (already generic across M1/M4, see
@@ -14,7 +15,7 @@ Last updated: 2026-07-09
      (`dn_air_r2_3_f_e_010/011/012`) — build the endpoints/UI that actually use them
    - Consider whether the meeting-ticket HTML approach (`project/decisions.md` #12)
      still holds or whether M4's needs finally justify a real PDF generator
-   - **Delta**: backend + admin M4 kickoff are in place; portal now has initial M4 section, next is full portal modular/React Query alignment
+   - **Delta**: backend + admin M4 kickoff are in place; portal now has the M4 section and the modular React Query/lib-api refactor is complete in the same working batch
 
 3. **Add `PORTAL_ORIGIN` to `apps/api/.env.example`** — currently only in local
    `.env`, needed for `authenticateEither`'s origin-based cookie check
@@ -22,10 +23,6 @@ Last updated: 2026-07-09
 4. **Visual QA of Sprint 1 + Sprint 2 + hardening/refactor UI** — Fred to confirm
    phase/meeting/report/settings flows render as intended after the M3 page split; Claude's sandbox
    cannot screenshot a browser
-5. **Portal convention refactor (scheduled follow-up)** — migrate portal auth/request/
-   preliminary flows to the same React Query + shared `src/lib/api` architecture
-   now used in admin; tracked as a dedicated item under Sprint 2 maintenance in
-   `docs/TASKS.md`.
 
 ## 📅 Later (not urgent, don't start until Sprint 3+ is underway)
 

@@ -27,6 +27,7 @@ export default function FormalPhasePage() {
   if (error) return <p className="text-anac-danger p-6">{error}</p>;
 
   const canClose = canCloseFormalPhase(bundle);
+  const letterSubmitted = !!bundle?.letterCircuit;
   const blockReason = closureBlockReason(bundle);
   const checklist = bundle ? buildChecklist(bundle) : [];
 
@@ -90,6 +91,7 @@ export default function FormalPhasePage() {
               requestId={requestId}
               documents={bundle.documents}
               completionRate={bundle.completionRate}
+              phaseClosed={bundle.phase.status === 'closed'}
               setActionError={setActionError}
             />
 
@@ -98,7 +100,7 @@ export default function FormalPhasePage() {
               meeting={bundle.meeting}
               dnAgentId={user?.id ?? 0}
               requestId={requestId}
-              documentsComplete={bundle.completionRate === 11}
+              letterSubmitted={letterSubmitted}
               setActionError={setActionError}
             />
 

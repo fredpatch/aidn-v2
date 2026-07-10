@@ -3,15 +3,15 @@
   "client": "ANAC Gabon",
   "repo": "fredpatch/aidn-v2",
   "branch": "main",
-  "lastUpdated": "2026-07-10T09:30:00Z",
-  "lastCommit": "1ced24a feat(admin): kick off M4 formal phase UI and sync cache docs",
+  "lastUpdated": "2026-07-10T10:15:00Z",
+  "lastCommit": "225f463 feat(portal): add initial M4 section in MyRequestPage and sync cache docs",
   "currentSprint": "Sprint 2 (M3) committed; Sprint 3 (Phase Demande formelle, M4) backend kickoff started",
-  "currentSprintFocus": "Sprint 0, Sprint 1, and Sprint 2 are committed. Current work continues Sprint 3 with M4 backend in place, admin frontend kickoff delivered, and a first incremental portal pass added in MyRequestPage for M4 visibility/submissions.",
-  "status": "Sprint 0 COMPLETE. Sprint 1 COMPLETE. Sprint 2 COMPLETE and committed. Sprint 3 has backend formal-request APIs, admin M4 frontend kickoff, and an initial portal M4 section in MyRequestPage. Full portal modular React Query/lib-api alignment remains pending.",
+  "currentSprintFocus": "Sprint 0, Sprint 1, and Sprint 2 are committed. Current work continues Sprint 3 with M4 backend in place, admin frontend kickoff delivered, and portal MyRequestPage now refactored into a modular React Query + lib/api split alongside the existing M4 section.",
+  "status": "Sprint 0 COMPLETE. Sprint 1 COMPLETE. Sprint 2 COMPLETE and committed. Sprint 3 has backend formal-request APIs, admin M4 frontend kickoff, and the portal MyRequestPage module is now split into React Query/lib-api/components/hooks. Full portal alignment is underway in the same convention.",
   "activeSession": {
-    "task": "Post-Sprint-2 hardening is committed; active work now includes Sprint 3 admin frontend kickoff for M4 plus an incremental portal MyRequestPage integration for M4 visibility/submissions. exploration-cache update and commit in progress.",
+    "task": "Post-Sprint-2 hardening is committed; active work now includes Sprint 3 admin frontend kickoff for M4 plus the portal MyRequestPage modular React Query/lib-api refactor and M4 visibility/submissions. exploration-cache update and combined commit/push in progress.",
     "startedAt": "2026-07-09",
-    "nextAction": "Commit and push current portal incremental M4 pass + docs sync, then continue full portal modular React Query/lib-api alignment for Sprint 3. Add PORTAL_ORIGIN to apps/api/.env.example first."
+    "nextAction": "Commit and push the combined admin/api/portal batch, then continue Sprint 3 follow-up work and add PORTAL_ORIGIN to apps/api/.env.example first."
   },
   "index": [
     {
@@ -36,7 +36,7 @@
       "path": "active-session/current-task.md",
       "type": "session",
       "tags": ["current", "sprint2", "sprint3", "m3", "m4", "document-templates"],
-      "summary": "Current session now includes Sprint 3 backend + admin frontend kickoff plus an incremental portal M4 pass"
+      "summary": "Current session now includes Sprint 3 backend + admin frontend kickoff plus the portal modular React Query/lib-api refactor"
     },
     {
       "path": "active-session/blockers.md",
@@ -48,7 +48,7 @@
       "path": "active-session/next-actions.md",
       "type": "session",
       "tags": ["actions", "sprint3", "phase-demande-formelle", "m4"],
-      "summary": "Commit portal incremental M4 pass, then continue full portal modular alignment and end-to-end UI integration"
+      "summary": "Commit the combined admin/api/portal batch, then continue Sprint 3 follow-up work and environment sync"
     },
     {
       "path": "active-session/context.md",

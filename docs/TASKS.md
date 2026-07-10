@@ -183,9 +183,9 @@ build + flow complet contre un vrai Postgres). Détail complet dans
       `useMutation`) avec invalidation via `queryKeys`
 - [x] Les hooks feature/domain encapsulent les mutations et messages d'erreur,
       les pages restent des orchestrateurs UI
-- [ ] **Suivi planifié (portail)** : appliquer la même convention
-      React Query + `src/lib/api` au portail (auth/demandes/phase préliminaire)
-      dans une passe dédiée, sans bloquer Sprint 3
+- [x] **Suivi portail** : appliquée la même convention React Query + `src/lib/api`
+      au module `MyRequestPage` (demandes, phase préliminaire, phase formelle)
+      sans bloquer Sprint 3
 
 ### Module ajouté, anticipant M4 : Modèles de documents (`document_templates`)
 

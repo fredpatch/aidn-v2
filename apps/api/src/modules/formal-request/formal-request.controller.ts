@@ -102,7 +102,8 @@ export async function submitDocument(req: Request, res: Response): Promise<void>
       slot,
       fileUrl,
       mimeType,
-      req.user?.userId ?? req.applicant?.applicantId
+      req.user?.userId ?? req.applicant?.applicantId,
+      !!req.applicant
     );
     res.json(doc);
   } catch (error) {

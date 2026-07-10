@@ -12,7 +12,7 @@ interface FormalMeetingCardProps {
   meeting: FormalMeetingView | null;
   dnAgentId: number;
   requestId: string | undefined;
-  documentsComplete: boolean;
+  letterSubmitted: boolean;
   setActionError: (message: string | null) => void;
 }
 
@@ -21,7 +21,7 @@ export default function FormalMeetingCard({
   meeting,
   dnAgentId,
   requestId,
-  documentsComplete,
+  letterSubmitted,
   setActionError,
 }: FormalMeetingCardProps) {
   const [scheduling, setScheduling] = useState(false);
@@ -84,9 +84,10 @@ export default function FormalMeetingCard({
 
       {warning && <p className="text-anac-warning text-xs">{warning}</p>}
 
-      {!documentsComplete && !meeting ? (
+      {!letterSubmitted && !meeting ? (
         <p className="text-anac-muted text-sm">
-          La réunion formelle sera planifiable une fois les 11 documents soumis par le postulant.
+          La réunion formelle sera planifiable une fois la lettre de demande officielle soumise par
+          le postulant.
         </p>
       ) : !meeting ? (
         scheduling ? (

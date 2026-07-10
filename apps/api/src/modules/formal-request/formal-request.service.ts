@@ -217,7 +217,8 @@ export async function submitDocument(
   slot: string,
   fileUrl: string,
   mimeType: string,
-  actorUserId?: number
+  actorUserId?: number,
+  isApplicant = false
 ): Promise<FormalDocumentView> {
   const [phase] = await db
     .select()
@@ -241,7 +242,12 @@ export async function submitDocument(
   if (!doc) throw new Error('SLOT_NOT_FOUND');
 
   // M8 - trash the previous version if replacing
+  // Applicants cannot replace a document once submitted — the rule is
+  // one-shot per slot for the postulant. DN can still replace on behalf
+  // (physical drop-off correction) since actorUserId comes from req.user
+  // in that case, not req.applicant. Phase closed = nobody can replace.
   if (doc.fileUrl) {
+    if (isApplicant) throw new Error('DOCUMENT_ALREADY_SUBMITTED');
     await db
       .update(documentVersions)
       .set({ isCurrent: false, trashedAt: new Date() })

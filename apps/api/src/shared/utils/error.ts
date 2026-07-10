@@ -203,6 +203,10 @@ export const handleFormalRequestError = createErrorHandler(
         "La lettre de demande formelle doit d'abord être transmise à la DN avant de clôturer.",
     },
     SLOT_NOT_FOUND: { status: 404, message: 'Créneau de document introuvable pour cette phase.' },
+    DOCUMENT_ALREADY_SUBMITTED: {
+      status: 409,
+      message: 'Ce document a déjà été soumis. Il ne peut pas être remplacé.',
+    },
     DOCUMENTS_INCOMPLETE: {
       status: 409,
       message: 'Les 11 documents doivent tous être soumis avant de clôturer la phase.',
