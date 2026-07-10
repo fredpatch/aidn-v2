@@ -66,6 +66,10 @@ On top of `0e29d06`, 2026-07-09 ongoing session:
   - new admin API/types layer `apps/admin/src/lib/api/formal.api.ts` + `formal.types.ts`
   - React Query integration for M4 (`queryKeys.formal.bundle(requestId)` + invalidation flows)
   - requests list now links to both M3 and M4 pages when dossier is `in_progress`
+- **Sprint 3 kickoff (M4) — portal frontend started (lightweight pass)**:
+  - `apps/portal/src/pages/requests/MyRequestPage.tsx` updated with cleaner M3 section labels and API-origin link consistency
+  - added initial `FormalPhaseSection` in portal for M4 read/submit flows (letter + document slots + meeting visibility)
+  - kept implementation local to page for fast iteration; full portal convention refactor remains scheduled
 
 ## (uncommitted) — Sprint 2: Phase Préliminaire (M3), full API + UI
 

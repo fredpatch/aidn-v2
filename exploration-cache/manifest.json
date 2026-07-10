@@ -3,15 +3,15 @@
   "client": "ANAC Gabon",
   "repo": "fredpatch/aidn-v2",
   "branch": "main",
-  "lastUpdated": "2026-07-09T17:30:00Z",
-  "lastCommit": "14efd94 feat(ui): add sonner notifications across admin and portal",
+  "lastUpdated": "2026-07-10T09:30:00Z",
+  "lastCommit": "1ced24a feat(admin): kick off M4 formal phase UI and sync cache docs",
   "currentSprint": "Sprint 2 (M3) committed; Sprint 3 (Phase Demande formelle, M4) backend kickoff started",
-  "currentSprintFocus": "Sprint 0, Sprint 1, and Sprint 2 are committed. Current work continues Sprint 3 with the M4 backend already started and the admin frontend now being wired (formal route/page/module, formal API client, and React Query formal keys/hooks).",
-  "status": "Sprint 0 COMPLETE. Sprint 1 COMPLETE. Sprint 2 COMPLETE and committed. Post-sprint hardening delivered React Query/lib-api conventions and Sonner notifications. Sprint 3 now has backend APIs for M4 plus an in-progress admin frontend kickoff (formal phase page and orchestration), with portal M4 UI still pending.",
+  "currentSprintFocus": "Sprint 0, Sprint 1, and Sprint 2 are committed. Current work continues Sprint 3 with M4 backend in place, admin frontend kickoff delivered, and a first incremental portal pass added in MyRequestPage for M4 visibility/submissions.",
+  "status": "Sprint 0 COMPLETE. Sprint 1 COMPLETE. Sprint 2 COMPLETE and committed. Sprint 3 has backend formal-request APIs, admin M4 frontend kickoff, and an initial portal M4 section in MyRequestPage. Full portal modular React Query/lib-api alignment remains pending.",
   "activeSession": {
-    "task": "Post-Sprint-2 hardening is committed; active work now includes Sprint 3 admin frontend kickoff for M4 on top of formal-request backend APIs (route/page/module, formal API client, React Query hooks/keys). exploration-cache update and commit in progress.",
+    "task": "Post-Sprint-2 hardening is committed; active work now includes Sprint 3 admin frontend kickoff for M4 plus an incremental portal MyRequestPage integration for M4 visibility/submissions. exploration-cache update and commit in progress.",
     "startedAt": "2026-07-09",
-    "nextAction": "Commit and push current admin M4 frontend kickoff diff, then continue Sprint 3 end-to-end admin wiring and portal M4 UI. Add PORTAL_ORIGIN to apps/api/.env.example first."
+    "nextAction": "Commit and push current portal incremental M4 pass + docs sync, then continue full portal modular React Query/lib-api alignment for Sprint 3. Add PORTAL_ORIGIN to apps/api/.env.example first."
   },
   "index": [
     {
@@ -36,7 +36,7 @@
       "path": "active-session/current-task.md",
       "type": "session",
       "tags": ["current", "sprint2", "sprint3", "m3", "m4", "document-templates"],
-      "summary": "Current session now includes Sprint 3 backend + admin frontend kickoff for M4 formal phase"
+      "summary": "Current session now includes Sprint 3 backend + admin frontend kickoff plus an incremental portal M4 pass"
     },
     {
       "path": "active-session/blockers.md",
@@ -48,7 +48,7 @@
       "path": "active-session/next-actions.md",
       "type": "session",
       "tags": ["actions", "sprint3", "phase-demande-formelle", "m4"],
-      "summary": "Commit M4 admin frontend kickoff diff, then continue end-to-end admin and portal UI integration"
+      "summary": "Commit portal incremental M4 pass, then continue full portal modular alignment and end-to-end UI integration"
     },
     {
       "path": "active-session/context.md",
@@ -148,7 +148,7 @@
         "session-log",
         "sprint3"
       ],
-      "summary": "Post-Sprint-2 hardening plus Sprint 3 kickoff with formal-request backend and admin M4 frontend scaffolding"
+      "summary": "Post-Sprint-2 hardening plus Sprint 3 kickoff with formal-request backend, admin M4 scaffolding, and portal MyRequestPage incremental M4 section"
     }
   ]
 }

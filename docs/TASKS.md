@@ -263,7 +263,13 @@ Voir `exploration-cache/technical/gotchas.md` pour le détail complet.
 - [x] Couche API admin M4 dans `apps/admin/src/lib/api/formal.api.ts` + types associés
 - [x] Intégration React Query M4 (query keys `formal.*`, hooks mutations + invalidation)
 - [~] UI admin M4 amorcée (lettre DG, checklist documents, réunion, clôture)
-- [ ] UI portail M4 à implémenter
+
+### Sprint 3 — avancement frontend portail (2026-07-10, en cours)
+
+- [~] `MyRequestPage` enrichie : section M3 polish (statuts lisibles, liens API centralisés, libellés FR)
+- [~] Première section M4 intégrée côté portail (`FormalPhaseSection`) : lettre officielle + checklist docs + réunion
+- [ ] Refactor portail vers convention React Query + `src/lib/api` (toujours planifié)
+- [ ] Finalisation UI portail M4 (orchestration modulaire, hooks dédiés, invalidation)
 
 ## Sprint 4 — Évaluation approfondie (M5)
 

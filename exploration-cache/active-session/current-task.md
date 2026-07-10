@@ -54,6 +54,10 @@ kickoff with the `formal-request` module (M4) while continuing cache/docs sync.
   - added new `pages/phases/formal/*` feature module with React Query hooks/actions
   - added `apps/admin/src/lib/api/formal.api.ts` + `formal.types.ts`
   - wired requests list/actions toward M4 page entrypoints
+- Started Sprint 3 portal frontend groundwork (M4, incremental):
+  - upgraded `apps/portal/src/pages/requests/MyRequestPage.tsx` with improved M3 labels/status rendering
+  - added initial `FormalPhaseSection` for portal M4 letter/documents/meeting visibility and submissions
+  - deferred modular + React Query migration to the planned portal convention task
 
 ## ✅ Done today (2026-07-08, this session): Sprint 2 — Phase Préliminaire (M3)
 
