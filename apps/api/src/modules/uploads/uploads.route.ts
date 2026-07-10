@@ -1,27 +1,27 @@
-import { Router } from "express";
-import multer from "multer";
-import path from "path";
-import fs from "fs";
-import { fileURLToPath } from "url";
-import { authenticateEither } from "../../shared/guards/auth.middleware.js";
-import * as uploadsController from "./uploads.controller.js";
+import { Router } from 'express';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import { authenticateEither } from '../../shared/guards/auth.middleware.js';
+import * as uploadsController from './uploads.controller.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const uploadRootDir = path.resolve(__dirname, "../../../uploads");
+const uploadRootDir = path.resolve(__dirname, '../../../uploads');
 
-function sourceAppFromOrigin(origin: string | undefined): "admin" | "portal" | "api" | "unknown" {
-  if (!origin) return "unknown";
-  if (process.env.ADMIN_ORIGIN && origin === process.env.ADMIN_ORIGIN) return "admin";
-  if (process.env.PORTAL_ORIGIN && origin === process.env.PORTAL_ORIGIN) return "portal";
-  if (process.env.API_ORIGIN && origin === process.env.API_ORIGIN) return "api";
-  return "unknown";
+function sourceAppFromOrigin(origin: string | undefined): 'admin' | 'portal' | 'api' | 'unknown' {
+  if (!origin) return 'unknown';
+  if (process.env.ADMIN_ORIGIN && origin === process.env.ADMIN_ORIGIN) return 'admin';
+  if (process.env.PORTAL_ORIGIN && origin === process.env.PORTAL_ORIGIN) return 'portal';
+  if (process.env.API_ORIGIN && origin === process.env.API_ORIGIN) return 'api';
+  return 'unknown';
 }
 
 function sanitizeSegment(value: string): string {
   return value
     .toLowerCase()
-    .replace(/[^a-z0-9-_]+/g, "-")
-    .replace(/^-+|-+$/g, "")
+    .replace(/[^a-z0-9-_]+/g, '-')
+    .replace(/^-+|-+$/g, '')
     .slice(0, 24);
 }
 
@@ -31,11 +31,11 @@ const storage = multer.diskStorage({
   destination: (req, _file, cb) => {
     const now = new Date();
     const year = String(now.getFullYear());
-    const month = String(now.getMonth() + 1).padStart(2, "0");
-    const day = String(now.getDate()).padStart(2, "0");
-    const sourceApp = sourceAppFromOrigin(req.get("origin"));
-    const moduleHintRaw = typeof req.body?.moduleHint === "string" ? req.body.moduleHint : "misc";
-    const moduleHint = sanitizeSegment(moduleHintRaw) || "misc";
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const sourceApp = sourceAppFromOrigin(req.get('origin'));
+    const moduleHintRaw = typeof req.body?.moduleHint === 'string' ? req.body.moduleHint : 'misc';
+    const moduleHint = sanitizeSegment(moduleHintRaw) || 'misc';
 
     const relativeDir = path.posix.join(year, month, day, sourceApp, moduleHint);
     const absoluteDir = path.join(uploadRootDir, relativeDir);
@@ -56,6 +56,6 @@ const router = Router();
 // Reachable by either an applicant (portal) or staff (admin manual entry) -
 // same dual-auth pattern as the requests submit endpoint, since uploads
 // happen from both sides of the same M1 flow.
-router.post("/", authenticateEither, upload.single("file"), uploadsController.upload);
+router.post('/', authenticateEither, upload.single('file'), uploadsController.upload);
 
 export default router;

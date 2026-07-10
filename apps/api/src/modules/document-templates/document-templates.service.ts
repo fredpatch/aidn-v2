@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { db } from "../../shared/db/index.js";
 import { documentTemplates, documentVersions } from "../../shared/db/schema.js";
 import { logAudit } from "../auth/auth.service.js";
+import { linkUploadAssetToOwner } from "../uploads/uploads.service.js";
 import type { DocumentTemplateKey } from "@aidn/shared";
 
 export interface TemplateView {
@@ -44,6 +45,7 @@ export async function upsertTemplate(params: {
   label: string;
   fileUrl: string;
   mimeType: string;
+  uploadAssetId?: number;
   uploadedByUserId: number;
 }): Promise<TemplateView> {
   const [existing] = await db.select().from(documentTemplates).where(eq(documentTemplates.key, params.key));
@@ -89,6 +91,13 @@ export async function upsertTemplate(params: {
     mimeType: params.mimeType,
     uploadedBy: params.uploadedByUserId,
     isCurrent: true,
+  });
+
+  await linkUploadAssetToOwner({
+    uploadAssetId: params.uploadAssetId,
+    ownerType: 'document_template',
+    ownerId: row.id,
+    expectedFileUrl: params.fileUrl,
   });
 
   await logAudit({

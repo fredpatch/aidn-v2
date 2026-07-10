@@ -1,15 +1,15 @@
-import { Request, Response } from "express";
-import * as evalService from "./preliminary-evaluation.service.js";
-import { handlePreliminaryEvaluationError } from "../../shared/utils/error.js";
-import { db } from "../../shared/db/index.js";
-import { requests } from "../../shared/db/schema.js";
-import { eq } from "drizzle-orm";
+import { Request, Response } from 'express';
+import * as evalService from './preliminary-evaluation.service.js';
+import { handlePreliminaryEvaluationError } from '../../shared/utils/error.js';
+import { db } from '../../shared/db/index.js';
+import { requests } from '../../shared/db/schema.js';
+import { eq } from 'drizzle-orm';
 
 export async function get(req: Request, res: Response): Promise<void> {
   try {
     const view = await evalService.getForPhase(Number(req.params.phaseId));
     if (!view) {
-      res.status(404).json({ message: "Aucune declaration de pre-evaluation pour cette phase." });
+      res.status(404).json({ message: 'Aucune declaration de pre-evaluation pour cette phase.' });
       return;
     }
     res.json(view);
@@ -27,7 +27,7 @@ export async function getBundle(req: Request, res: Response): Promise<void> {
     if (req.applicant) {
       const [request] = await db.select().from(requests).where(eq(requests.id, requestId));
       if (!request || request.applicantId !== req.applicant.applicantId) {
-        res.status(404).json({ message: "Demande introuvable." });
+        res.status(404).json({ message: 'Demande introuvable.' });
         return;
       }
     }
@@ -57,7 +57,7 @@ export async function submit(req: Request, res: Response): Promise<void> {
   try {
     const { fileUrl, mimeType, uploadAssetId } = req.body ?? {};
     if (!fileUrl || !mimeType) {
-      res.status(400).json({ message: "fileUrl et mimeType sont requis." });
+      res.status(400).json({ message: 'fileUrl et mimeType sont requis.' });
       return;
     }
 
@@ -74,17 +74,12 @@ export async function submit(req: Request, res: Response): Promise<void> {
     if (req.applicant) {
       const context = await evalService.getRequestIdForPhase(phaseId);
       if (!context || context.applicantId !== req.applicant.applicantId) {
-        res.status(404).json({ message: "Phase introuvable." });
+        res.status(404).json({ message: 'Phase introuvable.' });
         return;
       }
     }
 
-    const view = await evalService.submit(
-      phaseId,
-      fileUrl,
-      mimeType,
-      parsedUploadAssetId
-    );
+    const view = await evalService.submit(phaseId, fileUrl, mimeType, parsedUploadAssetId);
     res.json(view);
   } catch (error) {
     handlePreliminaryEvaluationError(res, error);

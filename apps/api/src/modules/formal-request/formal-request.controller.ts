@@ -127,8 +127,12 @@ export async function submitDocument(req: Request, res: Response): Promise<void>
 
 export async function closePhase(req: Request, res: Response): Promise<void> {
   try {
-    const { closureDocumentUrl, closureDocumentMimeType, closureNote, closureDocumentUploadAssetId } =
-      req.body ?? {};
+    const {
+      closureDocumentUrl,
+      closureDocumentMimeType,
+      closureNote,
+      closureDocumentUploadAssetId,
+    } = req.body ?? {};
     const parsedClosureUploadAssetId =
       closureDocumentUploadAssetId === undefined || closureDocumentUploadAssetId === null
         ? undefined

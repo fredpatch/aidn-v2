@@ -1,6 +1,6 @@
-import { Request, Response } from "express";
-import * as requestsService from "./requests.service.js";
-import { handleRequestsError } from "../../shared/utils/error.js";
+import { Request, Response } from 'express';
+import * as requestsService from './requests.service.js';
+import { handleRequestsError } from '../../shared/utils/error.js';
 
 export async function submit(req: Request, res: Response): Promise<void> {
   try {
@@ -24,18 +24,18 @@ export async function submit(req: Request, res: Response): Promise<void> {
       applicantId = req.applicant.applicantId;
     } else if (req.user) {
       if (!bodyApplicantId) {
-        res.status(400).json({ message: "applicantId requis pour une saisie manuelle." });
+        res.status(400).json({ message: 'applicantId requis pour une saisie manuelle.' });
         return;
       }
       applicantId = Number(bodyApplicantId);
       submittedByUserId = req.user.userId;
     } else {
-      res.status(401).json({ message: "Non authentifie." });
+      res.status(401).json({ message: 'Non authentifie.' });
       return;
     }
 
     if (!requestType || !fileUrl || !mimeType) {
-      res.status(400).json({ message: "requestType, fileUrl et mimeType sont requis." });
+      res.status(400).json({ message: 'requestType, fileUrl et mimeType sont requis.' });
       return;
     }
 
@@ -124,7 +124,7 @@ export async function replaceDocument(req: Request, res: Response): Promise<void
   try {
     const { fileUrl, mimeType, uploadAssetId } = req.body ?? {};
     if (!fileUrl || !mimeType) {
-      res.status(400).json({ message: "fileUrl et mimeType sont requis." });
+      res.status(400).json({ message: 'fileUrl et mimeType sont requis.' });
       return;
     }
 

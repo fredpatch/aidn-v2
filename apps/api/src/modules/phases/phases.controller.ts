@@ -43,8 +43,12 @@ export async function getForRequest(req: Request, res: Response): Promise<void> 
 
 export async function close(req: Request, res: Response): Promise<void> {
   try {
-    const { closureDocumentUrl, closureDocumentMimeType, closureNote, closureDocumentUploadAssetId } =
-      req.body ?? {};
+    const {
+      closureDocumentUrl,
+      closureDocumentMimeType,
+      closureNote,
+      closureDocumentUploadAssetId,
+    } = req.body ?? {};
     const parsedClosureUploadAssetId =
       closureDocumentUploadAssetId === undefined || closureDocumentUploadAssetId === null
         ? undefined

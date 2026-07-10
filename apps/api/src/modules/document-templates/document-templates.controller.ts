@@ -39,7 +39,7 @@ export async function getByKey(req: Request, res: Response): Promise<void> {
 }
 
 export async function upsert(req: Request, res: Response): Promise<void> {
-  const { key, label, fileUrl, mimeType } = req.body ?? {};
+  const { key, label, fileUrl, mimeType, uploadAssetId } = req.body ?? {};
 
   if (!key || !label || !fileUrl || !mimeType) {
     res.status(400).json({ message: "key, label, fileUrl et mimeType sont requis." });
@@ -50,16 +50,33 @@ export async function upsert(req: Request, res: Response): Promise<void> {
     return;
   }
 
+  const parsedUploadAssetId =
+    uploadAssetId === undefined || uploadAssetId === null ? undefined : Number(uploadAssetId);
+  if (parsedUploadAssetId !== undefined && !Number.isInteger(parsedUploadAssetId)) {
+    res.status(400).json({ message: 'uploadAssetId invalide.' });
+    return;
+  }
+
   try {
     const template = await templatesService.upsertTemplate({
       key,
       label,
       fileUrl,
       mimeType,
+      uploadAssetId: parsedUploadAssetId,
       uploadedByUserId: req.user!.userId,
     });
     res.status(201).json(template);
   } catch (error) {
+    const code = error instanceof Error ? error.message : 'UNKNOWN_ERROR';
+    if (code === 'UPLOAD_ASSET_NOT_FOUND' || code === 'UPLOAD_ASSET_FILE_MISMATCH') {
+      res.status(400).json({ message: 'Fichier upload invalide.', code });
+      return;
+    }
+    if (code === 'UPLOAD_ASSET_ALREADY_LINKED') {
+      res.status(409).json({ message: 'Ce fichier upload est déjà lié.', code });
+      return;
+    }
     console.error("[document-templates/upsert]", error);
     res.status(500).json({ message: "Erreur interne." });
   }

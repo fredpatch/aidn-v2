@@ -1,6 +1,6 @@
 export interface SubmitRequestParams {
   applicantId: number;
-  requestType: "recognition" | "issuance" | "modification" | "renewal";
+  requestType: 'recognition' | 'issuance' | 'modification' | 'renewal';
   message?: string;
   fileUrl: string;
   mimeType: string;
