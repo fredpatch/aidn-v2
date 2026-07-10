@@ -1,9 +1,31 @@
 # 🎯 Current Task
 
 **Session date**: 2026-07-10
-**Status**: Sprint 0, Sprint 1, and Sprint 2 (M3) are committed, including the
-latest hardening/refactor pushes. Current work has moved into Sprint 3 backend
-kickoff with the `formal-request` module (M4) while continuing cache/docs sync.
+**Status**: Sprint 0, Sprint 1, and Sprint 2 (M3) are committed. Sprint 3 (M4)
+kickoff is committed on API/admin/portal, uploads governance controls are
+committed, and current work has moved into Sprint 4 kickoff with the
+`deep-evaluation` module (M5) while cache/docs are being synchronized.
+
+## ✅ Done today (2026-07-10): uploads governance UI + Sprint 4 kickoff (M5)
+
+- Finalized and pushed admin uploads governance controls in `Parametres`:
+  - diagnostics consumption (`/api/uploads/diagnostics`)
+  - manual orphan cleanup trigger (`/api/uploads/cleanup-orphans`)
+  - dedicated settings hook/query-key/api/types wiring
+- Included and pushed related API changes in the same batch:
+  - `deep-evaluation` module files and error mappings
+  - upload-governance related error handling alignment
+- Started **Sprint 4 — Évaluation approfondie (M5)**, wired end-to-end kickoff:
+  - API route mounted in server: `/api/deep-evaluation`
+  - deep-evaluation routes for bundle/open/invoice/proof/payment verdict/reject,
+    per-document verdicts + resubmission, and phase closure
+  - admin route/page integration for deep evaluation phase
+    (`/demandes/:requestId/evaluation-approfondie`)
+  - admin React Query namespace `queryKeys.deepEvaluation.*`
+  - portal active-request integration: new `DeepEvaluationSection` rendered when
+    applicable on in-progress dossiers
+- Renamed router file convention from `deep-evaluation.routes.ts` to
+  `deep-evaluation.route.ts` to match project module naming style.
 
 ## ✅ Done today (2026-07-09, ongoing): post-Sprint-2 hardening pass
 

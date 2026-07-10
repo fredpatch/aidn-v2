@@ -73,6 +73,15 @@ GET  /api/meetings/:id/ticket                                  either auth type
 POST /api/meetings/:id/report                                  staff (DN/SU)
 GET  /api/document-templates/:key                              either auth type
 GET  /api/preliminary-evaluation/by-request/:requestId         either auth type
+GET  /api/deep-evaluation/by-request/:requestId                either auth type
+POST /api/deep-evaluation/requests/:requestId/start-deep-evaluation   staff (DN/SU)
+POST /api/deep-evaluation/phases/:phaseId/invoice              staff (S5/DN/SU)
+POST /api/deep-evaluation/phases/:phaseId/requests/:requestId/proof   either auth type
+POST /api/deep-evaluation/phases/:phaseId/payment/validate     staff (S5/DN/SU)
+POST /api/deep-evaluation/phases/:phaseId/payment/reject       staff (S5/DN/SU)
+PATCH /api/deep-evaluation/evaluations/:evaluationId/verdict   staff (DN/SU)
+POST /api/deep-evaluation/evaluations/:evaluationId/resubmit   either auth type
+POST /api/deep-evaluation/phases/:phaseId/close                staff (DN/SU)
 GET  /api/system-parameters                                    SU only
 PATCH /api/system-parameters/:key                              SU only
 GET  /api/dev-tools/status                                     SU only
@@ -98,9 +107,10 @@ POST /api/dev-tools/reset                                      SU only + ENABLE_
 ✅ Sprint 1  — Intake & Circuit DG (M1+M2), full API + UI (admin + portal)
 ✅ Prereq    — Auth (staff + applicant), Bootstrap, Users management
 ✅ Sprint 2  — Phase Préliminaire (M3), full API + UI, + document_templates module
-🛠️ Hardening — settings/system-parameters/dev-tools + meeting CR flow (in progress)
-⏳ Sprint 3  — Phase Demande formelle (M4) — next up
-⏳ Sprint 4-12 — not started
+✅ Hardening — settings/system-parameters/dev-tools + meeting CR flow
+🛠️ Sprint 3  — Phase Demande formelle (M4) — kickoff committed, ongoing
+🛠️ Sprint 4  — Évaluation approfondie (M5) — kickoff started
+⏳ Sprint 5-12 — not started
 ```
 
 ## 🔴 Active Notes

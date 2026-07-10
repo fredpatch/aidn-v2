@@ -1,10 +1,10 @@
 # 🔴 Active Blockers
 
-Last updated: 2026-07-09
+Last updated: 2026-07-10
 
-No active hard blockers. Sprint 2 (Phase Préliminaire, M3) is already committed
-as `0e29d06`. The current 2026-07-09 hardening pass is in progress and ready to
-commit once exploration-cache and commit message are finalized.
+No active hard blockers. Sprint 2 (M3), Sprint 3 kickoff (M4), and uploads
+governance controls are committed. Current work is Sprint 4 kickoff (M5) plus
+cache/docs synchronization.
 
 ---
 

@@ -9,6 +9,7 @@ import PreliminaryPhasePage from './pages/phases/PreliminaryPhasePage';
 import DocumentTemplatesPage from './pages/document-templates/DocumentTemplatesPage';
 import SettingsPage from './pages/settings/SettingsPage';
 import FormalPhasePage from './pages/phases/formal/FormalPhasePage';
+import DeepEvaluationPhasePage from './pages/phases/deep-evaluation/DeepEvaluationPhasePage';
 
 function Gate() {
   const { user, loading, bootstrapInitialised } = useAuth();
@@ -36,6 +37,11 @@ function Gate() {
         <Route path="demandes/:requestId/phase-preliminaire" element={<PreliminaryPhasePage />} />
 
         <Route path="demandes/:requestId/phase-formelle" element={<FormalPhasePage />} />
+
+        <Route
+          path="demandes/:requestId/evaluation-approfondie"
+          element={<DeepEvaluationPhasePage />}
+        />
 
         <Route path="modeles-documents" element={<DocumentTemplatesPage />} />
         <Route path="utilisateurs" element={<UsersPage />} />

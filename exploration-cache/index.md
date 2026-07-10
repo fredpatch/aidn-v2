@@ -7,12 +7,9 @@ project evolves. Structure mirrors SICOT's exploration-cache — see
 
 **Project**: AIDN — Application Informatique de la Direction de la Navigabilité —
 ANAC Gabon
-**Last updated**: 2026-07-09 | **Sprint**: 0, 1, and 2 (M3) are committed
-(`b64a073`, `2205261`, `a4a5220`, `0e29d06`). Current session is a hardening
-pass on top of Sprint 2: settings page + system parameters API wiring, dev-only
-reset tools, meeting report upload, and stricter M3 closure gates. The admin
-M3 page was also refactored into modular hooks/helpers/components/api/types for
-maintainability. Sprint 3 (M4) is next.
+**Last updated**: 2026-07-10 | **Sprint**: 0, 1, and 2 (M3) are committed,
+Sprint 3 (M4) kickoff is committed, uploads governance controls are committed,
+and Sprint 4 (M5) kickoff is in progress with `deep-evaluation` API/admin/portal wiring.
 
 ---
 
@@ -66,6 +63,7 @@ complete there.
 | [`sessions/2026-07-07.md`](sessions/2026-07-07.md) | Sprint 0 + Sprint 1 (full stack), 10 real bugs found and fixed, UI redesign to match SICOT                                                                               |
 | [`sessions/2026-07-08.md`](sessions/2026-07-08.md) | Fixed both broken builds from `2205261`, then built Sprint 2 (Phase Préliminaire, M3) end to end                                                                         |
 | [`sessions/2026-07-09.md`](sessions/2026-07-09.md) | Sprint 2 hardening + M3 admin page refactor: settings/system-parameters UI+API, dev reset tools, meeting CR upload, closure gating fixes, hooks/helpers/components split |
+| [`sessions/2026-07-10.md`](sessions/2026-07-10.md) | Uploads governance admin consumption completed and Sprint 4 kickoff started (deep-evaluation API/admin/portal integration)                                               |
 
 ---
 

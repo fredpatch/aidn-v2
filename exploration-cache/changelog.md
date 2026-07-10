@@ -3,6 +3,35 @@
 Commit-level history. Covers `be9fce9` through `cac1805` (2026-07-07/09), plus
 the current uncommitted 2026-07-09 Sprint-3 admin-frontend pass.
 
+## (uncommitted) — 2026-07-10 Sprint 4 kickoff (M5 deep-evaluation)
+
+On top of `4c75bf2`, current working diff:
+
+- **Sprint 4 kickoff started** with new `deep-evaluation` integration across all apps:
+  - API module mounted at `/api/deep-evaluation` in `apps/api/src/server.ts`
+  - route/controller/service/types wiring under `apps/api/src/modules/deep-evaluation/*`
+  - deep-evaluation routes: bundle/open/invoice/proof/validate/reject/verdict/resubmit/close
+  - admin route and page entrypoint for deep evaluation phase
+  - admin React Query key namespace: `queryKeys.deepEvaluation.*`
+  - portal active request card now renders `DeepEvaluationSection` when applicable
+- **Route naming convention alignment**:
+  - renamed module file `deep-evaluation.routes.ts` -> `deep-evaluation.route.ts`
+
+## `4c75bf2` — feat(admin,api): add uploads maintenance settings and include api updates
+
+- Added admin Parametres upload-governance section (diagnostics + manual orphan cleanup)
+- Added settings uploads hook/query-key/api/types integration in admin
+- Included associated API updates in the same commit:
+  - deep-evaluation module files and route integration
+  - upload-related error mapping adjustments
+
+## `19e5e48` — feat(api): add upload diagnostics, linking API, and orphan cleanup
+
+- Added uploads diagnostics endpoint and service aggregation
+- Added explicit upload link/relink admin API
+- Added orphan cleanup API + scheduled cleanup job support
+- Added system parameter seed for orphan retention defaults
+
 ## (uncommitted) — 2026-07-09 hardening pass (post-Sprint 2)
 
 On top of `0e29d06`, 2026-07-09 ongoing session:

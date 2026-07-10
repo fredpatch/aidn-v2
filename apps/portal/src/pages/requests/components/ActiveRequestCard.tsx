@@ -6,6 +6,7 @@ import type { RequestView } from '../../../lib/api/requests.types';
 import { CIRCUIT_STATUS_LABELS, REQUEST_TYPE_LABELS, STATUS_LABELS } from '../constants';
 import { FormalPhaseSection } from './FormalPhaseSection';
 import { PreliminaryPhaseSection } from './PreliminaryPhaseSection';
+import { DeepEvaluationSection } from './DeepEvaluationSection';
 
 export function ActiveRequestCard({
   request,
@@ -72,6 +73,8 @@ export function ActiveRequestCard({
       )}
 
       {request.status === 'in_progress' && <FormalPhaseSection requestId={request.id} />}
+
+      {request.status === 'in_progress' && <DeepEvaluationSection requestId={request.id} />}
     </div>
   );
 }

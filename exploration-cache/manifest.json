@@ -3,15 +3,15 @@
   "client": "ANAC Gabon",
   "repo": "fredpatch/aidn-v2",
   "branch": "main",
-  "lastUpdated": "2026-07-10T10:15:00Z",
-  "lastCommit": "225f463 feat(portal): add initial M4 section in MyRequestPage and sync cache docs",
-  "currentSprint": "Sprint 2 (M3) committed; Sprint 3 (Phase Demande formelle, M4) backend kickoff started",
-  "currentSprintFocus": "Sprint 0, Sprint 1, and Sprint 2 are committed. Current work continues Sprint 3 with M4 backend in place, admin frontend kickoff delivered, and portal MyRequestPage now refactored into a modular React Query + lib/api split alongside the existing M4 section.",
-  "status": "Sprint 0 COMPLETE. Sprint 1 COMPLETE. Sprint 2 COMPLETE and committed. Sprint 3 has backend formal-request APIs, admin M4 frontend kickoff, and the portal MyRequestPage module is now split into React Query/lib-api/components/hooks. Full portal alignment is underway in the same convention.",
+  "lastUpdated": "2026-07-10T16:45:00Z",
+  "lastCommit": "4c75bf2 feat(admin,api): add uploads maintenance settings and include api updates",
+  "currentSprint": "Sprint 2 (M3) committed; Sprint 3 (M4) kickoff committed; Sprint 4 (M5 deep-evaluation) kickoff in progress",
+  "currentSprintFocus": "Sprint 0, Sprint 1, and Sprint 2 are committed. Sprint 3 kickoff is committed across api/admin/portal and uploads governance controls are in place. Current work is Sprint 4 deep-evaluation integration across api/admin/portal with cache/docs sync.",
+  "status": "Sprint 0 COMPLETE. Sprint 1 COMPLETE. Sprint 2 COMPLETE. Sprint 3 kickoff committed. Uploads governance diagnostics/linking/cleanup committed. Sprint 4 deep-evaluation kickoff is now underway.",
   "activeSession": {
-    "task": "Post-Sprint-2 hardening is committed; active work now includes Sprint 3 admin frontend kickoff for M4 plus the portal MyRequestPage modular React Query/lib-api refactor and M4 visibility/submissions. exploration-cache update and combined commit/push in progress.",
+    "task": "Uploads governance admin consumption is committed; active work now includes Sprint 4 kickoff (deep-evaluation M5) across api/admin/portal and cache/docs synchronization.",
     "startedAt": "2026-07-09",
-    "nextAction": "Commit and push the combined admin/api/portal batch, then continue Sprint 3 follow-up work and add PORTAL_ORIGIN to apps/api/.env.example first."
+    "nextAction": "Commit and push current deep-evaluation kickoff plus cache/docs updates, then complete M5 flow polish and add PORTAL_ORIGIN to apps/api/.env.example."
   },
   "index": [
     {
@@ -149,6 +149,12 @@
         "sprint3"
       ],
       "summary": "Post-Sprint-2 hardening plus Sprint 3 kickoff with formal-request backend, admin M4 scaffolding, and portal MyRequestPage incremental M4 section"
+    },
+    {
+      "path": "sessions/2026-07-10.md",
+      "type": "session-log",
+      "tags": ["uploads", "governance", "sprint4", "deep-evaluation", "m5", "session-log"],
+      "summary": "Uploads governance settings consumption completed and Sprint 4 deep-evaluation kickoff integrated across api/admin/portal"
     }
   ]
 }

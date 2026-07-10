@@ -266,17 +266,26 @@ Voir `exploration-cache/technical/gotchas.md` pour le détail complet.
 
 ### Sprint 3 — avancement frontend portail (2026-07-10, en cours)
 
-- [~] `MyRequestPage` enrichie : section M3 polish (statuts lisibles, liens API centralisés, libellés FR)
-- [~] Première section M4 intégrée côté portail (`FormalPhaseSection`) : lettre officielle + checklist docs + réunion
-- [ ] Refactor portail vers convention React Query + `src/lib/api` (toujours planifié)
-- [ ] Finalisation UI portail M4 (orchestration modulaire, hooks dédiés, invalidation)
+- [x] `MyRequestPage` enrichie : section M3 polish (statuts lisibles, liens API centralisés, libellés FR)
+- [x] Première section M4 intégrée côté portail (`FormalPhaseSection`) : lettre officielle + checklist docs + réunion
+- [x] Refactor portail vers convention React Query + `src/lib/api` (module requests désormais split en hooks/components/api/types)
+- [~] Finalisation UI portail M4 (orchestration modulaire, hooks dédiés, invalidation)
 
 ## Sprint 4 — Évaluation approfondie (M5)
 
-- [ ] Upload facture + preuve de paiement (S5)
-- [ ] Évaluation individuelle des 11 documents (Validé/Rejeté/À corriger)
-- [ ] Re-upload ciblé par document rejeté, avec délai configurable
-- [ ] Clôture de phase (pattern standard)
+- [~] Upload facture + preuve de paiement (S5) — API + wiring admin/portail démarrés
+- [~] Évaluation individuelle des 11 documents (Validé/Rejeté/À corriger) — API + écran admin démarrés
+- [~] Re-upload ciblé par document rejeté, avec délai configurable — endpoints et section portail démarrés
+- [~] Clôture de phase (pattern standard) — endpoint + carte admin démarrés
+
+### Sprint 4 — avancement initial (2026-07-10, en cours)
+
+- [x] Module API `deep-evaluation` monté sous `/api/deep-evaluation`
+- [x] Endpoints M5 initiaux : bundle, ouverture, facture, preuve, validation/rejet paiement,
+      verdict document, resoumission, clôture
+- [x] Route/page admin ajoutée : `/demandes/:requestId/evaluation-approfondie`
+- [x] Query keys admin `deepEvaluation.*` ajoutées
+- [x] Intégration portail : section `DeepEvaluationSection` dans la carte de demande active
 
 ## Sprint 5 — Démonstration/Inspection (M6)
 

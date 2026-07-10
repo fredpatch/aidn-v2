@@ -210,6 +210,12 @@ export default function RequestsPage() {
                         >
                           Phase Formelle
                         </Link>
+                        <Link
+                          to={`/demandes/${r.id}/evaluation-approfondie`}
+                          className="text-anac-blue underline text-xs"
+                        >
+                          Évaluation Approfondie
+                        </Link>
                       </>
                     )}
                   </td>

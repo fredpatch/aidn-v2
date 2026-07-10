@@ -18,4 +18,8 @@ export const queryKeys = {
     all: ['formal'] as const,
     bundle: (requestId: string) => ['formal', 'bundle', requestId] as const,
   },
+  deepEvaluation: {
+    all: ['deepEvaluation'] as const,
+    bundle: (requestId: string) => ['deepEvaluation', 'bundle', requestId] as const,
+  },
 };
