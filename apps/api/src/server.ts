@@ -20,6 +20,7 @@ import preliminaryEvaluationRoute from './modules/preliminary-evaluation/prelimi
 import systemParameterRoute from './modules/system-parameters/system-parameters.route.js';
 import devToolsRoute from './modules/dev-tools/dev-tools.route.js';
 import { startDgCircuitAlertJob } from './jobs/dg-circuit-alert.job.js';
+import { startUploadOrphanCleanupJob } from './jobs/upload-orphan-cleanup.job.js';
 import { verifyEmailConnection } from './shared/utils/email.js';
 import formalRequestRoute from './modules/formal-request/formal-request.route.js';
 
@@ -65,6 +66,7 @@ app.use('/api/formal-request', formalRequestRoute);
 app.listen(port, () => {
   console.log(`AIDN API listening on port ${port}`);
   startDgCircuitAlertJob();
+  startUploadOrphanCleanupJob();
   verifyEmailConnection().catch(() => {
     // Non-fatal - already logged inside verifyEmailConnection.
   });

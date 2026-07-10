@@ -1,9 +1,9 @@
-import { eq } from "drizzle-orm";
-import { db } from "../../shared/db/index.js";
-import { documentTemplates, documentVersions } from "../../shared/db/schema.js";
-import { logAudit } from "../auth/auth.service.js";
-import { linkUploadAssetToOwner } from "../uploads/uploads.service.js";
-import type { DocumentTemplateKey } from "@aidn/shared";
+import { eq } from 'drizzle-orm';
+import { db } from '../../shared/db/index.js';
+import { documentTemplates, documentVersions } from '../../shared/db/schema.js';
+import { logAudit } from '../auth/auth.service.js';
+import { linkUploadAssetToOwner } from '../uploads/uploads.service.js';
+import type { DocumentTemplateKey } from '@aidn/shared';
 
 export interface TemplateView {
   id: number;
@@ -48,7 +48,10 @@ export async function upsertTemplate(params: {
   uploadAssetId?: number;
   uploadedByUserId: number;
 }): Promise<TemplateView> {
-  const [existing] = await db.select().from(documentTemplates).where(eq(documentTemplates.key, params.key));
+  const [existing] = await db
+    .select()
+    .from(documentTemplates)
+    .where(eq(documentTemplates.key, params.key));
 
   let row: typeof documentTemplates.$inferSelect;
 
@@ -85,7 +88,7 @@ export async function upsertTemplate(params: {
   }
 
   await db.insert(documentVersions).values({
-    ownerType: "document_template",
+    ownerType: 'document_template',
     ownerId: row.id,
     fileUrl: params.fileUrl,
     mimeType: params.mimeType,
@@ -102,8 +105,8 @@ export async function upsertTemplate(params: {
 
   await logAudit({
     userId: params.uploadedByUserId,
-    action: existing ? "DOCUMENT_TEMPLATE_REPLACED" : "DOCUMENT_TEMPLATE_CREATED",
-    module: "M13",
+    action: existing ? 'DOCUMENT_TEMPLATE_REPLACED' : 'DOCUMENT_TEMPLATE_CREATED',
+    module: 'M13',
     entityId: row.id,
     details: { key: params.key },
   });

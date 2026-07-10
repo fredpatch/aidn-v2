@@ -3,8 +3,13 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
-import { authenticateEither } from '../../shared/guards/auth.middleware.js';
+import {
+  authenticate,
+  authenticateEither,
+  requireRole,
+} from '../../shared/guards/auth.middleware.js';
 import * as uploadsController from './uploads.controller.js';
+import * as uploadsAdminController from './uploads.admin.controller.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadRootDir = path.resolve(__dirname, '../../../uploads');
@@ -57,5 +62,11 @@ const router = Router();
 // same dual-auth pattern as the requests submit endpoint, since uploads
 // happen from both sides of the same M1 flow.
 router.post('/', authenticateEither, upload.single('file'), uploadsController.upload);
+
+// SU-only explicit upload-management APIs (linking discipline, diagnostics,
+// and stale orphan cleanup).
+router.get('/diagnostics', authenticate, requireRole('SU'), uploadsAdminController.diagnostics);
+router.post('/link', authenticate, requireRole('SU'), uploadsAdminController.link);
+router.post('/cleanup-orphans', authenticate, requireRole('SU'), uploadsAdminController.cleanup);
 
 export default router;
