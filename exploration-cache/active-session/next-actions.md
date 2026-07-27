@@ -1,35 +1,38 @@
 # ⚡ Next Actions
 
-Last updated: 2026-07-10
+Last updated: 2026-07-27
 
 ## 🔥 Immediate (start here next session)
 
-1. **Finalize and commit/push the current Sprint 4 kickoff diff** —
-   deep-evaluation API/admin/portal integration plus cache/docs sync.
+1. **Sprint 5 — Démonstration/Inspection sur Site (M6)** — current task, API first
+   - `r3_agent` role and `site_inspections` table already exist in schema
+     (schema-ready, zero endpoints/UI)
+   - `r3_agent` reuses existing staff `users`/`user_roles` auth — no separate
+     login, role-filtered dossier queue in admin only
+   - Facture + preuve de paiement: reuse M5's pattern exactly (invoice upload,
+     proof upload, validate/reject)
+   - Site visit scheduling: reuse `meetings` module, likely a new
+     `meeting_type` value (check `project/decisions.md` #12 re: ticket
+     approach before building)
+   - R3 verdict submission: single action, verdict + note together
+     (`inspectionVerdictEnum` + `note` on `site_inspections`)
+   - Phase closure is **automatic** on verdict submission — no DN decision
+     step, different from M3/M4/M5's manual closure gate
+   - Sequence: API module + routes + typecheck first, confirm with Fred,
+     then admin UI, then portal (if applicant-facing at all — M6 is
+     internal-only per feasibility doc, confirm no portal surface needed)
 
-2. **Sprint 4 — Évaluation approfondie (M5)**
-   - complete admin card actions end-to-end (invoice/proof/payment review,
-     document verdict updates, correction flow, closure)
-   - complete portal applicant flows for proof submission and corrected document
-     resubmission UX polish/validation
-   - run full API/frontend typecheck and basic cURL smoke checks for each new
-     route before closing the batch
-
-3. **Sprint 3 — Phase Demande formelle (M4) follow-through**
-   - Reuses `dg_circuit_documents` (already generic across M1/M4, see
-     `project/database-schema.md`) and the same "Réunion/Visite" meeting pattern
-   - The 3 `document_templates` keys already seeded for this
-     (`dn_air_r2_3_f_e_010/011/012`) — build the endpoints/UI that actually use them
-   - Consider whether the meeting-ticket HTML approach (`project/decisions.md` #12)
-     still holds or whether M4's needs finally justify a real PDF generator
-   - **Delta**: backend + admin M4 kickoff are in place; portal now has the M4 section and the modular React Query/lib-api refactor is complete in the same working batch
-
-4. **Add `PORTAL_ORIGIN` to `apps/api/.env.example`** — currently only in local
+2. **Add `PORTAL_ORIGIN` to `apps/api/.env.example`** — still only in local
    `.env`, needed for `authenticateEither`'s origin-based cookie check
+   (carried over, still unresolved)
 
-5. **Visual QA of Sprint 1 + Sprint 2 + Sprint 3 + Sprint 4 kickoff UI** — Fred to confirm
-   M3/M4/M5 flows render as intended; Claude's sandbox
-   cannot screenshot a browser
+3. **Visual QA backlog** — Fred to confirm M3–M5 flows render as intended;
+   Claude's sandbox cannot screenshot a browser (unchanged limitation)
+
+4. **Sprint 6 (M7 — Délivrance & Certificats) prep, not started yet**
+   - Certificate templates now in `docs/`: `CERTIFICAT_DAGREMENT_RAG-5_3.docx`,
+     `CERTIFICAT_DE_RECONNAISSANCE_DAGREMENT_RAG-5_3.docx` — field layout
+     confirmed to match `certificate_type` enum already in schema
 
 ## 📅 Later (not urgent, don't start until Sprint 3+ is underway)
 

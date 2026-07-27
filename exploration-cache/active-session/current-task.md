@@ -1,12 +1,41 @@
 # 🎯 Current Task
 
-**Session date**: 2026-07-10
-**Status**: Sprint 0, Sprint 1, and Sprint 2 (M3) are committed. Sprint 3 (M4)
-kickoff is committed on API/admin/portal, uploads governance controls are
-committed, and current work has moved into Sprint 4 kickoff with the
-`deep-evaluation` module (M5) while cache/docs are being synchronized.
+**Session date**: 2026-07-27
+**Status**: Sprint 0–4 (M1–M5) are fully committed and verified — API, admin,
+and portal, clean typecheck across all 3 workspaces. Current work is
+**Sprint 5 (M6 — Démonstration/Inspection sur Site)**.
 
-## ✅ Done today (2026-07-10): uploads governance UI + Sprint 4 kickoff (M5)
+## ✅ Done today (2026-07-27): status correction + doc resync, starting M6
+
+- This cache had drifted: it described Sprint 4 (M5) as "kickoff in progress"
+  as of 2026-07-10. Direct inspection of the repo (not the cache) on
+  2026-07-27 confirmed Sprint 3 (M4) and Sprint 4 (M5) are actually **fully
+  built**: all 17 admin files + 2 portal files for `deep-evaluation` exist and
+  are committed (`bf806d7`), all M4 formal-request files are committed, and a
+  fresh `tsc --noEmit` on `apps/api`, `apps/admin`, `apps/portal` is clean
+  with zero errors on all three. Fred independently confirmed via live app
+  testing that M5 admin + portal are implemented and tested.
+- Root cause: this file and `next-actions.md`/`blockers.md` were last updated
+  2026-07-10 and never resynced after the M5 frontend batch was pushed.
+  Lesson: trust the repo tree + typecheck over this cache when they conflict;
+  update this cache at the end of every session from now on, no exceptions.
+- Notion (dashboard + backlog DB) was also found stale — backlog rows for M3
+  Formal, M4/M5 are still "Not started", dashboard shows Sprint 2 as not
+  started. Both resynced same session (see Notion directly, not mirrored
+  here).
+- Certificate templates for M7 added to `docs/`: `CERTIFICAT_DAGREMENT_RAG-5_3.docx`
+  and `CERTIFICAT_DE_RECONNAISSANCE_DAGREMENT_RAG-5_3.docx` — reviewed, field
+  layout matches `certificate_type` enum (`agreement`/`recognition`) already
+  in schema. Relevant when Sprint 6 starts: reference number, org
+  name/address/phone/email, expiration date, Classe/Qualification/Limites
+  table (variable rows), initial vs. current issue date, DG signatory name.
+- Starting Sprint 5 (M6) now: `r3_agent` role and `site_inspections` table
+  already exist in schema (schema-ready, zero endpoints/UI, confirmed via
+  direct schema inspection). `r3_agent` reuses the existing staff
+  `users`/`user_roles` auth — no separate login system, just a
+  role-filtered dossier queue in admin (decision confirmed with Fred).
+
+## ✅ Done 2026-07-10: uploads governance UI + Sprint 4 kickoff (M5)
 
 - Finalized and pushed admin uploads governance controls in `Parametres`:
   - diagnostics consumption (`/api/uploads/diagnostics`)
@@ -152,9 +181,11 @@ Sprint 0  Feasibility, patterns, conventions, stack, schema, scaffold   ██�
 Sprint 1  Intake & Circuit DG (M1+M2), API + full UI                    ██████████ 100% ✅
 Auth/Users/Bootstrap (prerequisite, added mid-Sprint-1)                 ██████████ 100% ✅
 Sprint 2  Phase Préliminaire (M3), API + full UI + document_templates   ██████████ 100% ✅
+Sprint 3  Phase Demande formelle (M4), API + full UI                    ██████████ 100% ✅
+Sprint 4  Évaluation approfondie (M5), API + full UI                    ██████████ 100% ✅
 ──────────────────────────────────────────────────────────────────────────────────
-Sprint 3  Phase Demande formelle (M4)                                   ░░░░░░░░░░   0%
-Sprint 4-12                                                             ░░░░░░░░░░   0%
+Sprint 5  Démonstration/Inspection (M6)                                 ░░░░░░░░░░   0% ⏳ current
+Sprint 6-12                                                             ░░░░░░░░░░   0%
 ```
 
 ## Leftover items (not blocking, tracked in `docs/TASKS.md`)

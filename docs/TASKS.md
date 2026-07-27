@@ -238,14 +238,14 @@ requireRole(...))` global sans restriction de chemin ; monter les routes
 
 Voir `exploration-cache/technical/gotchas.md` pour le détail complet.
 
-## Sprint 3 — Phase Demande formelle (M4)
+## Sprint 3 — Phase Demande formelle (M4) — ✅ Terminé (confirmé 2026-07-27)
 
-- [~] Checklist 11 documents (Soumis / Manquant) — API amorcée
-- [~] Circuit DG limité à la lettre de demande officielle — API amorcée
-- [~] Upload direct des 10 autres documents (avant/après réunion) — API amorcée
-- [ ] Réunion formelle (réutilise pattern M3)
-- [~] Clôture de phase (sans décision recevable/non-recevable dans l'app) — API amorcée
-- [~] Verrou : phase non-clôturable tant que 11/11 documents non soumis — API amorcée
+- [x] Checklist 11 documents (Soumis / Manquant)
+- [x] Circuit DG limité à la lettre de demande officielle
+- [x] Upload direct des 10 autres documents (avant/après réunion)
+- [x] Réunion formelle (réutilise pattern M3)
+- [x] Clôture de phase (sans décision recevable/non-recevable dans l'app)
+- [x] Verrou : phase non-clôturable tant que 11/11 documents non soumis
 
 ### Sprint 3 — avancement backend (2026-07-09, en cours)
 
@@ -262,30 +262,32 @@ Voir `exploration-cache/technical/gotchas.md` pour le détail complet.
 - [x] Nouveau module UI `pages/phases/formal/*` (page, hooks, cartes, helpers, constantes)
 - [x] Couche API admin M4 dans `apps/admin/src/lib/api/formal.api.ts` + types associés
 - [x] Intégration React Query M4 (query keys `formal.*`, hooks mutations + invalidation)
-- [~] UI admin M4 amorcée (lettre DG, checklist documents, réunion, clôture)
+- [x] UI admin M4 (lettre DG, checklist documents, réunion, clôture)
 
 ### Sprint 3 — avancement frontend portail (2026-07-10, en cours)
 
 - [x] `MyRequestPage` enrichie : section M3 polish (statuts lisibles, liens API centralisés, libellés FR)
 - [x] Première section M4 intégrée côté portail (`FormalPhaseSection`) : lettre officielle + checklist docs + réunion
 - [x] Refactor portail vers convention React Query + `src/lib/api` (module requests désormais split en hooks/components/api/types)
-- [~] Finalisation UI portail M4 (orchestration modulaire, hooks dédiés, invalidation)
+- [x] Finalisation UI portail M4 (orchestration modulaire, hooks dédiés, invalidation)
 
-## Sprint 4 — Évaluation approfondie (M5)
+## Sprint 4 — Évaluation approfondie (M5) — ✅ Terminé (confirmé 2026-07-27)
 
-- [~] Upload facture + preuve de paiement (S5) — API + wiring admin/portail démarrés
-- [~] Évaluation individuelle des 11 documents (Validé/Rejeté/À corriger) — API + écran admin démarrés
-- [~] Re-upload ciblé par document rejeté, avec délai configurable — endpoints et section portail démarrés
-- [~] Clôture de phase (pattern standard) — endpoint + carte admin démarrés
+- [x] Upload facture + preuve de paiement (S5)
+- [x] Évaluation individuelle des 11 documents (Validé/Rejeté/À corriger)
+- [x] Re-upload ciblé par document rejeté, avec délai configurable
+- [x] Clôture de phase (pattern standard)
 
-### Sprint 4 — avancement initial (2026-07-10, en cours)
+### Sprint 4 — implémentation complète (confirmé 2026-07-27)
 
 - [x] Module API `deep-evaluation` monté sous `/api/deep-evaluation`
-- [x] Endpoints M5 initiaux : bundle, ouverture, facture, preuve, validation/rejet paiement,
+- [x] Endpoints M5 : bundle, ouverture, facture, preuve, validation/rejet paiement,
       verdict document, resoumission, clôture
-- [x] Route/page admin ajoutée : `/demandes/:requestId/evaluation-approfondie`
-- [x] Query keys admin `deepEvaluation.*` ajoutées
+- [x] Route/page admin : `/demandes/:requestId/evaluation-approfondie` — 17 fichiers
+      (page, hooks, cartes PaymentCard/DocumentEvaluationsCard/ClosureCard, api/types/constants/helpers)
+- [x] Query keys admin `deepEvaluation.*`
 - [x] Intégration portail : section `DeepEvaluationSection` dans la carte de demande active
+- [x] Typecheck propre sur les 3 workspaces (api, admin, portal) — vérifié 2026-07-27
 
 ## Sprint 5 — Démonstration/Inspection (M6)
 

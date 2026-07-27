@@ -7,9 +7,9 @@ project evolves. Structure mirrors SICOT's exploration-cache — see
 
 **Project**: AIDN — Application Informatique de la Direction de la Navigabilité —
 ANAC Gabon
-**Last updated**: 2026-07-10 | **Sprint**: 0, 1, and 2 (M3) are committed,
-Sprint 3 (M4) kickoff is committed, uploads governance controls are committed,
-and Sprint 4 (M5) kickoff is in progress with `deep-evaluation` API/admin/portal wiring.
+**Last updated**: 2026-07-27 | **Sprint**: 0–4 (M1–M5) are fully committed and
+verified (clean typecheck, all 3 workspaces). Sprint 5 (M6 — Démonstration/
+Inspection sur Site) is the current work.
 
 ---
 
@@ -64,6 +64,7 @@ complete there.
 | [`sessions/2026-07-08.md`](sessions/2026-07-08.md) | Fixed both broken builds from `2205261`, then built Sprint 2 (Phase Préliminaire, M3) end to end                                                                         |
 | [`sessions/2026-07-09.md`](sessions/2026-07-09.md) | Sprint 2 hardening + M3 admin page refactor: settings/system-parameters UI+API, dev reset tools, meeting CR upload, closure gating fixes, hooks/helpers/components split |
 | [`sessions/2026-07-10.md`](sessions/2026-07-10.md) | Uploads governance admin consumption completed and Sprint 4 kickoff started (deep-evaluation API/admin/portal integration)                                               |
+| [`sessions/2026-07-27.md`](sessions/2026-07-27.md) | Cache/Notion drift correction (M4+M5 confirmed fully built, not "kickoff"); started Sprint 5 (M6 — Démonstration/Inspection sur Site)                                    |
 
 ---
 

@@ -315,3 +315,53 @@ export const handleDeepEvaluationError = createErrorHandler(
   },
   '[deep-evaluation]'
 );
+
+export const handleSiteInspectionError = createErrorHandler(
+  {
+    REQUEST_NOT_FOUND: { status: 404, message: 'Demande introuvable.' },
+    M5_NOT_CLOSED: {
+      status: 409,
+      message:
+        "L'évaluation approfondie doit être clôturée avant d'ouvrir la démonstration/inspection.",
+    },
+    PHASE_ALREADY_OPEN: {
+      status: 409,
+      message: 'Cette phase est déjà ouverte pour cette demande.',
+    },
+    PHASE_NOT_FOUND: { status: 404, message: 'Phase introuvable.' },
+    PHASE_ALREADY_CLOSED: {
+      status: 409,
+      message: 'Cette phase est déjà clôturée.',
+    },
+    PAYMENT_NOT_FOUND: { status: 404, message: 'Paiement introuvable.' },
+    INVOICE_NOT_UPLOADED: {
+      status: 409,
+      message: "La facture doit d'abord être mise en ligne avant que le postulant puisse soumettre sa preuve.",
+    },
+    PAYMENT_ALREADY_VALIDATED: {
+      status: 409,
+      message: 'Ce paiement a déjà été validé.',
+    },
+    PAYMENT_NOT_PENDING: {
+      status: 409,
+      message: "La preuve de paiement doit être au statut 'en attente de validation'.",
+    },
+    PAYMENT_NOT_VALIDATED: {
+      status: 409,
+      message: "Le paiement doit être validé avant de soumettre l'avis R3.",
+    },
+    SITE_VISIT_NOT_SCHEDULED: {
+      status: 409,
+      message: "La visite sur site doit d'abord être planifiée.",
+    },
+    SITE_VISIT_NOT_HELD: {
+      status: 409,
+      message: "La visite sur site doit être marquée 'tenue' avant de soumettre l'avis R3.",
+    },
+    VERDICT_ALREADY_SUBMITTED: {
+      status: 409,
+      message: 'Un avis R3 a déjà été soumis pour cette phase.',
+    },
+  },
+  '[site-inspection]'
+);

@@ -1,10 +1,12 @@
 # 🔴 Active Blockers
 
-Last updated: 2026-07-10
+Last updated: 2026-07-27
 
-No active hard blockers. Sprint 2 (M3), Sprint 3 kickoff (M4), and uploads
-governance controls are committed. Current work is Sprint 4 kickoff (M5) plus
-cache/docs synchronization.
+No active hard blockers. Sprint 2 (M3), Sprint 3 (M4), and Sprint 4 (M5) are
+fully committed — API + admin + portal, verified via fresh typecheck across
+all 3 workspaces (previously under-reported as "kickoff only" due to stale
+cache; corrected 2026-07-27 after direct code inspection). Current work is
+Sprint 5 (M6 — Démonstration/Inspection sur Site).
 
 ---
 
