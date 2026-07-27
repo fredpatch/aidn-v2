@@ -7,6 +7,7 @@ import { CIRCUIT_STATUS_LABELS, REQUEST_TYPE_LABELS, STATUS_LABELS } from '../co
 import { FormalPhaseSection } from './FormalPhaseSection';
 import { PreliminaryPhaseSection } from './PreliminaryPhaseSection';
 import { DeepEvaluationSection } from './DeepEvaluationSection';
+import { SiteInspectionSection } from './SiteInspectionSection';
 
 export function ActiveRequestCard({
   request,
@@ -75,6 +76,8 @@ export function ActiveRequestCard({
       {request.status === 'in_progress' && <FormalPhaseSection requestId={request.id} />}
 
       {request.status === 'in_progress' && <DeepEvaluationSection requestId={request.id} />}
+
+      {request.status === 'in_progress' && <SiteInspectionSection requestId={request.id} />}
     </div>
   );
 }

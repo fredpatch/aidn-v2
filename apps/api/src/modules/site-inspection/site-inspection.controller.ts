@@ -37,6 +37,12 @@ export async function getBundle(req: Request, res: Response): Promise<void> {
       return;
     }
     const bundle = await inspectionService.getBundleForRequest(requestId);
+    // "Avis R3" is DN-internal only (modules-feasibility.md, doc visibility
+    // rules) — never returned to an applicant caller, not just hidden in UI.
+    if (req.applicant) {
+      res.json({ ...bundle, inspection: null });
+      return;
+    }
     res.json(bundle);
   } catch (error) {
     handleSiteInspectionError(res, error);

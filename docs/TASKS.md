@@ -289,14 +289,22 @@ Voir `exploration-cache/technical/gotchas.md` pour le détail complet.
 - [x] Intégration portail : section `DeepEvaluationSection` dans la carte de demande active
 - [x] Typecheck propre sur les 3 workspaces (api, admin, portal) — vérifié 2026-07-27
 
-## Sprint 5 — Démonstration/Inspection (M6) — API + UI admin terminés (2026-07-27)
+## Sprint 5 — Démonstration/Inspection (M6) — Terminé (2026-07-27)
 
 - [x] Rôle `r3_agent` (file de dossiers propre — auth staff existante réutilisée, pas de login séparé, décision confirmée)
 - [x] Facture + preuve de paiement (réutilise pattern M5)
 - [x] Planification visite sur site (réutilise pattern réunion, `meetingType: 'site_visit'`)
 - [x] Soumission avis R3 (verdict + note en une action)
 - [x] Clôture de phase automatique après avis R3 (aucune décision DN requise)
-- [ ] UI portail — pas encore construite (à faire avant de considérer M6 100% terminé)
+- [x] UI portail — soumission preuve de paiement, statut visite en lecture seule
+
+### Sprint 5 — visibilité documentaire (2026-07-27)
+
+- [x] **Fix sécurité** : `GET /site-inspection/by-request/:requestId` renvoyait `inspection`
+      (avis R3) à tout appelant authentifié, y compris le postulant via `authenticateEither`.
+      Corrigé pour ne renvoyer ce champ qu'aux appelants staff — l'avis R3 est
+      DN-interne uniquement (`modules-feasibility.md`, section visibilité documentaire),
+      jamais exposé même en lecture seule au postulant.
 
 ### Sprint 5 — implémentation (2026-07-27)
 
@@ -309,6 +317,8 @@ Voir `exploration-cache/technical/gotchas.md` pour le détail complet.
       (Paiement, Visite sur site, Avis R3), hooks React Query, `lib/api/site-inspection.*`
 - [x] Admin : page `Mes Inspections` (`/mes-inspections`), nav scopée `r3_agent`/`SU`,
       liste les dossiers M6 ouverts avec une visite assignée à l'agent connecté
+- [x] Portail : `SiteInspectionSection` dans `ActiveRequestCard` — preuve de paiement,
+      statut de la visite en lecture seule ; avis R3 jamais affiché (voir ci-dessus)
 - [x] Typecheck propre sur les 3 workspaces (api, admin, portal) — vérifié 2026-07-27
 - Décision (non explicite dans la spec, à confirmer si besoin) : planification de la
   visite gatée sur facture envoyée seulement ; validation complète du paiement gatée

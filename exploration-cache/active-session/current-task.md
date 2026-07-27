@@ -5,6 +5,22 @@
 and portal, clean typecheck across all 3 workspaces. Current work is
 **Sprint 5 (M6 — Démonstration/Inspection sur Site)**.
 
+## ✅ Done today (2026-07-27, continued): Sprint 5 (M6) portal UI + security fix
+
+- `SiteInspectionSection.tsx` added to `ActiveRequestCard` — postulant uploads
+  proof of payment (same pattern as M5's `DeepEvaluationSection`), sees site
+  visit date/time/location and status read-only
+- **Real bug caught mid-build, not just a feature note**: the API's
+  `getBundle` was returning the R3 verdict+note (`inspection`) to *any*
+  authenticated caller, including the applicant via `authenticateEither`.
+  `modules-feasibility.md`'s doc-visibility section explicitly locks "avis
+  R3" as DN-internal only. Fixed at the controller level — the field is now
+  stripped server-side for applicant callers, not just hidden in the portal
+  UI (hiding it in the UI alone would have left it visible in the raw API
+  response / network tab)
+- Sprint 5 (M6) is now feature-complete: API + admin + portal, typecheck
+  clean on all 3 workspaces
+
 ## ✅ Done today (2026-07-27, continued): Sprint 5 (M6) API + admin UI
 
 - API module `site-inspection` built and typechecked (see prior entry in this
@@ -205,7 +221,7 @@ Sprint 2  Phase Préliminaire (M3), API + full UI + document_templates   ██�
 Sprint 3  Phase Demande formelle (M4), API + full UI                    ██████████ 100% ✅
 Sprint 4  Évaluation approfondie (M5), API + full UI                    ██████████ 100% ✅
 ──────────────────────────────────────────────────────────────────────────────────
-Sprint 5  Démonstration/Inspection (M6), API + admin UI                 ████████░░  80% ⏳ current (portal UI remaining)
+Sprint 5  Démonstration/Inspection (M6), API + admin + portail            ██████████ 100% ✅
 Sprint 6-12                                                             ░░░░░░░░░░   0%
 ```
 
