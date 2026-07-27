@@ -43,6 +43,7 @@ export default function FormalPhasePage() {
         </button>
         <PhaseSidebar
           bundle={null}
+          requestId={requestId}
           currentCode="M4"
           checklistTitle="Checklist — Demande Formelle"
           checklist={checklist}

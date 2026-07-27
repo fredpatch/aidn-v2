@@ -358,6 +358,17 @@ Voir `exploration-cache/technical/gotchas.md` pour le détail complet.
       réelles (2026-07-27) — le rendu du PDF depuis le template HTML final
       fonctionne correctement de bout en bout
 
+## Durcissement du workflow (post-M7, avant Sprint 7+)
+
+Plan complet : `exploration-cache/project/hardening-plan.md`. Déclenché par un test de
+bout en bout de Fred (2026-07-27) après la fin des 5 phases OMA. Workstream B (rôles
+UI) délibérément reporté — à bundler avec l'intégration API ANAC.
+
+- [x] **A** — Navigation entre phases + feedback visuel (`PhaseSidebar`) — terminé 2026-07-27
+- [ ] **D-V1** — Cartes repliables (collapse/expand) pour réduire le scroll M4/M5 — prochain
+- [ ] **C** — Visualiseur de documents intégré (M5 d'abord)
+- [ ] **E** — Notifications (M11) — V1 minimale (certificat prêt, document à corriger, dossier rejeté)
+
 ## Sprint 7 — Documents (transverse, M8)
 
 - [ ] Upload multi-format (PDF/Word/PNG/JPG)

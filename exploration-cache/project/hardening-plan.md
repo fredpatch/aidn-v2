@@ -12,7 +12,33 @@ Chaque constat ci-dessous a été vérifié dans le code réel, pas supposé.
 
 ---
 
-## A — Navigation entre phases & feedback visuel (`PhaseSidebar`)
+## A — Navigation entre phases & feedback visuel (`PhaseSidebar`) — ✅ Terminé (2026-07-27)
+
+### Implémentation
+
+- Nouvel endpoint `GET /api/phases/requests/:requestId/phases-summary` — statut
+  (`not_started`/`open`/`closed`) des 5 phases M3-M7. **Volontairement hors du gate
+  DN-only du reste du module `phases`** (placé avant le `router.use(requireRole(...))`)
+  : donnée en lecture seule, faible sensibilité, et consultée par des rôles non-DN
+  (ex. `r3_agent` via "Mes Inspections" qui atterrit sur une page de phase M6)
+- `PhaseSidebar` récupère ce résumé lui-même (un seul `requestId` en prop suffit,
+  pas besoin que chaque page de phase gère le fetch) et distingue maintenant 3 états
+  réels : clôturée (check vert, cliquable, navigue), actuelle (bleu, inchangé), pas
+  encore ouverte (cadenas gris, tooltip conservé mais seulement pour ce cas réel)
+- `PHASE_ROADMAP` étendu avec le chemin de route de chaque phase pour permettre la
+  navigation
+- Les 5 pages de phase (M3-M7) mises à jour pour passer `requestId` — aucun autre
+  changement requis dans les pages elles-mêmes, chaque page gérait déjà son propre
+  affichage lecture-seule selon son statut serveur
+
+### Cas limites traités tels que planifiés
+
+- Dossier rejeté en cours de route : `not_started` reste correct visuellement pour
+  les phases qui ne s'ouvriront jamais, pas de 4ᵉ état introduit
+- Deep link direct vers une phase clôturée : déjà couvert nativement (chaque page
+  vérifie son propre état serveur au chargement)
+
+
 
 ### Constat (vérifié dans `apps/admin/src/pages/phases/preliminary/components/PhaseSidebar.tsx`)
 
@@ -182,9 +208,8 @@ réel, aucun des autres déclencheurs listés ci-dessous n'est câblé.
 
 ## Séquencement proposé
 
-1. **A (sidebar)** — le plus isolé, le moins de dépendances, corrige un vrai bug de
-   navigation (pas juste un raffinement)
-2. **D-V1 (collapse/expand)** — petit changement, gain UX immédiat sur M4/M5
+1. **A (sidebar)** — ✅ Terminé (2026-07-27), voir section A ci-dessus
+2. **D-V1 (collapse/expand)** — petit changement, gain UX immédiat sur M4/M5 — **prochain**
 3. **C (visualiseur, M5 d'abord)** — plus gros morceau, composant réutilisable ensuite
 4. **E** — le plus large ; recommandation : scoper une V1 minimale (les 3 déclencheurs
    déjà partiellement prévus : certificat prêt, document à corriger, dossier rejeté)

@@ -37,6 +37,7 @@ export default function SiteInspectionPhasePage() {
         </button>
         <PhaseSidebar
           bundle={null}
+          requestId={requestId}
           currentCode="M6"
           checklistTitle="Checklist — Démonstration / Inspection"
           checklist={checklist}

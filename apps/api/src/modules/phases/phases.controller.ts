@@ -41,6 +41,15 @@ export async function getForRequest(req: Request, res: Response): Promise<void> 
   }
 }
 
+export async function getPhasesSummary(req: Request, res: Response): Promise<void> {
+  try {
+    const summary = await phasesService.getPhasesSummary(Number(req.params.requestId));
+    res.json(summary);
+  } catch (error) {
+    handlePhasesError(res, error);
+  }
+}
+
 export async function close(req: Request, res: Response): Promise<void> {
   try {
     const {

@@ -38,7 +38,7 @@ export default function PreliminaryPhasePage() {
         >
           ← Retour aux demandes
         </button>
-        <PhaseSidebar bundle={bundle} />
+        <PhaseSidebar bundle={bundle} requestId={requestId} />
       </div>
 
       <div className="flex-1 min-w-0 space-y-6">

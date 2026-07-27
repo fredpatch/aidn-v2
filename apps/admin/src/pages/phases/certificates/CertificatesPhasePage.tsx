@@ -38,6 +38,7 @@ export default function CertificatesPhasePage() {
         </button>
         <PhaseSidebar
           bundle={null}
+          requestId={requestId}
           currentCode="M7"
           checklistTitle="Checklist — Délivrance"
           checklist={checklist}

@@ -87,6 +87,42 @@ export async function getPhaseByRequestAndCode(
   return phase ? toPhaseView(phase) : null;
 }
 
+const ALL_PHASE_CODES = ['M3', 'M4', 'M5', 'M6', 'M7'] as const;
+
+export interface PhaseSummaryItem {
+  phaseCode: (typeof ALL_PHASE_CODES)[number];
+  status: 'not_started' | 'open' | 'closed';
+  openedAt: Date | null;
+  closedAt: Date | null;
+}
+
+/** Lightweight per-phase status summary for a request, used by the admin
+ *  sidebar to distinguish "already closed" (clickable, read-only) from
+ *  "not yet opened" (locked) - previously indistinguishable, see
+ *  project/hardening-plan.md workstream A. Read-only, low-sensitivity
+ *  (just phase code + status + dates), so any authenticated staff member
+ *  can call this regardless of which internal role they hold - unlike the
+ *  rest of this module, not gated to dn_agent/dn_supervisor/SU, since
+ *  r3_agent and s5_agent staff also land on phase detail pages that render
+ *  this sidebar (e.g. via "Mes Inspections"). */
+export async function getPhasesSummary(requestId: number): Promise<PhaseSummaryItem[]> {
+  const rows = await db.select().from(phases).where(eq(phases.requestId, requestId));
+  const byCode = new Map(rows.map((r) => [r.phaseCode, r]));
+
+  return ALL_PHASE_CODES.map((phaseCode) => {
+    const row = byCode.get(phaseCode);
+    if (!row) {
+      return { phaseCode, status: 'not_started', openedAt: null, closedAt: null };
+    }
+    return {
+      phaseCode,
+      status: row.status === 'closed' ? 'closed' : 'open',
+      openedAt: row.openedAt,
+      closedAt: row.closedAt,
+    };
+  });
+}
+
 /** Pattern "Cloture de phase" - doc attached and/or note, both fully
  *  optional (relaxed on Fred's explicit call after live testing,
  *  2026-07-08 - DN should never be blocked from closing just for not

@@ -1,9 +1,9 @@
 export const PHASE_ROADMAP = [
-  { code: 'M3', label: 'Phase Preliminaire' },
-  { code: 'M4', label: 'Demande Formelle' },
-  { code: 'M5', label: 'Evaluation Approfondie' },
-  { code: 'M6', label: 'Demonstration / Inspection' },
-  { code: 'M7', label: 'Delivrance' },
+  { code: 'M3', label: 'Phase Preliminaire', path: 'phase-preliminaire' },
+  { code: 'M4', label: 'Demande Formelle', path: 'phase-formelle' },
+  { code: 'M5', label: 'Evaluation Approfondie', path: 'evaluation-approfondie' },
+  { code: 'M6', label: 'Demonstration / Inspection', path: 'demonstration-inspection' },
+  { code: 'M7', label: 'Delivrance', path: 'delivrance' },
 ] as const;
 
 export const API_ORIGIN = 'http://localhost:4000';

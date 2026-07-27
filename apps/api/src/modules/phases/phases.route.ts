@@ -4,6 +4,15 @@ import * as phasesController from "./phases.controller.js";
 
 const router = Router();
 
+// Read-only, low-sensitivity, needed by any staff role that can land on a
+// phase detail page (not just DN) - see phases.service.ts getPhasesSummary
+// for why this isn't behind the module-wide DN-only gate below.
+router.get(
+  "/requests/:requestId/phases-summary",
+  authenticate,
+  phasesController.getPhasesSummary
+);
+
 router.use(authenticate, requireRole("dn_agent", "dn_supervisor", "SU"));
 
 router.post("/requests/:requestId/start-preliminary-phase", phasesController.startPreliminaryPhase);

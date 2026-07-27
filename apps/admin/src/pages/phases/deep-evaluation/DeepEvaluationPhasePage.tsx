@@ -40,6 +40,7 @@ export default function DeepEvaluationPhasePage() {
         </button>
         <PhaseSidebar
           bundle={null}
+          requestId={requestId}
           currentCode="M5"
           checklistTitle="Checklist — Évaluation approfondie"
           checklist={checklist}
