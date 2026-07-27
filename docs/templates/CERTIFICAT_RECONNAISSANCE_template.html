@@ -1,0 +1,654 @@
+<!doctype html>
+
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1" name="viewport" />
+    <title>CERTIFICAT DE RECONNAISSANCE D'ORGANISME DE MAINTENANCE AGRÉÉ</title>
+    <style>
+      :root {
+        --blue: #001e63;
+        --green: #00ae4d;
+        --yellow: #fff200;
+        --ink: #111;
+        --rule: 0.28mm solid #111;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        background: #e9edf1;
+        color: var(--ink);
+        font-family: Arial, Helvetica, sans-serif;
+      }
+      body {
+        padding: 18px;
+      }
+      .toolbar {
+        width: 210mm;
+        margin: 0 auto 12px;
+        display: flex;
+        justify-content: flex-end;
+      }
+      .toolbar button {
+        border: 1px solid #c9d0d8;
+        border-radius: 6px;
+        background: #fff;
+        padding: 8px 12px;
+        cursor: pointer;
+        font-weight: 700;
+      }
+      .page {
+        width: 210mm;
+        height: 297mm;
+        margin: auto;
+        background: #fff;
+        position: relative;
+        padding: 6.7mm 5.3mm 5.2mm;
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.16);
+        overflow: hidden;
+      }
+      .doc-code {
+        position: absolute;
+        top: 4.2mm;
+        right: 18mm;
+        font-size: 5.3pt;
+        white-space: nowrap;
+      }
+      .frame-green,
+      .frame-yellow,
+      .frame-blue {
+        height: 100%;
+      }
+      .frame-green {
+        border: 5.2mm solid var(--green);
+      }
+      .frame-yellow {
+        border: 5mm solid var(--yellow);
+      }
+      .frame-blue {
+        border: 5mm solid var(--blue);
+      }
+      .sheet {
+        height: 100%;
+        background: #fff;
+      }
+      .certificate-table {
+        width: 100%;
+        height: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+        border: var(--rule);
+      }
+      .certificate-table > colgroup .col-class {
+        width: 27%;
+      }
+      .certificate-table > colgroup .col-rating {
+        width: 46%;
+      }
+      .certificate-table > colgroup .col-limit {
+        width: 27%;
+      }
+      .certificate-table > tbody > tr > td,
+      .certificate-table > tbody > tr > th {
+        border-right: var(--rule);
+        border-bottom: var(--rule);
+        padding: 0;
+        vertical-align: top;
+      }
+      .certificate-table > tbody > tr > td:last-child,
+      .certificate-table > tbody > tr > th:last-child {
+        border-right: 0;
+      }
+      .certificate-table > tbody > tr:last-child > td {
+        border-bottom: 0;
+      }
+      .header-row {
+        height: 30.5mm;
+      }
+      .header-row td {
+        border-bottom: var(--rule);
+      }
+      .header {
+        height: 100%;
+        display: grid;
+        grid-template-columns: 1fr 38mm 1fr;
+        align-items: center;
+        padding: 1.5mm 8mm 1mm;
+      }
+      .header-side {
+        color: #006bc1;
+        font-weight: 700;
+        font-size: 10.1pt;
+        line-height: 1.28;
+        text-align: center;
+      }
+      .header-side.right {
+        font-size: 9.8pt;
+      }
+      .logo {
+        width: 34mm;
+        height: 21mm;
+        object-fit: contain;
+        justify-self: center;
+      }
+      .title-row {
+        height: 11mm;
+        text-align: center;
+      }
+      .title-row td {
+        padding: 1.7mm 2mm 1.1mm !important;
+      }
+      .title-row .fr {
+        font-weight: 700;
+        font-size: 11.1pt;
+        line-height: 1.12;
+      }
+      .title-row .en {
+        font-style: italic;
+        font-size: 9.9pt;
+        margin-top: 1.1mm;
+      }
+      .authority-row {
+        height: 10.2mm;
+      }
+      .authority-row td {
+        padding: 1.35mm 2mm 1mm !important;
+      }
+      .authority-row .fr {
+        font-size: 8.8pt;
+        font-weight: 700;
+      }
+      .authority-row .field {
+        margin-left: 3mm;
+      }
+      .authority-row .en {
+        font-size: 8.1pt;
+        font-style: italic;
+        margin-top: 1mm;
+      }
+      .identity-row {
+        height: 42.5mm;
+      }
+      .identity-row td {
+        padding: 1.5mm 2mm !important;
+      }
+      .label {
+        font-weight: 700;
+        font-size: 8.1pt;
+        line-height: 1.08;
+      }
+      .sub {
+        font-size: 7.3pt;
+        font-style: italic;
+        line-height: 1.05;
+        font-weight: 400;
+      }
+      .sub.inline {
+        display: inline;
+      }
+      .value,
+      .field {
+        font-weight: 700;
+      }
+      .value {
+        font-size: 8.1pt;
+        line-height: 1.18;
+      }
+      .reference-value {
+        margin-top: 10.5mm;
+        font-size: 8.1pt;
+        overflow-wrap: anywhere;
+      }
+      .info-line {
+        margin-bottom: 1.15mm;
+        font-size: 8.1pt;
+        line-height: 1.18;
+      }
+      .info-line .sub:not(.inline) {
+        display: block;
+        margin-top: 0.5mm;
+      }
+      .expiration-cell .value {
+        margin-top: 0.7mm;
+      }
+      .expiration-cell .sub {
+        margin-top: 3mm;
+      }
+      .section-heading-row {
+        height: 9mm;
+        text-align: center;
+      }
+      .section-heading-row td {
+        padding: 1.2mm 1mm 0.45mm !important;
+      }
+      .section-heading-row .fr {
+        font-weight: 700;
+        font-size: 8.1pt;
+      }
+      .section-heading-row .en {
+        font-size: 7.6pt;
+        font-style: italic;
+        margin-top: 0.55mm;
+      }
+      .ratings-heading-row {
+        height: 9.8mm;
+      }
+      .ratings-heading-row th {
+        text-align: center;
+        padding: 1mm !important;
+        vertical-align: middle !important;
+      }
+      .ratings-heading-row .fr {
+        font-size: 7.9pt;
+      }
+      .ratings-heading-row .en {
+        font-size: 7.3pt;
+        font-style: italic;
+        font-weight: 400;
+        margin-top: 1.3mm;
+      }
+      .rating-row {
+        height: 10.4mm;
+      }
+      .rating-row td {
+        padding: 1.15mm 1.8mm !important;
+        vertical-align: middle !important;
+        font-size: 8pt;
+      }
+      .rating-row td:nth-child(2),
+      .rating-row td:nth-child(3) {
+        text-align: center;
+      }
+      .rating-row .en {
+        font-style: italic;
+        font-size: 7.2pt;
+        margin-top: 1mm;
+      }
+      .terms-row {
+        height: 48mm;
+      }
+      .terms-row > td {
+        padding: 0 !important;
+      }
+      .terms-title {
+        text-align: center;
+        padding: 0.35mm 1mm 0;
+      }
+      .terms-title .fr {
+        font-weight: 700;
+        font-size: 7.5pt;
+        line-height: 1.02;
+      }
+      .terms-title .en {
+        font-style: italic;
+        font-size: 7.1pt;
+        line-height: 1.02;
+      }
+      .terms-content {
+        padding: 0 2mm 1mm;
+        font-size: 7.45pt;
+        line-height: 1.17;
+        overflow: hidden;
+      }
+      .terms-content p {
+        margin: 1.3mm 0 0;
+      }
+      .terms-content .en {
+        font-style: italic;
+        font-size: 7pt;
+        margin-top: 0.2mm;
+      }
+      .signature-row {
+        height: auto;
+      }
+      .signature-row > td {
+        padding: 0 !important;
+      }
+      .signature-table {
+        width: 100%;
+        height: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+        font-size: 7.7pt;
+        line-height: 1.15;
+      }
+      .signature-table td {
+        border: 0;
+        padding: 1mm 2mm;
+        vertical-align: top;
+      }
+      .signature-table tr:first-child {
+        height: 12mm;
+      }
+      .signature-table tr:nth-child(2) {
+        height: 12mm;
+      }
+      .signature-table tr:last-child {
+        height: 15mm;
+      }
+      .signature-table .en {
+        font-style: italic;
+        font-size: 7.2pt;
+        margin-top: 2mm;
+      }
+      .dg-cell {
+        text-align: right;
+        padding-right: 8.5mm !important;
+        padding-top: 2mm !important;
+      }
+      .footer {
+        position: absolute;
+        left: 31mm;
+        right: 31mm;
+        bottom: 1.7mm;
+        text-align: center;
+        font-size: 3.5pt;
+        color: #111;
+        white-space: nowrap;
+      }
+      @page {
+        size: A4 portrait;
+        margin: 0;
+      }
+      @media print {
+        html,
+        body {
+          background: #fff;
+          padding: 0;
+        }
+        .toolbar {
+          display: none;
+        }
+        .page {
+          margin: 0;
+          box-shadow: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="toolbar">
+      <button onclick="window.print()" type="button">Imprimer / Exporter PDF</button>
+    </div>
+    <main class="page">
+      <div class="doc-code">DN-AIR-R2-3-F-I-020    mai 2025 version 03</div>
+      <div class="frame-green">
+        <div class="frame-yellow">
+          <div class="frame-blue">
+            <div class="sheet">
+              <table
+                aria-label="Certificat d'organisme de maintenance agréé"
+                class="certificate-table"
+              >
+                <colgroup>
+                  <col class="col-class" />
+                  <col class="col-rating" />
+                  <col class="col-limit" />
+                </colgroup>
+                <tbody>
+                  <tr class="header-row">
+                    <td colspan="3">
+                      <header class="header">
+                        <div class="header-side">AGENCE NATIONALE<br />DE L'AVIATION CIVILE</div>
+                        <img
+                          class="logo"
+                          alt="Logo ANAC Gabon"
+                          src="data:image/jpeg;base64,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"
+                        />
+                        <div class="header-side right">
+                          RÉPUBLIQUE GABONAISE<br /><span style="font-size: 8.3pt"
+                            >UNION-TRAVAIL-JUSTICE</span
+                          >
+                        </div>
+                      </header>
+                    </td>
+                  </tr>
+                  <tr class="title-row">
+                    <td colspan="3">
+                      <div class="fr">
+                        CERTIFICAT DE RECONNAISSANCE D'ORGANISME DE MAINTENANCE AGRÉÉ
+                      </div>
+                      <div class="en">APPROVED MAINTENANCE ORGANIZATION CERTIFICATE</div>
+                    </td>
+                  </tr>
+                  <tr class="authority-row">
+                    <td colspan="3">
+                      <div class="fr">
+                        Autorité de délivrance :
+                        <span class="field" data-field="deliveranceAuthorityCertificate"
+                          >{deliveranceAuthorityCertificate}</span
+                        >
+                      </div>
+                      <div class="en">Issuing authority</div>
+                    </td>
+                  </tr>
+                  <tr class="identity-row">
+                    <td class="reference-cell">
+                      <div class="label">N° de référence de<br />l'agrément</div>
+                      <div class="sub">Approval reference<br />number</div>
+                      <div class="reference-value field" data-field="approvalReferenceNumber">
+                        {approvalReferenceNumber}
+                      </div>
+                    </td>
+                    <td class="organisation-cell">
+                      <div class="info-line">
+                        <span class="label">Nom de l'organisme :</span>
+                        <span class="value field" data-field="organisationName"
+                          >{organisationName}</span
+                        >
+                        <div class="sub">Organization name</div>
+                      </div>
+                      <div class="info-line">
+                        <span class="label">Adresse légale</span>
+                        <span class="sub inline">(Registered address):</span>
+                        <span class="value field" data-field="legalAddress">{legalAddress}</span>
+                      </div>
+                      <div class="info-line">
+                        <span class="label">Téléphone :</span>
+                        <span class="value field" data-field="phone">{phone}</span>
+                        <div class="sub">Telephone</div>
+                      </div>
+                      <div class="info-line">
+                        <span class="label">Courrier électronique :</span>
+                        <span class="value field" data-field="email">{email}</span>
+                        <div class="sub">E-mail</div>
+                      </div>
+                    </td>
+                    <td class="expiration-cell">
+                      <div class="label">Date d'expiration :</div>
+                      <div class="value field" data-field="expiresAt">{expiresAt}</div>
+                      <div class="sub">Expiration date</div>
+                    </td>
+                  </tr>
+                  <tr class="section-heading-row">
+                    <td colspan="3">
+                      <div class="fr">CLASSE(S) ET QUALIFICATION(S) AUTORISÉES</div>
+                      <div class="en">Class(es) and rating(s) authorized</div>
+                    </td>
+                  </tr>
+                  <tr class="ratings-heading-row">
+                    <th>
+                      <div class="fr">CLASSE</div>
+                      <div class="en">Class</div>
+                    </th>
+                    <th>
+                      <div class="fr">QUALIFICATION</div>
+                      <div class="en">Rating</div>
+                    </th>
+                    <th>
+                      <div class="fr">LIMITES</div>
+                      <div class="en">Limitations</div>
+                    </th>
+                  </tr>
+                  <tr class="rating-row">
+                    <td>
+                      Maintenance d'aéronefs
+                      <div class="en">Aircrafts Maintenance</div>
+                    </td>
+                    <td>
+                      <span class="field" data-field="qualificationAeronefs"
+                        >{qualificationAeronefs}</span
+                      >
+                      <div class="en field" data-field="qualificationAeronefsEn">
+                        {qualificationAeronefsEn}
+                      </div>
+                    </td>
+                    <td class="field" data-field="limitationsAeronefs">{limitationsAeronefs}</td>
+                  </tr>
+                  <tr class="rating-row">
+                    <td>
+                      Maintenance des moteurs
+                      <div class="en">Engines Maintenance</div>
+                    </td>
+                    <td>
+                      <span class="field" data-field="qualificationMoteurs"
+                        >{qualificationMoteurs}</span
+                      >
+                      <div class="en field" data-field="qualificationMoteursEn">
+                        {qualificationMoteursEn}
+                      </div>
+                    </td>
+                    <td class="field" data-field="limitationsMoteurs">{limitationsMoteurs}</td>
+                  </tr>
+                  <tr class="rating-row">
+                    <td>
+                      Maintenance de composants
+                      <div class="en">Component maintenance</div>
+                    </td>
+                    <td>
+                      <span class="field" data-field="qualificationComposants"
+                        >{qualificationComposants}</span
+                      >
+                      <div class="en field" data-field="qualificationComposantsEn">
+                        {qualificationComposantsEn}
+                      </div>
+                    </td>
+                    <td class="field" data-field="limitationsComposants">
+                      {limitationsComposants}
+                    </td>
+                  </tr>
+                  <tr class="rating-row">
+                    <td>
+                      Maintenance spécialisée
+                      <div class="en">Specialized maintenance</div>
+                    </td>
+                    <td>
+                      <span class="field" data-field="qualificationSpecialisee"
+                        >{qualificationSpecialisee}</span
+                      >
+                      <div class="en field" data-field="qualificationSpecialiseeEn">
+                        {qualificationSpecialiseeEn}
+                      </div>
+                    </td>
+                    <td class="field" data-field="limitationsSpecialisee">
+                      {limitationsSpecialisee}
+                    </td>
+                  </tr>
+                  <tr class="terms-row">
+                    <td colspan="3">
+                      <div class="terms-title">
+                        <div class="fr">Conditions de l'agrément</div>
+                        <div class="en">Terms of Approval</div>
+                      </div>
+                      <div class="terms-content">
+                        <p>
+                          Le présent document atteste que
+                          <span class="field" data-field="organisationName"
+                            >{organisationName}</span
+                          >
+                          OMA a reçu l'autorisation d'exercer les activités énumérées dans la
+                          présente, sous réserve de respecter les dispositions du règlement
+                          <strong>RAG 5.3</strong> et la plus récente édition du manuel de
+                          procédures de l'organisme de maintenance (MPM).
+                        </p>
+                        <div class="en">
+                          This certificate certifies that
+                          <span class="field" data-field="organisationName"
+                            >{organisationName}</span
+                          >
+                          OMA is authorized to engage in activities specified in the Terms of
+                          Approval annexed hereto, subject to the compliance with the
+                          <strong>RAG 5.3</strong> and the latest maintenance organization's
+                          procedures manual (MOPM).
+                        </div>
+                        <p>
+                          Emplacement des installations de maintenance : comme indiqué à la partie
+                          2, section 2.11 de la plus récente édition du manuel de procédures de
+                          l'organisme de maintenance.
+                        </p>
+                        <div class="en">
+                          Locations of maintenance facilities: As specified part 2, section 2.11 of
+                          the latest MOPM.
+                        </div>
+                        <p>
+                          Le présent certificat restera valable durant la période de validité
+                          spécifiée ci-dessus, à moins qu'il ne soit restitué, remplacé, suspendu ou
+                          révoqué.
+                        </p>
+                        <div class="en">
+                          This certificate shall remain valid during the period of validity
+                          specified above unless it is surrendered, superseded, suspended or
+                          revoked.
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr class="signature-row">
+                    <td colspan="3">
+                      <table aria-label="Dates et signature" class="signature-table">
+                        <tr>
+                          <td>
+                            Date de délivrance initiale :
+                            <span class="field" data-field="initialIssueDate"
+                              >{initialIssueDate}</span
+                            >
+                            <div class="en">Date of original issue</div>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td>
+                            Date de délivrance du certificat en vigueur :
+                            <span class="field" data-field="currentIssueDate"
+                              >{currentIssueDate}</span
+                            >
+                            <div class="en">Date of current issue:</div>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td class="dg-cell">
+                            Directeur Général :
+                            <span class="field" data-field="dgFullName">{dgFullName}</span>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="footer">
+        BP 2212 LIBREVILLE (GABON) – TEL. (+241) 01.44.56.44 – FAX (+241) 01.44.56.58      COURRIEL
+        : anac@anac-gabon.com – Site : www.anacgabon.org
+      </div>
+    </main>
+    <script>
+      /** Populate all placeholders sharing the same data-field. */
+      function renderCertificate(data) {
+        document.querySelectorAll('[data-field]').forEach((node) => {
+          const key = node.dataset.field;
+          if (Object.prototype.hasOwnProperty.call(data, key)) node.textContent = data[key] ?? '';
+        });
+      }
+
+      // Example:
+      // renderCertificate({ organisationName: 'Nom de l'organisme', approvalReferenceNumber: 'OMA-001' });
+      window.renderCertificate = renderCertificate;
+    </script>
+  </body>
+</html>
