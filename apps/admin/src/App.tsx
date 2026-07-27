@@ -11,6 +11,7 @@ import SettingsPage from './pages/settings/SettingsPage';
 import FormalPhasePage from './pages/phases/formal/FormalPhasePage';
 import DeepEvaluationPhasePage from './pages/phases/deep-evaluation/DeepEvaluationPhasePage';
 import SiteInspectionPhasePage from './pages/phases/site-inspection/SiteInspectionPhasePage';
+import CertificatesPhasePage from './pages/phases/certificates/CertificatesPhasePage';
 import MyInspectionsPage from './pages/inspections/MyInspectionsPage';
 
 function Gate() {
@@ -48,6 +49,11 @@ function Gate() {
         <Route
           path="demandes/:requestId/demonstration-inspection"
           element={<SiteInspectionPhasePage />}
+        />
+
+        <Route
+          path="demandes/:requestId/delivrance"
+          element={<CertificatesPhasePage />}
         />
 
         <Route path="mes-inspections" element={<MyInspectionsPage />} />

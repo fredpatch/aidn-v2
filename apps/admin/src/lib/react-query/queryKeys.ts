@@ -28,4 +28,8 @@ export const queryKeys = {
     myQueue: () => ['siteInspection', 'my-queue'] as const,
     usersByRole: (role: string) => ['siteInspection', 'users-by-role', role] as const,
   },
+  certificates: {
+    all: ['certificates'] as const,
+    bundle: (requestId: string) => ['certificates', 'bundle', requestId] as const,
+  },
 };

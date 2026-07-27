@@ -324,14 +324,33 @@ Voir `exploration-cache/technical/gotchas.md` pour le détail complet.
   visite gatée sur facture envoyée seulement ; validation complète du paiement gatée
   sur la soumission de l'avis R3 (comme M3/M4/M5)
 
-## Sprint 6 — Délivrance & Certificats (M7)
+## Sprint 6 — Délivrance & Certificats (M7) — API + UI admin terminés (2026-07-27)
 
-- [ ] Facture + preuve de paiement (réutilise pattern M5/M6)
-- [ ] Création certificat à validation du paiement (statut `En préparation`)
-- [ ] KPI temps-jusqu'à-délivrance : point zéro = validation paiement
-- [ ] Suivi statuts : impression → signature → archivage → notification → retrait
-- [ ] Override manuel du type de certificat par DN
-- [ ] Compteur temps-jusqu'au-retrait (notification → `Retiré`)
+- [x] Facture + preuve de paiement (réutilise pattern M5/M6)
+- [x] Création certificat à validation du paiement (statut `En préparation`)
+- [x] KPI temps-jusqu'à-délivrance : point zéro = validation paiement
+- [x] Suivi statuts : impression → signature → archivage → notification → retrait
+- [x] Override manuel du type de certificat par DN
+- [x] Compteur temps-jusqu'au-retrait (notification → `Retiré`)
+- [ ] UI portail — pas encore construite
+
+### Sprint 6 — implémentation (2026-07-27)
+
+- [x] Templates HTML/CSS finaux (Fred) : logo intégré en base64, layout par
+      tables (pas de CSS Grid sauf le bloc header), `renderCertificate(data)`
+      exposé en JS pour peupler les 22 champs via `data-field`
+- [x] Schéma : `certificates.scopeDetails` (jsonb, forme fixe à 4 catégories —
+      pas une liste dynamique, verrouillé avec Fred), champs DN (référence
+      d'approbation, dates, override DG)
+- [x] Module API `certificates` monté sous `/api/certificates` — génération
+      via Puppeteer (`page.setContent` + `page.evaluate(renderCertificate)` +
+      `page.pdf()`), stockage via `document_versions`
+      (`ownerType: 'certificate_document'`)
+- [x] Admin : route `/demandes/:requestId/delivrance`, cartes Paiement /
+      Informations certificat / Classes-qualifications / Génération-cycle
+- [x] Typecheck propre sur les 3 workspaces — vérifié 2026-07-27
+- [ ] Génération Puppeteer non testée en conditions réelles depuis le
+      sandbox (téléchargement Chromium bloqué) — à valider par Fred
 
 ## Sprint 7 — Documents (transverse, M8)
 

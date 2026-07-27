@@ -222,6 +222,12 @@ export default function RequestsPage() {
                         >
                           Démonstration/Inspection
                         </Link>
+                        <Link
+                          to={`/demandes/${r.id}/delivrance`}
+                          className="text-anac-blue underline text-xs"
+                        >
+                          Délivrance
+                        </Link>
                       </>
                     )}
                   </td>
