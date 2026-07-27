@@ -2,6 +2,16 @@ import { Request, Response } from "express";
 import * as usersService from "./users.service.js";
 import { handleUsersError } from "../../shared/utils/error.js";
 
+export async function listByRole(req: Request, res: Response): Promise<void> {
+  try {
+    const role = String(req.params.role);
+    const result = await usersService.listActiveUsersByRole(role);
+    res.json(result);
+  } catch (error) {
+    handleUsersError(res, error);
+  }
+}
+
 export async function list(req: Request, res: Response): Promise<void> {
   try {
     const { search, role, active, page, pageSize } = req.query;

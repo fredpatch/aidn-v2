@@ -289,13 +289,30 @@ Voir `exploration-cache/technical/gotchas.md` pour le détail complet.
 - [x] Intégration portail : section `DeepEvaluationSection` dans la carte de demande active
 - [x] Typecheck propre sur les 3 workspaces (api, admin, portal) — vérifié 2026-07-27
 
-## Sprint 5 — Démonstration/Inspection (M6)
+## Sprint 5 — Démonstration/Inspection (M6) — API + UI admin terminés (2026-07-27)
 
-- [ ] Rôle `r3_agent` (file de dossiers propre, login séparé)
-- [ ] Facture + preuve de paiement (réutilise pattern M5)
-- [ ] Planification visite sur site (réutilise pattern réunion)
-- [ ] Soumission avis R3 (verdict + note en une action)
-- [ ] Clôture de phase automatique après avis R3 (aucune décision DN requise)
+- [x] Rôle `r3_agent` (file de dossiers propre — auth staff existante réutilisée, pas de login séparé, décision confirmée)
+- [x] Facture + preuve de paiement (réutilise pattern M5)
+- [x] Planification visite sur site (réutilise pattern réunion, `meetingType: 'site_visit'`)
+- [x] Soumission avis R3 (verdict + note en une action)
+- [x] Clôture de phase automatique après avis R3 (aucune décision DN requise)
+- [ ] UI portail — pas encore construite (à faire avant de considérer M6 100% terminé)
+
+### Sprint 5 — implémentation (2026-07-27)
+
+- [x] Module API `site-inspection` monté sous `/api/site-inspection` — aucune migration
+      nécessaire (`r3_agent`, `site_inspections`, `inspection_verdict`, `M6`, `site_visit`
+      étaient déjà schéma-prêts)
+- [x] Endpoint utilitaire `GET /api/users/by-role/:role` ajouté (staff, non SU-only) —
+      nécessaire pour que DN puisse choisir l'agent R3 lors de la planification
+- [x] Admin : route `/demandes/:requestId/demonstration-inspection`, page + cartes
+      (Paiement, Visite sur site, Avis R3), hooks React Query, `lib/api/site-inspection.*`
+- [x] Admin : page `Mes Inspections` (`/mes-inspections`), nav scopée `r3_agent`/`SU`,
+      liste les dossiers M6 ouverts avec une visite assignée à l'agent connecté
+- [x] Typecheck propre sur les 3 workspaces (api, admin, portal) — vérifié 2026-07-27
+- Décision (non explicite dans la spec, à confirmer si besoin) : planification de la
+  visite gatée sur facture envoyée seulement ; validation complète du paiement gatée
+  sur la soumission de l'avis R3 (comme M3/M4/M5)
 
 ## Sprint 6 — Délivrance & Certificats (M7)
 

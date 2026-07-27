@@ -22,4 +22,10 @@ export const queryKeys = {
     all: ['deepEvaluation'] as const,
     bundle: (requestId: string) => ['deepEvaluation', 'bundle', requestId] as const,
   },
+  siteInspection: {
+    all: ['siteInspection'] as const,
+    bundle: (requestId: string) => ['siteInspection', 'bundle', requestId] as const,
+    myQueue: () => ['siteInspection', 'my-queue'] as const,
+    usersByRole: (role: string) => ['siteInspection', 'users-by-role', role] as const,
+  },
 };

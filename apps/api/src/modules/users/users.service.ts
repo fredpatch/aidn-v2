@@ -1,6 +1,6 @@
 import { eq, ilike, or, and, desc } from "drizzle-orm";
 import { db } from "../../shared/db/index.js";
-import { users, userRoles } from "../../shared/db/schema.js";
+import { users, userRoles, internalRoleEnum } from "../../shared/db/schema.js";
 import { generateOTP, hashOTP, otpExpiresAt } from "../../shared/utils/otp.js";
 import { sendOTPEmail } from "../../shared/utils/email.js";
 import { logAudit } from "../auth/auth.service.js";
@@ -208,4 +208,24 @@ export async function resetOTP(id: number, adminId: number): Promise<{ emailSent
   await logAudit({ userId: adminId, action: "OTP_RESET", module: "M13", entityId: id });
 
   return { emailSent };
+}
+
+/** Minimal, least-privilege lookup used by other modules to populate agent
+ *  pickers (e.g. M6 site visit scheduling needs to list r3_agent users)
+ *  without exposing full user records (email, active flag, etc.) to callers
+ *  who aren't SU. Active users only. */
+export async function listActiveUsersByRole(
+  role: string
+): Promise<{ id: number; fullName: string; employeeCode: string }[]> {
+  const rows = await db
+    .select({
+      id: users.id,
+      fullName: users.fullName,
+      employeeCode: users.employeeCode,
+    })
+    .from(users)
+    .innerJoin(userRoles, eq(userRoles.userId, users.id))
+    .where(and(eq(userRoles.role, role as (typeof internalRoleEnum.enumValues)[number]), eq(users.active, true)));
+
+  return rows;
 }

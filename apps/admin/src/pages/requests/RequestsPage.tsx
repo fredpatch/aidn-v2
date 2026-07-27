@@ -216,6 +216,12 @@ export default function RequestsPage() {
                         >
                           Évaluation Approfondie
                         </Link>
+                        <Link
+                          to={`/demandes/${r.id}/demonstration-inspection`}
+                          className="text-anac-blue underline text-xs"
+                        >
+                          Démonstration/Inspection
+                        </Link>
                       </>
                     )}
                   </td>

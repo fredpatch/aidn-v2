@@ -10,6 +10,8 @@ import DocumentTemplatesPage from './pages/document-templates/DocumentTemplatesP
 import SettingsPage from './pages/settings/SettingsPage';
 import FormalPhasePage from './pages/phases/formal/FormalPhasePage';
 import DeepEvaluationPhasePage from './pages/phases/deep-evaluation/DeepEvaluationPhasePage';
+import SiteInspectionPhasePage from './pages/phases/site-inspection/SiteInspectionPhasePage';
+import MyInspectionsPage from './pages/inspections/MyInspectionsPage';
 
 function Gate() {
   const { user, loading, bootstrapInitialised } = useAuth();
@@ -42,6 +44,13 @@ function Gate() {
           path="demandes/:requestId/evaluation-approfondie"
           element={<DeepEvaluationPhasePage />}
         />
+
+        <Route
+          path="demandes/:requestId/demonstration-inspection"
+          element={<SiteInspectionPhasePage />}
+        />
+
+        <Route path="mes-inspections" element={<MyInspectionsPage />} />
 
         <Route path="modeles-documents" element={<DocumentTemplatesPage />} />
         <Route path="utilisateurs" element={<UsersPage />} />

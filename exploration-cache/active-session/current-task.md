@@ -5,6 +5,27 @@
 and portal, clean typecheck across all 3 workspaces. Current work is
 **Sprint 5 (M6 — Démonstration/Inspection sur Site)**.
 
+## ✅ Done today (2026-07-27, continued): Sprint 5 (M6) API + admin UI
+
+- API module `site-inspection` built and typechecked (see prior entry in this
+  file for the full breakdown — API landed first, this entry covers the
+  admin UI built right after in the same session)
+- Added `GET /api/users/by-role/:role` — narrow, least-privilege lookup
+  (dn_agent/dn_supervisor/s5_agent/SU, not gated SU-only like the rest of
+  `/api/users`) so DN can populate an r3_agent picker when scheduling a
+  site visit
+- Admin: `pages/phases/site-inspection/` (page, hooks, PaymentCard,
+  SiteVisitCard, VerdictCard, api/types/constants/helpers), route
+  `/demandes/:requestId/demonstration-inspection`, `lib/api/site-inspection.*`
+- Admin: `pages/inspections/MyInspectionsPage.tsx` at `/mes-inspections` — R3's
+  own dossier queue, nav item scoped to `r3_agent`/`SU` in `AppShell.tsx`
+- No manual closure card for M6 (unlike M3/M4/M5) — closure is automatic on
+  verdict submission, server-side, matches the spec
+- Typecheck clean on all 3 workspaces
+- **Portal UI for M6 not started** — applicant-facing surface (if any; M6 may
+  be internal-only, needs confirming) is the next real gap before Sprint 5
+  can be called fully done
+
 ## ✅ Done today (2026-07-27): status correction + doc resync, starting M6
 
 - This cache had drifted: it described Sprint 4 (M5) as "kickoff in progress"
@@ -184,7 +205,7 @@ Sprint 2  Phase Préliminaire (M3), API + full UI + document_templates   ██�
 Sprint 3  Phase Demande formelle (M4), API + full UI                    ██████████ 100% ✅
 Sprint 4  Évaluation approfondie (M5), API + full UI                    ██████████ 100% ✅
 ──────────────────────────────────────────────────────────────────────────────────
-Sprint 5  Démonstration/Inspection (M6)                                 ░░░░░░░░░░   0% ⏳ current
+Sprint 5  Démonstration/Inspection (M6), API + admin UI                 ████████░░  80% ⏳ current (portal UI remaining)
 Sprint 6-12                                                             ░░░░░░░░░░   0%
 ```
 

@@ -11,6 +11,7 @@ import {
   LogOut,
   Loader2,
   ShieldCheck,
+  ClipboardList,
 } from 'lucide-react';
 
 import { cn } from '../../lib/utils';
@@ -26,6 +27,12 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { to: '/', label: 'Demandes', icon: Inbox },
+  {
+    to: '/mes-inspections',
+    label: 'Mes Inspections',
+    icon: ClipboardList,
+    roles: ['r3_agent', 'SU'],
+  },
   {
     to: '/modeles-documents',
     label: 'Modeles de documents',
