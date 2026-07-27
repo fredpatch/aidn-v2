@@ -324,7 +324,7 @@ Voir `exploration-cache/technical/gotchas.md` pour le détail complet.
   visite gatée sur facture envoyée seulement ; validation complète du paiement gatée
   sur la soumission de l'avis R3 (comme M3/M4/M5)
 
-## Sprint 6 — Délivrance & Certificats (M7) — API + UI admin terminés (2026-07-27)
+## Sprint 6 — Délivrance & Certificats (M7) — Terminé (2026-07-27)
 
 - [x] Facture + preuve de paiement (réutilise pattern M5/M6)
 - [x] Création certificat à validation du paiement (statut `En préparation`)
@@ -332,7 +332,8 @@ Voir `exploration-cache/technical/gotchas.md` pour le détail complet.
 - [x] Suivi statuts : impression → signature → archivage → notification → retrait
 - [x] Override manuel du type de certificat par DN
 - [x] Compteur temps-jusqu'au-retrait (notification → `Retiré`)
-- [ ] UI portail — pas encore construite
+- [x] UI portail — preuve de paiement, statut simplifié, pas de téléchargement
+      (retrait toujours en personne)
 
 ### Sprint 6 — implémentation (2026-07-27)
 
@@ -348,6 +349,10 @@ Voir `exploration-cache/technical/gotchas.md` pour le détail complet.
       (`ownerType: 'certificate_document'`)
 - [x] Admin : route `/demandes/:requestId/delivrance`, cartes Paiement /
       Informations certificat / Classes-qualifications / Génération-cycle
+- [x] Portail : `CertificatesSection` dans `ActiveRequestCard` — statuts
+      imprimé/signé/archivé regroupés en "en préparation" (détail interne DN
+      non pertinent pour le postulant), aucun lien de téléchargement du
+      document généré (retrait physique uniquement)
 - [x] Typecheck propre sur les 3 workspaces — vérifié 2026-07-27
 - [ ] Génération Puppeteer non testée en conditions réelles depuis le
       sandbox (téléchargement Chromium bloqué) — à valider par Fred
