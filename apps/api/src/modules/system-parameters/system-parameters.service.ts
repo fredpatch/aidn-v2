@@ -47,6 +47,11 @@ export async function getBooleanValue(key: string, fallback: boolean): Promise<b
   return param.value === "true";
 }
 
+export async function getTextValue(key: string, fallback: string): Promise<string> {
+  const [param] = await db.select().from(systemParameters).where(eq(systemParameters.key, key));
+  return param ? param.value : fallback;
+}
+
 export async function updateParameter(
   key: string,
   value: string,

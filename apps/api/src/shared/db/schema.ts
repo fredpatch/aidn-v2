@@ -148,6 +148,7 @@ export const documentOwnerTypeEnum = pgEnum('document_owner_type', [
   'document_template',
   'meeting_report',
   'phase_closure_document',
+  'certificate_document', // M7 - generated filled certificate (HTML-rendered PDF)
 ]);
 
 /** M3/M4 - blank template forms DN makes available for applicants to download
@@ -547,6 +548,30 @@ export const certificates = pgTable('certificates', {
   archivedAt: timestamp('archived_at'),
   notifiedAt: timestamp('notified_at'), // time-to-collect KPI starts here
   collectedAt: timestamp('collected_at'), // time-to-collect KPI ends here
+  // ── Fields DN enters before generating the filled certificate document.
+  // None of this is derived/computed - the approval numbering scheme and
+  // validity-period rule aren't defined yet, so DN handles them manually
+  // until a real generation pattern is confirmed (see project decisions).
+  approvalReferenceNumber: varchar('approval_reference_number', { length: 100 }),
+  expiresAt: timestamp('expires_at'),
+  initialIssueDate: timestamp('initial_issue_date'),
+  currentIssueDate: timestamp('current_issue_date'),
+  // DN override of the default DG name (system_parameters key
+  // certificate_dg_full_name) - null means "use the default".
+  dgFullNameOverride: text('dg_full_name_override'),
+  // "Classe(s) et Qualification(s)" table on the certificate. Fixed shape,
+  // NOT a variable-length list - the template always shows exactly these 4
+  // categories (locked with Fred: DN doesn't add/remove rows, only fills
+  // qualification/limitations text per category, "Nil" when not applicable).
+  // Each category has a French qualification, an English translation, and
+  // a limitations string - the Class column itself is static template text,
+  // not stored here.
+  scopeDetails: jsonb('scope_details').$type<{
+    aeronefs: { qualification: string; qualificationEn: string; limitations: string };
+    moteurs: { qualification: string; qualificationEn: string; limitations: string };
+    composants: { qualification: string; qualificationEn: string; limitations: string };
+    specialisee: { qualification: string; qualificationEn: string; limitations: string };
+  }>(),
 });
 
 // ── M8 - Document versions & trash (reused across every upload point) ──────

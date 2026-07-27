@@ -25,6 +25,7 @@ import { verifyEmailConnection } from './shared/utils/email.js';
 import formalRequestRoute from './modules/formal-request/formal-request.route.js';
 import deepEvaluationRoute from './modules/deep-evaluation/deep-evaluation.route.js';
 import siteInspectionRoute from './modules/site-inspection/site-inspection.route.js';
+import certificatesRoute from './modules/certificates/certificates.route.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -66,6 +67,7 @@ app.use('/api/dev-tools', devToolsRoute);
 app.use('/api/formal-request', formalRequestRoute);
 app.use('/api/deep-evaluation', deepEvaluationRoute);
 app.use('/api/site-inspection', siteInspectionRoute);
+app.use('/api/certificates', certificatesRoute);
 
 app.listen(port, () => {
   console.log(`AIDN API listening on port ${port}`);

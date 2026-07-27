@@ -365,3 +365,46 @@ export const handleSiteInspectionError = createErrorHandler(
   },
   '[site-inspection]'
 );
+
+export const handleCertificatesError = createErrorHandler(
+  {
+    REQUEST_NOT_FOUND: { status: 404, message: 'Demande introuvable.' },
+    M6_NOT_CLOSED: {
+      status: 409,
+      message: 'La démonstration/inspection doit être clôturée avant d\'ouvrir la délivrance.',
+    },
+    PHASE_ALREADY_OPEN: {
+      status: 409,
+      message: 'Cette phase est déjà ouverte pour cette demande.',
+    },
+    PHASE_NOT_FOUND: { status: 404, message: 'Phase introuvable.' },
+    PAYMENT_NOT_FOUND: { status: 404, message: 'Paiement introuvable.' },
+    INVOICE_NOT_UPLOADED: {
+      status: 409,
+      message: "La facture doit d'abord être mise en ligne avant que le postulant puisse soumettre sa preuve.",
+    },
+    PAYMENT_ALREADY_VALIDATED: {
+      status: 409,
+      message: 'Ce paiement a déjà été validé.',
+    },
+    PAYMENT_NOT_PENDING: {
+      status: 409,
+      message: "La preuve de paiement doit être au statut 'en attente de validation'.",
+    },
+    CERTIFICATE_ALREADY_EXISTS: {
+      status: 409,
+      message: 'Un certificat existe déjà pour cette demande.',
+    },
+    CERTIFICATE_NOT_FOUND: { status: 404, message: 'Certificat introuvable.' },
+    CERTIFICATE_NOT_EDITABLE: {
+      status: 409,
+      message: "Ce certificat ne peut plus être modifié (statut au-delà de 'en préparation').",
+    },
+    ORGANISATION_NOT_FOUND: { status: 404, message: 'Organisme introuvable.' },
+    INVALID_STATUS_TRANSITION: {
+      status: 409,
+      message: 'Transition de statut invalide pour ce certificat.',
+    },
+  },
+  '[certificates]'
+);

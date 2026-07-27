@@ -57,6 +57,14 @@ const DEFAULTS: Array<{
     description:
       'Delai (jours) avant marquage/suppression des uploads non lies a une piece metier.',
   },
+  {
+    key: 'certificate_dg_full_name',
+    value: 'Général de Division Eric Tristan Franck MOUSSAVOU',
+    type: 'text',
+    module: 'M7',
+    description:
+      "Nom complet du Directeur General affiche par defaut sur les certificats generes. DN peut le remplacer au cas par cas (dgFullNameOverride) sans changer ce defaut.",
+  },
 ];
 
 async function seed(): Promise<void> {
