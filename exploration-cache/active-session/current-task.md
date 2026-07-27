@@ -1,9 +1,39 @@
 # 🎯 Current Task
 
 **Session date**: 2026-07-27
-**Status**: Sprint 0–4 (M1–M5) are fully committed and verified — API, admin,
-and portal, clean typecheck across all 3 workspaces. Current work is
-**Sprint 5 (M6 — Démonstration/Inspection sur Site)**.
+**Status**: Sprint 0–6 (M1–M7) are all fully committed and confirmed working —
+API, admin, and portal, typecheck clean across all 3 workspaces. **All 5 OMA
+certification phases (Préliminaire → Demande Formelle → Évaluation
+Approfondie → Démonstration/Inspection → Délivrance) are now feature-complete
+end-to-end.** Real certificate PDF generation confirmed working by Fred in
+his own environment (not just typecheck — an actual test run).
+
+## ✅ Done today (2026-07-27, continued): Sprint 6 (M7) complete, all phases done
+
+- Certificate templates: went through several iterations with Fred (docx →
+  HTML/CSS rebuild → several rounds of tag-structure fixes) before landing on
+  a table-based HTML layout with a `renderCertificate(data)` JS function
+  exposed for population — much easier to iterate on than the OOXML
+  approach, and avoided the docx engine's page-frame/border rendering bugs
+  hit along the way (see session log for the full story)
+- API module `certificates` (M7): payment cycle (invoice/proof/validate/
+  reject, mirrors M5/M6), certificate row created at payment validation
+  (KPI zero-point), DN-entry fields (approval reference, dates, DG override,
+  fixed 4-category scope details — NOT a dynamic list, locked with Fred),
+  `POST /:certificateId/generate` (Puppeteer: setContent + evaluate +
+  page.pdf()), status lifecycle printed→signed→archived→notified→collected
+  (auto-closes M7 phase on collection, same pattern as M6)
+- Admin: route `/demandes/:requestId/delivrance`, cards for payment/fields/
+  scope/lifecycle
+- Portal: `CertificatesSection` — proof-of-payment upload, simplified status
+  (DN-internal steps collapsed to "en préparation"), no document download
+  ever (certificates are always collected in person)
+- **Puppeteer's Chromium download is blocked in this sandbox's network
+  allowlist** (confirmed, tried multiple workarounds including apt-based
+  Chromium/Firefox — both are snap-only on this Ubuntu version and snap
+  doesn't run in this container). All Puppeteer-dependent work was
+  typechecked but not executed here; Fred's own test is what confirmed it
+  actually works.
 
 ## ✅ Done today (2026-07-27, continued): Sprint 5 (M6) portal UI + security fix
 
@@ -222,7 +252,9 @@ Sprint 3  Phase Demande formelle (M4), API + full UI                    ██�
 Sprint 4  Évaluation approfondie (M5), API + full UI                    ██████████ 100% ✅
 ──────────────────────────────────────────────────────────────────────────────────
 Sprint 5  Démonstration/Inspection (M6), API + admin + portail            ██████████ 100% ✅
-Sprint 6-12                                                             ░░░░░░░░░░   0%
+Sprint 6  Délivrance & Certificats (M7), API + admin + portail            ██████████ 100% ✅
+──────────────────────────────────────────────────────────────────────────────────
+Sprint 7-12 (transverse: Documents/Paiements/Réunions/Notifs/Dashboard/Admin) ░░░░░░░░░░   0%
 ```
 
 ## Leftover items (not blocking, tracked in `docs/TASKS.md`)

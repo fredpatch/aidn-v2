@@ -354,8 +354,9 @@ Voir `exploration-cache/technical/gotchas.md` pour le détail complet.
       non pertinent pour le postulant), aucun lien de téléchargement du
       document généré (retrait physique uniquement)
 - [x] Typecheck propre sur les 3 workspaces — vérifié 2026-07-27
-- [ ] Génération Puppeteer non testée en conditions réelles depuis le
-      sandbox (téléchargement Chromium bloqué) — à valider par Fred
+- [x] Génération Puppeteer confirmée fonctionnelle par Fred en conditions
+      réelles (2026-07-27) — le rendu du PDF depuis le template HTML final
+      fonctionne correctement de bout en bout
 
 ## Sprint 7 — Documents (transverse, M8)
 
