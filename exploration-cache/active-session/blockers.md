@@ -1,12 +1,11 @@
 # 🔴 Active Blockers
 
-Last updated: 2026-07-27
+Last updated: 2026-07-28
 
-No active hard blockers. Sprint 2 (M3), Sprint 3 (M4), and Sprint 4 (M5) are
-fully committed — API + admin + portal, verified via fresh typecheck across
-all 3 workspaces (previously under-reported as "kickoff only" due to stale
-cache; corrected 2026-07-27 after direct code inspection). Current work is
-Sprint 5 (M6 — Démonstration/Inspection sur Site).
+No active hard blockers. Sprint 0–6 (M1–M7) are complete, and the current
+post-M7 workflow-hardening batch typechecks/builds cleanly. Remaining work is
+sequencing/product choice rather than a technical block: D-V1 collapse/expand,
+C-V2 viewer rollout, then Notifications M11 V1.
 
 ---
 

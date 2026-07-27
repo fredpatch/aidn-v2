@@ -1,12 +1,55 @@
 # 🎯 Current Task
 
-**Session date**: 2026-07-27
-**Status**: Sprint 0–6 (M1–M7) are all fully committed and confirmed working —
-API, admin, and portal, typecheck clean across all 3 workspaces. **All 5 OMA
-certification phases (Préliminaire → Demande Formelle → Évaluation
-Approfondie → Démonstration/Inspection → Délivrance) are now feature-complete
-end-to-end.** Real certificate PDF generation confirmed working by Fred in
-his own environment (not just typecheck — an actual test run).
+**Session date**: 2026-07-28
+**Status**: Sprint 0–6 (M1–M7) remain feature-complete end-to-end. Current work
+is post-M7 workflow hardening before the broader transverse modules. Workstream A
+was already complete; the latest pass adds phase-level workflow summaries across
+M3–M7, strengthens M4 formal document traceability, and completes Part C-V1
+(integrated document viewer, M5 first).
+
+## ✅ Done today (2026-07-28): workflow hardening + C-V1 document viewer
+
+- Added reusable phase-level workflow summaries across the dossier:
+  - shared `PhaseWorkflowSummary` for M3, M5, M6, M7
+  - M4 keeps a dedicated formal summary because its document/DG-circuit rules are
+    denser than the other phases
+  - summaries show next action, owner, blocker, and compact metrics
+- Hardened M4 Demande Formelle UX:
+  - closure UI now mirrors the server gate: letter transmitted to DN + 11/11
+    documents deposited + meeting resolved
+  - compte-rendu remains explicitly optional
+  - document rows distinguish deposited evidence from review/acceptance
+  - DN-only actions now show permission messaging
+  - dossier cancellation asks for confirmation
+- Added formal document traceability:
+  - formal bundle returns current version upload date, version count, and whether
+    previous versions exist
+  - formal letter circuit now exposes file URL and version metadata
+  - new formal letter uploads use `dg_circuit_document` as the version owner type,
+    with a guarded legacy fallback for older local rows
+- Completed Part C-V1 from the hardening plan:
+  - new reusable admin `DocumentViewer`
+  - integrated first in M5 `DocumentEvaluationsCard`
+  - PDF iframe preview, image preview, DOC/DOCX fallback to open/download
+- Updated local docs/cache/changelog and Notion project docs before push.
+- Verification: `npm run typecheck --workspaces --if-present` and full
+  `npm run build` pass. Existing Vite large-chunk warning remains.
+
+## Current focus
+
+Push this hardening/document-viewer batch, then proceed with D-V1 collapse/expand
+for M4/M5 or C-V2 viewer rollout to M3/M4/M6/M7 depending on Fred's preference.
+
+---
+
+## Previous baseline (2026-07-27)
+
+Sprint 0–6 (M1–M7) are all fully committed and confirmed working — API, admin,
+and portal, typecheck clean across all 3 workspaces. **All 5 OMA certification
+phases (Préliminaire → Demande Formelle → Évaluation Approfondie →
+Démonstration/Inspection → Délivrance) are feature-complete end-to-end.** Real
+certificate PDF generation confirmed working by Fred in his own environment (not
+just typecheck — an actual test run).
 
 ## ✅ Done today (2026-07-27, continued): Sprint 6 (M7) complete, all phases done
 

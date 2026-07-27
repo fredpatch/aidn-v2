@@ -88,6 +88,26 @@ une régression — c'est un composant resté au stade M3.
 
 ## C — Visualiseur de documents intégré
 
+### Implémentation V1 — M5 d'abord (2026-07-28)
+
+- Nouveau composant réutilisable `DocumentViewer` côté admin.
+- Intégration prioritaire dans M5 (`DocumentEvaluationsCard`) : chaque document à
+  évaluer s'ouvre maintenant dans un visualiseur in-app au lieu d'imposer un nouvel
+  onglet.
+- PDF : rendu via `<iframe>`.
+- Images PNG/JPG/JPEG/WEBP : rendu via `<img>`.
+- DOC/DOCX/autres formats non prévisualisables : fallback explicite avec actions
+  "Nouvel onglet" et "Télécharger", sans bloquer le workflow.
+- Le visualiseur garde les actions de sortie classiques : fermer, nouvel onglet,
+  télécharger.
+
+### Reste à faire
+
+- Brancher le même composant sur les autres liens documentaires M3, M4, M6 et M7
+  après validation de l'ergonomie M5.
+- Décider si la navigation séquentielle entre les 11 documents M5 est nécessaire.
+- Évaluer une conversion serveur DOCX → PDF seulement si l'usage terrain le justifie.
+
 ### Contexte (cahier des charges, section 4 "Informations à gérer")
 
 Les volumes réels sont élevés, pas exceptionnels : M4 minimum 35 éléments PDF, M5 =

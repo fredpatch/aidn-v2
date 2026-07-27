@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { FileText } from 'lucide-react';
 import { Button } from '../../../../components/ui/button';
-import { CIRCUIT_STATUS_LABELS, CIRCUIT_STATUS_TONES } from '../constants';
+import { API_ORIGIN, CIRCUIT_STATUS_LABELS, CIRCUIT_STATUS_TONES } from '../constants';
+import { formatDate } from '../helpers';
 import { useFormalLetterActions } from '../hooks/useFormalLetterActions';
 import type { FormalLetterCircuitView } from '../types';
 import PhaseStatusBadge from '../../preliminary/components/PhaseStatusBadge';
@@ -9,12 +10,14 @@ import PhaseStatusBadge from '../../preliminary/components/PhaseStatusBadge';
 interface FormalLetterCardProps {
   requestId: string | undefined;
   circuit: FormalLetterCircuitView | null;
+  canManage: boolean;
   setActionError: (message: string | null) => void;
 }
 
 export default function FormalLetterCard({
   requestId,
   circuit,
+  canManage,
   setActionError,
 }: FormalLetterCardProps) {
   const [file, setFile] = useState<File | null>(null);
@@ -32,17 +35,27 @@ export default function FormalLetterCard({
           <p className="text-anac-muted text-sm">
             Le postulant doit soumettre sa lettre de demande officielle d&apos;agrément d&apos;OMA.
           </p>
-          <p className="text-anac-muted text-xs">Saisie manuelle (dépôt physique au guichet) :</p>
+          <p className="text-anac-muted text-xs">
+            Saisie manuelle par la DN après dépôt physique au guichet.
+          </p>
           <div className="flex items-center gap-2">
             <input
               type="file"
               accept=".pdf,.doc,.docx"
+              disabled={!canManage}
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             />
-            <Button size="sm" disabled={!file || busy} onClick={() => file && submit(file)}>
+            <Button
+              size="sm"
+              disabled={!file || busy || !canManage}
+              onClick={() => file && submit(file)}
+            >
               Soumettre
             </Button>
           </div>
+          {!canManage && (
+            <p className="text-anac-muted text-xs">Action réservée à la DN.</p>
+          )}
         </div>
       ) : (
         <div className="space-y-2">
@@ -53,14 +66,35 @@ export default function FormalLetterCard({
             fallbackTone="bg-anac-info/10 text-anac-info"
           />
 
+          <p className="text-anac-muted text-xs">
+            {circuit.fileUrl ? (
+              <>
+                Document de circuit joint le{' '}
+                {formatDate(circuit.currentVersionUploadedAt)} -{' '}
+                <a
+                  href={`${API_ORIGIN}${circuit.fileUrl}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline text-anac-blue"
+                >
+                  ouvrir la lettre
+                </a>
+                {circuit.hasPreviousVersions &&
+                  ` - ${circuit.versionCount} versions conservées dans l'historique.`}
+              </>
+            ) : (
+              'Document de circuit non disponible.'
+            )}
+          </p>
+
           {circuit.status === 'submitted' && (
-            <Button size="sm" variant="secondary" onClick={sign} disabled={busy}>
+            <Button size="sm" variant="secondary" onClick={sign} disabled={busy || !canManage}>
               Marquer signée (DG)
             </Button>
           )}
 
           {circuit.status === 'signed' && (
-            <Button size="sm" variant="secondary" onClick={transmit} disabled={busy}>
+            <Button size="sm" variant="secondary" onClick={transmit} disabled={busy || !canManage}>
               Transmettre à la DN
             </Button>
           )}
@@ -69,6 +103,10 @@ export default function FormalLetterCard({
             <p className="text-anac-success text-xs">
               Lettre transmise à la Direction de la Navigabilité.
             </p>
+          )}
+
+          {!canManage && circuit.status !== 'pending_review' && (
+            <p className="text-anac-muted text-xs">Action réservée à la DN.</p>
           )}
         </div>
       )}

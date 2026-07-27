@@ -3,10 +3,11 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../../components/ui/button';
 import PhaseSidebar from '../preliminary/components/PhaseSidebar';
 import PhaseStatusBadge from '../preliminary/components/PhaseStatusBadge';
+import PhaseWorkflowSummary from '../components/PhaseWorkflowSummary';
 import PaymentCard from './components/PaymentCard';
 import SiteVisitCard from './components/SiteVisitCard';
 import VerdictCard from './components/VerdictCard';
-import { buildChecklist } from './helpers';
+import { buildChecklist, siteInspectionWorkflowSummary } from './helpers';
 import { useSiteInspectionBundle } from './hooks/useSiteInspectionBundle';
 
 export default function SiteInspectionPhasePage() {
@@ -24,6 +25,7 @@ export default function SiteInspectionPhasePage() {
   if (error) return <p className="text-anac-danger p-6">{error}</p>;
 
   const checklist = bundle ? buildChecklist(bundle) : [];
+  const summary = bundle ? siteInspectionWorkflowSummary(bundle) : null;
 
   return (
     <div className="flex gap-6 items-start">
@@ -68,7 +70,7 @@ export default function SiteInspectionPhasePage() {
         ) : (
           <>
             <div className="card flex items-center justify-between">
-              <span className="text-sm font-medium">Statut de la phase</span>
+              <span className="text-sm font-medium">Statut administratif de la phase</span>
               <PhaseStatusBadge
                 status={bundle.phase.status}
                 label={bundle.phase.status === 'closed' ? 'Clôturée' : 'Ouverte'}
@@ -78,6 +80,8 @@ export default function SiteInspectionPhasePage() {
                 }}
               />
             </div>
+
+            {summary && <PhaseWorkflowSummary state={summary} />}
 
             <PaymentCard
               requestId={requestId}

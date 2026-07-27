@@ -3,11 +3,12 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../../components/ui/button';
 import PhaseSidebar from '../preliminary/components/PhaseSidebar';
 import PhaseStatusBadge from '../preliminary/components/PhaseStatusBadge';
+import PhaseWorkflowSummary from '../components/PhaseWorkflowSummary';
 import PaymentCard from './components/PaymentCard';
 import CertificateFieldsCard from './components/CertificateFieldsCard';
 import ScopeDetailsCard from './components/ScopeDetailsCard';
 import LifecycleCard from './components/LifecycleCard';
-import { buildChecklist } from './helpers';
+import { buildChecklist, certificateWorkflowSummary } from './helpers';
 import { useCertificateBundle } from './hooks/useCertificateBundle';
 
 export default function CertificatesPhasePage() {
@@ -25,6 +26,7 @@ export default function CertificatesPhasePage() {
   if (error) return <p className="text-anac-danger p-6">{error}</p>;
 
   const checklist = bundle ? buildChecklist(bundle) : [];
+  const summary = bundle ? certificateWorkflowSummary(bundle) : null;
 
   return (
     <div className="flex gap-6 items-start">
@@ -67,7 +69,7 @@ export default function CertificatesPhasePage() {
         ) : (
           <>
             <div className="card flex items-center justify-between">
-              <span className="text-sm font-medium">Statut de la phase</span>
+              <span className="text-sm font-medium">Statut administratif de la phase</span>
               <PhaseStatusBadge
                 status={bundle.phase.status}
                 label={bundle.phase.status === 'closed' ? 'Clôturée' : 'Ouverte'}
@@ -77,6 +79,8 @@ export default function CertificatesPhasePage() {
                 }}
               />
             </div>
+
+            {summary && <PhaseWorkflowSummary state={summary} />}
 
             <PaymentCard
               requestId={requestId}

@@ -1,4 +1,4 @@
-import { eq, and, ne, desc } from 'drizzle-orm';
+import { eq, and, ne, desc, inArray } from 'drizzle-orm';
 import { db } from '../../shared/db/index.js';
 import {
   phases,
@@ -35,12 +35,20 @@ export const SLOT_LABELS: Record<string, string> = {
 export const ALL_SLOTS = Object.keys(SLOT_LABELS);
 
 // ── Helpers ────────────────────────────────────────────────────────────────
-function toCircuitView(row: typeof dgCircuitDocuments.$inferSelect): FormalLetterCircuitView {
+function toCircuitView(
+  row: typeof dgCircuitDocuments.$inferSelect,
+  versions: (typeof documentVersions.$inferSelect)[] = []
+): FormalLetterCircuitView {
+  const current = versions.find((version) => version.isCurrent) ?? null;
   return {
     id: row.id,
     status: row.status,
+    fileUrl: current?.fileUrl ?? null,
     signedAt: row.signedAt,
     pendingReviewAt: row.pendingReviewAt,
+    currentVersionUploadedAt: current?.uploadedAt ?? null,
+    versionCount: versions.length,
+    hasPreviousVersions: versions.length > 1,
   };
 }
 
@@ -127,7 +135,7 @@ export async function submitFormalLetter(
     .returning();
 
   await db.insert(documentVersions).values({
-    ownerType: 'formal_request_document',
+    ownerType: 'dg_circuit_document',
     ownerId: circuit.id,
     fileUrl,
     mimeType,
@@ -137,7 +145,7 @@ export async function submitFormalLetter(
 
   await linkUploadAssetToOwner({
     uploadAssetId,
-    ownerType: 'formal_request_document',
+    ownerType: 'dg_circuit_document',
     ownerId: circuit.id,
     expectedFileUrl: fileUrl,
   });
@@ -306,6 +314,9 @@ export async function submitDocument(
     status: updated.status,
     fileUrl: updated.fileUrl,
     submittedAt: updated.submittedAt,
+    currentVersionUploadedAt: updated.submittedAt,
+    versionCount: doc.fileUrl ? 2 : 1,
+    hasPreviousVersions: !!doc.fileUrl,
   };
 }
 
@@ -335,9 +346,56 @@ export async function getBundleForRequest(requestId: number): Promise<FormalPhas
     .from(formalRequestDocuments)
     .where(eq(formalRequestDocuments.phaseId, phase.id));
 
+  const ownerIds = docs.map((doc) => doc.id);
+
+  const versionRows = ownerIds.length
+    ? await db
+        .select()
+        .from(documentVersions)
+        .where(
+          and(
+            eq(documentVersions.ownerType, 'formal_request_document'),
+            inArray(documentVersions.ownerId, ownerIds)
+          )
+        )
+    : [];
+
+  let letterVersionRows = circuit
+    ? await db
+        .select()
+        .from(documentVersions)
+        .where(
+          and(
+            eq(documentVersions.ownerType, 'dg_circuit_document'),
+            eq(documentVersions.ownerId, circuit.id)
+          )
+        )
+    : [];
+
+  if (circuit && letterVersionRows.length === 0 && !ownerIds.includes(circuit.id)) {
+    letterVersionRows = await db
+      .select()
+      .from(documentVersions)
+      .where(
+        and(
+          eq(documentVersions.ownerType, 'formal_request_document'),
+          eq(documentVersions.ownerId, circuit.id)
+        )
+      );
+  }
+
+  const versionsByOwnerId = new Map<number, (typeof documentVersions.$inferSelect)[]>();
+  for (const version of versionRows) {
+    const existing = versionsByOwnerId.get(version.ownerId) ?? [];
+    existing.push(version);
+    versionsByOwnerId.set(version.ownerId, existing);
+  }
+
   // Build the full slot list — always all 11, even if not yet uploaded
   const documents: FormalDocumentView[] = ALL_SLOTS.map((slot) => {
     const found = docs.find((d) => d.slot === slot);
+    const versions = found ? (versionsByOwnerId.get(found.id) ?? []) : [];
+    const currentVersion = versions.find((version) => version.isCurrent) ?? null;
     return {
       id: found?.id ?? null,
       slot,
@@ -345,6 +403,9 @@ export async function getBundleForRequest(requestId: number): Promise<FormalPhas
       status: found?.status ?? 'missing',
       fileUrl: found?.fileUrl ?? null,
       submittedAt: found?.submittedAt ?? null,
+      currentVersionUploadedAt: currentVersion?.uploadedAt ?? found?.submittedAt ?? null,
+      versionCount: versions.length,
+      hasPreviousVersions: versions.length > 1,
     };
   });
 
@@ -363,7 +424,7 @@ export async function getBundleForRequest(requestId: number): Promise<FormalPhas
       openedAt: phase.openedAt,
       closedAt: phase.closedAt,
     },
-    letterCircuit: circuit ? toCircuitView(circuit) : null,
+    letterCircuit: circuit ? toCircuitView(circuit, letterVersionRows) : null,
     documents,
     meeting: meetingRow
       ? {

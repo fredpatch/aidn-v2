@@ -3,158 +3,63 @@
   "client": "ANAC Gabon",
   "repo": "fredpatch/aidn-v2",
   "branch": "main",
-  "lastUpdated": "2026-07-10T16:45:00Z",
-  "lastCommit": "4c75bf2 feat(admin,api): add uploads maintenance settings and include api updates",
-  "currentSprint": "Sprint 2 (M3) committed; Sprint 3 (M4) kickoff committed; Sprint 4 (M5 deep-evaluation) kickoff in progress",
-  "currentSprintFocus": "Sprint 0, Sprint 1, and Sprint 2 are committed. Sprint 3 kickoff is committed across api/admin/portal and uploads governance controls are in place. Current work is Sprint 4 deep-evaluation integration across api/admin/portal with cache/docs sync.",
-  "status": "Sprint 0 COMPLETE. Sprint 1 COMPLETE. Sprint 2 COMPLETE. Sprint 3 kickoff committed. Uploads governance diagnostics/linking/cleanup committed. Sprint 4 deep-evaluation kickoff is now underway.",
+  "lastUpdated": "2026-07-28T00:00:00+02:00",
+  "currentSprint": "Post-M7 workflow hardening",
+  "currentSprintFocus": "Phase-level workflow summaries across M3-M7, M4 document traceability, and C-V1 integrated document viewer for M5 are complete. Next: D-V1 collapse/expand or C-V2 viewer rollout.",
+  "status": "Sprints 0-6 complete end-to-end. Current hardening batch typechecks and builds cleanly; Vite large-chunk warning remains.",
   "activeSession": {
-    "task": "Uploads governance admin consumption is committed; active work now includes Sprint 4 kickoff (deep-evaluation M5) across api/admin/portal and cache/docs synchronization.",
-    "startedAt": "2026-07-09",
-    "nextAction": "Commit and push current deep-evaluation kickoff plus cache/docs updates, then complete M5 flow polish and add PORTAL_ORIGIN to apps/api/.env.example."
+    "task": "Push workflow hardening + document viewer batch after docs/cache/Notion sync.",
+    "startedAt": "2026-07-28",
+    "nextAction": "Commit/push current batch, then tackle D-V1 collapse/expand for M4/M5 or extend DocumentViewer to remaining phase links."
   },
   "index": [
     {
       "path": "index.md",
       "type": "navigation",
-      "tags": ["index", "overview", "navigation"],
-      "summary": "Human-readable index of all files"
-    },
-    {
-      "path": "quick-ref.md",
-      "type": "reference",
-      "tags": ["commands", "api", "colors", "rules", "sprint"],
-      "summary": "One-page quick reference"
+      "tags": ["index", "overview", "navigation", "hardening"],
+      "summary": "Human-readable index of the exploration cache"
     },
     {
       "path": "changelog.md",
       "type": "history",
-      "tags": ["git", "commits", "history"],
-      "summary": "Commit history through latest hardening, Sonner rollout, and M4 backend kickoff"
+      "tags": ["git", "history", "workflow-hardening", "document-viewer"],
+      "summary": "Commit-level history including the 2026-07-28 hardening batch"
     },
     {
       "path": "active-session/current-task.md",
       "type": "session",
-      "tags": ["current", "sprint2", "sprint3", "m3", "m4", "document-templates"],
-      "summary": "Current session now includes Sprint 3 backend + admin frontend kickoff plus the portal modular React Query/lib-api refactor"
-    },
-    {
-      "path": "active-session/blockers.md",
-      "type": "session",
-      "tags": ["blockers", "m13", "applicant-registration", "visual-qa"],
-      "summary": "No hard blockers + soft blockers tracked"
+      "tags": ["current", "post-m7", "hardening", "m3-m7"],
+      "summary": "Current state: phase summaries, M4 traceability, C-V1 viewer complete"
     },
     {
       "path": "active-session/next-actions.md",
       "type": "session",
-      "tags": ["actions", "sprint3", "phase-demande-formelle", "m4"],
-      "summary": "Commit the combined admin/api/portal batch, then continue Sprint 3 follow-up work and environment sync"
+      "tags": ["actions", "collapse", "document-viewer", "notifications"],
+      "summary": "Next actions: push, D-V1 collapse/expand, C-V2 viewer rollout, env sync"
     },
     {
-      "path": "active-session/context.md",
+      "path": "active-session/blockers.md",
       "type": "session",
-      "tags": ["orientation", "rules", "environment", "auth", "dual-auth"],
-      "summary": "Fresh-session orientation: dual auth system, critical rules, environment assumptions"
+      "tags": ["blockers", "m13", "visual-qa", "bundle-size"],
+      "summary": "No hard blockers; soft blockers tracked"
     },
     {
-      "path": "project/overview.md",
+      "path": "project/hardening-plan.md",
       "type": "project",
-      "tags": ["overview", "cdc", "context"],
-      "summary": "What AIDN is, CDC summary"
+      "tags": ["hardening", "phase-sidebar", "document-viewer", "notifications"],
+      "summary": "Post-M7 workflow hardening plan; A complete, C-V1 complete, D/E remaining"
     },
     {
-      "path": "project/modules-feasibility.md",
-      "type": "project",
-      "tags": ["modules", "feasibility", "business-rules", "m1-m13"],
-      "summary": "Full 13-module feasibility study with locked decisions"
-    },
-    {
-      "path": "project/architecture.md",
-      "type": "project",
-      "tags": ["stack", "auth", "env-vars", "data-flow"],
-      "summary": "Stack, dual auth flow, env vars, M1 data flow example, origin-based cookie precedence"
-    },
-    {
-      "path": "project/database-schema.md",
-      "type": "project",
-      "tags": ["schema", "tables", "enums", "drizzle", "document-templates"],
-      "summary": "All tables and enums, including Sprint 2's document_templates"
-    },
-    {
-      "path": "project/decisions.md",
-      "type": "project",
-      "tags": [
-        "decisions",
-        "rationale",
-        "postgres",
-        "auth",
-        "ui-redesign",
-        "document-templates",
-        "pdf"
-      ],
-      "summary": "Non-obvious technical decisions with rationale"
-    },
-    {
-      "path": "technical/cheat-sheet.md",
-      "type": "reference",
-      "tags": ["commands", "api-routes", "paths", "sprint2", "sprint3"],
-      "summary": "Dev commands, key file paths, API endpoint list"
-    },
-    {
-      "path": "technical/patterns.md",
-      "type": "reference",
-      "tags": ["service-controller-route", "error-handling", "frontend-gate"],
-      "summary": "Code patterns used across modules"
-    },
-    {
-      "path": "technical/conventions.md",
-      "type": "reference",
-      "tags": ["naming", "language-policy", "css"],
-      "summary": "Naming, English-code/French-UI policy, file structure"
-    },
-    {
-      "path": "technical/cross-cutting-patterns.md",
-      "type": "reference",
-      "tags": ["circuit-dg", "reunion", "cloture", "facture", "checklist"],
-      "summary": "Business-rule patterns reused across modules"
-    },
-    {
-      "path": "technical/gotchas.md",
-      "type": "reference",
-      "tags": ["bugs", "drizzle-kit", "postgres", "tsconfig", "axios", "auth", "gotchas"],
-      "summary": "Real pitfalls found across sessions, with symptom/cause/fix"
-    },
-    {
-      "path": "sessions/2026-07-07.md",
+      "path": "sessions/2026-07-28.md",
       "type": "session-log",
-      "tags": ["sprint0", "sprint1", "session-log"],
-      "summary": "Full session log: Sprint 0+1"
+      "tags": ["workflow-hardening", "document-viewer", "m4", "m5", "session-log"],
+      "summary": "Cross-phase workflow summaries, M4 traceability, C-V1 integrated document viewer"
     },
     {
-      "path": "sessions/2026-07-08.md",
-      "type": "session-log",
-      "tags": ["axios", "bugfix", "sprint2", "phase-preliminaire", "session-log"],
-      "summary": "Fixed both broken builds, then built Sprint 2 (M3) end to end"
-    },
-    {
-      "path": "sessions/2026-07-09.md",
-      "type": "session-log",
-      "tags": [
-        "hardening",
-        "settings",
-        "system-parameters",
-        "dev-tools",
-        "meeting-report",
-        "session-log",
-        "sprint3"
-      ],
-      "summary": "Post-Sprint-2 hardening plus Sprint 3 kickoff with formal-request backend, admin M4 scaffolding, and portal MyRequestPage incremental M4 section"
-    },
-    {
-      "path": "sessions/2026-07-10.md",
-      "type": "session-log",
-      "tags": ["uploads", "governance", "sprint4", "deep-evaluation", "m5", "session-log"],
-      "summary": "Uploads governance settings consumption completed and Sprint 4 deep-evaluation kickoff integrated across api/admin/portal"
+      "path": "docs/TASKS.md",
+      "type": "backlog",
+      "tags": ["tasks", "backlog", "post-m7"],
+      "summary": "Master backlog; post-M7 hardening statuses updated"
     }
   ]
 }

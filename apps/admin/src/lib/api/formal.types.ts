@@ -5,6 +5,9 @@ export interface FormalDocumentView {
   status: 'missing' | 'submitted';
   fileUrl: string | null;
   submittedAt: string | null;
+  currentVersionUploadedAt: string | null;
+  versionCount: number;
+  hasPreviousVersions: boolean;
 }
 
 export interface FormalLetterCircuitView {
@@ -13,6 +16,9 @@ export interface FormalLetterCircuitView {
   fileUrl: string | null;
   signedAt: string | null;
   dnAgentId: number | null;
+  currentVersionUploadedAt: string | null;
+  versionCount: number;
+  hasPreviousVersions: boolean;
 }
 
 export interface FormalMeetingView {

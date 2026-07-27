@@ -8,7 +8,13 @@ import FormalLetterCard from './components/FormalLetterCard';
 import DocumentsChecklistCard from './components/DocumentsChecklistCard';
 import FormalMeetingCard from './components/FormalMeetingCard';
 import FormalClosureCard from './components/FormalClosureCard';
-import { buildChecklist, canCloseFormalPhase, closureBlockReason } from './helpers';
+import FormalPhaseSummaryCard from './components/FormalPhaseSummaryCard';
+import {
+  buildChecklist,
+  canCloseFormalPhase,
+  closureBlockReason,
+  formalNextAction,
+} from './helpers';
 import { useFormalBundle } from './hooks/useFormalBundle';
 
 export default function FormalPhasePage() {
@@ -30,6 +36,9 @@ export default function FormalPhasePage() {
   const letterSubmitted = !!bundle?.letterCircuit;
   const blockReason = closureBlockReason(bundle);
   const checklist = bundle ? buildChecklist(bundle) : [];
+  const nextAction = formalNextAction(bundle);
+  const canManageFormal =
+    user?.roles.some((role) => ['dn_agent', 'dn_supervisor', 'SU'].includes(role)) ?? false;
 
   return (
     <div className="flex gap-6 items-start">
@@ -71,7 +80,7 @@ export default function FormalPhasePage() {
         ) : (
           <>
             <div className="card flex items-center justify-between">
-              <span className="text-sm font-medium">Statut de la phase</span>
+              <span className="text-sm font-medium">Statut administratif de la phase</span>
               <PhaseStatusBadge
                 status={bundle.phase.status}
                 label={bundle.phase.status === 'closed' ? 'Clôturée' : 'Ouverte'}
@@ -82,9 +91,19 @@ export default function FormalPhasePage() {
               />
             </div>
 
+            <FormalPhaseSummaryCard
+              phaseStatus={bundle.phase.status}
+              nextAction={nextAction}
+              depositedDocuments={bundle.completionRate}
+              totalDocuments={11}
+              reportUploaded={!!bundle.meeting?.crDocumentUrl}
+              blockReason={blockReason}
+            />
+
             <FormalLetterCard
               requestId={requestId}
               circuit={bundle.letterCircuit}
+              canManage={canManageFormal && bundle.phase.status === 'open'}
               setActionError={setActionError}
             />
 
@@ -93,6 +112,7 @@ export default function FormalPhasePage() {
               documents={bundle.documents}
               completionRate={bundle.completionRate}
               phaseClosed={bundle.phase.status === 'closed'}
+              canManage={canManageFormal && bundle.phase.status === 'open'}
               setActionError={setActionError}
             />
 
@@ -102,15 +122,24 @@ export default function FormalPhasePage() {
               dnAgentId={user?.id ?? 0}
               requestId={requestId}
               letterSubmitted={letterSubmitted}
+              canManage={canManageFormal && bundle.phase.status === 'open'}
               setActionError={setActionError}
             />
 
-            {bundle.phase.status === 'open' && canClose && (
+            {bundle.phase.status === 'open' && canClose && canManageFormal && (
               <FormalClosureCard
                 phaseId={bundle.phase.id}
                 requestId={requestId}
                 setActionError={setActionError}
               />
+            )}
+
+            {bundle.phase.status === 'open' && canClose && !canManageFormal && (
+              <div className="card">
+                <p className="text-anac-muted text-sm">
+                  La phase est prête à être clôturée. Action réservée à la DN.
+                </p>
+              </div>
             )}
 
             {bundle.phase.status === 'open' && !canClose && blockReason && (

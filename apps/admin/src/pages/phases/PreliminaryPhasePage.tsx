@@ -8,7 +8,12 @@ import MeetingCard from './preliminary/components/MeetingCard';
 import PhaseHeader from './preliminary/components/PhaseHeader';
 import PhaseSidebar from './preliminary/components/PhaseSidebar';
 import PhaseStatusBadge from './preliminary/components/PhaseStatusBadge';
-import { canClosePreliminaryPhase, isMeetingResolved } from './preliminary/helpers';
+import PhaseWorkflowSummary from './components/PhaseWorkflowSummary';
+import {
+  canClosePreliminaryPhase,
+  isMeetingResolved,
+  preliminaryWorkflowSummary,
+} from './preliminary/helpers';
 import { usePreliminaryBundle } from './preliminary/hooks/usePreliminaryBundle';
 
 export default function PreliminaryPhasePage() {
@@ -28,6 +33,10 @@ export default function PreliminaryPhasePage() {
 
   const canClose = canClosePreliminaryPhase(bundle);
   const meetingResolved = isMeetingResolved(bundle);
+  const blockReason = !meetingResolved
+    ? 'La clôture sera disponible une fois la réunion résolue.'
+    : 'La clôture sera disponible une fois la déclaration retournée par le postulant.';
+  const summary = bundle ? preliminaryWorkflowSummary(bundle, canClose ? null : blockReason) : null;
 
   return (
     <div className="flex gap-6 items-start">
@@ -59,16 +68,18 @@ export default function PreliminaryPhasePage() {
         ) : (
           <>
             <div className="card flex items-center justify-between">
-              <span className="text-sm font-medium">Statut de la phase</span>
+              <span className="text-sm font-medium">Statut administratif de la phase</span>
               <PhaseStatusBadge
                 status={bundle.phase.status}
-                label={bundle.phase.status === 'closed' ? 'Cloturee' : 'Ouverte'}
+                label={bundle.phase.status === 'closed' ? 'Clôturée' : 'Ouverte'}
                 toneMap={{
                   closed: 'bg-anac-muted/10 text-anac-muted',
                   open: 'bg-anac-success/10 text-anac-success',
                 }}
               />
             </div>
+
+            {summary && <PhaseWorkflowSummary state={summary} />}
 
             <MeetingCard
               phaseId={bundle.phase.id}
@@ -96,11 +107,7 @@ export default function PreliminaryPhasePage() {
 
             {bundle.phase.status === 'open' && !canClose && (
               <div className="card">
-                <p className="text-anac-muted text-sm">
-                  {!meetingResolved
-                    ? 'La cloture sera disponible une fois la reunion resolue (tenue, absence, ou dossier annule).'
-                    : 'La cloture sera disponible une fois la declaration de pre-evaluation retournee par le postulant.'}
-                </p>
+                <p className="text-anac-muted text-sm">{blockReason}</p>
               </div>
             )}
           </>

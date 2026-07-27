@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { CheckCircle2, Circle, AlertCircle } from 'lucide-react';
+import { CheckCircle2, Circle, AlertCircle, Eye } from 'lucide-react';
 import { Button } from '../../../../components/ui/button';
+import DocumentViewer from '../../../../components/documents/DocumentViewer';
 import { API_ORIGIN, VERDICT_LABELS, VERDICT_TONES } from '../constants';
 import { formatDate } from '../helpers';
 import { useEvaluationActions } from '../hooks/useEvaluationActions';
@@ -29,6 +30,7 @@ export default function DocumentEvaluationsCard({
   const [verdictingId, setVerdictingId] = useState<number | null>(null);
   const [correctionDays, setCorrectionDays] = useState('');
   const [resubmitFiles, setResubmitFiles] = useState<Record<number, File>>({});
+  const [viewerFile, setViewerFile] = useState<{ title: string; url: string } | null>(null);
 
   async function handleVerdict(evalId: number, v: 'validated' | 'rejected' | 'needs_correction') {
     const ok = await verdict(evalId, v, correctionDays ? Number(correctionDays) : undefined);
@@ -87,15 +89,20 @@ export default function DocumentEvaluationsCard({
                 <p className="text-xs leading-tight font-medium">{ev.label}</p>
 
                 {ev.currentFileUrl && (
-                  <a
-                    href={`${API_ORIGIN}${ev.currentFileUrl}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-[10px] text-anac-blue underline"
+                  <button
+                    type="button"
+                    className="inline-flex w-fit items-center gap-1 text-[10px] text-anac-blue underline"
+                    onClick={() =>
+                      setViewerFile({
+                        title: `${ev.label}${ev.resubmittedFileUrl ? ' - version corrigée' : ''}`,
+                        url: `${API_ORIGIN}${ev.currentFileUrl}`,
+                      })
+                    }
                   >
-                    Voir le document
+                    <Eye size={11} aria-hidden="true" />
+                    Prévisualiser le document
                     {ev.resubmittedFileUrl ? ' (version corrigée)' : ''}
-                  </a>
+                  </button>
                 )}
 
                 {ev.verdict && (
@@ -217,6 +224,8 @@ export default function DocumentEvaluationsCard({
           </div>
         ))}
       </div>
+
+      <DocumentViewer file={viewerFile} onClose={() => setViewerFile(null)} />
     </div>
   );
 }

@@ -4,10 +4,16 @@ import { useAuth } from '../../../hooks/useAuth';
 import { Button } from '../../../components/ui/button';
 import PhaseSidebar from '../preliminary/components/PhaseSidebar';
 import PhaseStatusBadge from '../preliminary/components/PhaseStatusBadge';
+import PhaseWorkflowSummary from '../components/PhaseWorkflowSummary';
 import PaymentCard from './components/PaymentCard';
 import DocumentEvaluationsCard from './components/DocumentEvaluationsCard';
 import DeepEvaluationClosureCard from './components/DeepEvaluationClosureCard';
-import { buildChecklist, canCloseDeepEvaluation, closureBlockReason } from './helpers';
+import {
+  buildChecklist,
+  canCloseDeepEvaluation,
+  closureBlockReason,
+  deepEvaluationWorkflowSummary,
+} from './helpers';
 import { useDeepEvaluationBundle } from './hooks/useDeepEvaluationBundle';
 
 export default function DeepEvaluationPhasePage() {
@@ -27,6 +33,7 @@ export default function DeepEvaluationPhasePage() {
   const canClose = canCloseDeepEvaluation(bundle);
   const blockReason = closureBlockReason(bundle);
   const checklist = bundle ? buildChecklist(bundle) : [];
+  const summary = bundle ? deepEvaluationWorkflowSummary(bundle, blockReason) : null;
 
   return (
     <div className="flex gap-6 items-start">
@@ -71,7 +78,7 @@ export default function DeepEvaluationPhasePage() {
         ) : (
           <>
             <div className="card flex items-center justify-between">
-              <span className="text-sm font-medium">Statut de la phase</span>
+              <span className="text-sm font-medium">Statut administratif de la phase</span>
               <PhaseStatusBadge
                 status={bundle.phase.status}
                 label={bundle.phase.status === 'closed' ? 'Clôturée' : 'Ouverte'}
@@ -81,6 +88,8 @@ export default function DeepEvaluationPhasePage() {
                 }}
               />
             </div>
+
+            {summary && <PhaseWorkflowSummary state={summary} />}
 
             <PaymentCard
               requestId={requestId}

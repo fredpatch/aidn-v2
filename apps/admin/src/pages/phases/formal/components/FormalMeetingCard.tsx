@@ -13,6 +13,7 @@ interface FormalMeetingCardProps {
   dnAgentId: number;
   requestId: string | undefined;
   letterSubmitted: boolean;
+  canManage: boolean;
   setActionError: (message: string | null) => void;
 }
 
@@ -22,6 +23,7 @@ export default function FormalMeetingCard({
   dnAgentId,
   requestId,
   letterSubmitted,
+  canManage,
   setActionError,
 }: FormalMeetingCardProps) {
   const [scheduling, setScheduling] = useState(false);
@@ -75,6 +77,16 @@ export default function FormalMeetingCard({
     }
   }
 
+  function handleCancelFile() {
+    if (!meeting) return;
+    const confirmed = window.confirm(
+      "Annuler ce dossier mettra fin à la demande formelle. Cette action sera inscrite dans l'historique. Confirmer l'annulation ?"
+    );
+    if (confirmed) {
+      markStatus(meeting.id, 'file_cancelled');
+    }
+  }
+
   return (
     <div className="card space-y-3">
       <div className="flex items-center gap-2">
@@ -111,7 +123,7 @@ export default function FormalMeetingCard({
               />
             </div>
             <div className="flex gap-2">
-              <Button type="submit" size="sm" disabled={busy}>
+              <Button type="submit" size="sm" disabled={busy || !canManage}>
                 Planifier
               </Button>
               <Button
@@ -125,9 +137,12 @@ export default function FormalMeetingCard({
             </div>
           </form>
         ) : (
-          <Button size="sm" onClick={() => setScheduling(true)}>
-            Planifier la réunion formelle
-          </Button>
+          <div className="space-y-2">
+            <Button size="sm" onClick={() => setScheduling(true)} disabled={!canManage}>
+              Planifier la réunion formelle
+            </Button>
+            {!canManage && <p className="text-anac-muted text-xs">Action réservée à la DN.</p>}
+          </div>
         )
       ) : rescheduling ? (
         <form onSubmit={handleReschedule} className="space-y-3">
@@ -142,7 +157,7 @@ export default function FormalMeetingCard({
             />
           </div>
           <div className="flex gap-2">
-            <Button type="submit" size="sm" disabled={busy}>
+            <Button type="submit" size="sm" disabled={busy || !canManage}>
               Confirmer
             </Button>
             <Button
@@ -183,7 +198,7 @@ export default function FormalMeetingCard({
                 size="sm"
                 variant="secondary"
                 onClick={() => markStatus(meeting.id, 'held')}
-                disabled={busy}
+                disabled={busy || !canManage}
                 className="gap-1"
               >
                 <CheckCircle2 size={12} /> Tenue
@@ -192,7 +207,7 @@ export default function FormalMeetingCard({
                 size="sm"
                 variant="secondary"
                 onClick={() => markStatus(meeting.id, 'no_show')}
-                disabled={busy}
+                disabled={busy || !canManage}
                 className="gap-1"
               >
                 <XCircle size={12} /> No-show
@@ -201,7 +216,7 @@ export default function FormalMeetingCard({
                 size="sm"
                 variant="secondary"
                 onClick={() => setRescheduling(true)}
-                disabled={busy}
+                disabled={busy || !canManage}
                 className="gap-1"
               >
                 <RotateCcw size={12} /> Reprogrammer
@@ -209,8 +224,8 @@ export default function FormalMeetingCard({
               <Button
                 size="sm"
                 variant="destructive"
-                onClick={() => markStatus(meeting.id, 'file_cancelled')}
-                disabled={busy}
+                onClick={handleCancelFile}
+                disabled={busy || !canManage}
               >
                 Annuler le dossier
               </Button>
@@ -234,6 +249,7 @@ export default function FormalMeetingCard({
                   <button
                     type="button"
                     className="underline text-anac-muted text-xs"
+                    disabled={!canManage}
                     onClick={() => setSendingReport(true)}
                   >
                     remplacer
@@ -241,8 +257,12 @@ export default function FormalMeetingCard({
                 </p>
               ) : sendingReport ? (
                 <div className="flex items-center gap-2">
-                  <input type="file" onChange={(e) => setReportFile(e.target.files?.[0] ?? null)} />
-                  <Button size="sm" onClick={handleSendReport} disabled={busy}>
+                  <input
+                    type="file"
+                    disabled={!canManage}
+                    onChange={(e) => setReportFile(e.target.files?.[0] ?? null)}
+                  />
+                  <Button size="sm" onClick={handleSendReport} disabled={busy || !canManage}>
                     Envoyer
                   </Button>
                   <Button
@@ -259,12 +279,19 @@ export default function FormalMeetingCard({
                   size="sm"
                   variant="secondary"
                   onClick={() => setSendingReport(true)}
+                  disabled={!canManage}
                   className="gap-1"
                 >
-                  <FileUp size={12} /> Envoyer le compte-rendu (optionnel)
+                  <FileUp size={12} /> Déposer le compte-rendu
                 </Button>
               )}
+              <p className="text-anac-muted text-xs">
+                Le compte-rendu est facultatif pour la clôture de la phase.
+              </p>
             </div>
+          )}
+          {!canManage && meeting.status === 'scheduled' && (
+            <p className="text-anac-muted text-xs">Action réservée à la DN.</p>
           )}
         </div>
       )}

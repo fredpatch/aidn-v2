@@ -365,8 +365,10 @@ bout en bout de Fred (2026-07-27) après la fin des 5 phases OMA. Workstream B (
 UI) délibérément reporté — à bundler avec l'intégration API ANAC.
 
 - [x] **A** — Navigation entre phases + feedback visuel (`PhaseSidebar`) — terminé 2026-07-27
+- [x] **UX phase-level** — résumé "prochaine action / responsable / blocage / métriques" harmonisé sur M3-M7 — terminé 2026-07-28
+- [x] **C-V1** — Visualiseur de documents intégré, priorité M5 (`DocumentEvaluationsCard`) — terminé 2026-07-28
 - [ ] **D-V1** — Cartes repliables (collapse/expand) pour réduire le scroll M4/M5 — prochain
-- [ ] **C** — Visualiseur de documents intégré (M5 d'abord)
+- [ ] **C-V2** — Brancher `DocumentViewer` aux autres liens documentaires M3/M4/M6/M7 après validation terrain M5
 - [ ] **E** — Notifications (M11) — V1 minimale (certificat prêt, document à corriger, dossier rejeté)
 
 ## Sprint 7 — Documents (transverse, M8)

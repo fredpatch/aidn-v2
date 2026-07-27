@@ -1,7 +1,38 @@
 # 📝 AIDN v2 — Changelog
 
-Commit-level history. Covers `be9fce9` through `cac1805` (2026-07-07/09), plus
-the current uncommitted 2026-07-09 Sprint-3 admin-frontend pass.
+Commit-level history. Covers `be9fce9` through the current uncommitted
+2026-07-28 workflow hardening and document viewer pass.
+
+## (uncommitted) — 2026-07-28 workflow hardening + C-V1 document viewer
+
+On top of `origin/main`, current working diff:
+
+- **Cross-phase UX hardening (M3-M7)**:
+  - added a shared `PhaseWorkflowSummary` component for phase-level next action,
+    responsible owner, blockers, and key metrics
+  - wired the summary into M3 preliminary, M5 deep evaluation, M6 site inspection,
+    and M7 certificates
+  - kept the richer M4 formal summary card for the formal dossier's document-heavy
+    workflow
+- **M4 formal phase traceability**:
+  - API/admin formal bundle now exposes formal document version metadata:
+    `currentVersionUploadedAt`, `versionCount`, `hasPreviousVersions`
+  - formal letter circuit now exposes its file URL and version metadata
+  - new formal letter uploads now use the correct `dg_circuit_document` owner type,
+    with a guarded legacy fallback for older local rows
+  - document rows now say "déposé" and show current version info without implying
+    review approval is required for closure
+- **Part C-V1 — integrated document viewer**:
+  - new reusable admin `DocumentViewer`
+  - integrated first in M5 `DocumentEvaluationsCard`
+  - PDF previews use iframe, images use img, DOC/DOCX/unsupported files fall back to
+    "Nouvel onglet" and "Télécharger"
+- **Project records updated**:
+  - `exploration-cache/project/hardening-plan.md` records C-V1 implementation and
+    remaining rollout
+  - local docs/cache/changelog/task records updated before push
+- Verified with `npm run typecheck --workspaces --if-present` and full
+  `npm run build` (Vite large-chunk warning remains).
 
 ## (uncommitted) — 2026-07-10 Sprint 4 kickoff (M5 deep-evaluation)
 

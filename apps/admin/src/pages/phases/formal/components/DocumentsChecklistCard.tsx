@@ -11,6 +11,7 @@ interface DocumentsChecklistCardProps {
   documents: FormalDocumentView[];
   completionRate: number;
   phaseClosed: boolean;
+  canManage: boolean;
   setActionError: (message: string | null) => void;
 }
 
@@ -19,6 +20,7 @@ export default function DocumentsChecklistCard({
   documents,
   completionRate,
   phaseClosed,
+  canManage,
   setActionError,
 }: DocumentsChecklistCardProps) {
   const { busy, submit } = useFormalDocumentActions(requestId, setActionError);
@@ -53,9 +55,14 @@ export default function DocumentsChecklistCard({
               : 'bg-anac-warning/10 text-anac-warning'
           }`}
         >
-          {completionRate}/11
+          Déposés {completionRate}/11
         </span>
       </div>
+
+      <p className="text-xs text-anac-muted">
+        Les documents déposés satisfont la condition de dépôt. Une revue DN peut être réalisée sans
+        bloquer la clôture de cette phase.
+      </p>
 
       <div className="space-y-2">
         {documents.map((doc) => (
@@ -72,18 +79,22 @@ export default function DocumentsChecklistCard({
                 >
                   {doc.label}
                 </p>
+                <p className="mt-1 text-[10px] font-medium text-anac-muted">
+                  {doc.status === 'submitted' ? 'Déposé' : 'Manquant'} · Obligatoire
+                </p>
                 {doc.status === 'submitted' && doc.fileUrl && (
                   <p className="text-[10px] text-anac-muted mt-0.5">
-                    Soumis le {formatDate(doc.submittedAt)} -{' '}
+                    Version actuelle déposée le{' '}
+                    {formatDate(doc.currentVersionUploadedAt ?? doc.submittedAt)} -{' '}
                     <a
                       href={`${API_ORIGIN}${doc.fileUrl}`}
                       target="_blank"
                       rel="noreferrer"
                       className="underline text-anac-blue"
                     >
-                      voir le fichier
+                      ouvrir ce document
                     </a>
-                    {!phaseClosed && (
+                    {!phaseClosed && canManage && (
                       <>
                         {' - '}
                         <button
@@ -91,15 +102,27 @@ export default function DocumentsChecklistCard({
                           className="underline text-anac-muted"
                           onClick={() => setUploadingSlot(doc.slot)}
                         >
-                          remplacer (DN uniquement)
+                          remplacer
                         </button>
                       </>
                     )}
                   </p>
                 )}
+                {doc.status === 'submitted' && (
+                  <p className="text-[10px] text-anac-muted mt-0.5">
+                    {doc.hasPreviousVersions
+                      ? `${doc.versionCount} versions conservées dans l'historique du dossier.`
+                      : 'Version initiale du dossier.'}
+                  </p>
+                )}
+                {doc.status === 'submitted' && !doc.fileUrl && (
+                  <p className="text-[10px] text-anac-warning mt-0.5">
+                    Fichier indisponible. Action réservée à la DN.
+                  </p>
+                )}
               </div>
 
-              {doc.status === 'missing' && uploadingSlot !== doc.slot && (
+              {doc.status === 'missing' && uploadingSlot !== doc.slot && canManage && (
                 <Button
                   size="sm"
                   variant="secondary"
@@ -110,6 +133,10 @@ export default function DocumentsChecklistCard({
                 </Button>
               )}
             </div>
+
+            {doc.status === 'missing' && !canManage && (
+              <p className="pl-6 text-[10px] text-anac-muted">Action réservée à la DN.</p>
+            )}
 
             {uploadingSlot === doc.slot && (
               <div className="flex items-center gap-2 pt-1">

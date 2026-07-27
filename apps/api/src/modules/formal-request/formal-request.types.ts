@@ -5,13 +5,20 @@ export interface FormalDocumentView {
   status: 'missing' | 'submitted';
   fileUrl: string | null;
   submittedAt: Date | null;
+  currentVersionUploadedAt: Date | null;
+  versionCount: number;
+  hasPreviousVersions: boolean;
 }
 
 export interface FormalLetterCircuitView {
   id: number;
   status: string;
+  fileUrl: string | null;
   signedAt: Date | null;
   pendingReviewAt: Date | null;
+  currentVersionUploadedAt: Date | null;
+  versionCount: number;
+  hasPreviousVersions: boolean;
 }
 
 export interface FormalPhaseBundle {
