@@ -9,8 +9,9 @@ project evolves. Structure mirrors SICOT's exploration-cache — see
 ANAC Gabon
 **Last updated**: 2026-07-28 | **Sprint**: 0–6 (M1–M7) are complete. Current
 focus is post-M7 workflow hardening: phase-level next-action summaries across
-M3–M7, M4 document traceability, and C-V1 integrated document viewer for M5 are
-done. D-V1 scroll reduction and C-V2 viewer rollout remain next.
+M3–M7, M4 document traceability, C-V1 integrated document viewer for M5, and
+Personnel ANAC-backed internal user activation are done. D-V1 scroll reduction
+and C-V2 viewer rollout remain next.
 
 ---
 
@@ -67,7 +68,7 @@ complete there.
 | [`sessions/2026-07-10.md`](sessions/2026-07-10.md) | Uploads governance admin consumption completed and Sprint 4 kickoff started (deep-evaluation API/admin/portal integration)                                               |
 | [`sessions/2026-07-27.md`](sessions/2026-07-27.md) | Cache/Notion drift correction (M4+M5 confirmed fully built, not "kickoff"); started Sprint 5 (M6 — Démonstration/Inspection sur Site)                                    |
 | [`sessions/2026-07-27-m6-m7.md`](sessions/2026-07-27-m6-m7.md) | Sprint 5 (M6) and Sprint 6 (M7) completed end-to-end — API+admin+portal for both. All 5 OMA phases now feature-complete. Certificate PDF generation confirmed working by Fred. |
-| [`sessions/2026-07-28.md`](sessions/2026-07-28.md) | Post-M7 workflow hardening: cross-phase next-action summaries, M4 document traceability, and C-V1 integrated document viewer for M5. |
+| [`sessions/2026-07-28.md`](sessions/2026-07-28.md) | Post-M7 workflow hardening: cross-phase next-action summaries, M4 document traceability, C-V1 integrated document viewer for M5, and Personnel ANAC-backed internal users. |
 
 ---
 

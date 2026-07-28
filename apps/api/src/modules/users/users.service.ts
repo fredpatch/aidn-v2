@@ -4,6 +4,7 @@ import { users, userRoles, internalRoleEnum } from "../../shared/db/schema.js";
 import { generateOTP, hashOTP, otpExpiresAt } from "../../shared/utils/otp.js";
 import { sendOTPEmail } from "../../shared/utils/email.js";
 import { logAudit } from "../auth/auth.service.js";
+import { getCanonicalEmployeeCodeForUserCreation } from "../personnel-anac/personnel-anac.service.js";
 import { toUserView } from "./users.helpers.js";
 import type { CreateUserParams, UpdateUserParams, UserFilters, UserView } from "./users.types.js";
 
@@ -58,7 +59,9 @@ export async function getUser(id: number): Promise<UserView> {
 export async function createUser(
   params: CreateUserParams
 ): Promise<{ user: UserView; emailSent: boolean }> {
-  const [existing] = await db.select().from(users).where(eq(users.employeeCode, params.employeeCode));
+  const employeeCode = await getCanonicalEmployeeCodeForUserCreation(params.employeeCode);
+
+  const [existing] = await db.select().from(users).where(eq(users.employeeCode, employeeCode));
   if (existing) throw new Error("EMPLOYEE_CODE_EXISTS");
 
   const [existingEmail] = await db.select().from(users).where(eq(users.email, params.email));
@@ -71,7 +74,7 @@ export async function createUser(
   const [newUser] = await db
     .insert(users)
     .values({
-      employeeCode: params.employeeCode,
+      employeeCode,
       fullName: params.fullName,
       email: params.email,
       active: true,

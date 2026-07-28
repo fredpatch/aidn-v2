@@ -5,7 +5,8 @@
 is post-M7 workflow hardening before the broader transverse modules. Workstream A
 was already complete; the latest pass adds phase-level workflow summaries across
 M3–M7, strengthens M4 formal document traceability, and completes Part C-V1
-(integrated document viewer, M5 first).
+(integrated document viewer, M5 first), and resolves the internal-user side of the
+Personnel ANAC account-management blocker.
 
 ## ✅ Done today (2026-07-28): workflow hardening + C-V1 document viewer
 
@@ -31,14 +32,22 @@ M3–M7, strengthens M4 formal document traceability, and completes Part C-V1
   - new reusable admin `DocumentViewer`
   - integrated first in M5 `DocumentEvaluationsCard`
   - PDF iframe preview, image preview, DOC/DOCX fallback to open/download
+- Implemented SICOT-style Personnel ANAC internal user management:
+  - backend Personnel ANAC client and SU-only `/api/personnel-anac` module
+  - admin Users page now has AIDN users + Personnel ANAC tabs
+  - account creation validates matricule against Personnel ANAC by default
+  - duplicate account detection shown in the ANAC tab
+  - matricules are preserved canonically as 4-digit strings (`0041`, not `41`)
+  - env template now includes `PERSONNEL_ANAC_*` and `PORTAL_ORIGIN`
 - Updated local docs/cache/changelog and Notion project docs before push.
 - Verification: `npm run typecheck --workspaces --if-present` and full
   `npm run build` pass. Existing Vite large-chunk warning remains.
 
 ## Current focus
 
-Push this hardening/document-viewer batch, then proceed with D-V1 collapse/expand
-for M4/M5 or C-V2 viewer rollout to M3/M4/M6/M7 depending on Fred's preference.
+Push this hardening/document-viewer/Personnel ANAC batch, then proceed with D-V1
+collapse/expand for M4/M5 or C-V2 viewer rollout to M3/M4/M6/M7 depending on Fred's
+preference.
 
 ---
 
@@ -308,10 +317,6 @@ Sprint 7-12 (transverse: Documents/Paiements/Réunions/Notifs/Dashboard/Admin) �
       not an error) — worth code-splitting once more pages exist, not urgent now
 - [ ] Visual verification of the Sprint 1 + Sprint 2 UI — Claude cannot render a
       browser in its sandbox; typechecked/built/dev-server-booted only
-- [ ] `PORTAL_ORIGIN` env var (new this sprint, see `project/architecture.md`) isn't
-      in `apps/api/.env.example` yet — add it before handing the env template to
-      anyone else
-- [ ] Personnel/annuaire ANAC integration to replace Sprint 1's manual user creation
-      — noted for Sprint 12 area, legacy `aidn-v2-legacy`'s `personnel/` module is
-      the reference to check against once SICOT's real implementation exists
-      (see `docs/TASKS.md`'s Sprint 12 section)
+- [x] `PORTAL_ORIGIN` env var added to `apps/api/.env.example` (2026-07-28)
+- [x] Personnel ANAC integration for internal user creation added (2026-07-28);
+      applicant account creation remains separate M13 work.

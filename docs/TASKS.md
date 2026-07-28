@@ -90,9 +90,11 @@ admin → retour portail, pas seulement des tests API isolés) :
 - [x] Bootstrap du premier Super Admin (`/api/bootstrap/status`, `/init`)
 - [x] Gestion des utilisateurs (création avec envoi OTP, liste, mise à jour,
       activation/désactivation, réinitialisation OTP) - réservé au rôle `SU`
-      **— provisoire** : création manuelle (matricule/nom/email saisis à la
-      main). Sera remplacée par une activation depuis l'annuaire personnel
-      ANAC une fois construite (voir note sous Sprint 12)
+      **— durci 2026-07-28** : création interne adossée à l'annuaire Personnel
+      ANAC (recherche/liste live, préremplissage depuis la fiche agent, validation
+      matricule avant création). Le mode manuel ne reste acceptable qu'en fallback
+      local explicite via `PERSONNEL_ANAC_ENFORCE=false`. Les matricules sont
+      conservés au format canonique à 4 chiffres (`0041`, jamais `41`).
 - [x] `system_parameters` (équivalent des `parametres` SICOT) : seuils OTP,
       verrouillage, alerte parapheur - configurables sans redéploiement
 - [x] Emails réels via Nodemailer (mêmes noms de variables d'env que SICOT :
@@ -361,12 +363,14 @@ Voir `exploration-cache/technical/gotchas.md` pour le détail complet.
 ## Durcissement du workflow (post-M7, avant Sprint 7+)
 
 Plan complet : `exploration-cache/project/hardening-plan.md`. Déclenché par un test de
-bout en bout de Fred (2026-07-27) après la fin des 5 phases OMA. Workstream B (rôles
-UI) délibérément reporté — à bundler avec l'intégration API ANAC.
+bout en bout de Fred (2026-07-27) après la fin des 5 phases OMA. Workstream B a été
+partiellement traité avec l'intégration Personnel ANAC pour les comptes internes ; il
+reste un audit plus étroit des permissions fines côté UI.
 
 - [x] **A** — Navigation entre phases + feedback visuel (`PhaseSidebar`) — terminé 2026-07-27
 - [x] **UX phase-level** — résumé "prochaine action / responsable / blocage / métriques" harmonisé sur M3-M7 — terminé 2026-07-28
 - [x] **C-V1** — Visualiseur de documents intégré, priorité M5 (`DocumentEvaluationsCard`) — terminé 2026-07-28
+- [x] **B partiel / M13 interne** — Gestion utilisateurs depuis Personnel ANAC, activation OTP, détection doublons, matricules canoniques 4 chiffres — terminé 2026-07-28
 - [ ] **D-V1** — Cartes repliables (collapse/expand) pour réduire le scroll M4/M5 — prochain
 - [ ] **C-V2** — Brancher `DocumentViewer` aux autres liens documentaires M3/M4/M6/M7 après validation terrain M5
 - [ ] **E** — Notifications (M11) — V1 minimale (certificat prêt, document à corriger, dossier rejeté)
@@ -412,21 +416,13 @@ UI) délibérément reporté — à bundler avec l'intégration API ANAC.
       Principal/Secondaire/Tertiaire
 - [ ] Panneau SU : gestion utilisateurs, corbeille documents, configuration
       (seuils d'alerte, délais dynamiques)
-- [ ] **Remplacer la création manuelle d'utilisateur (Sprint 1) par une
-      activation depuis l'annuaire personnel ANAC** — le legacy
-      `aidn-v2-legacy` a déjà un module `personnel/` complet et fonctionnel
-      à reprendre comme référence : interface `PersonnelAdapter` avec 2
-      intégrations réelles (`ApiPersonnelAdapter` — API personnel ANAC
-      externe ; `MariaPersonnelAdapter` — base MariaDB existante), plus un
-      adaptateur mock pour le dev, sélectionnées via `PERSONNEL_SOURCE`.
-      Flux : SU recherche dans l'annuaire par matricule/nom, puis
-      `activateInternalAccount` crée le compte AIDN en récupérant
-      fullName/email/service/direction depuis la fiche personnel (pas de
-      saisie manuelle). **Attention** : le legacy est mono-rôle
-      (`role: Role`) — garder notre modèle multi-rôle (`user_roles`) plutôt
-      que reprendre cette limitation. Vérifier l'implémentation réelle côté
-      SICOT une fois construite là-bas avant de bâtir la version AIDN
-      (Idées & Pistes Notion, 2026-07-08)
+- [x] **Remplacer la création manuelle d'utilisateur interne par une activation
+      depuis l'annuaire Personnel ANAC** — implémenté 2026-07-28 en reprenant la
+      logique SICOT disponible (`personnel-anac` API read-only + Users page à deux
+      onglets), adaptée au modèle AIDN multi-rôle (`user_roles`). Endpoints AIDN :
+      `/api/personnel-anac`, `/api/personnel-anac/search`,
+      `/api/personnel-anac/matricule/:employeeCode`. Cas verrouillé après test :
+      les matricules sont canoniques sur 4 chiffres (`0041`), zéros inclus.
 
 ---
 

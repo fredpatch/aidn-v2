@@ -3,10 +3,12 @@
 Rédigé après un test de bout en bout par Fred (SU + postulant sur un seul écran,
 2026-07-27) qui a révélé que la logique métier des 5 phases est posée, mais que le
 parcours utilisateur — feedback visuel, navigation, revue documentaire, notifications —
-n'a jamais été durci. Ce document couvre les workstreams A, C, D, E (le workstream B,
-durcissement des rôles côté UI, est **délibérément reporté** : à bundler avec
-l'intégration API ANAC pour la création de comptes, décision prise le 2026-07-27 —
-voir `active-session/current-task.md`).
+n'a jamais été durci. Ce document couvre les workstreams A, C, D, E. Le workstream B
+(durcissement des rôles côté UI) avait été reporté pour le bundler avec
+l'intégration API ANAC ; la partie **gestion/activation des utilisateurs internes
+depuis Personnel ANAC est maintenant implémentée** (2026-07-28), tandis que les
+permissions fines côté UI restent à traiter si un écran expose encore une action
+non autorisée.
 
 Chaque constat ci-dessous a été vérifié dans le code réel, pas supposé.
 
@@ -229,14 +231,20 @@ réel, aucun des autres déclencheurs listés ci-dessous n'est câblé.
 ## Séquencement proposé
 
 1. **A (sidebar)** — ✅ Terminé (2026-07-27), voir section A ci-dessus
-2. **D-V1 (collapse/expand)** — petit changement, gain UX immédiat sur M4/M5 — **prochain**
-3. **C (visualiseur, M5 d'abord)** — plus gros morceau, composant réutilisable ensuite
-4. **E** — le plus large ; recommandation : scoper une V1 minimale (les 3 déclencheurs
+2. **B partiel (Personnel ANAC / utilisateurs internes)** — ✅ Terminé (2026-07-28) :
+   Users page à deux onglets, API `/api/personnel-anac`, validation matricule ANAC
+   avant création, OTP, activation/réinitialisation conservées, matricules canoniques
+   à 4 chiffres (`0041`).
+3. **D-V1 (collapse/expand)** — petit changement, gain UX immédiat sur M4/M5 — **prochain**
+4. **C-V2 (visualiseur hors M5)** — brancher le composant réutilisable sur M3/M4/M6/M7
+5. **E** — le plus large ; recommandation : scoper une V1 minimale (les 3 déclencheurs
    déjà partiellement prévus : certificat prêt, document à corriger, dossier rejeté)
    avant de construire les seuils 24h/3j qui demandent un vrai mécanisme de
    vérification périodique
 
-B (rôles UI) reste hors scope, à bundler avec l'intégration ANAC.
+B restant : audit des permissions fines côté UI, à faire après stabilisation des
+écrans prioritaires si le backend expose encore des actions que certains rôles voient
+sans pouvoir les exécuter.
 
 ## Ouvert, à trancher avec Fred avant de commencer E
 

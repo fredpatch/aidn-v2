@@ -63,8 +63,57 @@ export const handleUsersError = createErrorHandler(
       status: 403,
       message: 'Le Super Admin ne peut pas etre desactive.',
     },
+    INVALID_EMPLOYEE_CODE: { status: 400, message: 'Matricule invalide.' },
+    PERSONNEL_ANAC_UNAVAILABLE: {
+      status: 503,
+      message: "L'annuaire Personnel ANAC est momentanement indisponible.",
+    },
+    PERSONNEL_ANAC_AUTH_INVALID: {
+      status: 502,
+      message: "La configuration d'acces a l'annuaire Personnel ANAC est invalide.",
+    },
+    PERSONNEL_NOT_FOUND: {
+      status: 404,
+      message: "Ce matricule n'existe pas dans l'annuaire Personnel ANAC.",
+    },
+    PERSONNEL_ANAC_RATE_LIMITED: {
+      status: 429,
+      message: "L'annuaire Personnel ANAC limite temporairement les requetes.",
+    },
+    PERSONNEL_ANAC_UNKNOWN_ERROR: {
+      status: 502,
+      message: "Erreur inattendue lors de l'appel a l'annuaire Personnel ANAC.",
+    },
   },
   '[users]'
+);
+
+export const handlePersonnelAnacError = createErrorHandler(
+  {
+    PERSONNEL_SEARCH_TOO_SHORT: {
+      status: 400,
+      message: 'Saisissez au moins 2 caracteres pour rechercher un agent ANAC.',
+    },
+    INVALID_EMPLOYEE_CODE: { status: 400, message: 'Matricule invalide.' },
+    PERSONNEL_ANAC_UNAVAILABLE: {
+      status: 503,
+      message: "L'annuaire Personnel ANAC est momentanement indisponible.",
+    },
+    PERSONNEL_ANAC_AUTH_INVALID: {
+      status: 502,
+      message: "La configuration d'acces a l'annuaire Personnel ANAC est invalide.",
+    },
+    PERSONNEL_NOT_FOUND: { status: 404, message: 'Agent ANAC introuvable.' },
+    PERSONNEL_ANAC_RATE_LIMITED: {
+      status: 429,
+      message: "L'annuaire Personnel ANAC limite temporairement les requetes.",
+    },
+    PERSONNEL_ANAC_UNKNOWN_ERROR: {
+      status: 502,
+      message: "Erreur inattendue lors de l'appel a l'annuaire Personnel ANAC.",
+    },
+  },
+  '[personnel-anac]'
 );
 
 export const handleRequestsError = createErrorHandler(

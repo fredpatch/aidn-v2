@@ -6,7 +6,8 @@ Last updated: 2026-07-28
 
 1. **Push current hardening batch**
    - Includes cross-phase workflow summaries, M4 traceability, C-V1 document viewer
-     for M5, local docs/cache/changelog, and Notion updates.
+     for M5, Personnel ANAC internal user activation, local docs/cache/changelog,
+     and Notion updates.
    - Verification already passed: workspace typecheck + full build.
 
 2. **D-V1 — reduce scroll on M4/M5**
@@ -21,9 +22,10 @@ Last updated: 2026-07-28
    - Keep DOC/DOCX fallback as open/download unless field usage proves server-side
      conversion is worth the CPU cost.
 
-4. **Add `PORTAL_ORIGIN` to `apps/api/.env.example`**
-   - Still only documented in cache/architecture and local env expectations.
-   - Needed for `authenticateEither` origin-based cookie precedence.
+4. **B remaining — UI permission audit**
+   - Personnel ANAC-backed internal user creation is done.
+   - Remaining role hardening is narrower: verify screens do not invite actions
+     unavailable to the current role.
 
 ## Later
 

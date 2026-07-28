@@ -5,10 +5,10 @@
   "branch": "main",
   "lastUpdated": "2026-07-28T00:00:00+02:00",
   "currentSprint": "Post-M7 workflow hardening",
-  "currentSprintFocus": "Phase-level workflow summaries across M3-M7, M4 document traceability, and C-V1 integrated document viewer for M5 are complete. Next: D-V1 collapse/expand or C-V2 viewer rollout.",
+  "currentSprintFocus": "Phase-level workflow summaries across M3-M7, M4 document traceability, C-V1 integrated document viewer for M5, and Personnel ANAC-backed internal user activation are complete. Next: D-V1 collapse/expand or C-V2 viewer rollout.",
   "status": "Sprints 0-6 complete end-to-end. Current hardening batch typechecks and builds cleanly; Vite large-chunk warning remains.",
   "activeSession": {
-    "task": "Push workflow hardening + document viewer batch after docs/cache/Notion sync.",
+    "task": "Push workflow hardening + document viewer + Personnel ANAC users batch after docs/cache/Notion sync.",
     "startedAt": "2026-07-28",
     "nextAction": "Commit/push current batch, then tackle D-V1 collapse/expand for M4/M5 or extend DocumentViewer to remaining phase links."
   },
@@ -22,20 +22,20 @@
     {
       "path": "changelog.md",
       "type": "history",
-      "tags": ["git", "history", "workflow-hardening", "document-viewer"],
-      "summary": "Commit-level history including the 2026-07-28 hardening batch"
+      "tags": ["git", "history", "workflow-hardening", "document-viewer", "personnel-anac"],
+      "summary": "Commit-level history including the 2026-07-28 hardening and Personnel ANAC users batch"
     },
     {
       "path": "active-session/current-task.md",
       "type": "session",
-      "tags": ["current", "post-m7", "hardening", "m3-m7"],
-      "summary": "Current state: phase summaries, M4 traceability, C-V1 viewer complete"
+      "tags": ["current", "post-m7", "hardening", "m3-m7", "personnel-anac"],
+      "summary": "Current state: phase summaries, M4 traceability, C-V1 viewer, and Personnel ANAC users complete"
     },
     {
       "path": "active-session/next-actions.md",
       "type": "session",
-      "tags": ["actions", "collapse", "document-viewer", "notifications"],
-      "summary": "Next actions: push, D-V1 collapse/expand, C-V2 viewer rollout, env sync"
+      "tags": ["actions", "collapse", "document-viewer", "notifications", "permissions"],
+      "summary": "Next actions: push, D-V1 collapse/expand, C-V2 viewer rollout, UI permission audit"
     },
     {
       "path": "active-session/blockers.md",
@@ -46,14 +46,14 @@
     {
       "path": "project/hardening-plan.md",
       "type": "project",
-      "tags": ["hardening", "phase-sidebar", "document-viewer", "notifications"],
-      "summary": "Post-M7 workflow hardening plan; A complete, C-V1 complete, D/E remaining"
+      "tags": ["hardening", "phase-sidebar", "document-viewer", "notifications", "personnel-anac"],
+      "summary": "Post-M7 workflow hardening plan; A, B-partial, C-V1 complete, D/E remaining"
     },
     {
       "path": "sessions/2026-07-28.md",
       "type": "session-log",
-      "tags": ["workflow-hardening", "document-viewer", "m4", "m5", "session-log"],
-      "summary": "Cross-phase workflow summaries, M4 traceability, C-V1 integrated document viewer"
+      "tags": ["workflow-hardening", "document-viewer", "m4", "m5", "personnel-anac", "session-log"],
+      "summary": "Cross-phase workflow summaries, M4 traceability, C-V1 integrated document viewer, Personnel ANAC users"
     },
     {
       "path": "docs/TASKS.md",

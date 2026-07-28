@@ -1,9 +1,9 @@
 # 📝 AIDN v2 — Changelog
 
 Commit-level history. Covers `be9fce9` through the current uncommitted
-2026-07-28 workflow hardening and document viewer pass.
+2026-07-28 workflow hardening, document viewer, and Personnel ANAC users pass.
 
-## (uncommitted) — 2026-07-28 workflow hardening + C-V1 document viewer
+## (uncommitted) — 2026-07-28 workflow hardening + C-V1 document viewer + Personnel ANAC users
 
 On top of `origin/main`, current working diff:
 
@@ -27,6 +27,23 @@ On top of `origin/main`, current working diff:
   - integrated first in M5 `DocumentEvaluationsCard`
   - PDF previews use iframe, images use img, DOC/DOCX/unsupported files fall back to
     "Nouvel onglet" and "Télécharger"
+- **M13 internal users — Personnel ANAC activation flow**:
+  - cloned and inspected SICOT's `personnel-anac`, users, auth, bootstrap, and
+    activation logic as the enterprise reference
+  - added backend Personnel ANAC client and SU-only module:
+    `GET /api/personnel-anac`, `/search`, `/matricule/:employeeCode`
+  - reworked admin Users page into two tabs: existing AIDN accounts and live
+    Personnel ANAC directory/search
+  - account creation now validates the matricule against Personnel ANAC by default
+    (`PERSONNEL_ANAC_ENFORCE=false` kept only as an explicit local/demo fallback)
+  - duplicate detection marks ANAC rows that already have an AIDN account
+  - fixed matricule canonicalization: `0041` remains `0041` end-to-end, including
+    list/search normalization, direct fetch, duplicate checks, user storage, login,
+    and OTP emails
+- **Environment template**:
+  - added `PORTAL_ORIGIN`
+  - added `PERSONNEL_ANAC_BASE_URL`, `PERSONNEL_ANAC_API_KEY`, and
+    `PERSONNEL_ANAC_ENFORCE`
 - **Project records updated**:
   - `exploration-cache/project/hardening-plan.md` records C-V1 implementation and
     remaining rollout
