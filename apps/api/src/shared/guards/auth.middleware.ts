@@ -165,6 +165,15 @@ export function requireApplicantOrRole(...allowedRoles: string[]) {
   };
 }
 
+/** Use after authenticateEither for portal-only write actions. */
+export function requireApplicant(req: Request, res: Response, next: NextFunction): void {
+  if (!req.applicant) {
+    res.status(403).json({ message: 'Acces reserve au portail postulant.' });
+    return;
+  }
+  next();
+}
+
 export function clearAuthCookies(res: Response): void {
   res.clearCookie(ACCESS_TOKEN_COOKIE);
   res.clearCookie(REFRESH_TOKEN_COOKIE);

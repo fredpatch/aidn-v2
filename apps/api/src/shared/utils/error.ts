@@ -469,6 +469,10 @@ export const handleSiteInspectionError = createErrorHandler(
       status: 409,
       message: "La visite sur site doit d'abord être planifiée.",
     },
+    SITE_VISIT_NOT_ASSIGNED: {
+      status: 403,
+      message: "Cette visite sur site n'est pas assignee a cet agent R3.",
+    },
     SITE_VISIT_NOT_HELD: {
       status: 409,
       message: "La visite sur site doit être marquée 'tenue' avant de soumettre l'avis R3.",

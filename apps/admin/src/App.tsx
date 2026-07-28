@@ -16,8 +16,11 @@ import SiteInspectionPhasePage from './pages/phases/site-inspection/SiteInspecti
 import CertificatesPhasePage from './pages/phases/certificates/CertificatesPhasePage';
 import MyInspectionsPage from './pages/inspections/MyInspectionsPage';
 import CourrierTasksPage from './pages/courrier-tasks/CourrierTasksPage';
+import S5PaymentsPage from './pages/payments/S5PaymentsPage';
 
 const DN_ROLES = ['dn_agent', 'dn_supervisor', 'SU'];
+const DEEP_EVALUATION_ROLES = ['dn_agent', 'dn_supervisor', 's5_agent', 'SU'];
+const SITE_INSPECTION_ROLES = ['dn_agent', 'dn_supervisor', 's5_agent', 'r3_agent', 'SU'];
 
 function hasAnyRole(userRoles: string[] | undefined, allowedRoles: string[]): boolean {
   return allowedRoles.some((role) => userRoles?.includes(role));
@@ -28,7 +31,7 @@ function AccessDenied() {
     <div className="mx-auto max-w-xl rounded-lg border border-anac-border bg-white p-6">
       <h1 className="text-lg font-semibold text-anac-navy">Acces refuse</h1>
       <p className="mt-2 text-sm text-anac-muted">
-        Votre role ne permet pas de consulter cet espace de traitement DN.
+        Votre role ne permet pas de consulter cet espace de traitement.
       </p>
     </div>
   );
@@ -53,6 +56,7 @@ function HomeRoute() {
     return <Navigate to="/courriers" replace />;
   }
   if (hasAnyRole(user?.roles, ['r3_agent'])) return <Navigate to="/mes-inspections" replace />;
+  if (hasAnyRole(user?.roles, ['s5_agent'])) return <Navigate to="/paiements-s5" replace />;
   return <AccessDenied />;
 }
 
@@ -100,7 +104,7 @@ function Gate() {
         <Route
           path="demandes/:requestId/evaluation-approfondie"
           element={
-            <RoleRoute roles={DN_ROLES}>
+            <RoleRoute roles={DEEP_EVALUATION_ROLES}>
               <DeepEvaluationPhasePage />
             </RoleRoute>
           }
@@ -109,7 +113,7 @@ function Gate() {
         <Route
           path="demandes/:requestId/demonstration-inspection"
           element={
-            <RoleRoute roles={DN_ROLES}>
+            <RoleRoute roles={SITE_INSPECTION_ROLES}>
               <SiteInspectionPhasePage />
             </RoleRoute>
           }
@@ -126,6 +130,14 @@ function Gate() {
 
         <Route path="mes-inspections" element={<MyInspectionsPage />} />
         <Route path="courriers" element={<CourrierTasksPage />} />
+        <Route
+          path="paiements-s5"
+          element={
+            <RoleRoute roles={['s5_agent', 'SU']}>
+              <S5PaymentsPage />
+            </RoleRoute>
+          }
+        />
 
         <Route path="modeles-documents" element={<DocumentTemplatesPage />} />
         <Route path="comptes-postulants" element={<AccountRequestsPage />} />

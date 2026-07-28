@@ -1,9 +1,10 @@
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, and, inArray, desc } from 'drizzle-orm';
 import { db } from '../../shared/db/index.js';
 import {
   phases,
   requests,
   payments,
+  organisations,
   formalRequestDocuments,
   documentEvaluations,
   documentVersions,
@@ -15,6 +16,7 @@ import type {
   PaymentView,
   DocumentEvaluationView,
   DeepEvaluationBundle,
+  PaymentQueueItem,
 } from './deep-evaluation.types.js';
 
 function toPaymentView(row: typeof payments.$inferSelect): PaymentView {
@@ -47,6 +49,14 @@ function toEvalView(
     resubmittedFileUrl: evalRow?.resubmittedFileUrl ?? null,
     resubmittedAt: evalRow?.resubmittedAt ?? null,
   };
+}
+
+function nextPaymentAction(status: string): PaymentQueueItem['nextAction'] {
+  if (status === 'awaiting_invoice') return 'send_invoice';
+  if (status === 'pending_validation') return 'validate_payment';
+  if (status === 'awaiting_proof') return 'waiting_for_proof';
+  if (status === 'validated') return 'done';
+  return 'rejected';
 }
 
 // ── Open M5 ───────────────────────────────────────────────────────────────
@@ -157,6 +167,34 @@ export async function getBundleForRequest(requestId: number): Promise<DeepEvalua
     evaluations,
     completionRate: { total: evaluations.length, validated, pending, needsAction },
   };
+}
+
+export async function getPaymentQueue(): Promise<PaymentQueueItem[]> {
+  const rows = await db
+    .select({
+      phaseId: phases.id,
+      requestId: requests.id,
+      requestReference: requests.reference,
+      requestType: requests.requestType,
+      organisationName: organisations.name,
+      payment: payments,
+    })
+    .from(phases)
+    .innerJoin(requests, eq(phases.requestId, requests.id))
+    .innerJoin(organisations, eq(requests.organisationId, organisations.id))
+    .innerJoin(payments, eq(payments.phaseId, phases.id))
+    .where(and(eq(phases.phaseCode, 'M5'), eq(phases.status, 'open')))
+    .orderBy(desc(phases.openedAt));
+
+  return rows.map((row) => ({
+    phaseId: row.phaseId,
+    requestId: row.requestId,
+    requestReference: row.requestReference,
+    requestType: row.requestType,
+    organisationName: row.organisationName,
+    payment: toPaymentView(row.payment),
+    nextAction: nextPaymentAction(row.payment.status),
+  }));
 }
 
 // ── Invoice ────────────────────────────────────────────────────────────────

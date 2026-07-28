@@ -12,6 +12,8 @@ interface SiteVisitCardProps {
   siteVisit: SiteVisitView | null;
   requestId: string | undefined;
   invoiceSent: boolean;
+  canScheduleVisit: boolean;
+  canMarkHeld: boolean;
   setActionError: (message: string | null) => void;
 }
 
@@ -20,6 +22,8 @@ export default function SiteVisitCard({
   siteVisit,
   requestId,
   invoiceSent,
+  canScheduleVisit,
+  canMarkHeld,
   setActionError,
 }: SiteVisitCardProps) {
   const [scheduling, setScheduling] = useState(false);
@@ -57,7 +61,7 @@ export default function SiteVisitCard({
           <p className="text-anac-muted text-xs">
             La facture doit être envoyée avant de planifier la visite.
           </p>
-        ) : scheduling ? (
+        ) : canScheduleVisit && scheduling ? (
           <form onSubmit={handleSchedule} className="space-y-3">
             <div>
               <label className="label">Agent R3</label>
@@ -109,10 +113,12 @@ export default function SiteVisitCard({
               </Button>
             </div>
           </form>
-        ) : (
+        ) : canScheduleVisit ? (
           <Button size="sm" onClick={() => setScheduling(true)}>
             Planifier la visite
           </Button>
+        ) : (
+          <p className="text-anac-muted text-xs">Visite en attente de planification par la DN.</p>
         )
       ) : (
         <div className="space-y-2">
@@ -127,7 +133,7 @@ export default function SiteVisitCard({
             toneMap={SITE_VISIT_STATUS_TONES}
           />
 
-          {siteVisit.status === 'scheduled' && (
+          {siteVisit.status === 'scheduled' && canMarkHeld && (
             <Button
               size="sm"
               variant="secondary"

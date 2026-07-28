@@ -11,6 +11,7 @@ interface PaymentCardProps {
   requestId: string | undefined;
   phaseId: number | undefined;
   payment: PaymentView | null;
+  canManagePayment: boolean;
   setActionError: (message: string | null) => void;
 }
 
@@ -18,6 +19,7 @@ export default function PaymentCard({
   requestId,
   phaseId,
   payment,
+  canManagePayment,
   setActionError,
 }: PaymentCardProps) {
   const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
@@ -78,16 +80,22 @@ export default function PaymentCard({
       <div className="space-y-2">
         <p className="text-xs font-medium text-anac-navy">Facture (S5)</p>
         {!payment?.invoiceFileUrl ? (
-          <div className="flex items-center gap-2">
-            <input
-              type="file"
-              accept=".pdf,.doc,.docx"
-              onChange={(e) => setInvoiceFile(e.target.files?.[0] ?? null)}
-            />
-            <Button size="sm" disabled={!invoiceFile || busy} onClick={handleInvoiceUpload}>
-              Envoyer la facture
-            </Button>
-          </div>
+          canManagePayment ? (
+            <div className="flex items-center gap-2">
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx"
+                onChange={(e) => setInvoiceFile(e.target.files?.[0] ?? null)}
+              />
+              <Button size="sm" disabled={!invoiceFile || busy} onClick={handleInvoiceUpload}>
+                Envoyer la facture
+              </Button>
+            </div>
+          ) : (
+            <p className="text-anac-muted text-xs">
+              En attente de l&apos;envoi par le service S5.
+            </p>
+          )
         ) : (
           <p className="text-xs text-anac-muted">
             Envoyée le {formatDate(payment.invoiceUploadedAt)} —{' '}
@@ -125,7 +133,7 @@ export default function PaymentCard({
                 </a>
               </p>
 
-              {payment.status === 'pending_validation' && !rejecting && (
+              {payment.status === 'pending_validation' && canManagePayment && !rejecting && (
                 <div className="flex gap-2">
                   <Button size="sm" onClick={validate} disabled={busy}>
                     Valider le paiement
@@ -141,7 +149,7 @@ export default function PaymentCard({
                 </div>
               )}
 
-              {payment.status === 'pending_validation' && rejecting && (
+              {payment.status === 'pending_validation' && canManagePayment && rejecting && (
                 <div className="space-y-2">
                   <div>
                     <label className="label">Action</label>

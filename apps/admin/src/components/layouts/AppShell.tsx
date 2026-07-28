@@ -13,6 +13,7 @@ import {
   Loader2,
   ShieldCheck,
   ClipboardList,
+  CreditCard,
 } from 'lucide-react';
 
 import { cn } from '../../lib/utils';
@@ -45,6 +46,12 @@ const NAV_ITEMS: NavItem[] = [
     label: 'Mes Inspections',
     icon: ClipboardList,
     roles: ['r3_agent', 'SU'],
+  },
+  {
+    to: '/paiements-s5',
+    label: 'Paiements S5',
+    icon: CreditCard,
+    roles: ['s5_agent', 'SU'],
   },
   {
     to: '/modeles-documents',

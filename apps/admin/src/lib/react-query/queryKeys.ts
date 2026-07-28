@@ -21,11 +21,13 @@ export const queryKeys = {
   deepEvaluation: {
     all: ['deepEvaluation'] as const,
     bundle: (requestId: string) => ['deepEvaluation', 'bundle', requestId] as const,
+    paymentQueue: () => ['deepEvaluation', 'payment-queue'] as const,
   },
   siteInspection: {
     all: ['siteInspection'] as const,
     bundle: (requestId: string) => ['siteInspection', 'bundle', requestId] as const,
     myQueue: () => ['siteInspection', 'my-queue'] as const,
+    paymentQueue: () => ['siteInspection', 'payment-queue'] as const,
     usersByRole: (role: string) => ['siteInspection', 'users-by-role', role] as const,
   },
   certificates: {

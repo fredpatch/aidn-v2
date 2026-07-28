@@ -17,6 +17,7 @@ interface DocumentEvaluationsCardProps {
     pending: number;
     needsAction: number;
   };
+  canEvaluateDocuments: boolean;
   setActionError: (message: string | null) => void;
 }
 
@@ -24,32 +25,33 @@ export default function DocumentEvaluationsCard({
   requestId,
   evaluations,
   completionRate,
+  canEvaluateDocuments,
   setActionError,
 }: DocumentEvaluationsCardProps) {
-  const { busy, verdict, resubmit } = useEvaluationActions(requestId, setActionError);
+  const { busy, verdict } = useEvaluationActions(requestId, setActionError);
   const [verdictingId, setVerdictingId] = useState<number | null>(null);
   const [correctionDays, setCorrectionDays] = useState('');
-  const [resubmitFiles, setResubmitFiles] = useState<Record<number, File>>({});
-  const [viewerFile, setViewerFile] = useState<{ title: string; url: string } | null>(null);
+  const [viewerFile, setViewerFile] = useState<{
+    evaluationId: number;
+    title: string;
+    url: string;
+  } | null>(null);
+  const viewerEvaluation = viewerFile
+    ? evaluations.find((ev) => ev.id === viewerFile.evaluationId)
+    : null;
+  const canEvaluateInViewer =
+    canEvaluateDocuments && !!viewerEvaluation && viewerEvaluation.verdict === null;
 
-  async function handleVerdict(evalId: number, v: 'validated' | 'rejected' | 'needs_correction') {
+  async function handleVerdict(
+    evalId: number,
+    v: 'validated' | 'rejected' | 'needs_correction',
+    closeViewer = false
+  ) {
     const ok = await verdict(evalId, v, correctionDays ? Number(correctionDays) : undefined);
     if (ok) {
       setVerdictingId(null);
       setCorrectionDays('');
-    }
-  }
-
-  async function handleResubmit(evalId: number) {
-    const file = resubmitFiles[evalId];
-    if (!file) return;
-    const ok = await resubmit(evalId, file);
-    if (ok) {
-      setResubmitFiles((prev) => {
-        const n = { ...prev };
-        delete n[evalId];
-        return n;
-      });
+      if (closeViewer) setViewerFile(null);
     }
   }
 
@@ -94,6 +96,7 @@ export default function DocumentEvaluationsCard({
                     className="inline-flex w-fit items-center gap-1 text-[10px] text-anac-blue underline"
                     onClick={() =>
                       setViewerFile({
+                        evaluationId: ev.id,
                         title: `${ev.label}${ev.resubmittedFileUrl ? ' - version corrigée' : ''}`,
                         url: `${API_ORIGIN}${ev.currentFileUrl}`,
                       })
@@ -121,30 +124,14 @@ export default function DocumentEvaluationsCard({
 
                 {/* Resubmit area — only shown for rejected/needs_correction */}
                 {(ev.verdict === 'rejected' || ev.verdict === 'needs_correction') && (
-                  <div className="flex items-center gap-2 pt-1">
-                    <input
-                      type="file"
-                      accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-                      className="text-[10px]"
-                      onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        if (f) setResubmitFiles((prev) => ({ ...prev, [ev.id]: f }));
-                      }}
-                    />
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      disabled={!resubmitFiles[ev.id] || busy}
-                      onClick={() => handleResubmit(ev.id)}
-                    >
-                      Soumettre correction
-                    </Button>
-                  </div>
+                  <p className="pt-1 text-[10px] text-anac-muted">
+                    Correction attendue via le portail postulant.
+                  </p>
                 )}
               </div>
 
               {/* Verdict controls */}
-              {!ev.verdict && verdictingId !== ev.id && (
+              {canEvaluateDocuments && !ev.verdict && verdictingId !== ev.id && (
                 <Button
                   size="sm"
                   variant="secondary"
@@ -157,7 +144,10 @@ export default function DocumentEvaluationsCard({
               )}
 
               {/* Re-evaluate after resubmission */}
-              {ev.verdict === null && ev.resubmittedFileUrl && verdictingId !== ev.id && (
+              {canEvaluateDocuments &&
+                ev.verdict === null &&
+                ev.resubmittedFileUrl &&
+                verdictingId !== ev.id && (
                 <Button
                   size="sm"
                   variant="secondary"
@@ -171,7 +161,7 @@ export default function DocumentEvaluationsCard({
             </div>
 
             {/* Inline verdict form */}
-            {verdictingId === ev.id && (
+            {canEvaluateDocuments && verdictingId === ev.id && (
               <div className="pt-1 space-y-2 border-t border-anac-border">
                 <div className="flex gap-2">
                   <Button
@@ -225,7 +215,50 @@ export default function DocumentEvaluationsCard({
         ))}
       </div>
 
-      <DocumentViewer file={viewerFile} onClose={() => setViewerFile(null)} />
+      <DocumentViewer
+        file={viewerFile}
+        onClose={() => setViewerFile(null)}
+        actionHint={
+          canEvaluateInViewer ? 'Consultez le document puis choisissez un verdict.' : undefined
+        }
+        actionBar={
+          canEvaluateInViewer && viewerEvaluation ? (
+            <div className="flex items-center gap-2 border-l border-anac-border pl-2">
+              <Button
+                size="sm"
+                onClick={() => handleVerdict(viewerEvaluation.id, 'validated', true)}
+                disabled={busy}
+              >
+                Valider
+              </Button>
+              <input
+                type="number"
+                className="input h-8 w-20 text-xs"
+                value={correctionDays}
+                placeholder="Jours"
+                title="Delai de correction"
+                onChange={(event) => setCorrectionDays(event.target.value)}
+              />
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => handleVerdict(viewerEvaluation.id, 'needs_correction', true)}
+                disabled={busy}
+              >
+                A corriger
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => handleVerdict(viewerEvaluation.id, 'rejected', true)}
+                disabled={busy}
+              >
+                Rejeter
+              </Button>
+            </div>
+          ) : undefined
+        }
+      />
     </div>
   );
 }

@@ -4,18 +4,18 @@ Last updated: 2026-07-28
 
 ## Immediate
 
-1. **Push current workflow hardening batch**
-   - Includes Phase 1 intake/account hardening, Phase 2 formal-letter courrier
-     hardening, courrier inbox, role gating, guided portal sections, meeting
-     active-slot conflict fix, migration files, and local docs/cache updates.
+1. **Push current Phase 3/M5 + Phase 4/M6 role hardening batch**
+   - Includes S5 payment inbox/tasks for M5/M6, S5-only payment APIs,
+     applicant-only proof/correction uploads, DN read-only payment cards,
+     R3 assigned inspection access, and viewer verdict actions for M5.
    - Verification passed: workspace typecheck + full build.
 
-2. **Phase 3 / M5 deep-evaluation workflow hardening**
-   - Replay with `dn_agent`, `dn_supervisor`, `s5_agent`, and postulant accounts.
-   - Confirm S5 owns invoice/payment validation steps, DN owns document verdicts,
-     and postulant owns corrections.
-   - Check portal guidance for payment, evaluation, rejection/correction, and
-     phase closure.
+2. **Phase 5 / M7 deliverance workflow hardening**
+   - Replay with DN/SU, S5, and postulant accounts.
+   - Apply the same payment ownership review to M7: S5 owns invoice/payment
+     validation, DN owns certificate preparation/lifecycle, postulant owns proof.
+   - Check certificate lifecycle visibility and portal guidance from payment to
+     notification/collection.
 
 3. **D-V1 - reduce scroll on M4/M5**
    - Add accessible collapse/expand behavior to long cards.
@@ -31,8 +31,8 @@ Last updated: 2026-07-28
 
 5. **B remaining - UI permission audit**
    - Personnel ANAC-backed internal user creation is done.
-   - Phase 2 role hardening is done; continue role-specific checks phase by phase
-     while hardening M5-M7.
+   - Phase 2, M5, and M6 role hardening are done; continue role-specific checks
+     while hardening M7.
 
 ## Later
 

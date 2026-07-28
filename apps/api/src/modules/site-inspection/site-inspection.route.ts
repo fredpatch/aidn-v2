@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   authenticate,
   authenticateEither,
+  requireApplicant,
   requireApplicantOrRole,
   requireRole,
 } from '../../shared/guards/auth.middleware.js';
@@ -17,11 +18,18 @@ router.get(
   inspectionController.getMyQueue
 );
 
+router.get(
+  '/payment-queue',
+  authenticate,
+  requireRole('s5_agent', 'SU'),
+  inspectionController.getPaymentQueue
+);
+
 // Bundle — both sides
 router.get(
   '/by-request/:requestId',
   authenticateEither,
-  requireApplicantOrRole('dn_agent', 'dn_supervisor', 'SU'),
+  requireApplicantOrRole('dn_agent', 'dn_supervisor', 's5_agent', 'r3_agent', 'SU'),
   inspectionController.getBundle
 );
 
@@ -37,7 +45,7 @@ router.post(
 router.post(
   '/phases/:phaseId/invoice',
   authenticate,
-  requireRole('s5_agent', 'dn_agent', 'dn_supervisor', 'SU'),
+  requireRole('s5_agent', 'SU'),
   inspectionController.uploadInvoice
 );
 
@@ -45,6 +53,7 @@ router.post(
 router.post(
   '/phases/:phaseId/requests/:requestId/proof',
   authenticateEither,
+  requireApplicant,
   inspectionController.uploadProof
 );
 
@@ -52,13 +61,13 @@ router.post(
 router.post(
   '/phases/:phaseId/payment/validate',
   authenticate,
-  requireRole('s5_agent', 'dn_agent', 'dn_supervisor', 'SU'),
+  requireRole('s5_agent', 'SU'),
   inspectionController.validatePayment
 );
 router.post(
   '/phases/:phaseId/payment/reject',
   authenticate,
-  requireRole('s5_agent', 'dn_agent', 'dn_supervisor', 'SU'),
+  requireRole('s5_agent', 'SU'),
   inspectionController.rejectPayment
 );
 
@@ -68,6 +77,13 @@ router.post(
   authenticate,
   requireRole('dn_agent', 'dn_supervisor', 'SU'),
   inspectionController.scheduleSiteVisit
+);
+
+router.patch(
+  '/site-visits/:meetingId/held',
+  authenticate,
+  requireRole('r3_agent', 'SU'),
+  inspectionController.markAssignedSiteVisitHeld
 );
 
 // R3 verdict — R3 only, auto-closes the phase

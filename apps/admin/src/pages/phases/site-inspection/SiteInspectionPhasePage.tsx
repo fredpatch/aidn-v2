@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useAuth } from '../../../hooks/useAuth';
 import { Button } from '../../../components/ui/button';
 import PhaseSidebar from '../preliminary/components/PhaseSidebar';
 import PhaseStatusBadge from '../preliminary/components/PhaseStatusBadge';
@@ -10,9 +11,18 @@ import VerdictCard from './components/VerdictCard';
 import { buildChecklist, siteInspectionWorkflowSummary } from './helpers';
 import { useSiteInspectionBundle } from './hooks/useSiteInspectionBundle';
 
+const DN_ROLES = ['dn_agent', 'dn_supervisor', 'SU'];
+const S5_ROLES = ['s5_agent', 'SU'];
+const R3_ROLES = ['r3_agent', 'SU'];
+
+function hasAnyRole(userRoles: string[] | undefined, allowedRoles: string[]): boolean {
+  return allowedRoles.some((role) => userRoles?.includes(role));
+}
+
 export default function SiteInspectionPhasePage() {
   const { requestId } = useParams<{ requestId: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -26,6 +36,99 @@ export default function SiteInspectionPhasePage() {
 
   const checklist = bundle ? buildChecklist(bundle) : [];
   const summary = bundle ? siteInspectionWorkflowSummary(bundle) : null;
+  const canManagePayment = hasAnyRole(user?.roles, S5_ROLES);
+  const canOperateDnWorkflow = hasAnyRole(user?.roles, DN_ROLES);
+  const canSubmitInspectionOpinion = hasAnyRole(user?.roles, R3_ROLES);
+  const isS5OnlyView = canManagePayment && !canOperateDnWorkflow;
+  const isR3OnlyView =
+    canSubmitInspectionOpinion && !canOperateDnWorkflow && !canManagePayment;
+
+  if (isS5OnlyView) {
+    return (
+      <div className="mx-auto max-w-3xl space-y-5">
+        <button
+          onClick={() => navigate('/paiements-s5')}
+          className="text-anac-muted text-xs hover:text-anac-navy transition-colors"
+        >
+          â† Retour aux paiements S5
+        </button>
+
+        <div>
+          <h1 className="text-anac-navy text-xl font-semibold">
+            Paiement - Demonstration / Inspection
+          </h1>
+          <p className="text-anac-muted text-sm">Demande #{requestId}</p>
+        </div>
+
+        {actionError && <p className="text-anac-danger text-sm">{actionError}</p>}
+
+        {!bundle?.phase ? (
+          <div className="card">
+            <p className="text-anac-muted text-sm">
+              Aucun paiement S5 n&apos;est disponible pour cette demande.
+            </p>
+          </div>
+        ) : (
+          <PaymentCard
+            requestId={requestId}
+            phaseId={bundle.phase.id}
+            payment={bundle.payment}
+            canManagePayment={canManagePayment}
+            setActionError={setActionError}
+          />
+        )}
+      </div>
+    );
+  }
+
+  if (isR3OnlyView) {
+    return (
+      <div className="mx-auto max-w-3xl space-y-5">
+        <button
+          onClick={() => navigate('/mes-inspections')}
+          className="text-anac-muted text-xs hover:text-anac-navy transition-colors"
+        >
+          â† Retour aux inspections
+        </button>
+
+        <div>
+          <h1 className="text-anac-navy text-xl font-semibold">Avis R3 - Inspection sur site</h1>
+          <p className="text-anac-muted text-sm">Demande #{requestId}</p>
+        </div>
+
+        {actionError && <p className="text-anac-danger text-sm">{actionError}</p>}
+
+        {!bundle?.phase ? (
+          <div className="card">
+            <p className="text-anac-muted text-sm">
+              Aucune inspection R3 n&apos;est disponible pour cette demande.
+            </p>
+          </div>
+        ) : (
+          <>
+            <SiteVisitCard
+              phaseId={bundle.phase.id}
+              siteVisit={bundle.siteVisit}
+              requestId={requestId}
+              invoiceSent={!!bundle.payment?.invoiceFileUrl}
+              canScheduleVisit={false}
+              canMarkHeld
+              setActionError={setActionError}
+            />
+
+            <VerdictCard
+              phaseId={bundle.phase.id}
+              siteVisit={bundle.siteVisit}
+              inspection={bundle.inspection}
+              paymentValidated={bundle.payment?.status === 'validated'}
+              requestId={requestId}
+              setActionError={setActionError}
+            />
+          </>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="flex gap-6 items-start">
@@ -87,6 +190,7 @@ export default function SiteInspectionPhasePage() {
               requestId={requestId}
               phaseId={bundle.phase.id}
               payment={bundle.payment}
+              canManagePayment={canManagePayment}
               setActionError={setActionError}
             />
 
@@ -95,6 +199,8 @@ export default function SiteInspectionPhasePage() {
               siteVisit={bundle.siteVisit}
               requestId={requestId}
               invoiceSent={!!bundle.payment?.invoiceFileUrl}
+              canScheduleVisit={canOperateDnWorkflow}
+              canMarkHeld={canSubmitInspectionOpinion && !canOperateDnWorkflow}
               setActionError={setActionError}
             />
 

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   authenticate,
   authenticateEither,
+  requireApplicant,
   requireApplicantOrRole,
   requireRole,
 } from '../../shared/guards/auth.middleware.js';
@@ -9,11 +10,18 @@ import * as evalController from './deep-evaluation.controller.js';
 
 const router = Router();
 
+router.get(
+  '/payment-queue',
+  authenticate,
+  requireRole('s5_agent', 'SU'),
+  evalController.getPaymentQueue
+);
+
 // Bundle — both sides
 router.get(
   '/by-request/:requestId',
   authenticateEither,
-  requireApplicantOrRole('dn_agent', 'dn_supervisor', 'SU'),
+  requireApplicantOrRole('dn_agent', 'dn_supervisor', 's5_agent', 'SU'),
   evalController.getBundle
 );
 
@@ -29,7 +37,7 @@ router.post(
 router.post(
   '/phases/:phaseId/invoice',
   authenticate,
-  requireRole('s5_agent', 'dn_agent', 'dn_supervisor', 'SU'),
+  requireRole('s5_agent', 'SU'),
   evalController.uploadInvoice
 );
 
@@ -37,6 +45,7 @@ router.post(
 router.post(
   '/phases/:phaseId/requests/:requestId/proof',
   authenticateEither,
+  requireApplicant,
   evalController.uploadProof
 );
 
@@ -44,13 +53,13 @@ router.post(
 router.post(
   '/phases/:phaseId/payment/validate',
   authenticate,
-  requireRole('s5_agent', 'dn_agent', 'dn_supervisor', 'SU'),
+  requireRole('s5_agent', 'SU'),
   evalController.validatePayment
 );
 router.post(
   '/phases/:phaseId/payment/reject',
   authenticate,
-  requireRole('s5_agent', 'dn_agent', 'dn_supervisor', 'SU'),
+  requireRole('s5_agent', 'SU'),
   evalController.rejectPayment
 );
 
@@ -66,6 +75,7 @@ router.patch(
 router.post(
   '/evaluations/:evaluationId/resubmit',
   authenticateEither,
+  requireApplicant,
   evalController.resubmitDocument
 );
 

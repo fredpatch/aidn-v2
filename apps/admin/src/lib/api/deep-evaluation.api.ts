@@ -1,8 +1,17 @@
 import { api } from '../axios';
-import type { DeepEvaluationBundle, UploadedFile } from './deep-evaluation.types';
+import type {
+  DeepEvaluationBundle,
+  PaymentQueueItem,
+  UploadedFile,
+} from './deep-evaluation.types';
 
 export async function fetchDeepEvaluationBundle(requestId: string): Promise<DeepEvaluationBundle> {
   const { data } = await api.get(`/deep-evaluation/by-request/${requestId}`);
+  return data;
+}
+
+export async function fetchDeepEvaluationPaymentQueue(): Promise<PaymentQueueItem[]> {
+  const { data } = await api.get('/deep-evaluation/payment-queue');
   return data;
 }
 

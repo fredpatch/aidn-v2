@@ -1,4 +1,4 @@
-import { eq, and } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import { db } from '../../shared/db/index.js';
 import {
   phases,
@@ -18,6 +18,7 @@ import type {
   InspectionView,
   SiteInspectionBundle,
   MyQueueItem,
+  PaymentQueueItem,
 } from './site-inspection.types.js';
 
 function toPaymentView(row: typeof payments.$inferSelect): PaymentView {
@@ -52,6 +53,14 @@ function toInspectionView(row: typeof siteInspections.$inferSelect): InspectionV
     note: row.note,
     submittedAt: row.submittedAt,
   };
+}
+
+function nextPaymentAction(status: string): PaymentQueueItem['nextAction'] {
+  if (status === 'awaiting_invoice') return 'send_invoice';
+  if (status === 'pending_validation') return 'validate_payment';
+  if (status === 'awaiting_proof') return 'waiting_for_proof';
+  if (status === 'validated') return 'done';
+  return 'rejected';
 }
 
 // ── Open M6 ───────────────────────────────────────────────────────────────
@@ -124,6 +133,54 @@ export async function getBundleForRequest(requestId: number): Promise<SiteInspec
     siteVisit: siteVisitRow ? toSiteVisitView(siteVisitRow) : null,
     inspection: inspectionRow ? toInspectionView(inspectionRow) : null,
   };
+}
+
+export async function assertR3AssignedToRequest(requestId: number, r3AgentId: number): Promise<void> {
+  const [phase] = await db
+    .select()
+    .from(phases)
+    .where(and(eq(phases.requestId, requestId), eq(phases.phaseCode, 'M6')));
+  if (!phase) throw new Error('PHASE_NOT_FOUND');
+
+  const [siteVisit] = await db
+    .select()
+    .from(meetings)
+    .where(
+      and(
+        eq(meetings.phaseId, phase.id),
+        eq(meetings.meetingType, 'site_visit'),
+        eq(meetings.dnAgentId, r3AgentId)
+      )
+    );
+  if (!siteVisit) throw new Error('SITE_VISIT_NOT_ASSIGNED');
+}
+
+export async function getPaymentQueue(): Promise<PaymentQueueItem[]> {
+  const rows = await db
+    .select({
+      phaseId: phases.id,
+      requestId: requests.id,
+      requestReference: requests.reference,
+      requestType: requests.requestType,
+      organisationName: organisations.name,
+      payment: payments,
+    })
+    .from(phases)
+    .innerJoin(requests, eq(phases.requestId, requests.id))
+    .innerJoin(organisations, eq(requests.organisationId, organisations.id))
+    .innerJoin(payments, eq(payments.phaseId, phases.id))
+    .where(and(eq(phases.phaseCode, 'M6'), eq(phases.status, 'open')))
+    .orderBy(desc(phases.openedAt));
+
+  return rows.map((row) => ({
+    phaseId: row.phaseId,
+    requestId: row.requestId,
+    requestReference: row.requestReference,
+    requestType: row.requestType,
+    organisationName: row.organisationName,
+    payment: toPaymentView(row.payment),
+    nextAction: nextPaymentAction(row.payment.status),
+  }));
 }
 
 // ── Invoice ───────────────────────────────────────────────────────────────
@@ -291,6 +348,36 @@ export async function scheduleSiteVisit(params: {
   };
 }
 
+export async function markAssignedSiteVisitHeld(meetingId: number, r3AgentId: number): Promise<SiteVisitView> {
+  const [siteVisit] = await db
+    .select()
+    .from(meetings)
+    .where(
+      and(
+        eq(meetings.id, meetingId),
+        eq(meetings.meetingType, 'site_visit'),
+        eq(meetings.dnAgentId, r3AgentId)
+      )
+    );
+  if (!siteVisit) throw new Error('SITE_VISIT_NOT_ASSIGNED');
+  if (siteVisit.status !== 'scheduled') throw new Error('MEETING_NOT_SCHEDULED');
+
+  const [updated] = await db
+    .update(meetings)
+    .set({ status: 'held' })
+    .where(eq(meetings.id, meetingId))
+    .returning();
+
+  await logAudit({
+    userId: r3AgentId,
+    action: 'SITE_VISIT_HELD',
+    module: 'M6',
+    entityId: meetingId,
+  });
+
+  return toSiteVisitView(updated);
+}
+
 // ── R3 verdict — single submission, auto-closes the phase ───────────────
 export async function submitInspectionVerdict(
   phaseId: number,
@@ -310,6 +397,7 @@ export async function submitInspectionVerdict(
     .from(meetings)
     .where(and(eq(meetings.phaseId, phaseId), eq(meetings.meetingType, 'site_visit')));
   if (!siteVisit) throw new Error('SITE_VISIT_NOT_SCHEDULED');
+  if (siteVisit.dnAgentId !== r3AgentId) throw new Error('SITE_VISIT_NOT_ASSIGNED');
   if (siteVisit.status !== 'held') throw new Error('SITE_VISIT_NOT_HELD');
 
   const [existing] = await db

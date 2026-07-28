@@ -43,6 +43,15 @@ export async function getBundle(req: Request, res: Response): Promise<void> {
   }
 }
 
+export async function getPaymentQueue(_req: Request, res: Response): Promise<void> {
+  try {
+    const queue = await evalService.getPaymentQueue();
+    res.json(queue);
+  } catch (error) {
+    handleDeepEvaluationError(res, error);
+  }
+}
+
 export async function uploadInvoice(req: Request, res: Response): Promise<void> {
   try {
     const { fileUrl, mimeType, uploadAssetId } = req.body ?? {};

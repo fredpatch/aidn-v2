@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Download, ExternalLink, FileWarning, Printer, X } from 'lucide-react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Download, ExternalLink, FileWarning, X } from 'lucide-react';
 import { Button } from '../ui/button';
 
 interface DocumentViewerFile {
@@ -14,6 +14,7 @@ interface DocumentViewerProps {
   primaryActionDisabled?: boolean;
   onPrimaryAction?: () => void;
   actionHint?: string;
+  actionBar?: ReactNode;
 }
 
 type PreviewKind = 'pdf' | 'image' | 'unsupported';
@@ -51,6 +52,7 @@ export default function DocumentViewer({
   primaryActionDisabled = false,
   onPrimaryAction,
   actionHint,
+  actionBar,
 }: DocumentViewerProps) {
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -77,15 +79,10 @@ export default function DocumentViewer({
 
   const canPreview = kind !== 'unsupported';
 
-  function handlePrint() {
-    const printWindow = window.open(viewerUrl, '_blank');
-    printWindow?.focus();
-  }
-
   return (
     <div className="fixed inset-0 z-50 bg-anac-navy/40 p-4" role="dialog" aria-modal="true">
       <div className="mx-auto flex h-full max-w-6xl flex-col overflow-hidden rounded-lg border border-anac-border bg-white shadow-xl">
-        <header className="flex items-start justify-between gap-4 border-b border-anac-border px-4 py-3">
+        <header className="flex flex-wrap items-start justify-between gap-4 border-b border-anac-border px-4 py-3">
           <div className="min-w-0">
             <h2 className="truncate text-sm font-semibold text-anac-navy">{file.title}</h2>
             <p className="mt-0.5 text-xs text-anac-muted">
@@ -96,11 +93,7 @@ export default function DocumentViewer({
             </p>
           </div>
 
-          <div className="flex flex-shrink-0 items-center gap-2">
-            <Button size="sm" variant="secondary" onClick={handlePrint}>
-              <Printer size={13} aria-hidden="true" />
-              Imprimer
-            </Button>
+          <div className="flex flex-shrink-0 flex-wrap items-center justify-end gap-2">
             <a
               href={viewerUrl}
               target="_blank"
@@ -123,6 +116,7 @@ export default function DocumentViewer({
                 {primaryActionLabel}
               </Button>
             )}
+            {actionBar}
             <Button size="sm" variant="ghost" onClick={onClose} aria-label="Fermer le visualiseur">
               <X size={16} aria-hidden="true" />
             </Button>

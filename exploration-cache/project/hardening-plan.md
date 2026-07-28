@@ -284,3 +284,18 @@ sans pouvoir les exécuter.
 - "Consultation obligatoire" du centre de notifications = badge fort ou vrai blocage ?
 - E V1 minimale (3 déclencheurs) acceptable, ou faut-il les seuils 24h/3j dès
   maintenant ?
+
+## Update 2026-07-28 - M5/M6 role hardening done
+
+- Phase 3/M5: S5 owns invoice/payment validation, DN owns document verdicts,
+  applicant owns proofs and corrected documents. DN payment UI is read-only.
+- Phase 4/M6: same S5 payment ownership as M5. DN continues after payment
+  validation; R3 owns only assigned inspection visit/opinion work.
+- `Paiements S5` is now the dedicated S5 inbox for M5/M6 payment tasks and opens
+  compact payment-only detail views.
+- `Mes Inspections` now lets assigned `r3_agent` users open a compact M6 visit +
+  Avis R3 view, mark the visit held, and submit the avis.
+- The integrated admin document viewer no longer has the redundant top-level
+  `Imprimer` button, and M5 DN verdicts can be entered directly from the viewer.
+- Next priority: Phase 5/M7 deliverance hardening, especially applying the same
+  S5/DN/postulant payment ownership split around final certificate delivery.

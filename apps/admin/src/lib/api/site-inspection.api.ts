@@ -1,5 +1,10 @@
 import { api } from '../axios';
-import type { SiteInspectionBundle, MyQueueItem, UploadedFile } from './site-inspection.types';
+import type {
+  SiteInspectionBundle,
+  MyQueueItem,
+  PaymentQueueItem,
+  UploadedFile,
+} from './site-inspection.types';
 
 export async function fetchSiteInspectionBundle(requestId: string): Promise<SiteInspectionBundle> {
   const { data } = await api.get(`/site-inspection/by-request/${requestId}`);
@@ -65,7 +70,7 @@ export async function scheduleSiteVisit(params: {
 // Reuses the shared meetings module's status endpoint — a site visit is a
 // meeting under the hood (meetingType: 'site_visit').
 export async function markSiteVisitHeld(meetingId: number): Promise<void> {
-  await api.patch(`/meetings/${meetingId}/status`, { status: 'held' });
+  await api.patch(`/site-inspection/site-visits/${meetingId}/held`);
 }
 
 export async function submitVerdict(
@@ -78,6 +83,11 @@ export async function submitVerdict(
 
 export async function fetchMyQueue(): Promise<MyQueueItem[]> {
   const { data } = await api.get('/site-inspection/my-queue');
+  return data;
+}
+
+export async function fetchSiteInspectionPaymentQueue(): Promise<PaymentQueueItem[]> {
+  const { data } = await api.get('/site-inspection/payment-queue');
   return data;
 }
 

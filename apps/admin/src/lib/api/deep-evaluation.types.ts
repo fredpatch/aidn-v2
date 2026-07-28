@@ -45,3 +45,13 @@ export interface UploadedFile {
   mimeType: string;
   uploadAssetId?: number;
 }
+
+export interface PaymentQueueItem {
+  phaseId: number;
+  requestId: number;
+  requestReference: string;
+  requestType: string;
+  organisationName: string;
+  payment: PaymentView;
+  nextAction: 'send_invoice' | 'validate_payment' | 'waiting_for_proof' | 'done' | 'rejected';
+}

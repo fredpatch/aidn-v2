@@ -36,6 +36,13 @@ export async function getBundle(req: Request, res: Response): Promise<void> {
       res.status(404).json({ message: 'Demande introuvable.' });
       return;
     }
+    const roles = req.user?.roles ?? [];
+    const isR3Only =
+      roles.includes('r3_agent') &&
+      !roles.some((role) => ['dn_agent', 'dn_supervisor', 's5_agent', 'SU'].includes(role));
+    if (isR3Only) {
+      await inspectionService.assertR3AssignedToRequest(requestId, req.user!.userId);
+    }
     const bundle = await inspectionService.getBundleForRequest(requestId);
     // "Avis R3" is DN-internal only (modules-feasibility.md, doc visibility
     // rules) — never returned to an applicant caller, not just hidden in UI.
@@ -44,6 +51,15 @@ export async function getBundle(req: Request, res: Response): Promise<void> {
       return;
     }
     res.json(bundle);
+  } catch (error) {
+    handleSiteInspectionError(res, error);
+  }
+}
+
+export async function getPaymentQueue(_req: Request, res: Response): Promise<void> {
+  try {
+    const queue = await inspectionService.getPaymentQueue();
+    res.json(queue);
   } catch (error) {
     handleSiteInspectionError(res, error);
   }
@@ -139,6 +155,18 @@ export async function scheduleSiteVisit(req: Request, res: Response): Promise<vo
       location,
     });
     res.status(201).json(result);
+  } catch (error) {
+    handleSiteInspectionError(res, error);
+  }
+}
+
+export async function markAssignedSiteVisitHeld(req: Request, res: Response): Promise<void> {
+  try {
+    const siteVisit = await inspectionService.markAssignedSiteVisitHeld(
+      Number(req.params.meetingId),
+      req.user!.userId
+    );
+    res.json(siteVisit);
   } catch (error) {
     handleSiteInspectionError(res, error);
   }

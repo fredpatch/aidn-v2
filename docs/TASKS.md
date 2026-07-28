@@ -306,6 +306,19 @@ Voir `exploration-cache/technical/gotchas.md` pour le détail complet.
 - [x] Route/page admin : `/demandes/:requestId/evaluation-approfondie` — 17 fichiers
       (page, hooks, cartes PaymentCard/DocumentEvaluationsCard/ClosureCard, api/types/constants/helpers)
 - [x] Query keys admin `deepEvaluation.*`
+
+### Sprint 4 - durcissement roles/UX (2026-07-28)
+
+- [x] Facture M5 et validation/rejet paiement reserves a `s5_agent`/`SU`
+      cote API.
+- [x] Preuve de paiement M5 et corrections documentaires reservees au portail
+      postulant ; les uploads admin de correction ont ete retires.
+- [x] DN consulte le paiement M5 en lecture seule et continue le traitement apres
+      validation S5.
+- [x] Page `Paiements S5` ajoutee ; S5 arrive sur une inbox de paiement et ouvre
+      une vue compacte paiement-only.
+- [x] Visualiseur admin simplifie : bouton `Imprimer` retire, verdicts DN
+      disponibles directement depuis la previsualisation M5.
 - [x] Intégration portail : section `DeepEvaluationSection` dans la carte de demande active
 - [x] Typecheck propre sur les 3 workspaces (api, admin, portal) — vérifié 2026-07-27
 
@@ -343,6 +356,19 @@ Voir `exploration-cache/technical/gotchas.md` pour le détail complet.
 - Décision (non explicite dans la spec, à confirmer si besoin) : planification de la
   visite gatée sur facture envoyée seulement ; validation complète du paiement gatée
   sur la soumission de l'avis R3 (comme M3/M4/M5)
+
+### Sprint 5 - durcissement roles/UX (2026-07-28)
+
+- [x] Facture M6 et validation/rejet paiement reserves a `s5_agent`/`SU`
+      cote API ; DN voit le paiement en lecture seule.
+- [x] Preuve de paiement M6 reservee au portail postulant.
+- [x] Page `Paiements S5` agrege les taches M5 et M6 avec vues compactes
+      paiement-only.
+- [x] `r3_agent` peut ouvrir les inspections assignees depuis `Mes Inspections`.
+- [x] API M6 verifie que le R3 connecte est assigne avant d'exposer le bundle ou
+      d'accepter l'avis.
+- [x] R3 dispose d'une vue compacte visite + Avis R3, peut marquer sa visite comme
+      tenue, puis soumettre l'avis qui cloture la phase.
 
 ## Sprint 6 — Délivrance & Certificats (M7) — Terminé (2026-07-27)
 

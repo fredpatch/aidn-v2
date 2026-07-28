@@ -3,6 +3,36 @@
 Commit-level history. Covers `be9fce9` through the current uncommitted
 2026-07-28 workflow hardening, document viewer, and Personnel ANAC users pass.
 
+## (uncommitted) - 2026-07-28 Phase 3/M5 + Phase 4/M6 role hardening
+
+On top of `3b72053`:
+
+- **S5 payment ownership enforced for M5 and M6**:
+  - M5/M6 invoice upload and payment validation/rejection are now restricted to
+    `s5_agent`/`SU` at API level.
+  - applicant proof upload is portal-only for M5/M6.
+  - DN phase workspaces show payment state as read-only and continue only after
+    S5 validates payment.
+- **Dedicated S5 workspace**:
+  - added `Paiements S5` inbox for M5 and M6 payment tasks.
+  - S5 lands on this inbox after login and opens compact payment-only task pages.
+  - S5 no longer sees DN checklists, document verdicts, phase sidebars, or closure
+    workflow while handling payment.
+- **DN document evaluation UX improved**:
+  - removed redundant `Imprimer` button from the integrated document viewer.
+  - M5 document viewer now supports direct verdict actions for DN:
+    `Valider`, `A corriger`, `Rejeter`, with optional correction delay.
+  - admin-side corrected-document upload was removed; corrections stay applicant-owned
+    via the portal.
+- **R3 inspection ownership fixed**:
+  - `r3_agent` can now open assigned M6 inspection tasks from `Mes Inspections`.
+  - R3 gets a compact visit/opinion view, can mark their assigned site visit as
+    held, and submit the Avis R3.
+  - API verifies the R3 is assigned before exposing the M6 bundle or accepting the
+    Avis R3.
+- Verified with `npm run typecheck --workspaces --if-present` and
+  `npm run build --workspaces --if-present` (Vite large-chunk warning remains).
+
 ## (uncommitted) — 2026-07-28 Phase 2 formal request hardening
 
 On top of the Phase 1 intake hardening batch:
