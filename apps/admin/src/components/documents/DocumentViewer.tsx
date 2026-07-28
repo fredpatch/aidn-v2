@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Download, ExternalLink, FileWarning, X } from 'lucide-react';
+import { Download, ExternalLink, FileWarning, Printer, X } from 'lucide-react';
 import { Button } from '../ui/button';
 
 interface DocumentViewerFile {
@@ -10,6 +10,10 @@ interface DocumentViewerFile {
 interface DocumentViewerProps {
   file: DocumentViewerFile | null;
   onClose: () => void;
+  primaryActionLabel?: string;
+  primaryActionDisabled?: boolean;
+  onPrimaryAction?: () => void;
+  actionHint?: string;
 }
 
 type PreviewKind = 'pdf' | 'image' | 'unsupported';
@@ -28,15 +32,35 @@ function previewKind(url: string): PreviewKind {
   return 'unsupported';
 }
 
-export default function DocumentViewer({ file, onClose }: DocumentViewerProps) {
+function resolveViewerUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname === 'localhost' && parsed.port === '4000') {
+      return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    }
+  } catch {
+    // Relative URLs are already the preferred shape for proxied local files.
+  }
+  return url;
+}
+
+export default function DocumentViewer({
+  file,
+  onClose,
+  primaryActionLabel,
+  primaryActionDisabled = false,
+  onPrimaryAction,
+  actionHint,
+}: DocumentViewerProps) {
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
-  const kind = useMemo(() => (file ? previewKind(file.url) : 'unsupported'), [file]);
+  const viewerUrl = useMemo(() => (file ? resolveViewerUrl(file.url) : ''), [file]);
+  const kind = useMemo(() => (viewerUrl ? previewKind(viewerUrl) : 'unsupported'), [viewerUrl]);
 
   useEffect(() => {
     setLoaded(false);
     setFailed(false);
-  }, [file?.url]);
+  }, [viewerUrl]);
 
   useEffect(() => {
     if (!file) return;
@@ -53,6 +77,11 @@ export default function DocumentViewer({ file, onClose }: DocumentViewerProps) {
 
   const canPreview = kind !== 'unsupported';
 
+  function handlePrint() {
+    const printWindow = window.open(viewerUrl, '_blank');
+    printWindow?.focus();
+  }
+
   return (
     <div className="fixed inset-0 z-50 bg-anac-navy/40 p-4" role="dialog" aria-modal="true">
       <div className="mx-auto flex h-full max-w-6xl flex-col overflow-hidden rounded-lg border border-anac-border bg-white shadow-xl">
@@ -60,15 +89,20 @@ export default function DocumentViewer({ file, onClose }: DocumentViewerProps) {
           <div className="min-w-0">
             <h2 className="truncate text-sm font-semibold text-anac-navy">{file.title}</h2>
             <p className="mt-0.5 text-xs text-anac-muted">
-              {canPreview
-                ? 'Prévisualisation intégrée'
-                : 'Prévisualisation non disponible pour ce type de fichier'}
+              {actionHint ??
+                (canPreview
+                  ? 'Prévisualisation intégrée'
+                  : 'Prévisualisation non disponible pour ce type de fichier')}
             </p>
           </div>
 
           <div className="flex flex-shrink-0 items-center gap-2">
+            <Button size="sm" variant="secondary" onClick={handlePrint}>
+              <Printer size={13} aria-hidden="true" />
+              Imprimer
+            </Button>
             <a
-              href={file.url}
+              href={viewerUrl}
               target="_blank"
               rel="noreferrer"
               className="btn-secondary inline-flex h-8 items-center gap-1 rounded px-3 text-[13px]"
@@ -77,13 +111,18 @@ export default function DocumentViewer({ file, onClose }: DocumentViewerProps) {
               Nouvel onglet
             </a>
             <a
-              href={file.url}
+              href={viewerUrl}
               download
               className="btn-secondary inline-flex h-8 items-center gap-1 rounded px-3 text-[13px]"
             >
               <Download size={13} aria-hidden="true" />
               Télécharger
             </a>
+            {onPrimaryAction && primaryActionLabel && (
+              <Button size="sm" onClick={onPrimaryAction} disabled={primaryActionDisabled}>
+                {primaryActionLabel}
+              </Button>
+            )}
             <Button size="sm" variant="ghost" onClick={onClose} aria-label="Fermer le visualiseur">
               <X size={16} aria-hidden="true" />
             </Button>
@@ -114,7 +153,7 @@ export default function DocumentViewer({ file, onClose }: DocumentViewerProps) {
           {kind === 'pdf' && !failed && (
             <iframe
               title={file.title}
-              src={file.url}
+              src={viewerUrl}
               className="h-full w-full bg-white"
               onLoad={() => setLoaded(true)}
             />
@@ -123,7 +162,7 @@ export default function DocumentViewer({ file, onClose }: DocumentViewerProps) {
           {kind === 'image' && !failed && (
             <div className="flex h-full items-center justify-center overflow-auto p-4">
               <img
-                src={file.url}
+                src={viewerUrl}
                 alt={file.title}
                 className="max-h-full max-w-full object-contain"
                 onLoad={() => setLoaded(true)}

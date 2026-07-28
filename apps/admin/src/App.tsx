@@ -5,6 +5,7 @@ import LoginPage from './pages/auth/LoginPage';
 import AppShell from './components/layouts/AppShell';
 import RequestsPage from './pages/requests/RequestsPage';
 import UsersPage from './pages/users/UsersPage';
+import AccountRequestsPage from './pages/account-requests/AccountRequestsPage';
 import PreliminaryPhasePage from './pages/phases/PreliminaryPhasePage';
 import DocumentTemplatesPage from './pages/document-templates/DocumentTemplatesPage';
 import SettingsPage from './pages/settings/SettingsPage';
@@ -59,6 +60,7 @@ function Gate() {
         <Route path="mes-inspections" element={<MyInspectionsPage />} />
 
         <Route path="modeles-documents" element={<DocumentTemplatesPage />} />
+        <Route path="comptes-postulants" element={<AccountRequestsPage />} />
         <Route path="utilisateurs" element={<UsersPage />} />
         <Route path="parametres" element={<SettingsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

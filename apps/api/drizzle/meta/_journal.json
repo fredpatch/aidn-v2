@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1785219704449,
+      "tag": "0000_giant_groot",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1785228900000,
+      "tag": "0001_signature_circuit_status",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785229104538,
+      "tag": "0002_groovy_war_machine",
+      "breakpoints": true
+    }
+  ]
+}

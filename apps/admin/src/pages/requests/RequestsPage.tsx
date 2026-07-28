@@ -1,6 +1,8 @@
 import { useEffect, useState, FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { api, apiErrorMessage } from '../../lib/axios';
+import { useAuth } from '../../hooks/useAuth';
+import DocumentViewer from '../../components/documents/DocumentViewer';
 
 interface RequestView {
   id: number;
@@ -12,6 +14,8 @@ interface RequestView {
   status: string;
   rejectionReason: string | null;
   circuitStatus: string | null;
+  circuitDocumentUrl: string | null;
+  circuitDocumentMimeType: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -25,6 +29,7 @@ const REQUEST_TYPE_LABELS: Record<string, string> = {
 
 const CIRCUIT_STATUS_LABELS: Record<string, string> = {
   submitted: 'Depose',
+  in_signature_circuit: 'En signature',
   signed: 'Signe',
   pending_review: 'En attente de traitement',
 };
@@ -39,9 +44,17 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: 'Annule',
 };
 
+const INTAKE_ROLES = ['reception', 'assistant_dg', 'SU'];
+const DN_ROLES = ['dn_agent', 'dn_supervisor', 'SU'];
+
+function hasAnyRole(userRoles: string[], allowedRoles: string[]) {
+  return allowedRoles.some((role) => userRoles.includes(role));
+}
+
 function StatusBadge({ status, labels }: { status: string; labels: Record<string, string> }) {
   const colorMap: Record<string, string> = {
     submitted: 'bg-anac-info/10 text-anac-info',
+    in_signature_circuit: 'bg-anac-warning/10 text-anac-warning',
     signed: 'bg-anac-warning/10 text-anac-warning',
     pending_review: 'bg-anac-success/10 text-anac-success',
     in_progress: 'bg-anac-blue/10 text-anac-blue',
@@ -58,12 +71,17 @@ function StatusBadge({ status, labels }: { status: string; labels: Record<string
 }
 
 export default function RequestsPage() {
+  const { user } = useAuth();
   const [requestsList, setRequestsList] = useState<RequestView[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [showManualForm, setShowManualForm] = useState(false);
+  const [signaturePrintRequest, setSignaturePrintRequest] = useState<RequestView | null>(null);
+  const userRoles = user?.roles ?? [];
+  const canHandleIntake = hasAnyRole(userRoles, INTAKE_ROLES);
+  const canStartPreliminary = hasAnyRole(userRoles, DN_ROLES);
 
   async function loadRequests() {
     setLoading(true);
@@ -98,21 +116,84 @@ export default function RequestsPage() {
     }
   }
 
+  async function handleReturnSigned(id: number, file: File) {
+    setActionError(null);
+    setBusyId(id);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const { data: uploaded } = await api.post('/uploads', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      await api.post(`/requests/${id}/return-signed-from-dg`, {
+        fileUrl: uploaded.fileUrl,
+        mimeType: uploaded.mimeType,
+        uploadAssetId: uploaded.id,
+      });
+      await loadRequests();
+    } catch (err) {
+      setActionError(apiErrorMessage(err, 'Retour signe impossible.'));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handleConfirmPrintedForSignature(id: number) {
+    setActionError(null);
+    setBusyId(id);
+    try {
+      await api.post(`/requests/${id}/confirm-printed-for-signature`);
+      await loadRequests();
+      setSignaturePrintRequest(null);
+    } catch (err) {
+      setActionError(apiErrorMessage(err, 'Confirmation de mise en signature impossible.'));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  function openSignaturePrintViewer(request: RequestView) {
+    if (!request.circuitDocumentUrl) {
+      setActionError('Aucun document disponible pour impression.');
+      return;
+    }
+    setActionError(null);
+    setSignaturePrintRequest(request);
+  }
+
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-anac-navy text-xl font-semibold">Demandes</h1>
           <p className="text-anac-muted text-sm">
-            Circuit DG : Depose &rarr; Signe &rarr; En attente de traitement
+            Circuit signature : Depose &rarr; En signature &rarr; En attente de traitement
           </p>
         </div>
-        <button className="btn-secondary" onClick={() => setShowManualForm((v) => !v)}>
-          {showManualForm ? 'Fermer' : 'Saisie manuelle (guichet)'}
-        </button>
+        {canHandleIntake && (
+          <button className="btn-secondary" onClick={() => setShowManualForm((v) => !v)}>
+            {showManualForm ? 'Fermer' : 'Saisie manuelle (guichet)'}
+          </button>
+        )}
       </div>
 
-      {showManualForm && (
+      <div className="grid md:grid-cols-3 gap-3">
+        <WorkflowHint
+          title="Depot"
+          text="Reception ou Assistant DG ouvre la demande, l'imprime, puis confirme sa mise en circuit de signature."
+        />
+        <WorkflowHint
+          title="Retour signe"
+          text="Le scan signe remplace le document initial et transmet le dossier a la DN."
+        />
+        <WorkflowHint
+          title="Traitement DN"
+          text="DN ouvre la phase preliminaire uniquement apres transmission."
+        />
+      </div>
+
+      {showManualForm && canHandleIntake && (
         <ManualRequestForm
           onCreated={() => {
             setShowManualForm(false);
@@ -136,8 +217,9 @@ export default function RequestsPage() {
               <tr className="text-left text-anac-muted border-b border-anac-border">
                 <th className="pb-2 pr-4">Reference</th>
                 <th className="pb-2 pr-4">Type</th>
-                <th className="pb-2 pr-4">Circuit DG</th>
+                <th className="pb-2 pr-4">Circuit signature</th>
                 <th className="pb-2 pr-4">Statut</th>
+                <th className="pb-2 pr-4">Prochaine action</th>
                 <th className="pb-2 pr-4">Depose le</th>
                 <th className="pb-2">Actions</th>
               </tr>
@@ -157,18 +239,21 @@ export default function RequestsPage() {
                   <td className="py-2 pr-4">
                     <StatusBadge status={r.status} labels={STATUS_LABELS} />
                   </td>
+                  <td className="py-2 pr-4 text-anac-muted text-xs">
+                    <NextActionLabel request={r} />
+                  </td>
                   <td className="py-2 pr-4 text-anac-muted">
                     {new Date(r.createdAt).toLocaleDateString('fr-FR')}
                   </td>
                   <td className="py-2 space-x-2">
-                    {r.circuitStatus === 'submitted' && (
+                    {r.circuitStatus === 'submitted' && canHandleIntake && (
                       <>
                         <button
                           className="text-anac-blue underline text-xs disabled:opacity-50"
-                          disabled={busyId === r.id}
-                          onClick={() => handleAction(r.id, 'mark-signed')}
+                          disabled={!r.circuitDocumentUrl}
+                          onClick={() => openSignaturePrintViewer(r)}
                         >
-                          Marquer signe
+                          Ouvrir / imprimer
                         </button>
                         <button
                           className="text-anac-danger underline text-xs disabled:opacity-50"
@@ -179,16 +264,24 @@ export default function RequestsPage() {
                         </button>
                       </>
                     )}
-                    {r.circuitStatus === 'signed' && (
+                    {r.circuitStatus === 'in_signature_circuit' && canHandleIntake && (
+                      <ReturnSignedForm
+                        disabled={busyId === r.id}
+                        onSubmit={(file) => handleReturnSigned(r.id, file)}
+                      />
+                    )}
+                    {r.circuitStatus === 'signed' && canHandleIntake && (
                       <button
                         className="text-anac-blue underline text-xs disabled:opacity-50"
                         disabled={busyId === r.id}
                         onClick={() => handleAction(r.id, 'mark-pending-review')}
                       >
-                        Marquer en attente de traitement
+                        Transmettre a la DN
                       </button>
                     )}
-                    {r.circuitStatus === 'pending_review' && r.status === 'pending_review' && (
+                    {r.circuitStatus === 'pending_review' &&
+                      r.status === 'pending_review' &&
+                      canStartPreliminary && (
                       <Link
                         to={`/demandes/${r.id}/phase-preliminaire`}
                         className="text-anac-blue underline text-xs"
@@ -237,7 +330,88 @@ export default function RequestsPage() {
           </table>
         )}
       </div>
+      <DocumentViewer
+        file={
+          signaturePrintRequest?.circuitDocumentUrl
+            ? {
+                title: `Demande ${signaturePrintRequest.reference} - impression`,
+                url: signaturePrintRequest.circuitDocumentUrl,
+              }
+            : null
+        }
+        onClose={() => setSignaturePrintRequest(null)}
+        primaryActionLabel={
+          busyId === signaturePrintRequest?.id
+            ? 'Confirmation...'
+            : 'Impression OK - mettre en signature'
+        }
+        primaryActionDisabled={
+          !signaturePrintRequest || busyId === signaturePrintRequest.id || busyId !== null
+        }
+        actionHint="Imprimez la demande, verifiez que le document est correct, puis confirmez sa mise en signature."
+        onPrimaryAction={() =>
+          signaturePrintRequest && handleConfirmPrintedForSignature(signaturePrintRequest.id)
+        }
+      />
     </div>
+  );
+}
+
+function WorkflowHint({ title, text }: { title: string; text: string }) {
+  return (
+    <div className="border border-anac-border rounded-lg bg-white px-4 py-3">
+      <p className="text-xs font-semibold text-anac-navy">{title}</p>
+      <p className="text-xs text-anac-muted mt-1">{text}</p>
+    </div>
+  );
+}
+
+function NextActionLabel({ request }: { request: RequestView }) {
+  if (request.status === 'cancelled') return <>Dossier annule</>;
+  if (request.status === 'rejected') return <>Dossier rejete</>;
+  if (request.status === 'completed') return <>Workflow termine</>;
+  if (request.circuitStatus === 'submitted') return <>Imprimer puis confirmer la mise en signature</>;
+  if (request.circuitStatus === 'in_signature_circuit') return <>Scanner le retour signe</>;
+  if (request.circuitStatus === 'signed') return <>Transmission a la DN attendue</>;
+  if (request.circuitStatus === 'pending_review' && request.status === 'pending_review') {
+    return <>DN peut ouvrir la phase preliminaire</>;
+  }
+  if (request.status === 'in_progress') return <>Workflow en cours</>;
+  return <>A verifier</>;
+}
+
+function ReturnSignedForm({
+  disabled,
+  onSubmit,
+}: {
+  disabled: boolean;
+  onSubmit: (file: File) => void;
+}) {
+  const [file, setFile] = useState<File | null>(null);
+
+  return (
+    <span className="inline-flex items-center gap-1">
+      <label className="text-anac-muted underline text-xs cursor-pointer">
+        Scanner demande signee
+        <input
+          type="file"
+          accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+          className="hidden"
+          disabled={disabled}
+          onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+        />
+      </label>
+      {file && (
+        <button
+          type="button"
+          className="text-anac-blue underline text-xs disabled:opacity-50"
+          disabled={disabled}
+          onClick={() => onSubmit(file)}
+        >
+          Valider le retour signe
+        </button>
+      )}
+    </span>
   );
 }
 

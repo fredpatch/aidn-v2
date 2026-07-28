@@ -27,7 +27,7 @@ export default function FormalLetterCard({
     <div className="card space-y-3">
       <div className="flex items-center gap-2">
         <FileText size={16} className="text-anac-navy" />
-        <span className="font-medium text-sm">Lettre de demande officielle — Circuit DG</span>
+        <span className="font-medium text-sm">Lettre de demande officielle - Circuit signature</span>
       </div>
 
       {!circuit ? (
@@ -89,7 +89,7 @@ export default function FormalLetterCard({
 
           {circuit.status === 'submitted' && (
             <Button size="sm" variant="secondary" onClick={sign} disabled={busy || !canManage}>
-              Marquer signée (DG)
+              Marquer signee
             </Button>
           )}
 

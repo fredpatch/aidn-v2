@@ -1,34 +1,35 @@
 export const API_ORIGIN = 'http://localhost:4000';
 
 export const REQUEST_TYPE_LABELS: Record<string, string> = {
-  recognition: "Reconnaissance d'agrément",
-  issuance: "Délivrance d'agrément",
-  modification: "Modification d'agrément",
-  renewal: "Renouvellement d'agrément",
+  recognition: "Reconnaissance d'agrement",
+  issuance: "Delivrance d'agrement",
+  modification: "Modification d'agrement",
+  renewal: "Renouvellement d'agrement",
 };
 
 export const CIRCUIT_STATUS_LABELS: Record<string, string> = {
-  submitted: 'Déposée — en attente de signature DG',
-  signed: 'Signée par la DG',
-  pending_review: 'Transmise à la Direction de la Navigabilité',
+  submitted: 'Deposee',
+  in_signature_circuit: 'En signature',
+  signed: 'Signee',
+  pending_review: 'Transmise a la Direction de la Navigabilite',
 };
 
 export const STATUS_LABELS: Record<string, string> = {
-  submitted: 'Déposée',
-  signed: 'Signée',
+  submitted: 'Deposee',
+  signed: 'Signee',
   pending_review: 'En attente de traitement',
   in_progress: 'En cours de traitement',
-  rejected: 'Rejetée',
-  completed: 'Terminée',
-  cancelled: 'Annulée',
+  rejected: 'Rejetee',
+  completed: 'Terminee',
+  cancelled: 'Annulee',
 };
 
 export const MEETING_STATUS_LABELS: Record<string, string> = {
-  scheduled: 'Planifiée',
+  scheduled: 'Planifiee',
   held: 'Tenue',
-  no_show: 'Absence constatée',
-  rescheduled: 'Reprogrammée',
-  file_cancelled: 'Dossier annulé',
+  no_show: 'Absence constatee',
+  rescheduled: 'Reprogrammee',
+  file_cancelled: 'Dossier annule',
 };
 
 export const TERMINAL_STATUSES = ['rejected', 'completed', 'cancelled'];

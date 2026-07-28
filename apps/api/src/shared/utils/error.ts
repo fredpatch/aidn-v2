@@ -126,6 +126,51 @@ export const handlePersonnelAnacError = createErrorHandler(
   '[personnel-anac]'
 );
 
+export const handleAccountRequestsError = createErrorHandler(
+  {
+    ACCOUNT_REQUEST_REJECTED: {
+      status: 400,
+      message: 'Demande de compte invalide.',
+    },
+    ACCOUNT_REQUEST_TOO_FAST: {
+      status: 400,
+      message: 'Veuillez patienter quelques secondes avant de soumettre le formulaire.',
+    },
+    ACCOUNT_REQUEST_ALREADY_PENDING: {
+      status: 409,
+      message: 'Une demande de compte est deja en attente pour cet email.',
+    },
+    ACCOUNT_REQUEST_NOT_FOUND: { status: 404, message: 'Demande de compte introuvable.' },
+    ACCOUNT_REQUEST_ALREADY_REVIEWED: {
+      status: 409,
+      message: 'Cette demande de compte a deja ete traitee.',
+    },
+    APPLICANT_EMAIL_EXISTS: {
+      status: 409,
+      message: 'Un compte postulant existe deja pour cet email.',
+    },
+    APPLICANT_NOT_FOUND: { status: 404, message: 'Compte postulant introuvable.' },
+    ORGANISATION_NOT_FOUND: { status: 404, message: 'Organisme introuvable.' },
+    ORGANISATION_ALREADY_EXISTS: {
+      status: 409,
+      message: 'Un organisme existe deja avec ce nom normalise. Selectionnez-le dans la revue.',
+    },
+    ORGANISATION_REVIEW_REQUIRED: {
+      status: 400,
+      message: 'Selectionnez un organisme existant ou creez un nouvel organisme.',
+    },
+    REJECTION_REASON_REQUIRED: {
+      status: 400,
+      message: 'Le motif de rejet est obligatoire.',
+    },
+    PASSWORD_TOO_SHORT: {
+      status: 400,
+      message: 'Le mot de passe doit contenir au moins 8 caracteres.',
+    },
+  },
+  '[account-requests]'
+);
+
 export const handleRequestsError = createErrorHandler(
   {
     REQUEST_ALREADY_ACTIVE: {

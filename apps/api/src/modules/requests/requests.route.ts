@@ -18,18 +18,36 @@ router.get("/mine", authenticateApplicant, requestsController.mine);
 router.get("/", authenticate, requestsController.list);
 router.get("/:id", authenticate, requestsController.get);
 
-// Circuit DG transitions are internal-staff actions only.
+// Physical signature circuit transitions are internal-staff actions only.
+router.post(
+  "/:id/send-to-signature",
+  authenticate,
+  requireRole("assistant_dg", "reception", "SU"),
+  requestsController.sendToSignature
+);
+router.post(
+  "/:id/confirm-printed-for-signature",
+  authenticate,
+  requireRole("assistant_dg", "reception", "SU"),
+  requestsController.confirmPrintedForSignature
+);
 router.post(
   "/:id/mark-signed",
   authenticate,
-  requireRole("assistant_dg", "reception", "dn_agent", "dn_supervisor", "SU"),
+  requireRole("assistant_dg", "reception", "SU"),
   requestsController.markSigned
 );
 router.post(
   "/:id/mark-pending-review",
   authenticate,
-  requireRole("assistant_dg", "reception", "dn_agent", "dn_supervisor", "SU"),
+  requireRole("assistant_dg", "reception", "SU"),
   requestsController.markPendingReview
+);
+router.post(
+  "/:id/return-signed-from-dg",
+  authenticate,
+  requireRole("assistant_dg", "reception", "SU"),
+  requestsController.returnSignedFromDg
 );
 
 // Cancellation: the applicant can cancel their own demande while still

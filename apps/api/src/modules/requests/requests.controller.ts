@@ -2,6 +2,12 @@ import { Request, Response } from 'express';
 import * as requestsService from './requests.service.js';
 import { handleRequestsError } from '../../shared/utils/error.js';
 
+const INTAKE_STAFF_ROLES = new Set(['reception', 'assistant_dg', 'SU']);
+
+function hasIntakeStaffRole(roles: string[] | undefined): boolean {
+  return roles?.some((role) => INTAKE_STAFF_ROLES.has(role)) ?? false;
+}
+
 export async function submit(req: Request, res: Response): Promise<void> {
   try {
     const {
@@ -23,6 +29,10 @@ export async function submit(req: Request, res: Response): Promise<void> {
     if (req.applicant) {
       applicantId = req.applicant.applicantId;
     } else if (req.user) {
+      if (!hasIntakeStaffRole(req.user.roles)) {
+        res.status(403).json({ message: 'Acces refuse pour ce role.' });
+        return;
+      }
       if (!bodyApplicantId) {
         res.status(400).json({ message: 'applicantId requis pour une saisie manuelle.' });
         return;
@@ -90,6 +100,24 @@ export async function markSigned(req: Request, res: Response): Promise<void> {
   }
 }
 
+export async function sendToSignature(req: Request, res: Response): Promise<void> {
+  try {
+    const result = await requestsService.sendToSignature(Number(req.params.id), req.user!.userId);
+    res.json(result);
+  } catch (error) {
+    handleRequestsError(res, error);
+  }
+}
+
+export async function confirmPrintedForSignature(req: Request, res: Response): Promise<void> {
+  try {
+    const result = await requestsService.sendToSignature(Number(req.params.id), req.user!.userId);
+    res.json(result);
+  } catch (error) {
+    handleRequestsError(res, error);
+  }
+}
+
 export async function markPendingReview(req: Request, res: Response): Promise<void> {
   try {
     const result = await requestsService.markPendingReview(Number(req.params.id), req.user!.userId);
@@ -99,8 +127,41 @@ export async function markPendingReview(req: Request, res: Response): Promise<vo
   }
 }
 
+export async function returnSignedFromDg(req: Request, res: Response): Promise<void> {
+  try {
+    const { fileUrl, mimeType, uploadAssetId } = req.body ?? {};
+    if (!fileUrl || !mimeType) {
+      res.status(400).json({ message: 'fileUrl et mimeType sont requis.' });
+      return;
+    }
+
+    const parsedUploadAssetId =
+      uploadAssetId === undefined || uploadAssetId === null ? undefined : Number(uploadAssetId);
+    if (parsedUploadAssetId !== undefined && !Number.isInteger(parsedUploadAssetId)) {
+      res.status(400).json({ message: 'uploadAssetId invalide.' });
+      return;
+    }
+
+    const result = await requestsService.returnSignedFromDg(
+      Number(req.params.id),
+      fileUrl,
+      mimeType,
+      req.user!.userId,
+      parsedUploadAssetId
+    );
+    res.json(result);
+  } catch (error) {
+    handleRequestsError(res, error);
+  }
+}
+
 export async function cancel(req: Request, res: Response): Promise<void> {
   try {
+    if (req.user && !hasIntakeStaffRole(req.user.roles)) {
+      res.status(403).json({ message: 'Acces refuse pour ce role.' });
+      return;
+    }
+
     const result = await requestsService.cancelRequest(Number(req.params.id), {
       userId: req.user?.userId,
       applicantId: req.applicant?.applicantId,

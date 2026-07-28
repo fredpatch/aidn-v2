@@ -10,7 +10,7 @@ import { useUploadMaintenance } from './hooks/useUploadMaintenance';
 
 const MODULE_LABELS: Record<string, string> = {
   AUTH: 'Authentification',
-  M1: 'Intake & Circuit DG',
+  M1: 'Intake & Circuit signature',
   M3: 'Phase Preliminaire',
 };
 

@@ -3,6 +3,7 @@ import { Plane, LogOut } from "lucide-react";
 import { ApplicantAuthProvider, useApplicantAuth } from "./hooks/useApplicantAuth";
 import { Button } from "./components/ui/button";
 import LoginPage from "./pages/auth/LoginPage";
+import DashboardPage from "./pages/dashboard/DashboardPage";
 import MyRequestPage from "./pages/requests/MyRequestPage";
 
 function Gate() {
@@ -47,7 +48,8 @@ function Gate() {
       </header>
       <main className="p-6">
         <Routes>
-          <Route path="/" element={<MyRequestPage />} />
+          <Route path="/" element={<DashboardPage />} />
+          <Route path="/demande" element={<MyRequestPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

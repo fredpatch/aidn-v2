@@ -3,6 +3,37 @@
 Commit-level history. Covers `be9fce9` through the current uncommitted
 2026-07-28 workflow hardening, document viewer, and Personnel ANAC users pass.
 
+## (uncommitted) — 2026-07-28 Phase 1 applicant account + intake hardening
+
+On top of `origin/main`, current working diff:
+
+- **Applicant account request flow**:
+  - added portal account-request entrypoint with anti-bot timing/honeypot checks
+  - added ANAC review module at `/api/account-requests`
+  - admin "Comptes postulants" page now reviews pending requests and manages
+    approved applicant accounts
+  - approval can link to an existing organisation or create a reviewed canonical
+    organisation; rejection requires a reason
+  - reviewers can manually search organisations and acronym matching handles cases
+    such as `ADL` -> `Aeroport de Libreville`
+- **Portal intake UX**:
+  - postulant login now lands on a dashboard instead of jumping directly into the
+    request page
+  - dashboard gives explicit access to deposit/follow a demande
+- **Signature circuit correction**:
+  - added `in_signature_circuit` and `signatureSentAt`
+  - request intake now uses `Ouvrir / imprimer`, internal viewer print, and
+    confirmation before changing status to `En signature`
+  - scan-back action replaces the request document and transmits directly to DN
+    as `pending_review`
+  - visible labels now use "Circuit signature" instead of DG-heavy wording
+- **Document viewer fix**:
+  - viewer supports print + primary confirmation action
+  - viewer normalizes local API upload URLs so iframe previews use `/uploads/...`
+    through the admin app proxy instead of hardcoded `localhost:4000`
+- Verified with `npm run typecheck --workspaces --if-present` and
+  `npm run build --workspaces --if-present` (Vite large-chunk warning remains).
+
 ## (uncommitted) — 2026-07-28 workflow hardening + C-V1 document viewer + Personnel ANAC users
 
 On top of `origin/main`, current working diff:

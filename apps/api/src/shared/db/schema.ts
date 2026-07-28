@@ -36,6 +36,7 @@ export const requestTypeEnum = pgEnum('request_type', [
 /** Pattern "Circuit DG" - shared by intake (M1) and the M4 official letter */
 export const dgCircuitStatusEnum = pgEnum('dg_circuit_status', [
   'submitted',
+  'in_signature_circuit',
   'signed',
   'pending_review',
 ]);
@@ -365,6 +366,7 @@ export const dgCircuitDocuments = pgTable(
       .references(() => requests.id),
     status: dgCircuitStatusEnum('status').notNull().default('submitted'),
     depositedAt: timestamp('deposited_at').notNull().defaultNow(),
+    signatureSentAt: timestamp('signature_sent_at'),
     signedAt: timestamp('signed_at'),
     pendingReviewAt: timestamp('pending_review_at'),
     blockedAlertSentAt: timestamp('blocked_alert_sent_at'),

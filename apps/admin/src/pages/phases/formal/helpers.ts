@@ -11,7 +11,7 @@ export function buildChecklist(bundle: FormalPhaseBundle): ChecklistItem[] {
       done: !!bundle.letterCircuit,
     },
     {
-      label: 'Circuit DG — lettre transmise à la DN',
+      label: 'Circuit signature - lettre transmise a la DN',
       done: letterTransmitted,
     },
     {
@@ -64,13 +64,13 @@ export function closureBlockReason(bundle: FormalPhaseBundle | null): string | n
     return 'En attente de la lettre de demande officielle du postulant.';
   }
   if (bundle.letterCircuit.status === 'submitted') {
-    return 'La lettre de demande officielle doit être signée par la DG avant transmission à la DN.';
+    return 'La lettre de demande officielle doit etre signee avant transmission a la DN.';
   }
   if (bundle.letterCircuit.status === 'signed') {
-    return 'La lettre signée par la DG doit être transmise à la DN avant la clôture.';
+    return 'La lettre signee doit etre transmise a la DN avant la cloture.';
   }
   if (bundle.letterCircuit.status !== 'pending_review') {
-    return 'Le circuit DG de la lettre doit être finalisé avant la clôture.';
+    return 'Le circuit signature de la lettre doit etre finalise avant la cloture.';
   }
   if (bundle.completionRate < 11 && (!bundle.meeting || bundle.meeting.status === 'scheduled')) {
     return `Les 11 documents doivent être soumis (${bundle.completionRate}/11) et la réunion formelle doit être résolue.`;
@@ -113,7 +113,7 @@ export function formalNextAction(bundle: FormalPhaseBundle | null): FormalNextAc
   if (!bundle.letterCircuit) {
     return {
       title: 'Lettre officielle attendue',
-      description: 'Déposer la lettre de demande officielle avant de poursuivre le circuit DG.',
+      description: 'Deposer la lettre de demande officielle avant de poursuivre le circuit signature.',
       owner: 'DN',
       tone: 'warning',
     };
@@ -121,9 +121,9 @@ export function formalNextAction(bundle: FormalPhaseBundle | null): FormalNextAc
 
   if (bundle.letterCircuit.status === 'submitted') {
     return {
-      title: 'Signature DG requise',
-      description: 'Marquer la lettre comme signée par la DG, avec le document de circuit disponible.',
-      owner: 'DG',
+      title: 'Signature requise',
+      description: 'Marquer la lettre comme signee avec le document de circuit disponible.',
+      owner: 'Signature',
       tone: 'warning',
     };
   }

@@ -132,9 +132,9 @@ export function certificateWorkflowSummary(bundle: CertificateBundle): PhaseWork
 
   if (!certificate.signedAt) {
     return {
-      title: 'Signature DG attendue',
-      description: 'Marquer le certificat comme signé après signature DG.',
-      owner: 'DG',
+      title: 'Signature attendue',
+      description: 'Marquer le certificat comme signe apres signature.',
+      owner: 'Signature',
       tone: 'warning',
       phaseStatus,
       metrics,

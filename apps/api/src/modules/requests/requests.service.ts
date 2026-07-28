@@ -1,4 +1,4 @@
-import { eq, desc } from 'drizzle-orm';
+import { and, eq, desc } from 'drizzle-orm';
 import { db } from '../../shared/db/index.js';
 import {
   requests,
@@ -25,10 +25,29 @@ function isUniqueViolation(error: unknown): boolean {
   return pgCode === '23505' || causeCode === '23505';
 }
 
-function toRequestView(
+async function getCurrentCircuitDocument(circuitDocumentId: number): Promise<{
+  fileUrl: string;
+  mimeType: string;
+} | null> {
+  const [document] = await db
+    .select()
+    .from(documentVersions)
+    .where(
+      and(
+        eq(documentVersions.ownerType, 'dg_circuit_document'),
+        eq(documentVersions.ownerId, circuitDocumentId),
+        eq(documentVersions.isCurrent, true)
+      )
+    );
+
+  return document ? { fileUrl: document.fileUrl, mimeType: document.mimeType } : null;
+}
+
+async function toRequestView(
   row: typeof requests.$inferSelect,
-  circuitStatus: string | null
-): RequestView {
+  circuitDoc: typeof dgCircuitDocuments.$inferSelect | null
+): Promise<RequestView> {
+  const currentDocument = circuitDoc ? await getCurrentCircuitDocument(circuitDoc.id) : null;
   return {
     id: row.id,
     reference: row.reference,
@@ -38,7 +57,9 @@ function toRequestView(
     message: row.message,
     status: row.status,
     rejectionReason: row.rejectionReason,
-    circuitStatus,
+    circuitStatus: circuitDoc?.status ?? null,
+    circuitDocumentUrl: currentDocument?.fileUrl ?? null,
+    circuitDocumentMimeType: currentDocument?.mimeType ?? null,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -108,7 +129,7 @@ export async function submitRequest(params: SubmitRequestParams): Promise<Reques
       details: { reference, requestType: params.requestType },
     });
 
-    return toRequestView(request, circuitDoc.status);
+    return toRequestView(request, circuitDoc);
   } catch (error) {
     if (isUniqueViolation(error)) {
       throw new Error('REQUEST_ALREADY_ACTIVE');
@@ -126,7 +147,7 @@ export async function getRequest(requestId: number): Promise<RequestView> {
     .from(dgCircuitDocuments)
     .where(eq(dgCircuitDocuments.requestId, requestId));
 
-  return toRequestView(request, circuitDoc?.status ?? null);
+  return toRequestView(request, circuitDoc ?? null);
 }
 
 export async function listRequests(filters: { status?: string }): Promise<RequestView[]> {
@@ -144,15 +165,42 @@ export async function listRequests(filters: { status?: string }): Promise<Reques
         .select()
         .from(dgCircuitDocuments)
         .where(eq(dgCircuitDocuments.requestId, row.id));
-      return toRequestView(row, circuitDoc?.status ?? null);
+      return toRequestView(row, circuitDoc ?? null);
     })
   );
 
   return withCircuit;
 }
 
-/** Pattern "Circuit DG" - Depose -> Signe. Triggered manually by whoever
- *  re-scans the DG-signed document back into the app. */
+export async function sendToSignature(requestId: number, actorUserId: number): Promise<RequestView> {
+  const [circuitDoc] = await db
+    .select()
+    .from(dgCircuitDocuments)
+    .where(eq(dgCircuitDocuments.requestId, requestId));
+  if (!circuitDoc) throw new Error('DG_CIRCUIT_NOT_FOUND');
+  if (circuitDoc.status !== 'submitted') throw new Error('INVALID_CIRCUIT_TRANSITION');
+
+  const [updatedCircuitDoc] = await db
+    .update(dgCircuitDocuments)
+    .set({ status: 'in_signature_circuit', signatureSentAt: new Date() })
+    .where(eq(dgCircuitDocuments.id, circuitDoc.id))
+    .returning();
+
+  const [request] = await db.select().from(requests).where(eq(requests.id, requestId));
+  if (!request) throw new Error('REQUEST_NOT_FOUND');
+
+  await logAudit({
+    userId: actorUserId,
+    action: 'DG_CIRCUIT_SENT_TO_SIGNATURE',
+    module: 'M1',
+    entityId: requestId,
+  });
+
+  return toRequestView(request, updatedCircuitDoc);
+}
+
+/** Legacy fallback for records already in the old two-step state. New M1 intake
+ *  uses sendToSignature() then returnSignedFromDg(). */
 export async function markSigned(requestId: number, actorUserId: number): Promise<RequestView> {
   const [circuitDoc] = await db
     .select()
@@ -179,7 +227,8 @@ export async function markSigned(requestId: number, actorUserId: number): Promis
     entityId: requestId,
   });
 
-  return toRequestView(request, 'signed');
+  const updatedCircuitDoc = { ...circuitDoc, status: 'signed' } as typeof circuitDoc;
+  return toRequestView(request, updatedCircuitDoc);
 }
 
 /** Pattern "Circuit DG" - Signe -> En attente de traitement. DN can now
@@ -213,7 +262,47 @@ export async function markPendingReview(
     entityId: requestId,
   });
 
-  return toRequestView(request, 'pending_review');
+  const updatedCircuitDoc = { ...circuitDoc, status: 'pending_review' } as typeof circuitDoc;
+  return toRequestView(request, updatedCircuitDoc);
+}
+
+export async function returnSignedFromDg(
+  requestId: number,
+  newFileUrl: string,
+  mimeType: string,
+  actorUserId: number,
+  uploadAssetId?: number
+): Promise<RequestView> {
+  const [circuitDoc] = await db
+    .select()
+    .from(dgCircuitDocuments)
+    .where(eq(dgCircuitDocuments.requestId, requestId));
+  if (!circuitDoc) throw new Error('DG_CIRCUIT_NOT_FOUND');
+  if (circuitDoc.status !== 'in_signature_circuit') throw new Error('INVALID_CIRCUIT_TRANSITION');
+
+  await replaceCircuitDocument(requestId, newFileUrl, mimeType, actorUserId, uploadAssetId);
+
+  const now = new Date();
+  const [updatedCircuitDoc] = await db
+    .update(dgCircuitDocuments)
+    .set({ status: 'pending_review', signedAt: now, pendingReviewAt: now })
+    .where(eq(dgCircuitDocuments.id, circuitDoc.id))
+    .returning();
+
+  const [request] = await db
+    .update(requests)
+    .set({ status: 'pending_review', updatedAt: now })
+    .where(eq(requests.id, requestId))
+    .returning();
+
+  await logAudit({
+    userId: actorUserId,
+    action: 'DG_CIRCUIT_SIGNED_RETURNED',
+    module: 'M1',
+    entityId: requestId,
+  });
+
+  return toRequestView(request, updatedCircuitDoc);
 }
 
 /** Cancellable only while still in Depose - locked the instant DG signs it.
@@ -254,7 +343,7 @@ export async function cancelRequest(
     details: actor.applicantId ? { cancelledByApplicant: actor.applicantId } : undefined,
   });
 
-  return toRequestView(updated, circuitDoc.status);
+  return toRequestView(updated, circuitDoc);
 }
 
 /** M1 - "my current demande" for the portal. At most one non-terminal
@@ -274,7 +363,7 @@ export async function listRequestsByApplicant(applicantId: number): Promise<Requ
         .select()
         .from(dgCircuitDocuments)
         .where(eq(dgCircuitDocuments.requestId, row.id));
-      return toRequestView(row, circuitDoc?.status ?? null);
+      return toRequestView(row, circuitDoc ?? null);
     })
   );
 }
@@ -298,7 +387,12 @@ export async function replaceCircuitDocument(
   await db
     .update(documentVersions)
     .set({ isCurrent: false, trashedAt: new Date() })
-    .where(eq(documentVersions.ownerId, circuitDoc.id));
+      .where(
+        and(
+          eq(documentVersions.ownerType, 'dg_circuit_document'),
+          eq(documentVersions.ownerId, circuitDoc.id)
+        )
+      );
 
   await db.insert(documentVersions).values({
     ownerType: 'dg_circuit_document',

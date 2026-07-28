@@ -27,7 +27,7 @@ export function ActiveRequestCard({
     setCancelling(true);
     try {
       await cancelMyRequest(request.id);
-      notify.success('Demande annulée.');
+      notify.success('Demande annulee.');
       onChanged();
     } catch (err) {
       const message = apiErrorMessage(err, 'Annulation impossible.');
@@ -66,7 +66,7 @@ export function ActiveRequestCard({
 
       {!canCancel && request.status !== 'in_progress' && (
         <p className="text-anac-muted text-xs">
-          Cette demande ne peut plus être annulée (déjà transmise à la DG ou au-delà).
+          Cette demande ne peut plus etre annulee (deja envoyee en signature ou au-dela).
         </p>
       )}
 

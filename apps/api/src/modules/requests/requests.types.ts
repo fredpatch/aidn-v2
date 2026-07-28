@@ -18,6 +18,8 @@ export interface RequestView {
   status: string;
   rejectionReason: string | null;
   circuitStatus: string | null;
+  circuitDocumentUrl: string | null;
+  circuitDocumentMimeType: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

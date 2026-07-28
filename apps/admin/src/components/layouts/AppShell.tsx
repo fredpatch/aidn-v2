@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import {
   Inbox,
   Users,
+  UserCheck,
   FileText,
   Settings2,
   ChevronLeft,
@@ -27,6 +28,12 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { to: '/', label: 'Demandes', icon: Inbox },
+  {
+    to: '/comptes-postulants',
+    label: 'Comptes postulants',
+    icon: UserCheck,
+    roles: ['reception', 'assistant_dg', 'dn_agent', 'dn_supervisor', 'SU'],
+  },
   {
     to: '/mes-inspections',
     label: 'Mes Inspections',

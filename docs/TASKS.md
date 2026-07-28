@@ -371,6 +371,11 @@ reste un audit plus étroit des permissions fines côté UI.
 - [x] **UX phase-level** — résumé "prochaine action / responsable / blocage / métriques" harmonisé sur M3-M7 — terminé 2026-07-28
 - [x] **C-V1** — Visualiseur de documents intégré, priorité M5 (`DocumentEvaluationsCard`) — terminé 2026-07-28
 - [x] **B partiel / M13 interne** — Gestion utilisateurs depuis Personnel ANAC, activation OTP, détection doublons, matricules canoniques 4 chiffres — terminé 2026-07-28
+- [x] **Phase 1 / M13 postulant + intake** — demande de compte portail, revue ANAC
+      avec dédoublonnage organisme, recherche manuelle/sigles (`ADL` -> organisme
+      existant), dashboard postulant, et circuit signature clarifié
+      (`Ouvrir / imprimer` -> confirmation `En signature` -> scan retour signé) —
+      terminé 2026-07-28
 - [ ] **D-V1** — Cartes repliables (collapse/expand) pour réduire le scroll M4/M5 — prochain
 - [ ] **C-V2** — Brancher `DocumentViewer` aux autres liens documentaires M3/M4/M6/M7 après validation terrain M5
 - [ ] **E** — Notifications (M11) — V1 minimale (certificat prêt, document à corriger, dossier rejeté)
@@ -410,9 +415,11 @@ reste un audit plus étroit des permissions fines côté UI.
 
 - [ ] Matrice de rôles (`reception`, `assistant_dg`, `dn_agent`, `dn_supervisor`,
       `r3_agent`, `s5_agent`, `SU`), multi-rôle supporté
-- [ ] Repriser flux demande de compte postulant (anti-bot, anti-doublon, revue
-      organisme, rejet motivé) — affiné du legacy `aidn-v2-legacy`
-- [ ] Contacts multiples par organisme, permissions égales, étiquetage
+- [x] Repriser flux demande de compte postulant (anti-bot, anti-doublon, revue
+      organisme, rejet motivé) — implémenté 2026-07-28 avec revue ANAC,
+      activation portail, recherche organisme existant et protection contre les
+      variantes/sigles (`ADL`, noms abrégés)
+- [x] Contacts multiples par organisme, permissions égales, étiquetage
       Principal/Secondaire/Tertiaire
 - [ ] Panneau SU : gestion utilisateurs, corbeille documents, configuration
       (seuils d'alerte, délais dynamiques)

@@ -6,7 +6,7 @@ import { getIntegerValue } from "../modules/system-parameters/system-parameters.
 import { logAudit } from "../modules/auth/auth.service.js";
 
 /** Pattern "Circuit DG" - alerts DN + reception/assistant_dg when a document
- *  has sat in "signed" (awaiting hand-off to DN) longer than the configured
+ *  has sat in signature circuit longer than the configured
  *  threshold (default 3 business days). Writes to the notifications table
  *  only for now - actual email sending is wired in Sprint 10 (Notifications
  *  module), per the decision to lay out the skeleton first. */
@@ -20,8 +20,8 @@ export async function runDgCircuitAlertCheck(): Promise<void> {
     .from(dgCircuitDocuments)
     .where(
       and(
-        eq(dgCircuitDocuments.status, "signed"),
-        lt(dgCircuitDocuments.signedAt, cutoff),
+        eq(dgCircuitDocuments.status, "in_signature_circuit"),
+        lt(dgCircuitDocuments.signatureSentAt, cutoff),
         isNull(dgCircuitDocuments.blockedAlertSentAt)
       )
     );
@@ -47,7 +47,7 @@ export async function runDgCircuitAlertCheck(): Promise<void> {
         userId,
         channel: "in_app",
         eventType: "DG_CIRCUIT_STUCK",
-        message: `La demande ${request.reference} est en attente de signature DG depuis plus de ${thresholdDays} jour(s).`,
+        message: `La demande ${request.reference} est en signature depuis plus de ${thresholdDays} jour(s).`,
         requestId: request.id,
       });
     }
