@@ -21,7 +21,7 @@ export default function MyRequestPage() {
   const activeRequest = requests.find((request) => !TERMINAL_STATUSES.includes(request.status));
 
   return (
-    <div className="max-w-lg mx-auto space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6">
       <div>
         <h1 className="text-anac-navy text-xl font-semibold">Ma demande</h1>
         <p className="text-anac-muted text-sm">

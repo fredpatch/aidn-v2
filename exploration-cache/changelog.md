@@ -3,6 +3,34 @@
 Commit-level history. Covers `be9fce9` through the current uncommitted
 2026-07-28 workflow hardening, document viewer, and Personnel ANAC users pass.
 
+## (uncommitted) — 2026-07-28 Phase 2 formal request hardening
+
+On top of the Phase 1 intake hardening batch:
+
+- **Legacy audit captured**:
+  - cloned and audited `fredpatch/aidn-v2-legacy`
+  - saved reusable findings in `exploration-cache/project/legacy-phase2-courrier-audit.md`
+- **Formal letter circuit corrected**:
+  - added shared `courrier-tasks` API over `dg_circuit_documents`
+  - added admin `Courriers a traiter` inbox for `reception`, `assistant_dg`, and `SU`
+  - formal letters now follow the same print -> mise en signature -> scan retour signe path as initial demandes
+  - DN formal phase page is read-only for the letter circuit and only consumes the returned signed status
+- **Formal meeting gate corrected**:
+  - M4 formal meeting scheduling is blocked until the formal letter return is scanned (`pending_review`)
+  - meeting conflict warnings now only consider active `scheduled` meetings
+  - added migration `0003_meeting_active_slot_index.sql` so the exact-slot unique index only applies to active scheduled meetings
+- **M4 document ownership tightened**:
+  - DN can consult M4 formal dossier documents but cannot upload or replace applicant-owned pieces
+  - backend rejects staff submissions for formal dossier pieces with `FORMAL_DOCUMENT_APPLICANT_ONLY`
+- **Role boundaries tightened**:
+  - `Demandes` and phase workspaces are DN/SU only in admin navigation/routes
+  - backend request reads and internal phase bundle reads now require DN/SU while preserving applicant-owned portal access
+- **Portal UX**:
+  - M3-M7 portal sections use guided status cards
+  - M4 portal copy now explains that the formal meeting waits for the signed letter return
+- Verified with `npm run typecheck --workspaces --if-present` and
+  `npm run build --workspaces --if-present` (Vite large-chunk warning remains).
+
 ## (uncommitted) — 2026-07-28 Phase 1 applicant account + intake hardening
 
 On top of `origin/main`, current working diff:

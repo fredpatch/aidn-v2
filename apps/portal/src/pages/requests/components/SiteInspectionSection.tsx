@@ -1,26 +1,82 @@
+import { useEffect, useState } from 'react';
+import { CalendarClock, CheckCircle2, CreditCard, MapPinned, UploadCloud } from 'lucide-react';
 import { api, apiErrorMessage } from '../../../lib/axios';
 import { notify } from '../../../lib/notify';
-import { useEffect, useState } from 'react';
 import { MEETING_STATUS_LABELS } from '../constants';
 
-export function SiteInspectionSection({ requestId }: { requestId: number }) {
-  // ── M6 — Démonstration/Inspection sur site ───────────────────────────────
+interface SiteInspectionBundle {
+  phase: { id: number; status: string } | null;
+  payment: {
+    id: number;
+    status: string;
+    invoiceFileUrl: string | null;
+    proofFileUrl: string | null;
+    rejectionReason: string | null;
+  } | null;
+  siteVisit: {
+    scheduledAt: string;
+    location: string | null;
+    status: string;
+  } | null;
+}
 
-  const [bundle, setBundle] = useState<{
-    phase: { id: number; status: string } | null;
-    payment: {
-      id: number;
-      status: string;
-      invoiceFileUrl: string | null;
-      proofFileUrl: string | null;
-      rejectionReason: string | null;
-    } | null;
-    siteVisit: {
-      scheduledAt: string;
-      location: string | null;
-      status: string;
-    } | null;
-  } | null>(null);
+function fileHref(url: string): string {
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname === 'localhost' && parsed.port === '4000') {
+      return `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    }
+  } catch {
+    // Relative URLs are already ideal for the portal dev proxy.
+  }
+  return url;
+}
+
+function formatDateTime(value: string | null | undefined): string {
+  if (!value) return '-';
+  return new Date(value).toLocaleString('fr-FR');
+}
+
+function buildPresentation(bundle: SiteInspectionBundle) {
+  const phaseClosed = bundle.phase?.status === 'closed';
+  const paymentValidated = bundle.payment?.status === 'validated';
+  const visitHeld = bundle.siteVisit?.status === 'held';
+
+  let title = 'Demonstration / inspection ouverte';
+  let description = "Cette phase organise la visite sur site et l'avis technique interne.";
+  let tone: 'info' | 'warning' | 'success' = 'info';
+
+  if (phaseClosed) {
+    title = 'Demonstration / inspection terminee';
+    description = "La visite et l'avis interne ont ete traites.";
+    tone = 'success';
+  } else if (!bundle.payment?.invoiceFileUrl) {
+    title = 'Facture en preparation';
+    description = "La facture de cette phase sera disponible ici lorsqu'elle sera emise.";
+  } else if (!paymentValidated && !bundle.payment.proofFileUrl) {
+    title = 'Action requise';
+    description = 'Telechargez la facture puis deposez votre quittance de paiement.';
+    tone = 'warning';
+  } else if (bundle.payment.status === 'pending_validation') {
+    title = 'Quittance en validation';
+    description = "Votre preuve de paiement est en cours de verification par l'ANAC.";
+  } else if (bundle.payment.rejectionReason) {
+    title = 'Nouvelle quittance requise';
+    description = `Preuve rejetee : ${bundle.payment.rejectionReason}`;
+    tone = 'warning';
+  } else if (!bundle.siteVisit) {
+    title = 'Visite en preparation';
+    description = "La DN planifie la visite sur site avec l'equipe technique.";
+  } else if (!visitHeld) {
+    title = 'Visite sur site planifiee';
+    description = 'Consultez les informations de visite et preparez votre equipe.';
+  }
+
+  return { title, description, tone, paymentValidated, visitHeld };
+}
+
+export function SiteInspectionSection({ requestId }: { requestId: number }) {
+  const [bundle, setBundle] = useState<SiteInspectionBundle | null>(null);
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -54,7 +110,7 @@ export function SiteInspectionSection({ requestId }: { requestId: number }) {
       await api.post(`/site-inspection/phases/${bundle?.phase!.id}/requests/${requestId}/proof`, {
         fileUrl: uploaded.fileUrl,
         mimeType: uploaded.mimeType,
-        uploadAssetId: uploaded.uploadAssetId,
+        uploadAssetId: uploaded.id,
       });
       notify.success('Preuve de paiement soumise.');
       setProofFile(null);
@@ -67,99 +123,175 @@ export function SiteInspectionSection({ requestId }: { requestId: number }) {
   }
 
   const phaseClosed = bundle.phase.status === 'closed';
+  const presentation = buildPresentation(bundle);
 
   return (
-    <div className="border-t border-anac-border pt-3 mt-3 space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="font-medium text-sm text-anac-navy">Démonstration / Inspection sur site</p>
-        <span
-          className={`text-[10px] px-2 py-0.5 rounded font-medium ${
-            phaseClosed
-              ? 'bg-anac-muted/10 text-anac-muted'
-              : 'bg-anac-success/10 text-anac-success'
-          }`}
-        >
-          {phaseClosed ? 'Clôturée' : 'En cours'}
-        </span>
+    <section className="border-t border-anac-border pt-4 mt-4 space-y-4">
+      <div
+        className={`rounded-lg border p-4 ${
+          presentation.tone === 'warning'
+            ? 'border-anac-warning/40 bg-anac-warning/5'
+            : presentation.tone === 'success'
+              ? 'border-anac-success/30 bg-anac-success/5'
+              : 'border-anac-border bg-white'
+        }`}
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-anac-navy">Demonstration / inspection</p>
+            <h3 className="mt-1 text-base font-semibold text-anac-navy">{presentation.title}</h3>
+            <p className="mt-1 text-sm text-anac-muted">{presentation.description}</p>
+          </div>
+          <span
+            className={`rounded px-2 py-0.5 text-[11px] font-medium ${
+              phaseClosed
+                ? 'bg-anac-success/10 text-anac-success'
+                : 'bg-anac-info/10 text-anac-info'
+            }`}
+          >
+            {phaseClosed ? 'Cloturee' : 'En cours'}
+          </span>
+        </div>
+
+        <div className="mt-4 grid gap-2 md:grid-cols-3">
+          <StatusStep done={presentation.paymentValidated} label="Paiement" detail={bundle.payment?.status ?? 'En attente'} />
+          <StatusStep
+            done={!!bundle.siteVisit}
+            label="Visite"
+            detail={bundle.siteVisit ? formatDateTime(bundle.siteVisit.scheduledAt) : 'A planifier'}
+          />
+          <StatusStep
+            done={phaseClosed}
+            label="Avis interne"
+            detail={phaseClosed ? 'Traite' : 'Reserve a la DN'}
+          />
+        </div>
       </div>
 
-      {/* Payment */}
       {bundle.payment && (
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-anac-navy">Paiement</p>
-          {!bundle.payment.invoiceFileUrl ? (
-            <p className="text-anac-muted text-xs">
-              En attente de la facture de la Direction de la Navigabilité.
+        <div className="rounded-lg border border-anac-border bg-white p-4">
+          <div className="flex items-center gap-2 text-anac-navy">
+            <CreditCard size={16} aria-hidden="true" />
+            <p className="text-sm font-semibold">Paiement</p>
+          </div>
+          <div className="mt-3 space-y-3 text-sm">
+            {!bundle.payment.invoiceFileUrl ? (
+              <p className="text-anac-muted">En attente de la facture de la DN.</p>
+            ) : (
+              <a
+                href={fileHref(bundle.payment.invoiceFileUrl)}
+                target="_blank"
+                rel="noreferrer"
+                className="btn-secondary inline-flex rounded px-3 py-1.5 text-xs"
+              >
+                Consulter la facture
+              </a>
+            )}
+            {bundle.payment.status === 'validated' ? (
+              <p className="text-sm font-medium text-anac-success">Paiement valide.</p>
+            ) : bundle.payment.proofFileUrl && bundle.payment.status === 'pending_validation' ? (
+              <p className="text-anac-muted">Quittance soumise, en attente de validation.</p>
+            ) : bundle.payment.invoiceFileUrl ? (
+              <PaymentUpload
+                rejectedReason={bundle.payment.rejectionReason}
+                proofFile={proofFile}
+                submitting={submitting}
+                onFile={setProofFile}
+                onSubmit={handleProofUpload}
+              />
+            ) : null}
+          </div>
+        </div>
+      )}
+
+      <div className="rounded-lg border border-anac-border bg-white p-4">
+        <div className="flex items-center gap-2 text-anac-navy">
+          <MapPinned size={16} aria-hidden="true" />
+          <p className="text-sm font-semibold">Visite sur site</p>
+        </div>
+        {!bundle.siteVisit ? (
+          <p className="mt-3 text-sm text-anac-muted">
+            La visite sera affichee ici une fois planifiee par l'ANAC.
+          </p>
+        ) : (
+          <div className="mt-3 space-y-2 text-sm">
+            <p>
+              <span className="text-anac-muted">Date : </span>
+              <span className="font-medium text-anac-navy">
+                {formatDateTime(bundle.siteVisit.scheduledAt)}
+              </span>
             </p>
-          ) : bundle.payment.status === 'validated' ? (
-            <p className="text-anac-success text-xs">Paiement validé.</p>
-          ) : bundle.payment.proofFileUrl ? (
-            <p className="text-anac-muted text-xs">
-              {bundle.payment.status === 'pending_validation'
-                ? 'Preuve soumise — en attente de validation par la DN.'
-                : bundle.payment.rejectionReason
-                  ? `Preuve rejetée : ${bundle.payment.rejectionReason}. Merci de soumettre une nouvelle quittance.`
-                  : 'En attente.'}
-            </p>
-          ) : (
-            <div className="space-y-2">
-              <p className="text-anac-muted text-xs">
-                Une facture vous a été envoyée. Merci de soumettre votre quittance de paiement.
+            {bundle.siteVisit.location && (
+              <p>
+                <span className="text-anac-muted">Lieu : </span>
+                <span className="font-medium text-anac-navy">{bundle.siteVisit.location}</span>
               </p>
-              <input
-                type="file"
-                accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-                onChange={(e) => setProofFile(e.target.files?.[0] ?? null)}
-              />
-              <button
-                className="btn-primary text-xs px-3 py-1.5 rounded"
-                onClick={handleProofUpload}
-                disabled={submitting || !proofFile}
-              >
-                {submitting ? 'Envoi...' : 'Soumettre ma quittance'}
-              </button>
-            </div>
-          )}
+            )}
+            <p>
+              <span className="text-anac-muted">Statut : </span>
+              <span className="font-medium text-anac-navy">
+                {MEETING_STATUS_LABELS[bundle.siteVisit.status] ?? bundle.siteVisit.status}
+              </span>
+            </p>
+          </div>
+        )}
+        <p className="mt-3 text-xs text-anac-muted">
+          L'avis technique interne n'est pas publie dans le portail postulant.
+        </p>
+      </div>
+    </section>
+  );
+}
 
-          {/* Re-upload proof if rejected */}
-          {bundle.payment.status === 'awaiting_proof' && bundle.payment.rejectionReason && (
-            <div className="space-y-2">
-              <input
-                type="file"
-                accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-                onChange={(e) => setProofFile(e.target.files?.[0] ?? null)}
-              />
-              <button
-                className="btn-primary text-xs px-3 py-1.5 rounded"
-                onClick={handleProofUpload}
-                disabled={submitting || !proofFile}
-              >
-                {submitting ? 'Envoi...' : 'Soumettre une nouvelle quittance'}
-              </button>
-            </div>
-          )}
-        </div>
+function PaymentUpload({
+  rejectedReason,
+  proofFile,
+  submitting,
+  onFile,
+  onSubmit,
+}: {
+  rejectedReason: string | null;
+  proofFile: File | null;
+  submitting: boolean;
+  onFile: (file: File | null) => void;
+  onSubmit: () => void;
+}) {
+  return (
+    <div className="rounded border border-dashed border-anac-border p-3">
+      {rejectedReason && (
+        <p className="mb-2 text-xs text-anac-danger">Preuve rejetee : {rejectedReason}</p>
       )}
+      <input
+        type="file"
+        accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+        className="text-xs"
+        onChange={(e) => onFile(e.target.files?.[0] ?? null)}
+      />
+      <button
+        type="button"
+        className="btn-primary mt-3 inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-xs"
+        onClick={onSubmit}
+        disabled={submitting || !proofFile}
+      >
+        <UploadCloud size={13} aria-hidden="true" />
+        {submitting ? 'Envoi...' : 'Soumettre ma quittance'}
+      </button>
+    </div>
+  );
+}
 
-      {/* Site visit — read-only, DN plans it */}
-      {bundle.siteVisit && (
-        <div className="space-y-1">
-          <p className="text-xs font-medium text-anac-navy">Visite sur site</p>
-          <p className="text-xs text-anac-muted">
-            {new Date(bundle.siteVisit.scheduledAt).toLocaleString('fr-FR')}
-            {bundle.siteVisit.location && ` — ${bundle.siteVisit.location}`}
-          </p>
-          <p className="text-[10px] text-anac-muted">
-            {MEETING_STATUS_LABELS[bundle.siteVisit.status] ?? bundle.siteVisit.status}
-          </p>
-        </div>
-      )}
-
-      {/* R3's opinion is intentionally never shown here — DN-internal only,
-          per the locked business rule in modules-feasibility.md (M8 doc
-          visibility section). The postulant only sees that the phase has
-          closed; they learn the outcome through the physical DG decision
-          process, not through this portal. */}
+function StatusStep({ done, label, detail }: { done: boolean; label: string; detail: string }) {
+  return (
+    <div
+      className={`rounded border p-3 ${
+        done ? 'border-anac-success/30 text-anac-success' : 'border-anac-border text-anac-muted'
+      } bg-white`}
+    >
+      <div className="flex items-center gap-2">
+        {done ? <CheckCircle2 size={15} aria-hidden="true" /> : <CalendarClock size={15} aria-hidden="true" />}
+        <p className="text-xs font-semibold text-anac-navy">{label}</p>
+      </div>
+      <p className="mt-1 text-xs text-anac-muted">{detail}</p>
     </div>
   );
 }

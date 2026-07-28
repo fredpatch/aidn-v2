@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   authenticate,
   authenticateEither,
+  requireApplicantOrRole,
   requireRole,
 } from '../../shared/guards/auth.middleware.js';
 import * as formalController from './formal-request.controller.js';
@@ -9,7 +10,12 @@ import * as formalController from './formal-request.controller.js';
 const router = Router();
 
 // Bundle — both sides need to read their dossier's M4 state
-router.get('/by-request/:requestId', authenticateEither, formalController.getBundle);
+router.get(
+  '/by-request/:requestId',
+  authenticateEither,
+  requireApplicantOrRole('dn_agent', 'dn_supervisor', 'SU'),
+  formalController.getBundle
+);
 
 // Open M4 phase — DN/SU only
 router.post(
@@ -25,13 +31,13 @@ router.post('/requests/:requestId/letter', authenticateEither, formalController.
 router.post(
   '/requests/:requestId/letter/mark-signed',
   authenticate,
-  requireRole('dn_agent', 'dn_supervisor', 'SU', 'reception', 'assistant_dg'),
+  requireRole('reception', 'assistant_dg', 'SU'),
   formalController.markSigned
 );
 router.post(
   '/requests/:requestId/letter/mark-pending-review',
   authenticate,
-  requireRole('dn_agent', 'dn_supervisor', 'SU', 'reception', 'assistant_dg'),
+  requireRole('reception', 'assistant_dg', 'SU'),
   formalController.markPendingReview
 );
 

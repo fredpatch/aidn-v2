@@ -33,7 +33,7 @@ export default function FormalPhasePage() {
   if (error) return <p className="text-anac-danger p-6">{error}</p>;
 
   const canClose = canCloseFormalPhase(bundle);
-  const letterSubmitted = !!bundle?.letterCircuit;
+  const letterReturned = bundle?.letterCircuit?.status === 'pending_review';
   const blockReason = closureBlockReason(bundle);
   const checklist = bundle ? buildChecklist(bundle) : [];
   const nextAction = formalNextAction(bundle);
@@ -100,20 +100,12 @@ export default function FormalPhasePage() {
               blockReason={blockReason}
             />
 
-            <FormalLetterCard
-              requestId={requestId}
-              circuit={bundle.letterCircuit}
-              canManage={canManageFormal && bundle.phase.status === 'open'}
-              setActionError={setActionError}
-            />
+            <FormalLetterCard circuit={bundle.letterCircuit} />
 
             <DocumentsChecklistCard
-              requestId={requestId}
               documents={bundle.documents}
               completionRate={bundle.completionRate}
               phaseClosed={bundle.phase.status === 'closed'}
-              canManage={canManageFormal && bundle.phase.status === 'open'}
-              setActionError={setActionError}
             />
 
             <FormalMeetingCard
@@ -121,7 +113,7 @@ export default function FormalPhasePage() {
               meeting={bundle.meeting}
               dnAgentId={user?.id ?? 0}
               requestId={requestId}
-              letterSubmitted={letterSubmitted}
+              letterReturned={letterReturned}
               canManage={canManageFormal && bundle.phase.status === 'open'}
               setActionError={setActionError}
             />

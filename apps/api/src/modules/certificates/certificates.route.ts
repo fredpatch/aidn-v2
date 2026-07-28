@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   authenticate,
   authenticateEither,
+  requireApplicantOrRole,
   requireRole,
 } from '../../shared/guards/auth.middleware.js';
 import * as certificatesController from './certificates.controller.js';
@@ -9,7 +10,12 @@ import * as certificatesController from './certificates.controller.js';
 const router = Router();
 
 // Bundle — both sides (postulant can see their own certificate's status/content)
-router.get('/by-request/:requestId', authenticateEither, certificatesController.getBundle);
+router.get(
+  '/by-request/:requestId',
+  authenticateEither,
+  requireApplicantOrRole('dn_agent', 'dn_supervisor', 'SU'),
+  certificatesController.getBundle
+);
 
 // Open M7 — DN/SU
 router.post(

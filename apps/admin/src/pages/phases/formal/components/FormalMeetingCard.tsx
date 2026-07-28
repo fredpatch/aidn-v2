@@ -12,7 +12,7 @@ interface FormalMeetingCardProps {
   meeting: FormalMeetingView | null;
   dnAgentId: number;
   requestId: string | undefined;
-  letterSubmitted: boolean;
+  letterReturned: boolean;
   canManage: boolean;
   setActionError: (message: string | null) => void;
 }
@@ -22,7 +22,7 @@ export default function FormalMeetingCard({
   meeting,
   dnAgentId,
   requestId,
-  letterSubmitted,
+  letterReturned,
   canManage,
   setActionError,
 }: FormalMeetingCardProps) {
@@ -44,9 +44,7 @@ export default function FormalMeetingCard({
     setWarning(null);
     const result = await schedule({ phaseId, dnAgentId, dateTime, location });
     if (result?.softOverlapWarning) {
-      setWarning(
-        'Attention : vous avez déjà une autre réunion ce jour-là, à un horaire différent.'
-      );
+      setWarning('Attention : vous avez deja une autre reunion ce jour-la, a un horaire different.');
     }
     if (result) {
       setScheduling(false);
@@ -67,7 +65,7 @@ export default function FormalMeetingCard({
 
   async function handleSendReport() {
     if (!meeting || !reportFile) {
-      setActionError('Merci de sélectionner un fichier pour le compte-rendu.');
+      setActionError('Merci de selectionner un fichier pour le compte-rendu.');
       return;
     }
     const ok = await sendReport(meeting.id, reportFile);
@@ -80,7 +78,7 @@ export default function FormalMeetingCard({
   function handleCancelFile() {
     if (!meeting) return;
     const confirmed = window.confirm(
-      "Annuler ce dossier mettra fin à la demande formelle. Cette action sera inscrite dans l'historique. Confirmer l'annulation ?"
+      "Annuler ce dossier mettra fin a la demande formelle. Cette action sera inscrite dans l'historique. Confirmer l'annulation ?"
     );
     if (confirmed) {
       markStatus(meeting.id, 'file_cancelled');
@@ -91,15 +89,15 @@ export default function FormalMeetingCard({
     <div className="card space-y-3">
       <div className="flex items-center gap-2">
         <CalendarClock size={16} className="text-anac-navy" />
-        <span className="font-medium text-sm">Réunion formelle</span>
+        <span className="font-medium text-sm">Reunion formelle</span>
       </div>
 
       {warning && <p className="text-anac-warning text-xs">{warning}</p>}
 
-      {!letterSubmitted && !meeting ? (
+      {!letterReturned && !meeting ? (
         <p className="text-anac-muted text-sm">
-          La réunion formelle sera planifiable une fois la lettre de demande officielle soumise par
-          le postulant.
+          La reunion formelle sera planifiable une fois la lettre de demande officielle revenue
+          signee et scannee dans AIDN.
         </p>
       ) : !meeting ? (
         scheduling ? (
@@ -139,9 +137,9 @@ export default function FormalMeetingCard({
         ) : (
           <div className="space-y-2">
             <Button size="sm" onClick={() => setScheduling(true)} disabled={!canManage}>
-              Planifier la réunion formelle
+              Planifier la reunion formelle
             </Button>
-            {!canManage && <p className="text-anac-muted text-xs">Action réservée à la DN.</p>}
+            {!canManage && <p className="text-anac-muted text-xs">Action reservee a la DN.</p>}
           </div>
         )
       ) : rescheduling ? (
@@ -174,7 +172,7 @@ export default function FormalMeetingCard({
         <div className="space-y-2">
           <p className="text-sm">
             {formatDateTime(meeting.scheduledAt)}
-            {meeting.location && ` — ${meeting.location}`}
+            {meeting.location && ` - ${meeting.location}`}
           </p>
 
           <PhaseStatusBadge
@@ -210,7 +208,7 @@ export default function FormalMeetingCard({
                 disabled={busy || !canManage}
                 className="gap-1"
               >
-                <XCircle size={12} /> No-show
+                <XCircle size={12} /> Absence
               </Button>
               <Button
                 size="sm"
@@ -236,7 +234,7 @@ export default function FormalMeetingCard({
             <div className="pt-1 space-y-2">
               {meeting.crDocumentUrl ? (
                 <p className="text-sm">
-                  Compte-rendu envoyé le {formatDate(meeting.crUploadedAt)} —{' '}
+                  Compte-rendu envoye le {formatDate(meeting.crUploadedAt)} -{' '}
                   <a
                     href={`${API_ORIGIN}${meeting.crDocumentUrl}`}
                     target="_blank"
@@ -245,7 +243,7 @@ export default function FormalMeetingCard({
                   >
                     voir le fichier
                   </a>
-                  {' — '}
+                  {' - '}
                   <button
                     type="button"
                     className="underline text-anac-muted text-xs"
@@ -282,16 +280,16 @@ export default function FormalMeetingCard({
                   disabled={!canManage}
                   className="gap-1"
                 >
-                  <FileUp size={12} /> Déposer le compte-rendu
+                  <FileUp size={12} /> Deposer le compte-rendu
                 </Button>
               )}
               <p className="text-anac-muted text-xs">
-                Le compte-rendu est facultatif pour la clôture de la phase.
+                Le compte-rendu est facultatif pour la cloture de la phase.
               </p>
             </div>
           )}
           {!canManage && meeting.status === 'scheduled' && (
-            <p className="text-anac-muted text-xs">Action réservée à la DN.</p>
+            <p className="text-anac-muted text-xs">Action reservee a la DN.</p>
           )}
         </div>
       )}

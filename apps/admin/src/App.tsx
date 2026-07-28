@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import type { ReactElement } from 'react';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import BootstrapPage from './pages/auth/BootstrapPage';
 import LoginPage from './pages/auth/LoginPage';
@@ -14,6 +15,46 @@ import DeepEvaluationPhasePage from './pages/phases/deep-evaluation/DeepEvaluati
 import SiteInspectionPhasePage from './pages/phases/site-inspection/SiteInspectionPhasePage';
 import CertificatesPhasePage from './pages/phases/certificates/CertificatesPhasePage';
 import MyInspectionsPage from './pages/inspections/MyInspectionsPage';
+import CourrierTasksPage from './pages/courrier-tasks/CourrierTasksPage';
+
+const DN_ROLES = ['dn_agent', 'dn_supervisor', 'SU'];
+
+function hasAnyRole(userRoles: string[] | undefined, allowedRoles: string[]): boolean {
+  return allowedRoles.some((role) => userRoles?.includes(role));
+}
+
+function AccessDenied() {
+  return (
+    <div className="mx-auto max-w-xl rounded-lg border border-anac-border bg-white p-6">
+      <h1 className="text-lg font-semibold text-anac-navy">Acces refuse</h1>
+      <p className="mt-2 text-sm text-anac-muted">
+        Votre role ne permet pas de consulter cet espace de traitement DN.
+      </p>
+    </div>
+  );
+}
+
+function RoleRoute({
+  roles,
+  children,
+}: {
+  roles: string[];
+  children: ReactElement;
+}) {
+  const { user } = useAuth();
+  return hasAnyRole(user?.roles, roles) ? children : <AccessDenied />;
+}
+
+function HomeRoute() {
+  const { user } = useAuth();
+
+  if (hasAnyRole(user?.roles, DN_ROLES)) return <RequestsPage />;
+  if (hasAnyRole(user?.roles, ['reception', 'assistant_dg'])) {
+    return <Navigate to="/courriers" replace />;
+  }
+  if (hasAnyRole(user?.roles, ['r3_agent'])) return <Navigate to="/mes-inspections" replace />;
+  return <AccessDenied />;
+}
 
 function Gate() {
   const { user, loading, bootstrapInitialised } = useAuth();
@@ -37,27 +78,54 @@ function Gate() {
   return (
     <Routes>
       <Route element={<AppShell />}>
-        <Route index element={<RequestsPage />} />
-        <Route path="demandes/:requestId/phase-preliminaire" element={<PreliminaryPhasePage />} />
+        <Route index element={<HomeRoute />} />
+        <Route
+          path="demandes/:requestId/phase-preliminaire"
+          element={
+            <RoleRoute roles={DN_ROLES}>
+              <PreliminaryPhasePage />
+            </RoleRoute>
+          }
+        />
 
-        <Route path="demandes/:requestId/phase-formelle" element={<FormalPhasePage />} />
+        <Route
+          path="demandes/:requestId/phase-formelle"
+          element={
+            <RoleRoute roles={DN_ROLES}>
+              <FormalPhasePage />
+            </RoleRoute>
+          }
+        />
 
         <Route
           path="demandes/:requestId/evaluation-approfondie"
-          element={<DeepEvaluationPhasePage />}
+          element={
+            <RoleRoute roles={DN_ROLES}>
+              <DeepEvaluationPhasePage />
+            </RoleRoute>
+          }
         />
 
         <Route
           path="demandes/:requestId/demonstration-inspection"
-          element={<SiteInspectionPhasePage />}
+          element={
+            <RoleRoute roles={DN_ROLES}>
+              <SiteInspectionPhasePage />
+            </RoleRoute>
+          }
         />
 
         <Route
           path="demandes/:requestId/delivrance"
-          element={<CertificatesPhasePage />}
+          element={
+            <RoleRoute roles={DN_ROLES}>
+              <CertificatesPhasePage />
+            </RoleRoute>
+          }
         />
 
         <Route path="mes-inspections" element={<MyInspectionsPage />} />
+        <Route path="courriers" element={<CourrierTasksPage />} />
 
         <Route path="modeles-documents" element={<DocumentTemplatesPage />} />
         <Route path="comptes-postulants" element={<AccountRequestsPage />} />

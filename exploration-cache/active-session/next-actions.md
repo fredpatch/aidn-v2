@@ -4,17 +4,18 @@ Last updated: 2026-07-28
 
 ## Immediate
 
-1. **Push current Phase 1 hardening batch**
-   - Includes applicant account requests, organisation dedup/search, postulant
-     dashboard, clarified signature circuit, viewer print/confirm flow, migration
-     files, and local docs/cache updates.
+1. **Push current workflow hardening batch**
+   - Includes Phase 1 intake/account hardening, Phase 2 formal-letter courrier
+     hardening, courrier inbox, role gating, guided portal sections, meeting
+     active-slot conflict fix, migration files, and local docs/cache updates.
    - Verification passed: workspace typecheck + full build.
 
-2. **M3 phase hardening pass**
-   - Replay with `dn_agent`, `dn_supervisor`, and postulant accounts.
-   - Audit permissions around opening M3, planning meetings, making declarations
-     available, portal upload, and closure.
-   - Extend `DocumentViewer` to M3 declaration/template/returned document links.
+2. **Phase 3 / M5 deep-evaluation workflow hardening**
+   - Replay with `dn_agent`, `dn_supervisor`, `s5_agent`, and postulant accounts.
+   - Confirm S5 owns invoice/payment validation steps, DN owns document verdicts,
+     and postulant owns corrections.
+   - Check portal guidance for payment, evaluation, rejection/correction, and
+     phase closure.
 
 3. **D-V1 - reduce scroll on M4/M5**
    - Add accessible collapse/expand behavior to long cards.
@@ -30,8 +31,8 @@ Last updated: 2026-07-28
 
 5. **B remaining - UI permission audit**
    - Personnel ANAC-backed internal user creation is done.
-   - Remaining role hardening is narrower: verify screens do not invite actions
-     unavailable to the current role.
+   - Phase 2 role hardening is done; continue role-specific checks phase by phase
+     while hardening M5-M7.
 
 ## Later
 

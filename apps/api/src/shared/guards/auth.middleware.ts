@@ -145,6 +145,26 @@ export function requireRole(...allowedRoles: string[]) {
   };
 }
 
+/** Use after authenticateEither for endpoints shared by portal and admin.
+ *  Applicants are allowed through; internal users must match one of the
+ *  provided roles. */
+export function requireApplicantOrRole(...allowedRoles: string[]) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    if (req.applicant) {
+      next();
+      return;
+    }
+
+    const roles = req.user?.roles ?? [];
+    const hasAccess = roles.some((r) => allowedRoles.includes(r));
+    if (!hasAccess) {
+      res.status(403).json({ message: 'Acces refuse pour ce role.' });
+      return;
+    }
+    next();
+  };
+}
+
 export function clearAuthCookies(res: Response): void {
   res.clearCookie(ACCESS_TOKEN_COOKIE);
   res.clearCookie(REFRESH_TOKEN_COOKIE);

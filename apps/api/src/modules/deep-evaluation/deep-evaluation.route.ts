@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   authenticate,
   authenticateEither,
+  requireApplicantOrRole,
   requireRole,
 } from '../../shared/guards/auth.middleware.js';
 import * as evalController from './deep-evaluation.controller.js';
@@ -9,7 +10,12 @@ import * as evalController from './deep-evaluation.controller.js';
 const router = Router();
 
 // Bundle — both sides
-router.get('/by-request/:requestId', authenticateEither, evalController.getBundle);
+router.get(
+  '/by-request/:requestId',
+  authenticateEither,
+  requireApplicantOrRole('dn_agent', 'dn_supervisor', 'SU'),
+  evalController.getBundle
+);
 
 // Open M5 — DN/SU
 router.post(

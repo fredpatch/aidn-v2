@@ -188,6 +188,8 @@ export const handleRequestsError = createErrorHandler(
       status: 409,
       message: 'Transition de statut invalide pour ce circuit.',
     },
+    COURRIER_TASK_INVALID: { status: 400, message: 'Identifiant de courrier invalide.' },
+    COURRIER_TASK_NOT_FOUND: { status: 404, message: 'Courrier introuvable.' },
     UPLOAD_ASSET_NOT_FOUND: { status: 400, message: 'Fichier upload introuvable.' },
     UPLOAD_ASSET_FILE_MISMATCH: {
       status: 400,
@@ -246,7 +248,12 @@ export const handleMeetingsError = createErrorHandler(
     },
     MEETING_SLOT_CONFLICT: {
       status: 409,
-      message: 'Cet agent DN a deja une reunion planifiee exactement a ce creneau.',
+      message: 'Cet agent DN a deja une reunion planifiee active exactement a ce creneau.',
+    },
+    FORMAL_LETTER_RETURN_REQUIRED: {
+      status: 409,
+      message:
+        'La lettre de demande formelle doit revenir signee avant de planifier la reunion formelle.',
     },
     MEETING_NOT_FOUND: { status: 404, message: 'Reunion introuvable.' },
     MEETING_NOT_SCHEDULED: {
@@ -346,6 +353,10 @@ export const handleFormalRequestError = createErrorHandler(
     DOCUMENT_ALREADY_SUBMITTED: {
       status: 409,
       message: 'Ce document a déjà été soumis. Il ne peut pas être remplacé.',
+    },
+    FORMAL_DOCUMENT_APPLICANT_ONLY: {
+      status: 403,
+      message: 'Les pieces du dossier formel doivent etre deposees par le postulant.',
     },
     DOCUMENTS_INCOMPLETE: {
       status: 409,

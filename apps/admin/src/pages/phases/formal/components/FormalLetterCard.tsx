@@ -1,28 +1,14 @@
-import { useState } from 'react';
 import { FileText } from 'lucide-react';
-import { Button } from '../../../../components/ui/button';
 import { API_ORIGIN, CIRCUIT_STATUS_LABELS, CIRCUIT_STATUS_TONES } from '../constants';
 import { formatDate } from '../helpers';
-import { useFormalLetterActions } from '../hooks/useFormalLetterActions';
 import type { FormalLetterCircuitView } from '../types';
 import PhaseStatusBadge from '../../preliminary/components/PhaseStatusBadge';
 
 interface FormalLetterCardProps {
-  requestId: string | undefined;
   circuit: FormalLetterCircuitView | null;
-  canManage: boolean;
-  setActionError: (message: string | null) => void;
 }
 
-export default function FormalLetterCard({
-  requestId,
-  circuit,
-  canManage,
-  setActionError,
-}: FormalLetterCardProps) {
-  const [file, setFile] = useState<File | null>(null);
-  const { busy, submit, sign, transmit } = useFormalLetterActions(requestId, setActionError);
-
+export default function FormalLetterCard({ circuit }: FormalLetterCardProps) {
   return (
     <div className="card space-y-3">
       <div className="flex items-center gap-2">
@@ -33,29 +19,12 @@ export default function FormalLetterCard({
       {!circuit ? (
         <div className="space-y-2">
           <p className="text-anac-muted text-sm">
-            Le postulant doit soumettre sa lettre de demande officielle d&apos;agrément d&apos;OMA.
+            Le postulant doit soumettre sa lettre de demande officielle d'agrement d'OMA.
           </p>
           <p className="text-anac-muted text-xs">
-            Saisie manuelle par la DN après dépôt physique au guichet.
+            Apres depot, reception / assistant DG gere l'impression, la mise en signature et le
+            scan du retour signe depuis l'ecran Courriers a traiter.
           </p>
-          <div className="flex items-center gap-2">
-            <input
-              type="file"
-              accept=".pdf,.doc,.docx"
-              disabled={!canManage}
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            />
-            <Button
-              size="sm"
-              disabled={!file || busy || !canManage}
-              onClick={() => file && submit(file)}
-            >
-              Soumettre
-            </Button>
-          </div>
-          {!canManage && (
-            <p className="text-anac-muted text-xs">Action réservée à la DN.</p>
-          )}
         </div>
       ) : (
         <div className="space-y-2">
@@ -69,8 +38,7 @@ export default function FormalLetterCard({
           <p className="text-anac-muted text-xs">
             {circuit.fileUrl ? (
               <>
-                Document de circuit joint le{' '}
-                {formatDate(circuit.currentVersionUploadedAt)} -{' '}
+                Document courant le {formatDate(circuit.currentVersionUploadedAt)} -{' '}
                 <a
                   href={`${API_ORIGIN}${circuit.fileUrl}`}
                   target="_blank"
@@ -80,7 +48,7 @@ export default function FormalLetterCard({
                   ouvrir la lettre
                 </a>
                 {circuit.hasPreviousVersions &&
-                  ` - ${circuit.versionCount} versions conservées dans l'historique.`}
+                  ` - ${circuit.versionCount} versions conservees dans l'historique.`}
               </>
             ) : (
               'Document de circuit non disponible.'
@@ -88,25 +56,28 @@ export default function FormalLetterCard({
           </p>
 
           {circuit.status === 'submitted' && (
-            <Button size="sm" variant="secondary" onClick={sign} disabled={busy || !canManage}>
-              Marquer signee
-            </Button>
+            <p className="text-anac-muted text-xs">
+              Courrier recu. Reception / assistant DG doit l'imprimer et confirmer sa mise en
+              signature.
+            </p>
+          )}
+
+          {circuit.status === 'in_signature_circuit' && (
+            <p className="text-anac-warning text-xs">
+              Lettre en signature. DN attend le scan du retour signe.
+            </p>
           )}
 
           {circuit.status === 'signed' && (
-            <Button size="sm" variant="secondary" onClick={transmit} disabled={busy || !canManage}>
-              Transmettre à la DN
-            </Button>
+            <p className="text-anac-warning text-xs">
+              Ancien statut intermediaire. Finalisez le retour depuis Courriers a traiter.
+            </p>
           )}
 
           {circuit.status === 'pending_review' && (
             <p className="text-anac-success text-xs">
-              Lettre transmise à la Direction de la Navigabilité.
+              Retour signe recu. DN peut poursuivre le traitement formel.
             </p>
-          )}
-
-          {!canManage && circuit.status !== 'pending_review' && (
-            <p className="text-anac-muted text-xs">Action réservée à la DN.</p>
           )}
         </div>
       )}

@@ -1,6 +1,13 @@
-import { eq, and, gte, lt, ne } from 'drizzle-orm';
+import { eq, and, gte, lt } from 'drizzle-orm';
 import { db } from '../../shared/db/index.js';
-import { meetings, phases, requests, users, documentVersions } from '../../shared/db/schema.js';
+import {
+  dgCircuitDocuments,
+  meetings,
+  phases,
+  requests,
+  users,
+  documentVersions,
+} from '../../shared/db/schema.js';
 import { logAudit } from '../auth/auth.service.js';
 import { linkUploadAssetToOwner } from '../uploads/uploads.service.js';
 import type { ScheduleMeetingParams, MeetingView } from './meetings.types.js';
@@ -29,16 +36,32 @@ function toMeetingView(row: typeof meetings.$inferSelect): MeetingView {
 }
 
 /** Pattern "Reunion / Visite" (M10 conflict rules):
- *  - Hard conflict (same agent, exact same slot) -> blocked by the DB's
- *    unique index, caught here and reported as MEETING_SLOT_CONFLICT.
- *  - Soft overlap (same agent, same day, different time) -> reported back
- *    as a warning, never blocking. */
+ *  - Hard conflict (same agent, exact same active slot) is blocked by the
+ *    DB's partial unique index on scheduled meetings.
+ *  - Soft overlap only considers meetings still planned for that day.
+ *    Historical rows (held, no-show, cancelled, rescheduled) do not occupy
+ *    the agenda anymore. */
 export async function scheduleMeeting(
   params: ScheduleMeetingParams
 ): Promise<{ meeting: MeetingView; softOverlapWarning: boolean }> {
   const [phase] = await db.select().from(phases).where(eq(phases.id, params.phaseId));
   if (!phase) throw new Error('PHASE_NOT_FOUND');
   if (phase.status !== 'open') throw new Error('PHASE_NOT_OPEN');
+
+  if (params.meetingType === 'formal') {
+    const [letterCircuit] = await db
+      .select()
+      .from(dgCircuitDocuments)
+      .where(
+        and(
+          eq(dgCircuitDocuments.requestId, phase.requestId),
+          eq(dgCircuitDocuments.entityType, 'formal_request_letter')
+        )
+      );
+    if (!letterCircuit || letterCircuit.status !== 'pending_review') {
+      throw new Error('FORMAL_LETTER_RETURN_REQUIRED');
+    }
+  }
 
   const scheduledAt = new Date(params.scheduledAt);
   const dayStart = new Date(
@@ -57,8 +80,7 @@ export async function scheduleMeeting(
         eq(meetings.dnAgentId, params.dnAgentId),
         gte(meetings.scheduledAt, dayStart),
         lt(meetings.scheduledAt, dayEnd),
-        ne(meetings.status, 'file_cancelled'),
-        ne(meetings.status, 'rescheduled')
+        eq(meetings.status, 'scheduled')
       )
     );
   const softOverlapWarning = sameDayMeetings.length > 0;

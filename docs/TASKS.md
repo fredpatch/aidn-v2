@@ -243,8 +243,8 @@ Voir `exploration-cache/technical/gotchas.md` pour le détail complet.
 ## Sprint 3 — Phase Demande formelle (M4) — ✅ Terminé (confirmé 2026-07-27)
 
 - [x] Checklist 11 documents (Soumis / Manquant)
-- [x] Circuit DG limité à la lettre de demande officielle
-- [x] Upload direct des 10 autres documents (avant/après réunion)
+- [x] Circuit signature limité à la lettre de demande officielle
+- [x] Upload direct des 10 autres documents par le postulant (avant/après réunion)
 - [x] Réunion formelle (réutilise pattern M3)
 - [x] Clôture de phase (sans décision recevable/non-recevable dans l'app)
 - [x] Verrou : phase non-clôturable tant que 11/11 documents non soumis
@@ -253,10 +253,26 @@ Voir `exploration-cache/technical/gotchas.md` pour le détail complet.
 
 - [x] Nouveau module API `formal-request` monté sous `/api/formal-request`
 - [x] Démarrage phase M4 conditionné à la clôture M3
-- [x] Circuit DG de la lettre de demande formelle (`submitted` -> `signed` -> `pending_review`)
+- [x] Circuit signature de la lettre de demande formelle (`submitted` -> `in_signature_circuit` -> `pending_review`)
 - [x] Bundle `by-request/:requestId` (phase, circuit lettre, checklist docs, réunion, completionRate)
-- [x] Upload par slot des documents formels + versioning M8 (`document_versions`, trash à remplacement)
-- [x] Contrôles de clôture M4 : lettre transmise, 11/11 documents soumis, réunion résolue
+- [x] Upload par slot des documents formels par le postulant ; DN consulte uniquement
+- [x] Contrôles de clôture M4 : retour signé scanné, 11/11 documents soumis, réunion résolue
+
+### Sprint 3 — durcissement workflow Phase 2 (2026-07-28)
+
+- [x] Audit du legacy `aidn-v2-legacy` enregistré dans
+      `exploration-cache/project/legacy-phase2-courrier-audit.md`
+- [x] Nouveau module API `courrier-tasks` pour centraliser les courriers à imprimer,
+      mettre en signature et scanner au retour signé
+- [x] Page admin `Courriers a traiter` pour `reception`, `assistant_dg`, `SU`
+- [x] Page DN M4 : lettre formelle et documents du postulant en lecture seule
+- [x] Planification réunion formelle bloquée tant que la lettre officielle n'est pas
+      revenue signée et scannée (`pending_review`)
+- [x] Upload/remplacement des pièces M4 interdit aux rôles internes côté API et UI
+- [x] Accès `Demandes`/pages de phase réservé à DN/SU ; les autres rôles utilisent
+      leurs écrans dédiés
+- [x] Conflit agenda réunion corrigé : seuls les rendez-vous encore `scheduled`
+      occupent un créneau ; migration `0003_meeting_active_slot_index.sql`
 
 ### Sprint 3 — avancement frontend admin (2026-07-09, en cours)
 
@@ -265,6 +281,8 @@ Voir `exploration-cache/technical/gotchas.md` pour le détail complet.
 - [x] Couche API admin M4 dans `apps/admin/src/lib/api/formal.api.ts` + types associés
 - [x] Intégration React Query M4 (query keys `formal.*`, hooks mutations + invalidation)
 - [x] UI admin M4 (lettre DG, checklist documents, réunion, clôture)
+- [x] UI admin M4 durcie : circuit lettre externalisé vers `Courriers a traiter`,
+      documents applicant-owned en consultation seule côté DN
 
 ### Sprint 3 — avancement frontend portail (2026-07-10, en cours)
 

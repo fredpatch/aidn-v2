@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   authenticate,
   authenticateEither,
+  requireApplicantOrRole,
   requireRole,
 } from '../../shared/guards/auth.middleware.js';
 import * as inspectionController from './site-inspection.controller.js';
@@ -17,7 +18,12 @@ router.get(
 );
 
 // Bundle — both sides
-router.get('/by-request/:requestId', authenticateEither, inspectionController.getBundle);
+router.get(
+  '/by-request/:requestId',
+  authenticateEither,
+  requireApplicantOrRole('dn_agent', 'dn_supervisor', 'SU'),
+  inspectionController.getBundle
+);
 
 // Open M6 — DN/SU
 router.post(

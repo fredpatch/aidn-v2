@@ -14,6 +14,37 @@ Chaque constat ci-dessous a été vérifié dans le code réel, pas supposé.
 
 ---
 
+## Phase 2 — Demande formelle / courrier — ✅ Durci (2026-07-28)
+
+Référence legacy auditée et conservée :
+`exploration-cache/project/legacy-phase2-courrier-audit.md`.
+
+### Implémentation
+
+- La lettre de demande formelle suit maintenant le même circuit physique que la
+  demande initiale : dépôt portail, impression, mise en signature, scan du retour
+  signé, puis traitement DN.
+- Nouveau module API `courrier-tasks` et page admin `Courriers a traiter` pour
+  `reception`, `assistant_dg`, `SU`.
+- Le workspace DN M4 ne marque plus une lettre comme signée et ne la transmet plus :
+  il lit seulement le statut du retour signé.
+- La réunion formelle ne peut être planifiée qu'après retour signé scanné
+  (`pending_review`), avec garde backend.
+- Les documents du dossier formel sont applicant-owned : DN les consulte mais ne
+  peut plus les joindre/remplacer.
+- `Demandes` et les pages de phase sont réservées à DN/SU ; les autres rôles
+  passent par leurs écrans métier dédiés.
+- La détection de conflits réunion n'occupe l'agenda que pour les rendez-vous
+  encore `scheduled`; migration `0003_meeting_active_slot_index.sql`.
+
+### Cas limites traités
+
+- Deep link d'un rôle non DN vers une phase : écran `Acces refuse`, plus garde API.
+- Staff qui tente d'uploader une pièce M4 par API : `403`.
+- Réunion tenue/no-show/annulée/reprogrammée : ne déclenche plus de conflit agenda.
+
+---
+
 ## A — Navigation entre phases & feedback visuel (`PhaseSidebar`) — ✅ Terminé (2026-07-27)
 
 ### Implémentation
@@ -235,9 +266,11 @@ réel, aucun des autres déclencheurs listés ci-dessous n'est câblé.
    Users page à deux onglets, API `/api/personnel-anac`, validation matricule ANAC
    avant création, OTP, activation/réinitialisation conservées, matricules canoniques
    à 4 chiffres (`0041`).
-3. **D-V1 (collapse/expand)** — petit changement, gain UX immédiat sur M4/M5 — **prochain**
-4. **C-V2 (visualiseur hors M5)** — brancher le composant réutilisable sur M3/M4/M6/M7
-5. **E** — le plus large ; recommandation : scoper une V1 minimale (les 3 déclencheurs
+3. **Phase 2 formal/courrier hardening** — ✅ Terminé (2026-07-28)
+4. **Phase 3/M5 workflow hardening** — prochain passage fonctionnel complet
+5. **D-V1 (collapse/expand)** — petit changement, gain UX immédiat sur M4/M5
+6. **C-V2 (visualiseur hors M5)** — brancher le composant réutilisable sur M3/M4/M6/M7
+7. **E** — le plus large ; recommandation : scoper une V1 minimale (les 3 déclencheurs
    déjà partiellement prévus : certificat prêt, document à corriger, dossier rejeté)
    avant de construire les seuils 24h/3j qui demandent un vrai mécanisme de
    vérification périodique

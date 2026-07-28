@@ -212,7 +212,7 @@ export async function markLetterPendingReview(
 
   const [updated] = await db
     .update(dgCircuitDocuments)
-    .set({ status: 'pending_review' })
+    .set({ status: 'pending_review', pendingReviewAt: new Date() })
     .where(eq(dgCircuitDocuments.id, circuit.id))
     .returning();
 
@@ -238,6 +238,8 @@ export async function submitDocument(
   isApplicant = false,
   uploadAssetId?: number
 ): Promise<FormalDocumentView> {
+  if (!isApplicant) throw new Error('FORMAL_DOCUMENT_APPLICANT_ONLY');
+
   const [phase] = await db
     .select()
     .from(phases)

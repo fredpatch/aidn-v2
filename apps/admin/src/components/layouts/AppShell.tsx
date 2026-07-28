@@ -27,12 +27,18 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { to: '/', label: 'Demandes', icon: Inbox },
+  { to: '/', label: 'Demandes', icon: Inbox, roles: ['dn_agent', 'dn_supervisor', 'SU'] },
   {
     to: '/comptes-postulants',
     label: 'Comptes postulants',
     icon: UserCheck,
     roles: ['reception', 'assistant_dg', 'dn_agent', 'dn_supervisor', 'SU'],
+  },
+  {
+    to: '/courriers',
+    label: 'Courriers a traiter',
+    icon: FileText,
+    roles: ['reception', 'assistant_dg', 'SU'],
   },
   {
     to: '/mes-inspections',

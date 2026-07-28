@@ -401,10 +401,9 @@ export const phases = pgTable(
 
 /** Pattern "Reunion / Visite" - M3 preliminary meeting, M4 formal meeting,
  *  M6 site visit. Hard-conflict rule (M10): the same DN agent cannot hold two
- *  meetings at the exact same scheduledAt - enforced with a unique index, so
- *  the insert itself fails rather than relying on an app-level check alone.
- *  Same-day/different-time overlap is a soft warning handled in the app
- *  layer, not a DB constraint. */
+ *  active planned meetings at the exact same scheduledAt - enforced with a
+ *  partial unique index on scheduled rows. Held/no-show/cancelled/rescheduled
+ *  meetings remain historical records and no longer occupy the agenda. */
 export const meetings = pgTable(
   'meetings',
   {
@@ -427,7 +426,9 @@ export const meetings = pgTable(
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (t) => [
-    uniqueIndex('meetings_dn_agent_slot_idx').on(t.dnAgentId, t.scheduledAt),
+    uniqueIndex('meetings_dn_agent_slot_idx')
+      .on(t.dnAgentId, t.scheduledAt)
+      .where(sql`${t.status} = 'scheduled'`),
     index('meetings_phase_idx').on(t.phaseId),
   ]
 );

@@ -1,7 +1,6 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { CheckCircle, Circle, CircleDashed, Lock } from 'lucide-react';
+import { CheckCircle, Circle, CircleDashed, Clock3 } from 'lucide-react';
 import { PHASE_ROADMAP } from '../constants';
 import { buildChecklist } from '../helpers';
 import { fetchPhasesSummary } from '../../../../lib/api/phases.api';
@@ -24,7 +23,6 @@ export default function PhaseSidebar({
   checklist: externalChecklist,
 }: PhaseSidebarProps) {
   const navigate = useNavigate();
-  const [lockedTooltip, setLockedTooltip] = useState<string | null>(null);
 
   // Per-phase real status (done / open / not-started yet) - without this,
   // every non-current phase looked identical whether it was already closed
@@ -50,16 +48,14 @@ export default function PhaseSidebar({
         {PHASE_ROADMAP.map((phase) => {
           const isCurrent = phase.code === currentCode;
           const phaseStatus = summary?.find((s) => s.phaseCode === phase.code)?.status;
-          const isClosed = !isCurrent && phaseStatus === 'closed';
-          const isNavigable = isCurrent || isClosed;
+          const isClosed = phaseStatus === 'closed';
+          const isOpen = phaseStatus === 'open';
 
           function handleClick() {
             if (isCurrent) return;
-            if (isClosed && requestId) {
+            if (requestId) {
               navigate(`/demandes/${requestId}/${phase.path}`);
-              return;
             }
-            setLockedTooltip(lockedTooltip === phase.code ? null : phase.code);
           }
 
           return (
@@ -73,31 +69,29 @@ export default function PhaseSidebar({
                     ? 'bg-anac-blue/10 text-anac-blue font-semibold'
                     : isClosed
                       ? 'text-anac-navy hover:bg-anac-gray cursor-pointer'
-                      : 'text-anac-muted/60 hover:bg-anac-gray cursor-pointer'
+                      : isOpen
+                        ? 'text-anac-navy hover:bg-anac-gray cursor-pointer'
+                        : 'text-anac-muted hover:bg-anac-gray cursor-pointer'
                 }`}
-                title={isNavigable ? undefined : 'Phase non encore ouverte'}
+                title={
+                  isCurrent
+                    ? undefined
+                    : phaseStatus
+                      ? 'Consulter cette phase'
+                      : 'Consulter cette phase et la demarrer si les conditions sont remplies'
+                }
               >
                 {isCurrent ? (
                   <Circle size={12} className="text-anac-blue fill-anac-blue flex-shrink-0" />
                 ) : isClosed ? (
                   <CheckCircle size={12} className="text-anac-success flex-shrink-0" />
+                ) : isOpen ? (
+                  <Clock3 size={12} className="text-anac-warning flex-shrink-0" />
                 ) : (
-                  <Lock size={11} className="flex-shrink-0 opacity-40" />
+                  <CircleDashed size={12} className="flex-shrink-0 opacity-60" />
                 )}
                 <span>{phase.label}</span>
               </button>
-
-              {lockedTooltip === phase.code && !isNavigable && (
-                <div className="absolute left-0 top-full mt-1 z-10 bg-anac-navy text-white text-[10px] px-2 py-1 rounded shadow-lg whitespace-nowrap">
-                  Phase non encore ouverte
-                  <button
-                    className="ml-2 opacity-60 hover:opacity-100"
-                    onClick={() => setLockedTooltip(null)}
-                  >
-                    x
-                  </button>
-                </div>
-              )}
             </div>
           );
         })}

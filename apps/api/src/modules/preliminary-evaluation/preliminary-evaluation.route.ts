@@ -1,5 +1,10 @@
 import { Router } from "express";
-import { authenticate, authenticateEither, requireRole } from "../../shared/guards/auth.middleware.js";
+import {
+  authenticate,
+  authenticateEither,
+  requireApplicantOrRole,
+  requireRole,
+} from "../../shared/guards/auth.middleware.js";
 import * as evalController from "./preliminary-evaluation.controller.js";
 
 const router = Router();
@@ -9,8 +14,18 @@ const router = Router();
 // to everything under that prefix (router.use with no path restriction).
 // Nesting these routes there would silently block applicant access before
 // authenticateEither ever got a chance to run.
-router.get("/by-request/:requestId", authenticateEither, evalController.getBundle);
-router.get("/:phaseId", authenticateEither, evalController.get);
+router.get(
+  "/by-request/:requestId",
+  authenticateEither,
+  requireApplicantOrRole("dn_agent", "dn_supervisor", "SU"),
+  evalController.getBundle
+);
+router.get(
+  "/:phaseId",
+  authenticateEither,
+  requireApplicantOrRole("dn_agent", "dn_supervisor", "SU"),
+  evalController.get
+);
 router.post(
   "/:phaseId/make-available",
   authenticate,

@@ -15,8 +15,8 @@ router.post("/", authenticateEither, requestsController.submit);
 // non-terminal request to show at a time.
 router.get("/mine", authenticateApplicant, requestsController.mine);
 
-router.get("/", authenticate, requestsController.list);
-router.get("/:id", authenticate, requestsController.get);
+router.get("/", authenticate, requireRole("dn_agent", "dn_supervisor", "SU"), requestsController.list);
+router.get("/:id", authenticate, requireRole("dn_agent", "dn_supervisor", "SU"), requestsController.get);
 
 // Physical signature circuit transitions are internal-staff actions only.
 router.post(
