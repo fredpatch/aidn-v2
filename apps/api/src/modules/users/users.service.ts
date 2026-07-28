@@ -6,7 +6,13 @@ import { sendOTPEmail } from "../../shared/utils/email.js";
 import { logAudit } from "../auth/auth.service.js";
 import { getCanonicalEmployeeCodeForUserCreation } from "../personnel-anac/personnel-anac.service.js";
 import { toUserView } from "./users.helpers.js";
-import type { CreateUserParams, UpdateUserParams, UserFilters, UserView } from "./users.types.js";
+import type {
+  CreateUserParams,
+  UpdateUserParams,
+  UpdateUserRolesParams,
+  UserFilters,
+  UserView,
+} from "./users.types.js";
 
 export type { CreateUserParams, UpdateUserParams, UserFilters, UserView } from "./users.types.js";
 
@@ -147,6 +153,58 @@ export async function updateUser(id: number, params: UpdateUserParams): Promise<
   });
 
   return toUserView(updated);
+}
+
+function assertValidRoles(roles: string[]): asserts roles is (typeof internalRoleEnum.enumValues)[number][] {
+  if (roles.length === 0) throw new Error("ROLES_REQUIRED");
+
+  const allowedRoles = new Set<string>(internalRoleEnum.enumValues);
+  const uniqueRoles = new Set(roles);
+  if (uniqueRoles.size !== roles.length || roles.some((role) => !allowedRoles.has(role))) {
+    throw new Error("INVALID_ROLE");
+  }
+}
+
+async function countUsersWithRole(role: (typeof internalRoleEnum.enumValues)[number]): Promise<number> {
+  return db.$count(userRoles, eq(userRoles.role, role));
+}
+
+export async function updateUserRoles(id: number, params: UpdateUserRolesParams): Promise<UserView> {
+  assertValidRoles(params.roles);
+
+  const [existing] = await db.select().from(users).where(eq(users.id, id));
+  if (!existing) throw new Error("USER_NOT_FOUND");
+
+  const currentRoles = await db.select().from(userRoles).where(eq(userRoles.userId, id));
+  const currentRoleNames = currentRoles.map((row) => row.role);
+  const currentHasSU = currentRoleNames.includes("SU");
+  const nextHasSU = params.roles.includes("SU");
+  const actorIsSU = params.actorRoles.includes("SU");
+
+  if ((currentHasSU || nextHasSU) && !actorIsSU) {
+    throw new Error("SU_ROLE_REQUIRES_SU");
+  }
+
+  if (currentHasSU && !nextHasSU && (await countUsersWithRole("SU")) <= 1) {
+    throw new Error("LAST_SU_ROLE_REQUIRED");
+  }
+
+  await db.delete(userRoles).where(eq(userRoles.userId, id));
+  for (const role of params.roles) {
+    await db.insert(userRoles).values({ userId: id, role });
+  }
+
+  await db.update(users).set({ updatedAt: new Date() }).where(eq(users.id, id));
+
+  await logAudit({
+    userId: params.updatedByUserId,
+    action: "USER_ROLES_UPDATED",
+    module: "M13",
+    entityId: id,
+    details: { before: currentRoleNames, after: params.roles },
+  });
+
+  return getUser(id);
 }
 
 /** SU cannot be deactivated - there must always be at least one operable

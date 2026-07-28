@@ -14,11 +14,16 @@ router.get(
   usersController.listByRole
 );
 
-// User management is SU-only for now - see project/modules-feasibility.md M13.
-router.use(authenticate, requireRole("SU"));
+router.use(authenticate);
 
-router.get("/", usersController.list);
-router.get("/:id", usersController.get);
+// User listing and role assignment are available to SU and DN supervisors.
+router.get("/", requireRole("SU", "dn_supervisor"), usersController.list);
+router.get("/:id", requireRole("SU", "dn_supervisor"), usersController.get);
+router.patch("/:id/roles", requireRole("SU", "dn_supervisor"), usersController.updateRoles);
+
+// Full account lifecycle remains SU-only.
+router.use(requireRole("SU"));
+
 router.post("/", usersController.create);
 router.patch("/:id", usersController.update);
 router.patch("/:id/activation", usersController.toggleActivation);

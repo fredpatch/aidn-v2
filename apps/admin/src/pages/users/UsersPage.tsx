@@ -1,11 +1,22 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { Loader2, RefreshCw, RotateCcw, Search, UserPlus, Users } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  ShieldCheck,
+  Loader2,
+  RefreshCw,
+  RotateCcw,
+  Search,
+  UserPlus,
+  Users,
+} from 'lucide-react';
 import { api, apiErrorMessage } from '../../lib/axios';
 import { listPersonnelAnac, searchPersonnelAnac } from '../../lib/api/personnel-anac.api';
 import type { PersonnelAnacResult } from '../../lib/api/personnel-anac.types';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
+import { useAuth } from '../../hooks/useAuth';
 
 interface UserView {
   id: number;
@@ -34,8 +45,10 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 const ALL_ROLES = Object.keys(ROLE_LABELS);
+const PERSONNEL_ANAC_PAGE_SIZE = 8;
 
 export default function UsersPage() {
+  const { user: currentUser } = useAuth();
   const [tab, setTab] = useState<'users' | 'personnel'>('users');
   const [users, setUsers] = useState<UserView[]>([]);
   const [usersLoading, setUsersLoading] = useState(true);
@@ -44,6 +57,9 @@ export default function UsersPage() {
   const [busyId, setBusyId] = useState<number | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [prefill, setPrefill] = useState<PrefillUser | null>(null);
+  const currentUserRoles = currentUser?.roles ?? [];
+  const canManageAccounts = currentUserRoles.includes('SU');
+  const canEditRoles = currentUserRoles.some((role) => role === 'SU' || role === 'dn_supervisor');
 
   async function loadUsers() {
     setUsersLoading(true);
@@ -63,11 +79,13 @@ export default function UsersPage() {
   }, []);
 
   function openManualCreation() {
+    if (!canManageAccounts) return;
     setPrefill(null);
     setFormOpen(true);
   }
 
   function openAnacCreation(personnel: PersonnelAnacResult) {
+    if (!canManageAccounts) return;
     setPrefill({ employeeCode: personnel.employeeCode, fullName: personnel.fullName });
     setFormOpen(true);
     setTab('users');
@@ -102,6 +120,20 @@ export default function UsersPage() {
     }
   }
 
+  async function handleUpdateRoles(id: number, roles: string[]) {
+    setActionError(null);
+    setBusyId(id);
+    try {
+      await api.patch(`/users/${id}/roles`, { roles });
+      await loadUsers();
+    } catch (err) {
+      setActionError(apiErrorMessage(err, 'Modification des roles impossible.'));
+      throw err;
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -116,7 +148,7 @@ export default function UsersPage() {
             </p>
           </div>
         </div>
-        {tab === 'users' && (
+        {tab === 'users' && canManageAccounts && (
           <Button onClick={openManualCreation} className="gap-1.5">
             <UserPlus size={14} />
             Nouvel utilisateur
@@ -128,12 +160,14 @@ export default function UsersPage() {
         <TabButton active={tab === 'users'} onClick={() => setTab('users')}>
           Utilisateurs AIDN
         </TabButton>
-        <TabButton active={tab === 'personnel'} onClick={() => setTab('personnel')}>
-          Personnel ANAC
-        </TabButton>
+        {canManageAccounts && (
+          <TabButton active={tab === 'personnel'} onClick={() => setTab('personnel')}>
+            Personnel ANAC
+          </TabButton>
+        )}
       </div>
 
-      {formOpen && (
+      {formOpen && canManageAccounts && (
         <CreateUserForm
           key={prefill?.employeeCode ?? 'manual'}
           prefill={prefill}
@@ -159,12 +193,19 @@ export default function UsersPage() {
           loading={usersLoading}
           error={usersError}
           busyId={busyId}
+          canManageAccounts={canManageAccounts}
+          canEditRoles={canEditRoles}
+          currentUserRoles={currentUserRoles}
           onToggle={handleToggle}
           onResetOtp={handleResetOtp}
+          onUpdateRoles={handleUpdateRoles}
           onReload={loadUsers}
         />
       ) : (
-        <PersonnelAnacTab onCreate={openAnacCreation} existingCodes={users.map((u) => u.employeeCode)} />
+        <PersonnelAnacTab
+          onCreate={openAnacCreation}
+          existingCodes={users.map((u) => u.employeeCode)}
+        />
       )}
     </div>
   );
@@ -201,18 +242,28 @@ function UsersTable({
   busyId,
   onToggle,
   onResetOtp,
+  onUpdateRoles,
   onReload,
+  canManageAccounts,
+  canEditRoles,
+  currentUserRoles,
 }: {
   users: UserView[];
   loading: boolean;
   error: string | null;
   busyId: number | null;
+  canManageAccounts: boolean;
+  canEditRoles: boolean;
+  currentUserRoles: string[];
   onToggle: (id: number, active: boolean) => void;
   onResetOtp: (id: number) => void;
+  onUpdateRoles: (id: number, roles: string[]) => Promise<void>;
   onReload: () => void;
 }) {
+  const [editingUser, setEditingUser] = useState<UserView | null>(null);
+
   return (
-    <div className="card overflow-x-auto">
+    <div className="card">
       <div className="flex justify-end mb-3">
         <button
           type="button"
@@ -229,58 +280,158 @@ function UsersTable({
       ) : error ? (
         <p className="text-anac-danger">{error}</p>
       ) : (
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left text-anac-muted border-b border-anac-border">
-              <th className="pb-2 pr-4">Matricule</th>
-              <th className="pb-2 pr-4">Nom</th>
-              <th className="pb-2 pr-4">Email</th>
-              <th className="pb-2 pr-4">Roles</th>
-              <th className="pb-2 pr-4">Statut</th>
-              <th className="pb-2">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((user) => (
-              <tr key={user.id} className="border-b border-anac-border last:border-0">
-                <td className="py-2 pr-4 font-medium">{user.employeeCode}</td>
-                <td className="py-2 pr-4">{user.fullName}</td>
-                <td className="py-2 pr-4 text-anac-muted">{user.email}</td>
-                <td className="py-2 pr-4 text-anac-muted text-xs">
-                  {user.roles.map((role) => ROLE_LABELS[role] ?? role).join(', ')}
-                </td>
-                <td className="py-2 pr-4">
-                  <StatusBadge active={user.active} firstLogin={user.firstLogin} />
-                </td>
-                <td className="py-2">
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      className="text-anac-blue underline text-xs disabled:opacity-50"
-                      disabled={busyId === user.id}
-                      onClick={() => onToggle(user.id, !user.active)}
-                    >
-                      {user.active ? 'Desactiver' : 'Activer'}
-                    </button>
-                    <button
-                      className="text-anac-muted underline text-xs disabled:opacity-50 inline-flex items-center gap-1"
-                      disabled={busyId === user.id}
-                      onClick={() => onResetOtp(user.id)}
-                    >
-                      {busyId === user.id ? (
-                        <Loader2 size={10} className="animate-spin" />
-                      ) : (
-                        <RotateCcw size={10} />
-                      )}
-                      Reinitialiser OTP
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="space-y-4">
+          {editingUser && (
+            <EditRolesForm
+              user={editingUser}
+              busy={busyId === editingUser.id}
+              currentUserRoles={currentUserRoles}
+              onCancel={() => setEditingUser(null)}
+              onSaved={async (roles) => {
+                await onUpdateRoles(editingUser.id, roles);
+                setEditingUser(null);
+              }}
+            />
+          )}
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-anac-muted border-b border-anac-border">
+                  <th className="pb-2 pr-4">Matricule</th>
+                  <th className="pb-2 pr-4">Nom</th>
+                  <th className="pb-2 pr-4">Email</th>
+                  <th className="pb-2 pr-4">Roles</th>
+                  <th className="pb-2 pr-4">Statut</th>
+                  <th className="pb-2">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((user) => {
+                  const supervisorLockedFromSu = !currentUserRoles.includes('SU') && user.roles.includes('SU');
+                  return (
+                    <tr key={user.id} className="border-b border-anac-border last:border-0">
+                      <td className="py-2 pr-4 font-medium">{user.employeeCode}</td>
+                      <td className="py-2 pr-4">{user.fullName}</td>
+                      <td className="py-2 pr-4 text-anac-muted">{user.email}</td>
+                      <td className="py-2 pr-4 text-anac-muted text-xs">
+                        {user.roles.map((role) => ROLE_LABELS[role] ?? role).join(', ')}
+                      </td>
+                      <td className="py-2 pr-4">
+                        <StatusBadge active={user.active} firstLogin={user.firstLogin} />
+                      </td>
+                      <td className="py-2">
+                        <div className="flex flex-wrap gap-2">
+                          {canEditRoles && (
+                            <button
+                              className="text-anac-blue underline text-xs disabled:opacity-50 inline-flex items-center gap-1"
+                              disabled={busyId === user.id || supervisorLockedFromSu}
+                              onClick={() => setEditingUser(user)}
+                              title={
+                                supervisorLockedFromSu
+                                  ? 'Seul un Super Admin peut modifier ce role.'
+                                  : undefined
+                              }
+                            >
+                              <ShieldCheck size={10} />
+                              Roles
+                            </button>
+                          )}
+                          {canManageAccounts && (
+                            <>
+                              <button
+                                className="text-anac-blue underline text-xs disabled:opacity-50"
+                                disabled={busyId === user.id}
+                                onClick={() => onToggle(user.id, !user.active)}
+                              >
+                                {user.active ? 'Desactiver' : 'Activer'}
+                              </button>
+                              <button
+                                className="text-anac-muted underline text-xs disabled:opacity-50 inline-flex items-center gap-1"
+                                disabled={busyId === user.id}
+                                onClick={() => onResetOtp(user.id)}
+                              >
+                                {busyId === user.id ? (
+                                  <Loader2 size={10} className="animate-spin" />
+                                ) : (
+                                  <RotateCcw size={10} />
+                                )}
+                                Reinitialiser OTP
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
     </div>
+  );
+}
+
+function EditRolesForm({
+  user,
+  busy,
+  currentUserRoles,
+  onCancel,
+  onSaved,
+}: {
+  user: UserView;
+  busy: boolean;
+  currentUserRoles: string[];
+  onCancel: () => void;
+  onSaved: (roles: string[]) => Promise<void>;
+}) {
+  const [roles, setRoles] = useState<string[]>(user.roles);
+  const [error, setError] = useState<string | null>(null);
+  const currentUserIsSU = currentUserRoles.includes('SU');
+
+  function toggleRole(role: string) {
+    if (role === 'SU' && !currentUserIsSU) return;
+    setRoles((prev) => (prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]));
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+
+    if (roles.length === 0) {
+      setError('Selectionnez au moins un role.');
+      return;
+    }
+
+    try {
+      await onSaved(roles);
+    } catch {
+      setError('La modification des roles a echoue.');
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="border border-anac-border rounded-lg p-4 space-y-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-anac-navy">Roles de {user.fullName}</p>
+          <p className="text-xs text-anac-muted">{user.employeeCode}</p>
+        </div>
+        <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
+          Annuler
+        </Button>
+      </div>
+
+      {error && <p className="text-anac-danger text-sm">{error}</p>}
+
+      <RoleSelector roles={roles} onToggle={toggleRole} suLocked={!currentUserIsSU} />
+
+      <Button type="submit" size="sm" disabled={busy}>
+        {busy ? 'Enregistrement...' : 'Enregistrer les roles'}
+      </Button>
+    </form>
   );
 }
 
@@ -312,16 +463,25 @@ function PersonnelAnacTab({
 }) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<PersonnelAnacResult[]>([]);
+  const [mode, setMode] = useState<'list' | 'search'>('list');
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const existing = useMemo(() => new Set(existingCodes), [existingCodes]);
+  const totalPages = Math.max(1, Math.ceil(total / PERSONNEL_ANAC_PAGE_SIZE));
+  const firstItem = total === 0 ? 0 : (page - 1) * PERSONNEL_ANAC_PAGE_SIZE + 1;
+  const lastItem = Math.min(page * PERSONNEL_ANAC_PAGE_SIZE, total);
 
-  async function loadInitial() {
+  async function loadPersonnelPage(nextPage: number) {
     setLoading(true);
     setError(null);
     try {
-      const data = await listPersonnelAnac();
+      const data = await listPersonnelAnac(nextPage, PERSONNEL_ANAC_PAGE_SIZE);
       setResults(data.data);
+      setPage(data.page);
+      setTotal(data.total);
+      setMode('list');
     } catch (err) {
       setError(apiErrorMessage(err, "Impossible de charger l'annuaire Personnel ANAC."));
     } finally {
@@ -330,7 +490,7 @@ function PersonnelAnacTab({
   }
 
   useEffect(() => {
-    loadInitial();
+    loadPersonnelPage(1);
   }, []);
 
   async function handleSearch(e: FormEvent) {
@@ -344,6 +504,9 @@ function PersonnelAnacTab({
     setLoading(true);
     try {
       setResults(await searchPersonnelAnac(query.trim()));
+      setMode('search');
+      setPage(1);
+      setTotal(0);
     } catch (err) {
       setError(apiErrorMessage(err, 'Recherche impossible.'));
     } finally {
@@ -366,7 +529,7 @@ function PersonnelAnacTab({
           <Search size={14} />
           Rechercher
         </Button>
-        <Button type="button" variant="secondary" onClick={loadInitial}>
+        <Button type="button" variant="secondary" onClick={() => loadPersonnelPage(1)}>
           Liste
         </Button>
       </form>
@@ -374,6 +537,45 @@ function PersonnelAnacTab({
       {error && <p className="text-anac-danger text-sm">{error}</p>}
 
       <div className="card overflow-x-auto">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-xs text-anac-muted">
+            {mode === 'search'
+              ? `${results.length} resultat${results.length > 1 ? 's' : ''} de recherche`
+              : total === 0
+                ? 'Aucun agent'
+                : `${firstItem}-${lastItem} sur ${total} agents`}
+          </p>
+          {mode === 'list' && (
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={loading || page <= 1}
+                onClick={() => loadPersonnelPage(page - 1)}
+                aria-label="Page precedente"
+                title="Page precedente"
+              >
+                <ChevronLeft size={14} />
+              </Button>
+              <span className="min-w-20 text-center text-xs text-anac-muted">
+                Page {page} / {totalPages}
+              </span>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={loading || page >= totalPages}
+                onClick={() => loadPersonnelPage(page + 1)}
+                aria-label="Page suivante"
+                title="Page suivante"
+              >
+                <ChevronRight size={14} />
+              </Button>
+            </div>
+          )}
+        </div>
+
         {loading ? (
           <p className="text-anac-muted">Chargement...</p>
         ) : (
@@ -391,7 +593,10 @@ function PersonnelAnacTab({
               {results.map((personnel) => {
                 const hasAccount = personnel.hasAccount || existing.has(personnel.employeeCode);
                 return (
-                  <tr key={personnel.employeeCode} className="border-b border-anac-border last:border-0">
+                  <tr
+                    key={personnel.employeeCode}
+                    className="border-b border-anac-border last:border-0"
+                  >
                     <td className="py-2 pr-4 font-medium">{personnel.employeeCode}</td>
                     <td className="py-2 pr-4">{personnel.fullName || 'Nom non renseigne'}</td>
                     <td className="py-2 pr-4 text-anac-muted">
@@ -425,6 +630,40 @@ function PersonnelAnacTab({
           </table>
         )}
       </div>
+    </div>
+  );
+}
+
+function RoleSelector({
+  roles,
+  onToggle,
+  suLocked = false,
+}: {
+  roles: string[];
+  onToggle: (role: string) => void;
+  suLocked?: boolean;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2 mt-1">
+      {ALL_ROLES.map((role) => {
+        const disabled = role === 'SU' && suLocked;
+        return (
+          <button
+            type="button"
+            key={role}
+            disabled={disabled}
+            onClick={() => onToggle(role)}
+            title={disabled ? 'Reserve au Super Admin' : undefined}
+            className={`px-3 py-1.5 rounded text-xs font-medium border transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+              roles.includes(role)
+                ? 'bg-anac-navy text-white border-anac-navy'
+                : 'bg-white text-anac-muted border-anac-border hover:bg-anac-gray'
+            }`}
+          >
+            {ROLE_LABELS[role]}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -498,22 +737,7 @@ function CreateUserForm({
 
       <div>
         <Label>Roles</Label>
-        <div className="flex flex-wrap gap-2 mt-1">
-          {ALL_ROLES.map((role) => (
-            <button
-              type="button"
-              key={role}
-              onClick={() => toggleRole(role)}
-              className={`px-3 py-1.5 rounded text-xs font-medium border transition-colors ${
-                roles.includes(role)
-                  ? 'bg-anac-navy text-white border-anac-navy'
-                  : 'bg-white text-anac-muted border-anac-border hover:bg-anac-gray'
-              }`}
-            >
-              {ROLE_LABELS[role]}
-            </button>
-          ))}
-        </div>
+        <RoleSelector roles={roles} onToggle={toggleRole} />
       </div>
 
       <div className="flex gap-2">
@@ -527,4 +751,3 @@ function CreateUserForm({
     </form>
   );
 }
-

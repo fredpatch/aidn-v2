@@ -73,6 +73,25 @@ export async function update(req: Request, res: Response): Promise<void> {
   }
 }
 
+export async function updateRoles(req: Request, res: Response): Promise<void> {
+  try {
+    const { roles } = req.body ?? {};
+    if (!Array.isArray(roles) || roles.length === 0) {
+      res.status(400).json({ message: "roles (non vide) est requis." });
+      return;
+    }
+
+    const user = await usersService.updateUserRoles(Number(req.params.id), {
+      roles,
+      updatedByUserId: req.user!.userId,
+      actorRoles: req.user!.roles,
+    });
+    res.json(user);
+  } catch (error) {
+    handleUsersError(res, error);
+  }
+}
+
 export async function toggleActivation(req: Request, res: Response): Promise<void> {
   try {
     const { active } = req.body ?? {};

@@ -13,6 +13,12 @@ export interface UpdateUserParams {
   updatedByUserId: number;
 }
 
+export interface UpdateUserRolesParams {
+  roles: string[];
+  updatedByUserId: number;
+  actorRoles: string[];
+}
+
 export interface UserFilters {
   search?: string;
   role?: string;

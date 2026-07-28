@@ -63,6 +63,16 @@ export const handleUsersError = createErrorHandler(
       status: 403,
       message: 'Le Super Admin ne peut pas etre desactive.',
     },
+    ROLES_REQUIRED: { status: 400, message: 'Selectionnez au moins un role.' },
+    INVALID_ROLE: { status: 400, message: 'Role invalide ou duplique.' },
+    SU_ROLE_REQUIRES_SU: {
+      status: 403,
+      message: 'Seul un Super Admin peut attribuer ou retirer le role Super Admin.',
+    },
+    LAST_SU_ROLE_REQUIRED: {
+      status: 409,
+      message: 'Impossible de retirer le dernier role Super Admin.',
+    },
     INVALID_EMPLOYEE_CODE: { status: 400, message: 'Matricule invalide.' },
     PERSONNEL_ANAC_UNAVAILABLE: {
       status: 503,

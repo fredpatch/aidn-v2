@@ -39,7 +39,12 @@ const NAV_ITEMS: NavItem[] = [
     icon: FileText,
     roles: ['dn_agent', 'dn_supervisor', 'SU'],
   },
-  { to: '/utilisateurs', label: 'Gestion des utilisateurs', icon: Users, roles: ['SU'] },
+  {
+    to: '/utilisateurs',
+    label: 'Gestion des utilisateurs',
+    icon: Users,
+    roles: ['SU', 'dn_supervisor'],
+  },
   { to: '/parametres', label: 'Parametres', icon: Settings2, roles: ['SU'] },
 ];
 
