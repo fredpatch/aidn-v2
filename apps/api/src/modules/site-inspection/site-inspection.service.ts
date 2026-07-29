@@ -63,6 +63,79 @@ function nextPaymentAction(status: string): PaymentQueueItem['nextAction'] {
   return 'rejected';
 }
 
+function daysBetween(a: Date | null, b: Date | null): number | null {
+  if (!a || !b) return null;
+  const ms = b.getTime() - a.getTime();
+  return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
+}
+
+function missionState(params: {
+  phaseStatus: string;
+  payment: typeof payments.$inferSelect | null;
+  siteVisit: typeof meetings.$inferSelect;
+  inspection: typeof siteInspections.$inferSelect | null;
+}): Pick<
+  MyQueueItem,
+  'missionStatus' | 'statusLabel' | 'nextAction' | 'nextActionLabel' | 'priority' | 'waitingDays'
+> {
+  const waitingDays = daysBetween(params.siteVisit.scheduledAt, new Date());
+  if (params.inspection || params.phaseStatus === 'closed') {
+    return {
+      missionStatus: 'closed',
+      statusLabel: 'Cloturee',
+      nextAction: 'consult',
+      nextActionLabel: 'Consulter',
+      priority: 'basse',
+      waitingDays,
+    };
+  }
+  if (!params.payment || params.payment.status !== 'validated') {
+    return {
+      missionStatus: 'payment_pending',
+      statusLabel: 'Paiement attendu',
+      nextAction: 'wait_payment',
+      nextActionLabel: 'Suivre',
+      priority: 'basse',
+      waitingDays,
+    };
+  }
+  if (params.siteVisit.status === 'scheduled') {
+    const today = new Date();
+    const scheduledDay = new Date(params.siteVisit.scheduledAt);
+    scheduledDay.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+    const daysUntil = Math.ceil(
+      (scheduledDay.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    return {
+      missionStatus: 'to_hold',
+      statusLabel: 'Prevue',
+      nextAction: 'mark_held',
+      nextActionLabel: 'Marquer tenue',
+      priority: daysUntil <= 0 ? 'haute' : daysUntil <= 2 ? 'moyenne' : 'basse',
+      waitingDays,
+    };
+  }
+  if (params.siteVisit.status === 'held') {
+    return {
+      missionStatus: 'report_due',
+      statusLabel: 'Avis attendu',
+      nextAction: 'submit_verdict',
+      nextActionLabel: "Soumettre l'avis",
+      priority: 'haute',
+      waitingDays,
+    };
+  }
+  return {
+    missionStatus: 'planned',
+    statusLabel: params.siteVisit.status,
+    nextAction: 'consult',
+    nextActionLabel: 'Consulter',
+    priority: 'basse',
+    waitingDays,
+  };
+}
+
 // ── Open M6 ───────────────────────────────────────────────────────────────
 export async function openSiteInspectionPhase(
   requestId: number,
@@ -458,35 +531,52 @@ export async function getMyQueue(r3AgentId: number): Promise<MyQueueItem[]> {
   const rows = await db
     .select({
       phaseId: phases.id,
+      phaseStatus: phases.status,
+      openedAt: phases.openedAt,
+      closedAt: phases.closedAt,
       requestId: requests.id,
       requestReference: requests.reference,
+      requestType: requests.requestType,
       organisationName: organisations.name,
+      payment: payments,
+      siteVisit: meetings,
+      inspection: siteInspections,
     })
-    .from(phases)
+    .from(meetings)
+    .innerJoin(phases, eq(meetings.phaseId, phases.id))
     .innerJoin(requests, eq(phases.requestId, requests.id))
     .innerJoin(organisations, eq(requests.organisationId, organisations.id))
-    .where(and(eq(phases.phaseCode, 'M6'), eq(phases.status, 'open')));
+    .leftJoin(payments, eq(payments.phaseId, phases.id))
+    .leftJoin(siteInspections, eq(siteInspections.phaseId, phases.id))
+    .where(
+      and(
+        eq(phases.phaseCode, 'M6'),
+        eq(meetings.meetingType, 'site_visit'),
+        eq(meetings.dnAgentId, r3AgentId)
+      )
+    )
+    .orderBy(desc(meetings.scheduledAt));
 
-  const items: MyQueueItem[] = [];
-  for (const row of rows) {
-    const [siteVisit] = await db
-      .select()
-      .from(meetings)
-      .where(
-        and(
-          eq(meetings.phaseId, row.phaseId),
-          eq(meetings.meetingType, 'site_visit'),
-          eq(meetings.dnAgentId, r3AgentId)
-        )
-      );
-    if (!siteVisit) continue; // not this R3's dossier
-    items.push({
+  return rows.map((row) => {
+    const state = missionState({
+      phaseStatus: row.phaseStatus,
+      payment: row.payment,
+      siteVisit: row.siteVisit,
+      inspection: row.inspection,
+    });
+    return {
       phaseId: row.phaseId,
+      phaseStatus: row.phaseStatus,
+      openedAt: row.openedAt,
+      closedAt: row.closedAt,
       requestId: row.requestId,
       requestReference: row.requestReference,
+      requestType: row.requestType,
       organisationName: row.organisationName,
-      siteVisit: toSiteVisitView(siteVisit),
-    });
-  }
-  return items;
+      payment: row.payment ? toPaymentView(row.payment) : null,
+      siteVisit: toSiteVisitView(row.siteVisit),
+      inspection: row.inspection ? toInspectionView(row.inspection) : null,
+      ...state,
+    };
+  });
 }

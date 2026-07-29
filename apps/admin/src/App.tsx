@@ -18,9 +18,13 @@ import MyInspectionsPage from './pages/inspections/MyInspectionsPage';
 import CourrierTasksPage from './pages/courrier-tasks/CourrierTasksPage';
 import S5PaymentsPage from './pages/payments/S5PaymentsPage';
 import DashboardPage from './pages/dashboard/DashboardPage';
+import ReceptionDashboardPage from './pages/dashboard/ReceptionDashboardPage';
+import R3DashboardPage from './pages/dashboard/R3DashboardPage';
+import S5DashboardPage from './pages/dashboard/S5DashboardPage';
 
 const DN_ROLES = ['dn_agent', 'dn_supervisor', 'SU'];
 const DASHBOARD_ROLES = ['dn_agent', 'dn_supervisor', 'reception', 'assistant_dg', 's5_agent', 'r3_agent', 'SU'];
+const RECEPTION_ROLES = ['reception', 'assistant_dg', 'SU'];
 const DEEP_EVALUATION_ROLES = ['dn_agent', 'dn_supervisor', 's5_agent', 'SU'];
 const SITE_INSPECTION_ROLES = ['dn_agent', 'dn_supervisor', 's5_agent', 'r3_agent', 'SU'];
 const DELIVERY_ROLES = ['dn_agent', 'dn_supervisor', 's5_agent', 'SU'];
@@ -54,6 +58,24 @@ function RoleRoute({
 function HomeRoute() {
   const { user } = useAuth();
 
+  if (
+    hasAnyRole(user?.roles, ['s5_agent']) &&
+    !hasAnyRole(user?.roles, ['dn_agent', 'dn_supervisor', 'reception', 'assistant_dg', 'r3_agent'])
+  ) {
+    return <S5DashboardPage />;
+  }
+  if (
+    hasAnyRole(user?.roles, ['reception', 'assistant_dg']) &&
+    !hasAnyRole(user?.roles, ['dn_agent', 'dn_supervisor', 's5_agent', 'r3_agent'])
+  ) {
+    return <ReceptionDashboardPage />;
+  }
+  if (
+    hasAnyRole(user?.roles, ['r3_agent']) &&
+    !hasAnyRole(user?.roles, ['dn_agent', 'dn_supervisor', 'reception', 'assistant_dg', 's5_agent'])
+  ) {
+    return <R3DashboardPage />;
+  }
   if (hasAnyRole(user?.roles, DASHBOARD_ROLES)) return <DashboardPage />;
   return <AccessDenied />;
 }
@@ -135,7 +157,14 @@ function Gate() {
         />
 
         <Route path="mes-inspections" element={<MyInspectionsPage />} />
-        <Route path="courriers" element={<CourrierTasksPage />} />
+        <Route
+          path="courriers"
+          element={
+            <RoleRoute roles={RECEPTION_ROLES}>
+              <CourrierTasksPage />
+            </RoleRoute>
+          }
+        />
         <Route
           path="paiements-s5"
           element={
@@ -146,7 +175,14 @@ function Gate() {
         />
 
         <Route path="modeles-documents" element={<DocumentTemplatesPage />} />
-        <Route path="comptes-postulants" element={<AccountRequestsPage />} />
+        <Route
+          path="comptes-postulants"
+          element={
+            <RoleRoute roles={DN_ROLES}>
+              <AccountRequestsPage />
+            </RoleRoute>
+          }
+        />
         <Route path="utilisateurs" element={<UsersPage />} />
         <Route path="parametres" element={<SettingsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -3,6 +3,42 @@
 Commit-level history. Covers `be9fce9` through the current uncommitted
 2026-07-28 workflow hardening, document viewer, and Personnel ANAC users pass.
 
+## (uncommitted) - 2026-07-29 role dashboards: Reception and R3
+
+- Added `/api/dashboard/reception-summary` and a dedicated
+  `Tableau de bord - Accueil & Circuit signature` page for reception/assistant DG,
+  focused on courriers to print, signature returns, signature delays, alerts,
+  business activity, and period progress.
+- Removed postulant account management from reception/assistant DG scope: the
+  sidebar hides `Comptes postulants` for those roles and the API review routes are
+  now limited to `dn_agent`, `dn_supervisor`, and `SU`.
+- Enriched `/api/site-inspection/my-queue` so R3 missions include payment state,
+  visit state, inspection verdict, computed status, next action, priority, and timing.
+- Redesigned `Mes inspections` as a cockpit mission board with metrics, filters,
+  seven-day strip, dense table, selected mission panel, and R3-only actions.
+- Added `/api/dashboard/r3-summary` and a dedicated `Tableau de bord - Inspections
+  R3` page for pure `r3_agent` users, while keeping `Mes inspections` as the action
+  workbench.
+- Verified with `npm run typecheck --workspace @aidn/api`,
+  `npm run typecheck --workspace @aidn/admin`, `npm run build --workspace @aidn/api`,
+  and `npm run build --workspace @aidn/admin` (Vite large-chunk warning remains).
+
+## (uncommitted) - 2026-07-29 S5 dashboard V1
+
+- Added `/api/dashboard/s5-summary` for the S5 operational dashboard: invoices to
+  transmit, proofs to verify, validated/rejected payments, S5 workflow counters,
+  priority actions, recent invoices, proof queue, alerts, activity, and period
+  progress.
+- Added typed admin dashboard client/types and a new `Tableau de bord - Facturation
+  S5` page for `s5_agent` users.
+- Routed pure S5 users to the S5 dashboard on login while keeping `Paiements S5` as
+  their payment workbench.
+- Kept amount totals out of the dashboard because the current payment model does not
+  store invoice amounts yet.
+- Verified with `npm run typecheck --workspace @aidn/api`,
+  `npm run typecheck --workspace @aidn/admin`, `npm run build --workspace @aidn/api`,
+  and `npm run build --workspace @aidn/admin` (Vite large-chunk warning remains).
+
 ## (uncommitted) - 2026-07-29 operational cockpit UX pass
 
 - Redesigned `Courriers officiels` / circuit signature inbox around the same

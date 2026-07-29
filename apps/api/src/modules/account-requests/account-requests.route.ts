@@ -6,7 +6,7 @@ const router = Router();
 
 router.post('/', accountRequestsController.submit);
 
-router.use(authenticate, requireRole('reception', 'assistant_dg', 'dn_agent', 'dn_supervisor', 'SU'));
+router.use(authenticate, requireRole('dn_agent', 'dn_supervisor', 'SU'));
 
 router.get('/', accountRequestsController.list);
 router.get('/applicants', accountRequestsController.listApplicants);

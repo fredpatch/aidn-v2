@@ -40,7 +40,7 @@ const NAV_ITEMS: NavItem[] = [
     to: '/comptes-postulants',
     label: 'Comptes postulants',
     icon: UserCheck,
-    roles: ['reception', 'assistant_dg', 'dn_agent', 'dn_supervisor', 'SU'],
+    roles: ['dn_agent', 'dn_supervisor', 'SU'],
   },
   {
     to: '/courriers',

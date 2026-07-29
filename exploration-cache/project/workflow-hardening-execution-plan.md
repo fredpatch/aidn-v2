@@ -302,7 +302,9 @@ Expected deliverable:
 5. M6 role/permission + viewer pass - done.
 6. M7 workflow/status + viewer pass - done; certificate-ready notification remains.
 7. Operational screens redesign replay:
-   dashboard done; courrier inbox done; S5 inbox done with retained history.
+   dashboard done; courrier inbox done; S5 inbox done with retained history; S5
+   dashboard V1 done; Reception/Assistant dashboard V1 done; R3 mission board and
+   dashboard V1 done.
 8. Final end-to-end replay with all role users.
 9. M12 reporting continuation: exports, date range, monthly/manual report generation,
    and IA-assisted report review.

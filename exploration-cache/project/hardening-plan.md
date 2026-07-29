@@ -331,5 +331,17 @@ sans pouvoir les exécuter.
     queues, with invoice upload/record-as-sent, proof validation/rejection, in-app
     invoice/proof preview, and validated/rejected history retained after phase
     closure.
+- S5 dashboard V1 is done: `/api/dashboard/s5-summary` powers a dedicated
+  `Tableau de bord - Facturation S5` landing page for `s5_agent`, focused on
+  invoices to transmit, proofs to verify, validation/rejection history, alerts,
+  recent activity, and period progress. Amount totals remain intentionally omitted
+  until invoice amounts exist in the payment model.
+- Reception/Assistant DG dashboard V1 is done: `/api/dashboard/reception-summary`
+  powers a dedicated signature-circuit landing page. Postulant account review was
+  removed from Reception/Assistant scope and remains limited to DN/SU.
+- R3 dashboard V1 is done: `/api/dashboard/r3-summary` powers a dedicated
+  inspections landing page, while `Mes inspections` is now the R3 mission workbench
+  with assigned-mission table, filters, selected detail panel, visit-held action,
+  and Avis R3 submission.
 - Next priority: final role replay on the redesigned cockpit/dashboard, then E V1
   notifications and M12 exports/reports.

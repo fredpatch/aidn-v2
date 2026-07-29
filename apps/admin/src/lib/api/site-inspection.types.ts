@@ -40,10 +40,22 @@ export interface SiteInspectionBundle {
 
 export interface MyQueueItem {
   phaseId: number;
+  phaseStatus: string;
+  openedAt: string;
+  closedAt: string | null;
   requestId: number;
   requestReference: string;
+  requestType: string;
   organisationName: string;
+  payment: PaymentView | null;
   siteVisit: SiteVisitView | null;
+  inspection: InspectionView | null;
+  missionStatus: 'planned' | 'payment_pending' | 'to_hold' | 'report_due' | 'closed';
+  statusLabel: string;
+  nextAction: 'wait_payment' | 'mark_held' | 'submit_verdict' | 'consult';
+  nextActionLabel: string;
+  priority: 'haute' | 'moyenne' | 'basse';
+  waitingDays: number | null;
 }
 
 export interface PaymentQueueItem {

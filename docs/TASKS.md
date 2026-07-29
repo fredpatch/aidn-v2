@@ -471,6 +471,16 @@ reste un audit plus étroit des permissions fines côté UI.
 - [x] Dashboard frontend redesigné en cockpit opérationnel modulaire avec composants
       réutilisables (`DashboardMetricCard`, sections, alertes, actions, timelines)
       et libellés métier clarifiés (2026-07-29)
+- [x] Dashboard S5 V1 : endpoint `/api/dashboard/s5-summary` + page dédiée
+      `Tableau de bord - Facturation S5` pour `s5_agent`, avec KPIs factures/preuves,
+      flux S5, actions prioritaires, alertes, activité métier et progression période
+      sans afficher de montants fictifs tant que le modèle paiement ne les stocke pas
+      (2026-07-29)
+- [x] Dashboards métiers Reception/Assistant DG et R3 : endpoints
+      `/api/dashboard/reception-summary` et `/api/dashboard/r3-summary`, pages dédiées
+      en cockpit opérationnel, home routing par rôle pur, retrait de la gestion des
+      comptes postulants du périmètre Reception/Assistant, et redesign de `Mes
+      inspections` en tableau de missions R3 avec panneau de détail (2026-07-29)
 - [ ] Export PDF/Excel, plage de dates libre
 - [ ] Génération rapport mensuel automatique (1er du mois)
 - [ ] Génération manuelle à la demande (quota/jour à définir)
