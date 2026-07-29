@@ -29,6 +29,9 @@ Remaining themes:
 - C-V2 - extend `DocumentViewer` to M3, M4, M6, and M7. Done 2026-07-29.
 - D-V1 - collapsible cards, especially M4 and M5. Done 2026-07-29.
 - M12 dashboard KPI V1 - API summary + DN/SU dashboard landing page. Done 2026-07-29.
+- Operational cockpit redesign - workflow phases, dashboard, `Courriers officiels`,
+  and `Facturation S5` redesigned with dense inbox/detail-panel patterns. Done
+  2026-07-29.
 - E-V1 - notifications for certificate ready, document correction, and rejected dossier.
 
 ## Phase 1 - Applicant entrance, intake, and signature circuit
@@ -298,6 +301,8 @@ Expected deliverable:
 4. M5 collapsible cards - done; correction notification candidate remains.
 5. M6 role/permission + viewer pass - done.
 6. M7 workflow/status + viewer pass - done; certificate-ready notification remains.
-7. Final end-to-end replay with all role users.
-8. M12 reporting continuation: exports, date range, monthly/manual report generation,
+7. Operational screens redesign replay:
+   dashboard done; courrier inbox done; S5 inbox done with retained history.
+8. Final end-to-end replay with all role users.
+9. M12 reporting continuation: exports, date range, monthly/manual report generation,
    and IA-assisted report review.

@@ -3,6 +3,24 @@
 Commit-level history. Covers `be9fce9` through the current uncommitted
 2026-07-28 workflow hardening, document viewer, and Personnel ANAC users pass.
 
+## (uncommitted) - 2026-07-29 operational cockpit UX pass
+
+- Redesigned `Courriers officiels` / circuit signature inbox around the same
+  cockpit pattern as the workflow screens: KPI cards, bucket tabs, search/sort,
+  dense courrier table, selected courrier work panel, circuit timeline, and
+  integrated `DocumentViewer` previews.
+- Kept courrier actions scoped to reception/assistant DG/SU and made quick dossier
+  access role-aware so non-DN users do not get links to DN-only phase workspaces.
+- Redesigned `Paiements S5` as a payment cockpit over M5/M6/M7 queues: factures
+  reçues à transmettre, preuves attendues, preuves à valider, validated/rejected
+  history, selected payment detail panel, in-app invoice/proof previews, invoice
+  upload, proof validation, and proof rejection.
+- Updated S5 payment queue APIs to include historical validated/rejected payment
+  records after phase closure so approvals no longer disappear from the S5 inbox.
+- Verified with `npm run typecheck --workspace @aidn/api`,
+  `npm run typecheck --workspace @aidn/admin`, `npm run build --workspace @aidn/api`,
+  and `npm run build --workspace @aidn/admin` (Vite large-chunk warning remains).
+
 ## (uncommitted) - 2026-07-29 dashboard KPI V1
 
 - Added API module `/api/dashboard/summary` for DN/SU dashboard indicators:
@@ -13,6 +31,11 @@ Commit-level history. Covers `be9fce9` through the current uncommitted
 - Added DN/SU `Tableau de bord` page as the admin home screen, with the request
   list moved to `/demandes`.
 - Updated admin navigation with separate `Tableau de bord` and `Demandes` entries.
+- Added dashboard SLA/delay targets as configurable `system_parameters` for M12
+  while keeping safe fallbacks in the API service.
+- Made dashboard actions role-aware: operational owners get actionable rows,
+  DN/SU can monitor non-owned actions read-only, and dashboard access is now open
+  to the current operational roles while preserving their dedicated inboxes.
 - Verified with `npm run typecheck --workspace @aidn/api` and
   `npm run typecheck --workspace @aidn/admin`.
 

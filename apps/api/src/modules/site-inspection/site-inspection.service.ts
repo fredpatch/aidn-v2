@@ -172,7 +172,7 @@ export async function getPaymentQueue(): Promise<PaymentQueueItem[]> {
     .innerJoin(requests, eq(phases.requestId, requests.id))
     .innerJoin(organisations, eq(requests.organisationId, organisations.id))
     .innerJoin(payments, eq(payments.phaseId, phases.id))
-    .where(and(eq(phases.phaseCode, 'M6'), eq(phases.status, 'open')))
+    .where(eq(phases.phaseCode, 'M6'))
     .orderBy(desc(phases.openedAt));
 
   return rows.map((row) => ({

@@ -20,6 +20,7 @@ import S5PaymentsPage from './pages/payments/S5PaymentsPage';
 import DashboardPage from './pages/dashboard/DashboardPage';
 
 const DN_ROLES = ['dn_agent', 'dn_supervisor', 'SU'];
+const DASHBOARD_ROLES = ['dn_agent', 'dn_supervisor', 'reception', 'assistant_dg', 's5_agent', 'r3_agent', 'SU'];
 const DEEP_EVALUATION_ROLES = ['dn_agent', 'dn_supervisor', 's5_agent', 'SU'];
 const SITE_INSPECTION_ROLES = ['dn_agent', 'dn_supervisor', 's5_agent', 'r3_agent', 'SU'];
 const DELIVERY_ROLES = ['dn_agent', 'dn_supervisor', 's5_agent', 'SU'];
@@ -53,12 +54,7 @@ function RoleRoute({
 function HomeRoute() {
   const { user } = useAuth();
 
-  if (hasAnyRole(user?.roles, DN_ROLES)) return <DashboardPage />;
-  if (hasAnyRole(user?.roles, ['reception', 'assistant_dg'])) {
-    return <Navigate to="/courriers" replace />;
-  }
-  if (hasAnyRole(user?.roles, ['r3_agent'])) return <Navigate to="/mes-inspections" replace />;
-  if (hasAnyRole(user?.roles, ['s5_agent'])) return <Navigate to="/paiements-s5" replace />;
+  if (hasAnyRole(user?.roles, DASHBOARD_ROLES)) return <DashboardPage />;
   return <AccessDenied />;
 }
 

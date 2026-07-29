@@ -2,11 +2,13 @@ import { and, desc, eq, gte, lt, sql } from 'drizzle-orm';
 import { db } from '../../shared/db/index.js';
 import {
   auditLogs,
+  applicants,
   certificates,
   dgCircuitDocuments,
   documentEvaluations,
   formalRequestDocuments,
   meetings,
+  organisations,
   payments,
   phases,
   requests,
@@ -24,6 +26,7 @@ import type {
   DashboardStatusStat,
   DashboardSummary,
 } from './dashboard.types.js';
+import { getIntegerValue } from '../system-parameters/system-parameters.service.js';
 
 const PHASE_LABELS: Record<string, string> = {
   M3: 'Preliminaire',
@@ -31,6 +34,18 @@ const PHASE_LABELS: Record<string, string> = {
   M5: 'Evaluation approfondie',
   M6: 'Demonstration / Inspection',
   M7: 'Delivrance',
+};
+
+const DASHBOARD_SLA_DEFAULTS = {
+  phaseM3Days: 15,
+  phaseM4Days: 20,
+  phaseM5Days: 30,
+  phaseM6Days: 30,
+  phaseM7Days: 10,
+  signatureDepositDays: 1,
+  invoiceUploadDays: 2,
+  paymentValidationDays: 1,
+  documentEvaluationDays: 2,
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -44,6 +59,69 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const TERMINAL_REQUEST_STATUSES = ['rejected', 'completed', 'cancelled'];
+const TECHNICAL_AUDIT_ACTIONS = ['LOGIN', 'AUTH_REFRESH', 'LOGOUT'];
+const DASHBOARD_MONITORING_ROLES = ['dn_agent', 'dn_supervisor', 'SU'];
+
+type DashboardSlaStatus = DashboardActionItem['slaStatus'];
+
+interface DashboardSlaConfig {
+  phaseTargets: Record<string, number>;
+  signatureDepositDays: number;
+  signatureReturnDays: number;
+  invoiceUploadDays: number;
+  paymentValidationDays: number;
+  documentEvaluationDays: number;
+}
+
+async function loadDashboardSlaConfig(): Promise<DashboardSlaConfig> {
+  const [
+    phaseM3Days,
+    phaseM4Days,
+    phaseM5Days,
+    phaseM6Days,
+    phaseM7Days,
+    signatureDepositDays,
+    signatureReturnDays,
+    invoiceUploadDays,
+    paymentValidationDays,
+    documentEvaluationDays,
+  ] = await Promise.all([
+    getIntegerValue('dashboard_sla_phase_m3_days', DASHBOARD_SLA_DEFAULTS.phaseM3Days),
+    getIntegerValue('dashboard_sla_phase_m4_days', DASHBOARD_SLA_DEFAULTS.phaseM4Days),
+    getIntegerValue('dashboard_sla_phase_m5_days', DASHBOARD_SLA_DEFAULTS.phaseM5Days),
+    getIntegerValue('dashboard_sla_phase_m6_days', DASHBOARD_SLA_DEFAULTS.phaseM6Days),
+    getIntegerValue('dashboard_sla_phase_m7_days', DASHBOARD_SLA_DEFAULTS.phaseM7Days),
+    getIntegerValue(
+      'dashboard_sla_signature_deposit_days',
+      DASHBOARD_SLA_DEFAULTS.signatureDepositDays
+    ),
+    getIntegerValue('dg_circuit_alert_days', 3),
+    getIntegerValue('dashboard_sla_invoice_upload_days', DASHBOARD_SLA_DEFAULTS.invoiceUploadDays),
+    getIntegerValue(
+      'dashboard_sla_payment_validation_days',
+      DASHBOARD_SLA_DEFAULTS.paymentValidationDays
+    ),
+    getIntegerValue(
+      'dashboard_sla_document_evaluation_days',
+      DASHBOARD_SLA_DEFAULTS.documentEvaluationDays
+    ),
+  ]);
+
+  return {
+    phaseTargets: {
+      M3: phaseM3Days,
+      M4: phaseM4Days,
+      M5: phaseM5Days,
+      M6: phaseM6Days,
+      M7: phaseM7Days,
+    },
+    signatureDepositDays,
+    signatureReturnDays,
+    invoiceUploadDays,
+    paymentValidationDays,
+    documentEvaluationDays,
+  };
+}
 
 function startOfDay(date: Date): Date {
   const copy = new Date(date);
@@ -97,11 +175,22 @@ function percent(part: number, total: number): number {
 }
 
 function trend(current: number, previous: number): DashboardMetric['trend'] {
+  if (current + previous < 5) {
+    if (current === previous) {
+      return { value: 'Stable', direction: 'flat', tone: 'muted' };
+    }
+    const delta = current - previous;
+    return {
+      value: `${delta > 0 ? '+' : ''}${delta} dossier${Math.abs(delta) > 1 ? 's' : ''}`,
+      direction: delta > 0 ? 'up' : 'down',
+      tone: delta >= 0 ? 'success' : 'warning',
+    };
+  }
   if (previous === 0 && current === 0) {
-    return { value: '0%', direction: 'flat', tone: 'muted' };
+    return { value: 'Stable', direction: 'flat', tone: 'muted' };
   }
   if (previous === 0) {
-    return { value: '+100%', direction: 'up', tone: 'success' };
+    return { value: 'Nouvelle activite', direction: 'up', tone: 'success' };
   }
   const delta = Math.round(((current - previous) / previous) * 100);
   return {
@@ -119,6 +208,94 @@ function priorityFromAge(date: Date | string | null): DashboardActionItem['prior
   return 'basse';
 }
 
+function slaStatusFromWaitingDays(
+  waitingDays: number | null | undefined,
+  targetDays: number
+): DashboardSlaStatus {
+  if (waitingDays === null || waitingDays === undefined) return 'unknown';
+  if (waitingDays > targetDays) return 'overdue';
+  if (waitingDays >= Math.max(targetDays - 1, 1)) return 'warning';
+  return 'on_track';
+}
+
+function slaLabel(status: DashboardSlaStatus, targetDays: number, overdueDays?: number | null): string {
+  if (status === 'unknown') return 'Delai non mesure';
+  if (status === 'overdue') return `Delai depasse${overdueDays ? ` de ${overdueDays} j` : ''}`;
+  if (status === 'warning') return `Echeance proche (${targetDays} j cible)`;
+  if (status === 'blocked') return 'Blocage operationnel';
+  return `Dans les temps (${targetDays} j cible)`;
+}
+
+function enrichActionDelay<T extends DashboardActionItem>(
+  action: T,
+  targetDays: number,
+  blockingStatus: DashboardSlaStatus = 'overdue'
+): T {
+  const waitingDays = action.waitingDays ?? null;
+  const computedStatus = slaStatusFromWaitingDays(waitingDays, targetDays);
+  const status =
+    computedStatus === 'overdue' && blockingStatus === 'blocked' ? 'blocked' : computedStatus;
+  const overdueDays =
+    waitingDays !== null && waitingDays !== undefined && waitingDays > targetDays
+      ? Math.round((waitingDays - targetDays) * 10) / 10
+      : null;
+  return {
+    ...action,
+    slaTargetDays: targetDays,
+    slaStatus: status,
+    slaLabel: slaLabel(status, targetDays, overdueDays),
+    overdueDays,
+    priority:
+      status === 'blocked' || status === 'overdue'
+        ? 'haute'
+        : status === 'warning'
+          ? 'moyenne'
+          : action.priority,
+  };
+}
+
+function hasAnyRole(userRoles: string[], allowedRoles: string[]): boolean {
+  return allowedRoles.some((role) => userRoles.includes(role));
+}
+
+function actionAccess(
+  userRoles: string[],
+  actionRoles: string[]
+): Pick<DashboardActionItem, 'actionRoles' | 'canAct' | 'accessLabel'> {
+  const hasOperationalRole = hasAnyRole(
+    userRoles.filter((role) => role !== 'SU'),
+    actionRoles
+  );
+  return {
+    actionRoles,
+    canAct: hasOperationalRole,
+    accessLabel: hasOperationalRole ? 'Action a traiter' : 'Suivi lecture seule',
+  };
+}
+
+function alertAccess(
+  userRoles: string[],
+  actionRoles: string[]
+): Pick<DashboardAlert, 'actionRoles' | 'canAct' | 'accessLabel'> {
+  const access = actionAccess(userRoles, actionRoles);
+  return access;
+}
+
+function shouldShowAction(userRoles: string[], actionRoles: string[]): boolean {
+  return hasAnyRole(userRoles, actionRoles) || hasAnyRole(userRoles, DASHBOARD_MONITORING_ROLES);
+}
+
+function hrefForRoles(userRoles: string[], allowedRoles: string[], href: string): string | undefined {
+  return hasAnyRole(userRoles, allowedRoles) ? href : undefined;
+}
+
+function waitingLabel(date: Date | string | null): string {
+  const waitingDays = daysBetween(date, new Date());
+  if (waitingDays === null) return 'Delai non mesure';
+  if (waitingDays < 1) return "Aujourd'hui";
+  return `${waitingDays} j d'attente`;
+}
+
 function activityTone(action: string): DashboardActivityItem['tone'] {
   if (action.includes('REJECT') || action.includes('CANCEL')) return 'danger';
   if (action.includes('VALIDATED') || action.includes('CLOSED') || action.includes('COLLECTED')) {
@@ -126,6 +303,49 @@ function activityTone(action: string): DashboardActivityItem['tone'] {
   }
   if (action.includes('SIGN') || action.includes('PAYMENT')) return 'warning';
   return 'info';
+}
+
+function businessActivityLabel(action: string): string | null {
+  if (TECHNICAL_AUDIT_ACTIONS.some((technicalAction) => action.includes(technicalAction))) {
+    return null;
+  }
+  if (action.includes('PHASE') && action.includes('CLOSED')) return 'Phase cloturee';
+  if (action.includes('CERTIFICATE') && action.includes('STATUS')) {
+    return 'Statut certificat mis a jour';
+  }
+  if (action.includes('CERTIFICATE') && action.includes('COLLECTED')) {
+    return 'Certificat retire';
+  }
+  if (action.includes('PAYMENT') && action.includes('VALIDATED')) {
+    return 'Paiement valide';
+  }
+  if (action.includes('PAYMENT') && action.includes('REJECT')) {
+    return 'Paiement rejete';
+  }
+  if (action.includes('DOCUMENT') && action.includes('VALIDATED')) {
+    return 'Document accepte';
+  }
+  if (action.includes('DOCUMENT') && action.includes('REJECT')) {
+    return 'Document a reprendre';
+  }
+  if (action.includes('SIGN') || action.includes('CIRCUIT')) {
+    return 'Circuit signature mis a jour';
+  }
+  if (action.includes('MEETING')) return 'Reunion mise a jour';
+  if (action.includes('REQUEST')) return 'Demande mise a jour';
+  return action.replaceAll('_', ' ').toLowerCase();
+}
+
+function resolveDashboardRequestStatus(
+  request: typeof requests.$inferSelect,
+  phaseRows: Array<typeof phases.$inferSelect>
+): string {
+  if (TERMINAL_REQUEST_STATUSES.includes(request.status)) return request.status;
+  const deliveryPhase = phaseRows.find(
+    (phase) => phase.requestId === request.id && phase.phaseCode === 'M7'
+  );
+  if (deliveryPhase?.status === 'closed') return 'completed';
+  return request.status;
 }
 
 async function countRequestsBetween(start: Date, end: Date): Promise<number> {
@@ -137,10 +357,12 @@ async function countRequestsBetween(start: Date, end: Date): Promise<number> {
 }
 
 export async function getDashboardSummary(
-  period: DashboardPeriod = 'this_month'
+  period: DashboardPeriod = 'this_month',
+  userRoles: string[] = []
 ): Promise<DashboardSummary> {
   const { start, end } = periodBounds(period);
   const previous = previousBounds(start, end);
+  const slaConfig = await loadDashboardSlaConfig();
 
   const [
     requestRows,
@@ -151,6 +373,8 @@ export async function getDashboardSummary(
     certificateRows,
     formalDocumentRows,
     evaluationRows,
+    applicantRows,
+    organisationRows,
     recentAuditRows,
     currentRequestVolume,
     previousRequestVolume,
@@ -163,6 +387,8 @@ export async function getDashboardSummary(
     db.select().from(certificates),
     db.select().from(formalRequestDocuments),
     db.select().from(documentEvaluations),
+    db.select().from(applicants),
+    db.select().from(organisations),
     db
       .select({
         id: auditLogs.id,
@@ -175,19 +401,39 @@ export async function getDashboardSummary(
       .from(auditLogs)
       .leftJoin(users, eq(auditLogs.userId, users.id))
       .orderBy(desc(auditLogs.createdAt))
-      .limit(3),
+      .limit(12),
     countRequestsBetween(start, end),
     countRequestsBetween(previous.start, previous.end),
   ]);
 
   const requestById = new Map(requestRows.map((request) => [request.id, request]));
   const phaseById = new Map(phaseRows.map((phase) => [phase.id, phase]));
+  const resolvedRequestStatusById = new Map(
+    requestRows.map((request) => [request.id, resolveDashboardRequestStatus(request, phaseRows)])
+  );
+  const applicantById = new Map(applicantRows.map((applicant) => [applicant.id, applicant]));
+  const organisationById = new Map(
+    organisationRows.map((organisation) => [organisation.id, organisation])
+  );
+
+  function requestContext(requestId: number | undefined): Pick<
+    DashboardActionItem,
+    'dossierReference' | 'organisationName' | 'applicantName'
+  > {
+    if (!requestId) return { dossierReference: 'Demande -' };
+    const request = requestById.get(requestId);
+    const applicant = request ? applicantById.get(request.applicantId) : null;
+    const organisation = request ? organisationById.get(request.organisationId) : null;
+    return {
+      dossierReference: request?.reference ?? `Demande #${requestId}`,
+      organisationName: organisation?.name,
+      applicantName: applicant?.fullName,
+    };
+  }
   const activeRequests = requestRows.filter(
-    (request) => !TERMINAL_REQUEST_STATUSES.includes(request.status)
+    (request) => !TERMINAL_REQUEST_STATUSES.includes(resolvedRequestStatusById.get(request.id) ?? request.status)
   ).length;
-  const openDossiers = new Set(
-    phaseRows.filter((phase) => phase.status === 'open').map((phase) => phase.requestId)
-  ).size;
+  const openPhases = phaseRows.filter((phase) => phase.status === 'open').length;
   const pendingDgCircuit = circuitRows.filter((circuit) =>
     ['submitted', 'in_signature_circuit', 'signed'].includes(circuit.status)
   ).length;
@@ -218,34 +464,54 @@ export async function getDashboardSummary(
   const metrics: DashboardMetric[] = [
     {
       key: 'active_requests',
-      label: 'Demandes actives',
+      label: 'Dossiers actifs',
       value: activeRequests,
       trend: trend(currentRequestVolume, previousRequestVolume),
-      helper: 'Dossiers non termines',
+      helper: 'Non clotures / non rejetes',
+      definition: 'Demandes dont le statut n est pas termine, rejete ou annule.',
+      periodLabel: 'Etat actuel',
+      sampleSize: requestRows.length,
+      href: hrefForRoles(userRoles, ['dn_agent', 'dn_supervisor', 'SU'], '/demandes'),
     },
     {
-      key: 'opened_dossiers',
-      label: 'Dossiers ouverts',
-      value: openDossiers,
-      helper: 'Au moins une phase ouverte',
+      key: 'open_phases',
+      label: 'Phases ouvertes',
+      value: openPhases,
+      helper: 'Phases M3-M7 en cours',
+      definition: 'Nombre de phases de traitement actuellement ouvertes, tous dossiers confondus.',
+      periodLabel: 'Etat actuel',
+      sampleSize: phaseRows.length,
+      href: hrefForRoles(userRoles, ['dn_agent', 'dn_supervisor', 'SU'], '/demandes'),
     },
     {
       key: 'average_global_duration',
       label: 'Duree moyenne globale',
       value: averageGlobalDuration === null ? '-' : `${averageGlobalDuration} j`,
-      helper: 'Demande entree -> retrait',
+      helper: 'Entree -> retrait physique',
+      definition:
+        'Duree calendaire moyenne entre la creation de la demande et le retrait du certificat, calculee sur les certificats deja retires.',
+      periodLabel: 'Historique retire',
+      sampleSize: completedGlobalDurations.filter((value) => value !== null).length,
     },
     {
       key: 'pending_dg_mail',
-      label: 'Courriers en attente DG',
+      label: 'En attente signature',
       value: pendingDgCircuit,
-      helper: 'Signature ou retour attendu',
+      helper: 'Courriers en circuit',
+      definition: 'Courriers deposes, en signature ou signes mais pas encore transmis au traitement.',
+      periodLabel: 'Etat actuel',
+      sampleSize: circuitRows.length,
+      href: hrefForRoles(userRoles, ['reception', 'assistant_dg', 'SU'], '/courriers'),
     },
     {
       key: 'pending_payments',
-      label: 'Paiements en attente',
+      label: 'Paiements bloquants',
       value: pendingPayments,
       helper: 'Facture, preuve ou validation',
+      definition: 'Paiements qui bloquent une phase: facture attendue, preuve attendue ou validation S5 attendue.',
+      periodLabel: 'Etat actuel',
+      sampleSize: paymentRows.length,
+      href: hrefForRoles(userRoles, ['s5_agent', 'SU'], '/paiements-s5'),
     },
   ];
 
@@ -253,22 +519,53 @@ export async function getDashboardSummary(
   const workflow: DashboardPhaseStat[] = ['M3', 'M4', 'M5', 'M6', 'M7'].map((phaseCode) => {
     const rows = phaseRows.filter((phase) => phase.phaseCode === phaseCode);
     const openCount = rows.filter((phase) => phase.status === 'open').length;
+    const openDurations = rows
+      .filter((phase) => phase.status === 'open')
+      .map((phase) => daysBetween(phase.openedAt, new Date()));
     const closedDurations = rows
       .filter((phase) => phase.closedAt)
       .map((phase) => daysBetween(phase.openedAt, phase.closedAt));
+    const slaTargetDays = slaConfig.phaseTargets[phaseCode];
+    const slaBreachCount = openDurations.filter(
+      (duration): duration is number => duration !== null && duration > slaTargetDays
+    ).length;
+    const activeAverageAgeDays = average(openDurations);
+    const status =
+      openCount === 0
+        ? 'unknown'
+        : slaBreachCount > 0
+          ? 'overdue'
+          : activeAverageAgeDays !== null && activeAverageAgeDays >= Math.max(slaTargetDays - 2, 1)
+            ? 'warning'
+            : 'on_track';
     return {
       phaseCode,
       label: PHASE_LABELS[phaseCode],
       count: openCount,
       percentage: percent(openCount, totalOpenPhases),
       averageDurationDays: average(closedDurations),
+      activeAverageAgeDays,
+      slaTargetDays,
+      slaBreachCount,
+      slaStatus: status,
+      slaLabel:
+        openCount === 0
+          ? `Cible de suivi: ${slaTargetDays} j`
+          : slaLabel(status, slaTargetDays, slaBreachCount > 0 ? slaBreachCount : null),
+      emptyLabel: openCount === 0 ? 'Aucun dossier actif' : undefined,
+      durationLabel:
+        closedDurations.filter((duration): duration is number => duration !== null).length === 0
+          ? 'Pas encore de duree cloturee'
+          : undefined,
     };
   });
 
   const totalRequests = requestRows.length;
   const statusDistribution: DashboardStatusStat[] = Object.entries(STATUS_LABELS)
     .map(([status, label]) => {
-      const count = requestRows.filter((request) => request.status === status).length;
+      const count = requestRows.filter(
+        (request) => (resolvedRequestStatusById.get(request.id) ?? request.status) === status
+      ).length;
       return { status, label, count, percentage: percent(count, totalRequests) };
     })
     .filter((item) => item.count > 0);
@@ -278,41 +575,72 @@ export async function getDashboardSummary(
     .slice(0, 4)
     .map((payment) => {
       const phase = phaseById.get(payment.phaseId);
-      const request = phase ? requestById.get(phase.requestId) : null;
-      return {
+      const context = requestContext(phase?.requestId);
+      const submittedAt = payment.proofUploadedAt ?? payment.invoiceUploadedAt ?? null;
+      const targetDays =
+        payment.status === 'awaiting_invoice'
+          ? slaConfig.invoiceUploadDays
+          : slaConfig.paymentValidationDays;
+      return enrichActionDelay({
         id: `payment-${payment.id}`,
         owner: 'S5',
-        dossierReference: request?.reference ?? `Demande #${phase?.requestId ?? '-'}`,
+        responsibleService: 'Facturation S5',
+        ...actionAccess(userRoles, ['s5_agent']),
+        ...context,
         title:
           payment.status === 'awaiting_invoice'
             ? 'Envoyer la facture au postulant'
             : 'Valider la preuve de paiement',
-        submittedAt:
-          (payment.proofUploadedAt ?? payment.invoiceUploadedAt ?? null)?.toISOString() ?? null,
-        priority: priorityFromAge(payment.proofUploadedAt ?? payment.invoiceUploadedAt),
+        submittedAt: submittedAt?.toISOString() ?? null,
+        waitingDays: daysBetween(submittedAt, new Date()),
+        waitingLabel: waitingLabel(submittedAt),
+        blockingReason:
+          payment.status === 'awaiting_invoice'
+            ? 'La phase attend la facture avant la preuve de paiement.'
+            : 'La phase attend la decision S5 sur la preuve de paiement.',
+        priority: priorityFromAge(submittedAt),
         href: phase
           ? `/demandes/${phase.requestId}/${phase.phaseCode === 'M7' ? 'delivrance' : phase.phaseCode === 'M6' ? 'demonstration-inspection' : 'evaluation-approfondie'}`
           : undefined,
-      };
+      }, targetDays, 'blocked');
     });
 
   const signatureActions: DashboardActionItem[] = circuitRows
     .filter((circuit) => ['submitted', 'in_signature_circuit', 'signed'].includes(circuit.status))
     .slice(0, 4)
-    .map((circuit) => ({
-      id: `circuit-${circuit.id}`,
-      owner:
-        circuit.entityType === 'formal_request_letter' ? 'Reception / Assistant DG' : 'Reception',
-      dossierReference:
-        requestById.get(circuit.requestId)?.reference ?? `Demande #${circuit.requestId}`,
-      title:
+    .map((circuit) => {
+      const waitingFrom = circuit.signatureSentAt ?? circuit.depositedAt;
+      return enrichActionDelay(
+        {
+          id: `circuit-${circuit.id}`,
+          owner:
+            circuit.entityType === 'formal_request_letter'
+              ? 'Reception / Assistant DG'
+              : 'Reception',
+          responsibleService: 'Circuit signature',
+          ...actionAccess(userRoles, ['reception', 'assistant_dg']),
+          ...requestContext(circuit.requestId),
+          title:
+            circuit.status === 'submitted'
+              ? 'Ouvrir / imprimer le courrier'
+              : 'Scanner le retour signe',
+          submittedAt: circuit.depositedAt.toISOString(),
+          dueAt: circuit.signatureSentAt?.toISOString() ?? null,
+          waitingDays: daysBetween(waitingFrom, new Date()),
+          waitingLabel: waitingLabel(waitingFrom),
+          blockingReason:
+            circuit.status === 'submitted'
+              ? 'Le courrier doit etre imprime puis mis en circuit signature.'
+              : 'Le retour signe doit etre scanne pour transmettre le dossier au traitement.',
+          priority: priorityFromAge(circuit.depositedAt),
+          href: '/courriers',
+        },
         circuit.status === 'submitted'
-          ? 'Ouvrir / imprimer le courrier'
-          : 'Scanner le retour signe',
-      submittedAt: circuit.depositedAt.toISOString(),
-      priority: priorityFromAge(circuit.depositedAt),
-      href: '/courriers',
-    }));
+          ? slaConfig.signatureDepositDays
+          : slaConfig.signatureReturnDays,
+        'blocked'
+      );
+    });
 
   const documentActions: DashboardActionItem[] = evaluationRows
     .filter((evaluation) => evaluation.verdict === null)
@@ -322,19 +650,26 @@ export async function getDashboardSummary(
         (document) => document.id === evaluation.formalRequestDocumentId
       );
       const phase = formalDocument ? phaseById.get(formalDocument.phaseId) : null;
-      const request = phase ? requestById.get(phase.requestId) : null;
-      return {
+      const context = requestContext(phase?.requestId);
+      return enrichActionDelay({
         id: `evaluation-${evaluation.id}`,
         owner: 'DN',
-        dossierReference: request?.reference ?? `Demande #${phase?.requestId ?? '-'}`,
+        responsibleService: 'Direction de la Navigabilite',
+        ...actionAccess(userRoles, ['dn_agent', 'dn_supervisor']),
+        ...context,
         title: 'Evaluer un document formel',
         submittedAt: formalDocument?.submittedAt?.toISOString() ?? null,
+        dueAt: evaluation.correctionDeadline?.toISOString() ?? null,
+        waitingDays: daysBetween(formalDocument?.submittedAt ?? null, new Date()),
+        waitingLabel: waitingLabel(formalDocument?.submittedAt ?? null),
+        blockingReason: 'Le dossier attend un verdict DN sur une piece documentaire.',
         priority: priorityFromAge(formalDocument?.submittedAt ?? null),
         href: phase ? `/demandes/${phase.requestId}/evaluation-approfondie` : undefined,
-      };
+      }, slaConfig.documentEvaluationDays);
     });
 
   const actions = [...signatureActions, ...paymentActions, ...documentActions]
+    .filter((action) => shouldShowAction(userRoles, action.actionRoles))
     .sort((a, b) => {
       const priorityOrder = { haute: 0, moyenne: 1, basse: 2 };
       return priorityOrder[a.priority] - priorityOrder[b.priority];
@@ -362,14 +697,21 @@ export async function getDashboardSummary(
       };
     });
 
-  const activity: DashboardActivityItem[] = recentAuditRows.map((row) => ({
-    id: row.id,
-    title: row.action.replaceAll('_', ' ').toLowerCase(),
-    requestReference: row.entityId ? `#${row.entityId}` : null,
-    actor: row.actor ?? 'Systeme',
-    createdAt: row.createdAt.toISOString(),
-    tone: activityTone(row.action),
-  }));
+  const activity: DashboardActivityItem[] = recentAuditRows
+    .map((row) => {
+      const title = businessActivityLabel(row.action);
+      if (!title) return null;
+      return {
+        id: row.id,
+        title,
+        requestReference: row.entityId ? `#${row.entityId}` : null,
+        actor: row.actor ?? 'Systeme',
+        createdAt: row.createdAt.toISOString(),
+        tone: activityTone(row.action),
+      };
+    })
+    .filter((item): item is DashboardActivityItem => item !== null)
+    .slice(0, 3);
 
   const missingFormalDocumentRequests = new Set(
     formalDocumentRows
@@ -392,7 +734,8 @@ export async function getDashboardSummary(
       value: `${missingFormalDocuments} dossier${missingFormalDocuments > 1 ? 's' : ''}`,
       helper: 'En attente de documents obligatoires',
       tone: missingFormalDocuments > 0 ? 'danger' : 'info',
-      href: '/demandes',
+      ...alertAccess(userRoles, ['dn_agent', 'dn_supervisor']),
+      href: hrefForRoles(userRoles, ['dn_agent', 'dn_supervisor', 'SU'], '/demandes'),
     },
     {
       key: 'pending_dg',
@@ -400,7 +743,8 @@ export async function getDashboardSummary(
       value: pendingDgCircuit,
       helper: 'Courriers en circuit signature',
       tone: pendingDgCircuit > 0 ? 'warning' : 'info',
-      href: '/courriers',
+      ...alertAccess(userRoles, ['reception', 'assistant_dg']),
+      href: hrefForRoles(userRoles, ['reception', 'assistant_dg', 'SU'], '/courriers'),
     },
     {
       key: 'pending_payments',
@@ -408,7 +752,8 @@ export async function getDashboardSummary(
       value: pendingPayments,
       helper: 'Facture, preuve ou validation',
       tone: pendingPayments > 0 ? 'danger' : 'info',
-      href: '/paiements-s5',
+      ...alertAccess(userRoles, ['s5_agent']),
+      href: hrefForRoles(userRoles, ['s5_agent', 'SU'], '/paiements-s5'),
     },
     {
       key: 'overdue_corrections',
@@ -416,7 +761,8 @@ export async function getDashboardSummary(
       value: overdueCorrections,
       helper: 'Corrections documentaires en retard',
       tone: overdueCorrections > 0 ? 'warning' : 'info',
-      href: '/demandes',
+      ...alertAccess(userRoles, ['dn_agent', 'dn_supervisor']),
+      href: hrefForRoles(userRoles, ['dn_agent', 'dn_supervisor', 'SU'], '/demandes'),
     },
   ];
 
@@ -436,6 +782,8 @@ export async function getDashboardSummary(
       value: `${closedThisPeriod} / ${Math.max(currentRequestVolume, closedThisPeriod)}`,
       percentage: percent(closedThisPeriod, Math.max(currentRequestVolume, closedThisPeriod)),
       tone: 'success',
+      helper: 'Phases de delivrance cloturees sur le volume entrant de la periode.',
+      denominator: Math.max(currentRequestVolume, closedThisPeriod),
     },
     {
       label: 'Demandes recues sur la periode',
@@ -446,12 +794,16 @@ export async function getDashboardSummary(
         Math.max(previousRequestVolume, currentRequestVolume, 1)
       ),
       tone: 'info',
+      helper: 'Demandes creees dans la periode selectionnee.',
+      denominator: Math.max(previousRequestVolume, currentRequestVolume, 1),
     },
     {
       label: 'Taux de conformite documentaire',
       value: `${complianceRate}%`,
       percentage: complianceRate,
       tone: complianceRate >= 80 ? 'success' : 'warning',
+      helper: `${validatedEvaluations} document${validatedEvaluations > 1 ? 's' : ''} accepte${validatedEvaluations > 1 ? 's' : ''} sur ${totalEvaluations}.`,
+      denominator: totalEvaluations,
     },
     {
       label: 'Agrements / reconnaissances delivres',
@@ -461,6 +813,8 @@ export async function getDashboardSummary(
         Math.max(currentRequestVolume, deliveredCertificates)
       ),
       tone: 'success',
+      helper: 'Certificats retires physiquement pendant la periode.',
+      denominator: Math.max(currentRequestVolume, deliveredCertificates),
     },
   ];
 

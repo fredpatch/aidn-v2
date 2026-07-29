@@ -29,7 +29,12 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { to: '/', label: 'Tableau de bord', icon: LayoutDashboard, roles: ['dn_agent', 'dn_supervisor', 'SU'] },
+  {
+    to: '/',
+    label: 'Tableau de bord',
+    icon: LayoutDashboard,
+    roles: ['dn_agent', 'dn_supervisor', 'reception', 'assistant_dg', 's5_agent', 'r3_agent', 'SU'],
+  },
   { to: '/demandes', label: 'Demandes', icon: Inbox, roles: ['dn_agent', 'dn_supervisor', 'SU'] },
   {
     to: '/comptes-postulants',

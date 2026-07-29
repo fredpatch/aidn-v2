@@ -1,10 +1,15 @@
 export type DashboardPeriod = 'this_month' | 'last_30_days' | 'quarter' | 'year';
+export type DashboardSlaStatus = 'on_track' | 'warning' | 'overdue' | 'blocked' | 'unknown';
 
 export interface DashboardMetric {
   key: string;
   label: string;
   value: string | number;
   helper?: string;
+  definition?: string;
+  periodLabel?: string;
+  sampleSize?: number;
+  href?: string;
   trend?: {
     value: string;
     direction: 'up' | 'down' | 'flat';
@@ -18,6 +23,13 @@ export interface DashboardPhaseStat {
   count: number;
   percentage: number;
   averageDurationDays: number | null;
+  activeAverageAgeDays?: number | null;
+  slaTargetDays?: number;
+  slaBreachCount?: number;
+  slaStatus?: DashboardSlaStatus;
+  slaLabel?: string;
+  emptyLabel?: string;
+  durationLabel?: string;
 }
 
 export interface DashboardStatusStat {
@@ -30,9 +42,23 @@ export interface DashboardStatusStat {
 export interface DashboardActionItem {
   id: string;
   owner: string;
+  responsibleService: string;
+  actionRoles: string[];
+  canAct: boolean;
+  accessLabel: string;
   dossierReference: string;
+  organisationName?: string;
+  applicantName?: string;
   title: string;
   submittedAt: string | null;
+  dueAt?: string | null;
+  waitingDays?: number | null;
+  waitingLabel?: string;
+  slaTargetDays?: number;
+  slaStatus?: DashboardSlaStatus;
+  slaLabel?: string;
+  overdueDays?: number | null;
+  blockingReason?: string;
   priority: 'haute' | 'moyenne' | 'basse';
   href?: string;
 }
@@ -60,6 +86,9 @@ export interface DashboardAlert {
   value: string | number;
   helper: string;
   tone: 'danger' | 'warning' | 'info';
+  actionRoles: string[];
+  canAct: boolean;
+  accessLabel: string;
   href?: string;
 }
 
@@ -69,6 +98,8 @@ export interface DashboardPerformanceMetric {
   target?: string;
   percentage: number;
   tone: 'success' | 'warning' | 'info';
+  helper?: string;
+  denominator?: number;
 }
 
 export interface DashboardSummary {

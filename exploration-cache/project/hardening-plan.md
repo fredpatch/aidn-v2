@@ -318,5 +318,18 @@ sans pouvoir les exécuter.
   `/api/dashboard/summary` now exposes the first operational indicators requested
   by DN (phase durations, global duration, volumes, deliveries, pending signature
   courriers, pending payments, required actions, meetings, activity, alerts).
+- Dashboard SLA/delay thresholds are now configurable through `system_parameters`
+  under module `M12`, with API fallbacks for existing local environments.
+- Dashboard action ownership is role-aware: Reception/Assistant DG own signature
+  tasks, S5 owns payment tasks, DN owns documentary review tasks, while DN/SU can
+  monitor non-owned actions in read-only mode.
+- Operational cockpit redesign pass completed:
+  - `Courriers officiels` now uses KPI cards, bucket tabs, search/sort, a dense
+    courrier table, selected courrier detail panel, integrated document viewer, and
+    role-aware dossier quick action.
+  - `Facturation S5` now uses the same cockpit structure over M5/M6/M7 payment
+    queues, with invoice upload/record-as-sent, proof validation/rejection, in-app
+    invoice/proof preview, and validated/rejected history retained after phase
+    closure.
 - Next priority: final role replay on the redesigned cockpit/dashboard, then E V1
   notifications and M12 exports/reports.

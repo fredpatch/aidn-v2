@@ -58,6 +58,72 @@ const DEFAULTS: Array<{
       'Delai (jours) avant marquage/suppression des uploads non lies a une piece metier.',
   },
   {
+    key: 'dashboard_sla_phase_m3_days',
+    value: '15',
+    type: 'integer',
+    module: 'M12',
+    description: 'Cible dashboard (jours calendaires) pour une phase preliminaire ouverte.',
+  },
+  {
+    key: 'dashboard_sla_phase_m4_days',
+    value: '20',
+    type: 'integer',
+    module: 'M12',
+    description: 'Cible dashboard (jours calendaires) pour une phase demande formelle ouverte.',
+  },
+  {
+    key: 'dashboard_sla_phase_m5_days',
+    value: '30',
+    type: 'integer',
+    module: 'M12',
+    description:
+      'Cible dashboard (jours calendaires) pour une phase evaluation approfondie ouverte.',
+  },
+  {
+    key: 'dashboard_sla_phase_m6_days',
+    value: '30',
+    type: 'integer',
+    module: 'M12',
+    description:
+      'Cible dashboard (jours calendaires) pour une phase demonstration/inspection ouverte.',
+  },
+  {
+    key: 'dashboard_sla_phase_m7_days',
+    value: '10',
+    type: 'integer',
+    module: 'M12',
+    description: 'Cible dashboard (jours calendaires) pour une phase delivrance ouverte.',
+  },
+  {
+    key: 'dashboard_sla_signature_deposit_days',
+    value: '1',
+    type: 'integer',
+    module: 'M12',
+    description:
+      'Cible dashboard (jours calendaires) entre depot courrier et mise en circuit signature.',
+  },
+  {
+    key: 'dashboard_sla_invoice_upload_days',
+    value: '2',
+    type: 'integer',
+    module: 'M12',
+    description: 'Cible dashboard (jours calendaires) pour envoi facture par S5.',
+  },
+  {
+    key: 'dashboard_sla_payment_validation_days',
+    value: '1',
+    type: 'integer',
+    module: 'M12',
+    description: 'Cible dashboard (jours calendaires) pour validation preuve paiement par S5.',
+  },
+  {
+    key: 'dashboard_sla_document_evaluation_days',
+    value: '2',
+    type: 'integer',
+    module: 'M12',
+    description: 'Cible dashboard (jours calendaires) pour verdict DN sur une piece documentaire.',
+  },
+  {
     key: 'certificate_dg_full_name',
     value: 'Général de Division Eric Tristan Franck MOUSSAVOU',
     type: 'text',

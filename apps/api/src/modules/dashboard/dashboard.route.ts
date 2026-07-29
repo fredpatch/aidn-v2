@@ -4,7 +4,10 @@ import * as dashboardController from './dashboard.controller.js';
 
 const router = Router();
 
-router.use(authenticate, requireRole('dn_agent', 'dn_supervisor', 'SU'));
+router.use(
+  authenticate,
+  requireRole('dn_agent', 'dn_supervisor', 'reception', 'assistant_dg', 's5_agent', 'r3_agent', 'SU')
+);
 router.get('/summary', dashboardController.summary);
 
 export default router;

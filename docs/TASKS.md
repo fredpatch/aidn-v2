@@ -317,6 +317,9 @@ Voir `exploration-cache/technical/gotchas.md` pour le détail complet.
       validation S5.
 - [x] Page `Paiements S5` ajoutee ; S5 arrive sur une inbox de paiement et ouvre
       une vue compacte paiement-only.
+- [x] Page `Paiements S5` redesignée en cockpit opérationnel : factures reçues à
+      transmettre, preuves attendues, preuves à valider, historique validé/rejeté
+      conservé même après clôture de phase.
 - [x] Visualiseur admin simplifie : bouton `Imprimer` retire, verdicts DN
       disponibles directement depuis la previsualisation M5.
 - [x] Intégration portail : section `DeepEvaluationSection` dans la carte de demande active
@@ -364,6 +367,8 @@ Voir `exploration-cache/technical/gotchas.md` pour le détail complet.
 - [x] Preuve de paiement M6 reservee au portail postulant.
 - [x] Page `Paiements S5` agrege les taches M5 et M6 avec vues compactes
       paiement-only.
+- [x] Historique S5 conservé pour M6 : les paiements validés/rejetés restent visibles
+      dans l'inbox même si la phase n'est plus ouverte.
 - [x] `r3_agent` peut ouvrir les inspections assignees depuis `Mes Inspections`.
 - [x] API M6 verifie que le R3 connecte est assigne avant d'exposer le bundle ou
       d'accepter l'avis.
@@ -423,6 +428,9 @@ reste un audit plus étroit des permissions fines côté UI.
 - [x] **D-V1** - Cartes repliables (collapse/expand) pour réduire le scroll M4/M5 - terminé 2026-07-29
 - [x] **C-V2** - Brancher `DocumentViewer` aux autres liens documentaires M3/M4/M6/M7 après validation terrain M5 - terminé 2026-07-29
 - [x] **UI redesign workflow** - Nouveau cockpit appliqué aux phases M3-M7 du workflow - terminé 2026-07-29
+- [x] **UI redesign opérationnel** - Dashboard DN, inbox `Courriers officiels` et cockpit
+      `Facturation S5` alignés sur la même méthodologie UX : KPIs, listes denses,
+      panneau de détail, actions role-aware, visualiseur intégré - terminé 2026-07-29
 - [ ] **E** - Notifications (M11) - V1 minimale (certificat prêt, document à corriger, dossier rejeté)
 
 ## Sprint 7 - Documents (transverse, M8)
@@ -454,6 +462,15 @@ reste un audit plus étroit des permissions fines côté UI.
       dossiers actifs, courriers signature, paiements en attente, répartition par
       statut - endpoint `/api/dashboard/summary` + tableau de bord DN/SU
       (2026-07-29)
+- [x] Seuils SLA dashboard configurables via `system_parameters` (`M12`) :
+      cibles par phase M3-M7, dépôt signature, facture S5, validation paiement,
+      verdict documentaire DN (2026-07-29)
+- [x] Actions dashboard role-aware : Reception/Assistant DG, S5 et DN voient leurs
+      actions traitables ; DN/SU peuvent suivre les actions hors périmètre en
+      lecture seule sans lien vers un écran non autorisé (2026-07-29)
+- [x] Dashboard frontend redesigné en cockpit opérationnel modulaire avec composants
+      réutilisables (`DashboardMetricCard`, sections, alertes, actions, timelines)
+      et libellés métier clarifiés (2026-07-29)
 - [ ] Export PDF/Excel, plage de dates libre
 - [ ] Génération rapport mensuel automatique (1er du mois)
 - [ ] Génération manuelle à la demande (quota/jour à définir)
