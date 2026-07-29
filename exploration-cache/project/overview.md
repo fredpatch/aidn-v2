@@ -1,8 +1,8 @@
-# AIDN v2 — Vue d'ensemble du projet
+# AIDN v2 - Vue d'ensemble du projet
 
 ## Contexte
 
-**Application :** AIDN — Application Informatique de la Direction de la Navigabilité
+**Application :** AIDN - Application Informatique de la Direction de la Navigabilité
 **Direction :** Navigabilité (ANAC)
 **Service demandeur :** Organismes de Maintenance des Aéronefs (OMA) et Navigabilité
 
@@ -54,7 +54,7 @@ identifiés pendant l'étude de faisabilité (`reception`, `assistant_dg`, `dn_a
 ## Règle fondamentale
 
 Le passage d'une phase à une autre est **matérialisé par un courrier formel** clôturant
-la phase précédente — jamais une transition purement numérique/automatique côté DG.
+la phase précédente - jamais une transition purement numérique/automatique côté DG.
 
 ## Alertes attendues
 
@@ -78,5 +78,5 @@ la phase précédente — jamais une transition purement numérique/automatique 
 ## Origine documentaire
 
 Ce document synthétise le `Cahier_des_charges.docx` (ANAC, Mars 2026) et l'étude de
-faisabilité module par module conduite avec Fred (juillet 2026) — voir
+faisabilité module par module conduite avec Fred (juillet 2026) - voir
 `project/modules-feasibility.md` pour le détail complet des décisions.

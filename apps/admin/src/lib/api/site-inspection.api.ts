@@ -21,7 +21,11 @@ export async function uploadInvoice(
   mimeType: string,
   uploadAssetId?: number
 ): Promise<void> {
-  await api.post(`/site-inspection/phases/${phaseId}/invoice`, { fileUrl, mimeType, uploadAssetId });
+  await api.post(`/site-inspection/phases/${phaseId}/invoice`, {
+    fileUrl,
+    mimeType,
+    uploadAssetId,
+  });
 }
 
 export async function uploadPaymentProof(
@@ -67,7 +71,7 @@ export async function scheduleSiteVisit(params: {
   return { softOverlapWarning: data.softOverlapWarning };
 }
 
-// Reuses the shared meetings module's status endpoint — a site visit is a
+// Reuses the shared meetings module's status endpoint - a site visit is a
 // meeting under the hood (meetingType: 'site_visit').
 export async function markSiteVisitHeld(meetingId: number): Promise<void> {
   await api.patch(`/site-inspection/site-visits/${meetingId}/held`);

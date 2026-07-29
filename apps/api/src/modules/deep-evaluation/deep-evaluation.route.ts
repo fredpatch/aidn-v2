@@ -17,7 +17,7 @@ router.get(
   evalController.getPaymentQueue
 );
 
-// Bundle — both sides
+// Bundle - both sides
 router.get(
   '/by-request/:requestId',
   authenticateEither,
@@ -25,7 +25,7 @@ router.get(
   evalController.getBundle
 );
 
-// Open M5 — DN/SU
+// Open M5 - DN/SU
 router.post(
   '/requests/:requestId/start-deep-evaluation',
   authenticate,
@@ -33,7 +33,7 @@ router.post(
   evalController.openPhase
 );
 
-// Invoice — S5 or DN/SU upload
+// Invoice - S5 or DN/SU upload
 router.post(
   '/phases/:phaseId/invoice',
   authenticate,
@@ -41,7 +41,7 @@ router.post(
   evalController.uploadInvoice
 );
 
-// Proof of payment — either auth (portal = applicant, admin = staff on behalf)
+// Proof of payment - either auth (portal = applicant, admin = staff on behalf)
 router.post(
   '/phases/:phaseId/requests/:requestId/proof',
   authenticateEither,
@@ -49,7 +49,7 @@ router.post(
   evalController.uploadProof
 );
 
-// Validate/reject proof — S5 or DN/SU
+// Validate/reject proof - S5 or DN/SU
 router.post(
   '/phases/:phaseId/payment/validate',
   authenticate,
@@ -63,7 +63,7 @@ router.post(
   evalController.rejectPayment
 );
 
-// Verdicts — DN only
+// Verdicts - DN only
 router.patch(
   '/evaluations/:evaluationId/verdict',
   authenticate,
@@ -71,7 +71,7 @@ router.patch(
   evalController.setVerdict
 );
 
-// Resubmit corrected doc — either auth
+// Resubmit corrected doc - either auth
 router.post(
   '/evaluations/:evaluationId/resubmit',
   authenticateEither,
@@ -79,7 +79,7 @@ router.post(
   evalController.resubmitDocument
 );
 
-// Close M5 — DN/SU
+// Close M5 - DN/SU
 router.post(
   '/phases/:phaseId/close',
   authenticate,

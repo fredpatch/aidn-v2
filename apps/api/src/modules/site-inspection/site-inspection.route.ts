@@ -10,7 +10,7 @@ import * as inspectionController from './site-inspection.controller.js';
 
 const router = Router();
 
-// R3's own dossier queue — r3_agent only, scoped to their assigned visits
+// R3's own dossier queue - r3_agent only, scoped to their assigned visits
 router.get(
   '/my-queue',
   authenticate,
@@ -25,7 +25,7 @@ router.get(
   inspectionController.getPaymentQueue
 );
 
-// Bundle — both sides
+// Bundle - both sides
 router.get(
   '/by-request/:requestId',
   authenticateEither,
@@ -33,7 +33,7 @@ router.get(
   inspectionController.getBundle
 );
 
-// Open M6 — DN/SU
+// Open M6 - DN/SU
 router.post(
   '/requests/:requestId/start-site-inspection',
   authenticate,
@@ -41,7 +41,7 @@ router.post(
   inspectionController.openPhase
 );
 
-// Invoice — S5 or DN/SU (identical to M5 per feasibility doc)
+// Invoice - S5 or DN/SU (identical to M5 per feasibility doc)
 router.post(
   '/phases/:phaseId/invoice',
   authenticate,
@@ -49,7 +49,7 @@ router.post(
   inspectionController.uploadInvoice
 );
 
-// Proof of payment — either auth
+// Proof of payment - either auth
 router.post(
   '/phases/:phaseId/requests/:requestId/proof',
   authenticateEither,
@@ -57,7 +57,7 @@ router.post(
   inspectionController.uploadProof
 );
 
-// Validate/reject proof — S5 or DN/SU
+// Validate/reject proof - S5 or DN/SU
 router.post(
   '/phases/:phaseId/payment/validate',
   authenticate,
@@ -71,7 +71,7 @@ router.post(
   inspectionController.rejectPayment
 );
 
-// Site visit scheduling — DN plans it, per feasibility doc (not R3)
+// Site visit scheduling - DN plans it, per feasibility doc (not R3)
 router.post(
   '/phases/:phaseId/site-visit',
   authenticate,
@@ -86,7 +86,7 @@ router.patch(
   inspectionController.markAssignedSiteVisitHeld
 );
 
-// R3 verdict — R3 only, auto-closes the phase
+// R3 verdict - R3 only, auto-closes the phase
 router.post(
   '/phases/:phaseId/verdict',
   authenticate,

@@ -1,19 +1,18 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useAuth } from '../../../hooks/useAuth';
 import { Button } from '../../../components/ui/button';
-import PhaseSidebar from '../../phases/preliminary/components/PhaseSidebar';
-import PhaseStatusBadge from '../../phases/preliminary/components/PhaseStatusBadge';
-import FormalLetterCard from './components/FormalLetterCard';
+import { useAuth } from '../../../hooks/useAuth';
+import WorkflowCockpit from '../components/WorkflowCockpit';
 import DocumentsChecklistCard from './components/DocumentsChecklistCard';
-import FormalMeetingCard from './components/FormalMeetingCard';
 import FormalClosureCard from './components/FormalClosureCard';
-import FormalPhaseSummaryCard from './components/FormalPhaseSummaryCard';
+import FormalLetterCard from './components/FormalLetterCard';
+import FormalMeetingCard from './components/FormalMeetingCard';
 import {
   buildChecklist,
   canCloseFormalPhase,
   closureBlockReason,
   formalNextAction,
+  formatDate,
 } from './helpers';
 import { useFormalBundle } from './hooks/useFormalBundle';
 
@@ -21,7 +20,6 @@ export default function FormalPhasePage() {
   const { requestId } = useParams<{ requestId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-
   const [actionError, setActionError] = useState<string | null>(null);
 
   const { bundle, loading, error, startPhase, startingPhase } = useFormalBundle(
@@ -29,8 +27,8 @@ export default function FormalPhasePage() {
     setActionError
   );
 
-  if (loading) return <p className="text-anac-muted p-6">Chargement...</p>;
-  if (error) return <p className="text-anac-danger p-6">{error}</p>;
+  if (loading) return <p className="p-6 text-anac-muted">Chargement...</p>;
+  if (error) return <p className="p-6 text-anac-danger">{error}</p>;
 
   const canClose = canCloseFormalPhase(bundle);
   const letterReturned = bundle?.letterCircuit?.status === 'pending_review';
@@ -40,66 +38,63 @@ export default function FormalPhasePage() {
   const canManageFormal =
     user?.roles.some((role) => ['dn_agent', 'dn_supervisor', 'SU'].includes(role)) ?? false;
 
+  const keyInfo = [
+    { label: 'Responsable', value: nextAction.owner },
+    { label: "Date d'ouverture", value: formatDate(bundle?.phase?.openedAt) },
+    { label: 'Documents soumis', value: `${bundle?.completionRate ?? 0}/11` },
+    {
+      label: 'Circuit signature',
+      value: letterReturned ? 'Retour signe' : 'En attente',
+      tone: letterReturned ? 'success' : 'warning',
+    },
+    {
+      label: 'Reunion formelle',
+      value: bundle?.meeting?.status ?? 'Non planifiee',
+      tone: bundle?.meeting && bundle.meeting.status !== 'scheduled' ? 'success' : 'muted',
+    },
+  ] as const;
+
   return (
-    <div className="flex gap-6 items-start">
-      {/* Left column */}
-      <div className="w-64 flex-shrink-0 space-y-4">
-        <button
-          onClick={() => navigate('/')}
-          className="text-anac-muted text-xs hover:text-anac-navy transition-colors"
-        >
-          ← Retour aux demandes
-        </button>
-        <PhaseSidebar
-          bundle={null}
-          requestId={requestId}
-          currentCode="M4"
-          checklistTitle="Checklist — Demande Formelle"
-          checklist={checklist}
-        />
-      </div>
-
-      {/* Right column */}
-      <div className="flex-1 min-w-0 space-y-6">
-        <div>
-          <h1 className="text-anac-navy text-xl font-semibold">Phase — Demande Formelle</h1>
-          <p className="text-anac-muted text-sm">Demande #{requestId}</p>
-        </div>
-
-        {actionError && <p className="text-anac-danger text-sm">{actionError}</p>}
+    <WorkflowCockpit
+      requestId={requestId}
+      currentCode="M4"
+      title="Phase - Demande Formelle"
+      subtitle={`Demande #${requestId ?? '-'}`}
+      phaseStatus={bundle?.phase?.status}
+      onBack={() => navigate('/')}
+      checklistTitle="Checklist - phase en cours"
+      checklist={checklist}
+      action={{
+        ...nextAction,
+        blockReason,
+        primaryAction: !bundle?.phase
+          ? {
+              label: startingPhase ? 'Demarrage...' : 'Demarrer la phase',
+              onClick: startPhase,
+              disabled: startingPhase,
+            }
+          : undefined,
+      }}
+      keyInfo={keyInfo}
+    >
+      <div className="space-y-4">
+        {actionError && (
+          <p className="rounded border border-anac-danger/20 bg-anac-danger/5 px-3 py-2 text-sm text-anac-danger">
+            {actionError}
+          </p>
+        )}
 
         {!bundle?.phase ? (
           <div className="card">
-            <p className="text-anac-muted text-sm mb-3">
-              La phase préliminaire doit être clôturée avant de démarrer la demande formelle.
+            <p className="mb-3 text-sm text-anac-muted">
+              La phase preliminaire doit etre cloturee avant de demarrer la demande formelle.
             </p>
             <Button onClick={startPhase} disabled={startingPhase}>
-              {startingPhase ? 'Démarrage...' : 'Démarrer la Phase — Demande Formelle'}
+              {startingPhase ? 'Demarrage...' : 'Demarrer la Phase - Demande Formelle'}
             </Button>
           </div>
         ) : (
           <>
-            <div className="card flex items-center justify-between">
-              <span className="text-sm font-medium">Statut administratif de la phase</span>
-              <PhaseStatusBadge
-                status={bundle.phase.status}
-                label={bundle.phase.status === 'closed' ? 'Clôturée' : 'Ouverte'}
-                toneMap={{
-                  closed: 'bg-anac-muted/10 text-anac-muted',
-                  open: 'bg-anac-success/10 text-anac-success',
-                }}
-              />
-            </div>
-
-            <FormalPhaseSummaryCard
-              phaseStatus={bundle.phase.status}
-              nextAction={nextAction}
-              depositedDocuments={bundle.completionRate}
-              totalDocuments={11}
-              reportUploaded={!!bundle.meeting?.crDocumentUrl}
-              blockReason={blockReason}
-            />
-
             <FormalLetterCard circuit={bundle.letterCircuit} />
 
             <DocumentsChecklistCard
@@ -128,20 +123,20 @@ export default function FormalPhasePage() {
 
             {bundle.phase.status === 'open' && canClose && !canManageFormal && (
               <div className="card">
-                <p className="text-anac-muted text-sm">
-                  La phase est prête à être clôturée. Action réservée à la DN.
+                <p className="text-sm text-anac-muted">
+                  La phase est prete a etre cloturee. Action reservee a la DN.
                 </p>
               </div>
             )}
 
             {bundle.phase.status === 'open' && !canClose && blockReason && (
               <div className="card">
-                <p className="text-anac-muted text-sm">{blockReason}</p>
+                <p className="text-sm text-anac-muted">{blockReason}</p>
               </div>
             )}
           </>
         )}
       </div>
-    </div>
+    </WorkflowCockpit>
   );
 }

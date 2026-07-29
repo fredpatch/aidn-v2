@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { AlertCircle, CheckCircle2, Circle, Eye } from 'lucide-react';
 import { Button } from '../../../../components/ui/button';
 import CollapsibleCard from '../../../../components/ui/collapsible-card';
+import DocumentFileIcon from '../../../../components/documents/DocumentFileIcon';
 import DocumentViewer from '../../../../components/documents/DocumentViewer';
 import { API_ORIGIN, VERDICT_LABELS, VERDICT_TONES } from '../constants';
 import { formatDate } from '../helpers';
@@ -37,6 +38,7 @@ export default function DocumentEvaluationsCard({
     title: string;
     url: string;
   } | null>(null);
+  const [showAll, setShowAll] = useState(false);
 
   const viewerEvaluation = viewerFile
     ? evaluations.find((evaluation) => evaluation.id === viewerFile.evaluationId)
@@ -45,6 +47,8 @@ export default function DocumentEvaluationsCard({
     canEvaluateDocuments && !!viewerEvaluation && viewerEvaluation.verdict === null;
   const allDocumentsValidated =
     completionRate.total > 0 && completionRate.validated === completionRate.total;
+  const visibleEvaluations = showAll ? evaluations : evaluations.slice(0, 5);
+  const hiddenCount = Math.max(evaluations.length - visibleEvaluations.length, 0);
 
   async function handleVerdict(
     evalId: number,
@@ -80,20 +84,35 @@ export default function DocumentEvaluationsCard({
       }
     >
       <div className="space-y-2">
-        {evaluations.map((evaluation) => (
-          <div key={evaluation.id} className="border border-anac-border rounded p-3 space-y-2">
-            <div className="flex items-start gap-2">
-              {evaluation.verdict === 'validated' ? (
-                <CheckCircle2 size={14} className="text-anac-success flex-shrink-0 mt-0.5" />
-              ) : evaluation.verdict === 'rejected' ||
-                evaluation.verdict === 'needs_correction' ? (
-                <AlertCircle size={14} className="text-anac-danger flex-shrink-0 mt-0.5" />
-              ) : (
-                <Circle size={14} className="text-anac-muted/40 flex-shrink-0 mt-0.5" />
-              )}
-
+        {visibleEvaluations.map((evaluation) => (
+          <div key={evaluation.id} className="rounded border border-anac-border px-3 py-2.5 space-y-2">
+            <div className="flex items-start gap-3">
+              <DocumentFileIcon fileUrl={evaluation.currentFileUrl} />
               <div className="flex-1 min-w-0 space-y-1">
-                <p className="text-xs leading-tight font-medium">{evaluation.label}</p>
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-xs leading-tight font-medium text-anac-navy">
+                      {evaluation.label}
+                    </p>
+                    <p className="mt-1 text-[10px] font-medium text-anac-muted">
+                      {evaluation.resubmittedFileUrl ? 'Version corrigee' : 'Version courante'} -
+                      Evaluation DN
+                    </p>
+                  </div>
+
+                  {evaluation.verdict ? (
+                    <PhaseStatusBadge
+                      status={evaluation.verdict}
+                      label={VERDICT_LABELS[evaluation.verdict] ?? evaluation.verdict}
+                      toneMap={VERDICT_TONES}
+                    />
+                  ) : (
+                    <span className="inline-flex items-center gap-1 rounded bg-anac-muted/10 px-2 py-0.5 text-[10px] font-semibold text-anac-muted">
+                      <Circle size={11} aria-hidden="true" />
+                      En attente
+                    </span>
+                  )}
+                </div>
 
                 {evaluation.currentFileUrl && (
                   <button
@@ -113,14 +132,6 @@ export default function DocumentEvaluationsCard({
                     Previsualiser le document
                     {evaluation.resubmittedFileUrl ? ' (version corrigee)' : ''}
                   </button>
-                )}
-
-                {evaluation.verdict && (
-                  <PhaseStatusBadge
-                    status={evaluation.verdict}
-                    label={VERDICT_LABELS[evaluation.verdict] ?? evaluation.verdict}
-                    toneMap={VERDICT_TONES}
-                  />
                 )}
 
                 {evaluation.correctionDeadline && evaluation.verdict !== 'validated' && (
@@ -203,6 +214,16 @@ export default function DocumentEvaluationsCard({
           </div>
         ))}
       </div>
+
+      {evaluations.length > 5 && (
+        <button
+          type="button"
+          onClick={() => setShowAll((current) => !current)}
+          className="text-xs font-medium text-anac-blue hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-anac-sky"
+        >
+          {showAll ? 'Afficher moins' : `Afficher les ${hiddenCount} autres documents`}
+        </button>
+      )}
 
       <DocumentViewer
         file={viewerFile}

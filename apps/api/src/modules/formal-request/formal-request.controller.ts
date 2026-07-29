@@ -6,7 +6,7 @@ import * as formalService from './formal-request.service.js';
 import { handleFormalRequestError } from '../../shared/utils/error.js';
 
 async function checkApplicantOwnership(req: Request, requestId: number): Promise<boolean> {
-  if (!req.applicant) return true; // staff — no ownership check needed
+  if (!req.applicant) return true; // staff - no ownership check needed
   const [request] = await db.select().from(requests).where(eq(requests.id, requestId));
   return !!request && request.applicantId === req.applicant.applicantId;
 }

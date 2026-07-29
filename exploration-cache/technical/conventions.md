@@ -1,6 +1,6 @@
-# 📐 AIDN v2 — Conventions
+# 📐 AIDN v2 - Conventions
 
-Convention alignée sur SICOT (même Cellule ANAC, même style d'application) — tout
+Convention alignée sur SICOT (même Cellule ANAC, même style d'application) - tout
 écart volontaire par rapport à SICOT est signalé explicitement ci-dessous.
 
 ## Naming
@@ -8,7 +8,7 @@ Convention alignée sur SICOT (même Cellule ANAC, même style d'application) �
 **Écart volontaire par rapport à SICOT** : tout le code (variables, fonctions,
 composants, services) est en **anglais**. Seul le texte affiché à l'utilisateur
 (UI) reste en français. SICOT mélangeait français/anglais dans le code serveur ;
-ce choix est délibérément différent pour AIDN — cohérence avec les conventions des
+ce choix est délibérément différent pour AIDN - cohérence avec les conventions des
 frameworks utilisés (React, Express, Drizzle) et code plus lisible sans changement
 de langue au milieu d'une fonction.
 
@@ -47,20 +47,20 @@ correspondant aux 13 modules verrouillés lors de l'étude de faisabilité :
 `M8` Documents · `M9` Paiements · `M10` Réunions · `M11` Notifications ·
 `M12` Dashboard & Rapports · `M13` Administration & Rôles
 
-_(M2 — Circuit DG — a été fusionné dans M1 pendant l'étude de faisabilité ; le code
+_(M2 - Circuit DG - a été fusionné dans M1 pendant l'étude de faisabilité ; le code
 `M2` n'est donc pas utilisé, pour éviter toute confusion avec un module qui n'existe
 pas séparément.)_
 
 ## Politique linguistique
 
-**Diffère de SICOT** — séparation stricte code / interface :
+**Diffère de SICOT** - séparation stricte code / interface :
 
-- **Code serveur** : anglais partout — noms de fonctions, variables, types, noms de
+- **Code serveur** : anglais partout - noms de fonctions, variables, types, noms de
   fichiers (`list`, `create`, `applicant`, `signatureCircuit`)
 - **Code client** : anglais partout, y compris les termes métier (`Applicant`,
   `Request`, `Phase`, pas de mélange avec le français)
 - **Texte UI** : français (seule langue pour l'instant, pas de `i18n/` multi-langue
-  prévu — l'app est un outil interne ANAC + portail francophone)
+  prévu - l'app est un outil interne ANAC + portail francophone)
 - **Commentaires** : anglais, y compris pour la logique métier (cohérence avec le
   reste du code)
 - **Messages d'erreur retournés au client** : français (traduits depuis le code
@@ -88,7 +88,7 @@ src/
 ├── hooks/                  Hooks personnalisés (useRequests, useDocuments, ...)
 ├── lib/                    Utilitaires + API (axios, *.api.ts, utils.ts)
 ├── i18n/                   Textes UI français (fichiers de traduction, un seul
-│                           locale pour l'instant — structure prête pour en
+│                           locale pour l'instant - structure prête pour en
 │                           ajouter d'autres plus tard sans refactoring)
 └── pages/                  Un dossier par page, helpers co-localisés
     ├── LoginPage.tsx        (petites pages : fichier unique)
@@ -98,7 +98,7 @@ src/
         └── components/
 ```
 
-## CSS / Style — design tokens ANAC (partagés avec SICOT)
+## CSS / Style - design tokens ANAC (partagés avec SICOT)
 
 **Toujours** utiliser les tokens de design ANAC ci-dessous, jamais de couleurs
 hex en dur :
@@ -123,13 +123,13 @@ hex en dur :
   fréquemment réutilisés (ex. `.btn-primary`, `.card`, `.input`, cf. SICOT)
 - **Ne jamais** utiliser `style={{}}` inline sauf valeurs réellement dynamiques
   (ex. largeur de barre de progression animée)
-- **Mode sombre** : non prévu — outil interne ANAC en réseau local, thème clair fixe
+- **Mode sombre** : non prévu - outil interne ANAC en réseau local, thème clair fixe
 
 ## TypeScript
 
 - **Toujours** typer explicitement paramètres et valeurs de retour côté serveur
 - **Préférer** `interface` pour les formes d'objet, `type` pour unions/primitives
-- **Jamais** de `any` — utiliser `unknown` avec des gardes de type, ou
+- **Jamais** de `any` - utiliser `unknown` avec des gardes de type, ou
   `Record<string, unknown>`
 - **Importer les types** avec `import type { Foo }` pour les imports type-only
 
@@ -160,8 +160,8 @@ hex en dur :
 ## Écarts assumés par rapport au legacy `aidn-v2-legacy` et à SICOT
 
 - **Langue du code** (écart SICOT) : code entièrement en anglais, seule l'UI est en
-  français — SICOT mélangeait français/anglais dans le code serveur
-- Base de données : PostgreSQL + Drizzle (legacy en MongoDB) — voir décision loguée
+  français - SICOT mélangeait français/anglais dans le code serveur
+- Base de données : PostgreSQL + Drizzle (legacy en MongoDB) - voir décision loguée
   dans Notion (Idées & Pistes, catégorie Architecture, 2026-07-07)
 - Comptes postulant (`applicant`) : contacts multiples à permissions égales
   (Principal/Secondaire/Tertiaire dans l'UI, `primary`/`secondary`/`tertiary` dans le
@@ -169,4 +169,4 @@ hex en dur :
 - Rôle `bureau_courrier` supprimé (doublon de `reception`) ; `dg_secretariat` renommé
   `assistant_dg` (seul nom correct)
 
-_Document vivant — à mettre à jour si une convention évolue pendant l'implémentation._
+_Document vivant - à mettre à jour si une convention évolue pendant l'implémentation._

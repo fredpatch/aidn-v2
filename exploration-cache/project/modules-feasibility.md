@@ -1,4 +1,4 @@
-# AIDN v2 — Étude de faisabilité par module
+# AIDN v2 - Étude de faisabilité par module
 
 Méthodologie : chaque module a été interrogé (questions Claude / réponses métier Fred,
 issues d'échanges directs avec DN) avant toute spécification technique, sur le modèle
@@ -11,10 +11,10 @@ Les patterns réutilisés à travers plusieurs modules sont documentés une seul
 
 ---
 
-## M1+M2 — Intake & Circuit DG (fusionnés)
+## M1+M2 - Intake & Circuit DG (fusionnés)
 
 Fusionnés car le circuit parapheur (M2 dans le découpage initial) fait partie
-intégrante du dépôt de la demande — ce n'est pas une étape séparée après coup.
+intégrante du dépôt de la demande - ce n'est pas une étape séparée après coup.
 
 **Ce qui est faisable rapidement :**
 
@@ -27,14 +27,14 @@ intégrante du dépôt de la demande — ce n'est pas une étape séparée aprè
 **Décisions verrouillées :**
 
 - Un seul point d'entrée formulaire, identique que ce soit portail ou guichet physique
-  — le portail reste recommandé à terme, DN sensibilise les postulants à son usage,
-  mais le dépôt physique reste possible indéfiniment en parallèle
-- Le circuit papier réel (parapheur) n'est jamais modélisé étape par étape dans l'app —
+  - le portail reste recommandé à terme, DN sensibilise les postulants à son usage,
+    mais le dépôt physique reste possible indéfiniment en parallèle
+- Le circuit papier réel (parapheur) n'est jamais modélisé étape par étape dans l'app -
   seulement les 3 statuts du pattern « Circuit DG »
-- Aucune notification/validation numérique côté DG — le déclencheur humain est toujours
+- Aucune notification/validation numérique côté DG - le déclencheur humain est toujours
   l'action de scan
 - Annulation : possible en `Déposé` uniquement, verrouillée dès `Signé` (version
-  simplifiée retenue — pas de tracking par lecture/ouverture, jugé trop complexe pour
+  simplifiée retenue - pas de tracking par lecture/ouverture, jugé trop complexe pour
   le bénéfice apporté)
 
 **Cas limites résolus :**
@@ -46,7 +46,7 @@ intégrante du dépôt de la demande — ce n'est pas une étape séparée aprè
 
 ---
 
-## M3 — Phase Préliminaire
+## M3 - Phase Préliminaire
 
 **Ce qui est faisable rapidement :**
 
@@ -60,7 +60,7 @@ intégrante du dépôt de la demande — ce n'est pas une étape séparée aprè
 **Décisions verrouillées :**
 
 - Réunion toujours en personne, date trackée, ticket/PDF généré, email optionnel
-- **Pas de re-soumission prévue** pour la déclaration de pré-évaluation — confirmé
+- **Pas de re-soumission prévue** pour la déclaration de pré-évaluation - confirmé
   auprès de DN que ce cas n'arrive pas en pratique ; si incomplète, DN gère hors app
   via les statuts No-Show/Reportée/Annulée
 - Délai de retour de la déclaration : valeur configurable dynamiquement par DN, pas de
@@ -75,7 +75,7 @@ intégrante du dépôt de la demande — ce n'est pas une étape séparée aprè
 
 ---
 
-## M4 — Phase Demande formelle
+## M4 - Phase Demande formelle
 
 11 documents requis : lettre de demande officielle, formulaires
 DN-AIR-R2-3-F-E-010/011/012, MPM, Manuel Qualité, Manuel SGS, liste des capacités,
@@ -97,7 +97,7 @@ conformité.
 | Les 10 autres documents      | Upload direct dans le dossier ouvert, aucun passage DG         |
 
 **Déclenchement de la phase :** la réception de la lettre officielle (signée) débloque
-la réunion formelle — pas besoin d'attendre les 10 autres documents. Ceux-ci peuvent
+la réunion formelle - pas besoin d'attendre les 10 autres documents. Ceux-ci peuvent
 être uploadés avant ou après la réunion, à tout moment tant que la phase reste ouverte.
 
 **Décisions verrouillées :**
@@ -105,13 +105,13 @@ la réunion formelle — pas besoin d'attendre les 10 autres documents. Ceux-ci 
 - Vue checklist par document, visible à tout moment par DN
 - Phase non-clôturable tant que les 11 documents ne sont pas tous « Soumis »
 - **Correction appliquée** : la clôture ne porte **pas** de décision recevable/
-  non-recevable dans l'app — la décision d'admissibilité est communiquée par DN au
-  postulant manuellement via Outlook (email individualisé, pas de template — DN gère
+  non-recevable dans l'app - la décision d'admissibilité est communiquée par DN au
+  postulant manuellement via Outlook (email individualisé, pas de template - DN gère
   chaque entité au cas par cas selon sa sensibilité)
 
 ---
 
-## M5 — Évaluation approfondie des documents
+## M5 - Évaluation approfondie des documents
 
 **Séquence :**
 
@@ -133,9 +133,9 @@ la réunion formelle — pas besoin d'attendre les 10 autres documents. Ceux-ci 
 
 ---
 
-## M6 — Phase Démonstration et Inspection sur site
+## M6 - Phase Démonstration et Inspection sur site
 
-**Rôle R3 :** équipe ANAC séparée, login propre, file de dossiers propre — même statut
+**Rôle R3 :** équipe ANAC séparée, login propre, file de dossiers propre - même statut
 que reception/assistant_dg (pas une casquette DN).
 
 **Séquence :**
@@ -143,9 +143,9 @@ que reception/assistant_dg (pas une casquette DN).
 1. Phase ouverte → upload facture (pattern « Facture / Preuve de paiement »)
 2. Visite sur site : DN planifie, pattern « Réunion / Visite » (même format que M3/M4)
 3. R3 soumet son avis en **une seule action** : verdict (conforme / non-conforme /
-   conforme avec réserves) **+ note incluse dans la même soumission** — pas une note
+   conforme avec réserves) **+ note incluse dans la même soumission** - pas une note
    DN séparée
-4. Une fois l'avis R3 soumis, **DN n'a aucune décision à prendre** — clôture selon le
+4. Une fois l'avis R3 soumis, **DN n'a aucune décision à prendre** - clôture selon le
    pattern habituel
 
 **Décisions verrouillées :**
@@ -156,17 +156,17 @@ que reception/assistant_dg (pas une casquette DN).
 
 ---
 
-## M7 — Phase Délivrance & Certificats
+## M7 - Phase Délivrance & Certificats
 
 **Séquence :**
 
 1. Phase ouverte → upload facture (pattern « Facture / Preuve de paiement »)
 2. **À la validation de la preuve de paiement**, le certificat est créé en base
-   (statut initial `En préparation`) — c'est le point zéro du KPI « délai de
+   (statut initial `En préparation`) - c'est le point zéro du KPI « délai de
    délivrance », avant même impression/signature
 3. Cycle impression → signature → archivage hors app (physique), l'app reflète la
    progression de statut
-4. DN notifie le postulant de la disponibilité (pas de ticket/date planifiée — juste
+4. DN notifie le postulant de la disponibilité (pas de ticket/date planifiée - juste
    une notification « disponible »)
 5. Compteur « temps jusqu'au retrait » démarre à la notification, s'arrête au passage
    au statut `Retiré`
@@ -175,27 +175,27 @@ que reception/assistant_dg (pas une casquette DN).
 
 **Décision de conception clé :** la phase reste ouverte tout le long du cycle
 (création certificat → impression → signature → archivage → retrait) parce que le
-temps-jusqu'à-délivrance est le KPI suivi — jamais un simple binaire fermé/ouvert.
+temps-jusqu'à-délivrance est le KPI suivi - jamais un simple binaire fermé/ouvert.
 
 ---
 
-## M8 — Documents
+## M8 - Documents
 
 Module générique sous-jacent à tous les uploads/checklists déjà définis (M1-M7).
 
 **Décisions verrouillées :**
 
-- Types de fichiers acceptés : PDF, Word, PNG, JPG — pas de restriction aux seuls
+- Types de fichiers acceptés : PDF, Word, PNG, JPG - pas de restriction aux seuls
   PDF/DOCX (postulant peut avoir besoin d'uploader une photo)
-- Historique de version : remplacement ne supprime jamais — l'ancienne version part
+- Historique de version : remplacement ne supprime jamais - l'ancienne version part
   dans une **corbeille**, jamais purgée automatiquement
 - Corbeille : conservée indéfiniment jusqu'à suppression manuelle par SU ; un
   **rappel** signale à SU depuis combien de temps un élément traîne dans la corbeille
-  (pas de seuil de purge automatique — juste une alerte de visibilité)
+  (pas de seuil de purge automatique - juste une alerte de visibilité)
 - Rôle SU (Super Admin) : porté par le département IT, transverse à tous les modules
-  — gestion utilisateurs, nettoyage corbeille, configuration (seuils d'alerte, délais
-  dynamiques). Invoqué à la demande de DN pour des tâches spécifiques, pas un usage
-  quotidien de DN lui-même
+  - gestion utilisateurs, nettoyage corbeille, configuration (seuils d'alerte, délais
+    dynamiques). Invoqué à la demande de DN pour des tâches spécifiques, pas un usage
+    quotidien de DN lui-même
 
 **Visibilité documentaire (postulant) :**
 
@@ -204,16 +204,16 @@ Module générique sous-jacent à tous les uploads/checklists déjà définis (M
 
 ---
 
-## M9 — Paiements
+## M9 - Paiements
 
-**Rôle de l'app :** upload/consultation uniquement — **aucun calcul de montant, aucune
+**Rôle de l'app :** upload/consultation uniquement - **aucun calcul de montant, aucune
 comptabilité**. La facture (montant, référence) est générée hors app (Sage) et
 uploadée telle quelle pour lecture par le postulant. Voir pattern « Facture / Preuve
 de paiement » pour la séquence complète et le statut terminal `Dossier rejeté`.
 
 ---
 
-## M10 — Réunions
+## M10 - Réunions
 
 Les mécaniques ticket/date/no-show sont déjà entièrement définies (pattern « Réunion
 / Visite »). Ce module ajoute une couche de visibilité transverse.
@@ -221,7 +221,7 @@ Les mécaniques ticket/date/no-show sont déjà entièrement définies (pattern 
 **Décisions verrouillées :**
 
 - **Vue calendrier transverse** : tableau de bord dédié montrant tous les rendez-vous
-  à venir (réunions + visites sur site) tous dossiers/postulants confondus — pas de
+  à venir (réunions + visites sur site) tous dossiers/postulants confondus - pas de
   vue « par dossier » isolée
 - **Conflits :**
   - Même agent DN, même créneau horaire exact → conflit dur, **blocage** de
@@ -231,38 +231,38 @@ Les mécaniques ticket/date/no-show sont déjà entièrement définies (pattern 
 
 ---
 
-## M11 — Notifications
+## M11 - Notifications
 
-**Canaux :** in-app (centre de notifications, consultation obligatoire — pas de push
+**Canaux :** in-app (centre de notifications, consultation obligatoire - pas de push
 automatique côté postulant pour tout) + email (réservé aux événements à fort enjeu)
 
 **Déclenchement :** automatique par défaut pour tout événement système ; le
 déclenchement manuel reste possible mais **aucun cas d'usage identifié pour
-l'instant** — capacité gardée en réserve, pas de spec à ce stade
+l'instant** - capacité gardée en réserve, pas de spec à ce stade
 
-**Côté postulant — email :**
+**Côté postulant - email :**
 
 - Certificat prêt / disponible pour retrait
 - Dossier rejeté (avec motif)
 - Document rejeté / à corriger, avec délai de re-upload (crée le sentiment d'urgence
   recherché en M5)
 
-**Côté postulant — in-app uniquement (pas d'email) :**
+**Côté postulant - in-app uniquement (pas d'email) :**
 
-- Changements de statut de routine (dossier en traitement, phase ouverte, etc.) — pas
+- Changements de statut de routine (dossier en traitement, phase ouverte, etc.) - pas
   de spam
 
-**Côté interne ANAC — déjà défini par les patterns précédents :**
+**Côté interne ANAC - déjà défini par les patterns précédents :**
 
 - Alerte blocage parapheur (3j configurable) → DN + reception/assistant_dg
 - Rappel corbeille documents qui traîne → SU
 
 ---
 
-## M12 — Dashboard & Rapports
+## M12 - Dashboard & Rapports
 
 **Audience :** rapport imprimable/exportable (PDF/Excel), **pas** un dashboard temps
-réel consulté directement par le DG — DN génère et transmet le document. Décision
+réel consulté directement par le DG - DN génère et transmet le document. Décision
 prise car le DG n'a pas le temps de consulter des KPIs applicatifs directement.
 
 **KPIs (issus du CDC) :**
@@ -278,7 +278,7 @@ prise car le DG n'a pas le temps de consulter des KPIs applicatifs directement.
 
 - Génération automatique mensuelle (1er du mois) + génération manuelle à la demande,
   quota/jour à définir (référence SICOT : 15/jour par modèle, rotation Gemini 2.5
-  Flash / 2.5 Flash Lite / 3.1 Flash Lite — mécanique exacte à vérifier sur le Notion
+  Flash / 2.5 Flash Lite / 3.1 Flash Lite - mécanique exacte à vérifier sur le Notion
   SICOT au moment du build technique)
 - Fournisseur swappable en théorie, **Gemini par défaut** (clé API déjà disponible)
 - Chaque rapport généré = statut `Non relu` jusqu'à ce que DN **édite le texte
@@ -288,10 +288,10 @@ prise car le DG n'a pas le temps de consulter des KPIs applicatifs directement.
 
 ---
 
-## M13 — Administration & Rôles
+## M13 - Administration & Rôles
 
 Voir `technical/cross-cutting-patterns.md` section 7 pour le tableau complet des
-rôles. Point clé : **`SU` est le seul rôle réellement distinct en droits** —
+rôles. Point clé : **`SU` est le seul rôle réellement distinct en droits** -
 `dn_agent`/`dn_supervisor` sont fonctionnellement identiques aujourd'hui (aucun gate
 d'approbation), `r3_agent` et `s5_agent` ont des périmètres étroits et séparés.
 
@@ -312,7 +312,7 @@ Le legacy contient un flux de demande de compte déjà bien structuré, à conse
 **Affinement décidé (diffère du legacy) :** pas de rôles à permissions différenciées
 par contact (le legacy proposait primary_contact/representative/viewer). À la place :
 **contacts multiples par organisme à permissions strictement égales**, étiquetés
-Principal/Secondaire/Tertiaire — uniquement pour savoir qui contacter en premier côté
+Principal/Secondaire/Tertiaire - uniquement pour savoir qui contacter en premier côté
 ANAC. L'objectif réel de cette revue manuelle est la **déduplication d'organisme** pour
 préserver l'intégrité des KPIs (M12) : éviter qu'un même organisme (ex. une compagnie
 aérienne) se retrouve enregistré sous plusieurs variantes de nom.

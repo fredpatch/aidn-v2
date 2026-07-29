@@ -135,7 +135,10 @@ export async function getBundleForRequest(requestId: number): Promise<SiteInspec
   };
 }
 
-export async function assertR3AssignedToRequest(requestId: number, r3AgentId: number): Promise<void> {
+export async function assertR3AssignedToRequest(
+  requestId: number,
+  r3AgentId: number
+): Promise<void> {
   const [phase] = await db
     .select()
     .from(phases)
@@ -216,7 +219,12 @@ export async function uploadInvoice(
     .where(eq(payments.id, payment.id))
     .returning();
 
-  await logAudit({ userId: actorUserId, action: 'INVOICE_UPLOADED', module: 'M6', entityId: payment.id });
+  await logAudit({
+    userId: actorUserId,
+    action: 'INVOICE_UPLOADED',
+    module: 'M6',
+    entityId: payment.id,
+  });
 
   return toPaymentView(updated);
 }
@@ -273,7 +281,12 @@ export async function validatePayment(phaseId: number, actorUserId: number): Pro
     .where(eq(payments.id, payment.id))
     .returning();
 
-  await logAudit({ userId: actorUserId, action: 'PAYMENT_VALIDATED', module: 'M6', entityId: payment.id });
+  await logAudit({
+    userId: actorUserId,
+    action: 'PAYMENT_VALIDATED',
+    module: 'M6',
+    entityId: payment.id,
+  });
 
   return toPaymentView(updated);
 }
@@ -303,7 +316,7 @@ export async function rejectPayment(
         .update(requests)
         .set({
           status: 'rejected',
-          rejectionReason: `Paiement rejeté — dossier annulé : ${rejectionReason}`,
+          rejectionReason: `Paiement rejeté - dossier annulé : ${rejectionReason}`,
           updatedAt: new Date(),
         })
         .where(eq(requests.id, phase.requestId));
@@ -321,7 +334,7 @@ export async function rejectPayment(
   return toPaymentView(updated);
 }
 
-// ── Site visit scheduling — wraps the shared meetings module ────────────
+// ── Site visit scheduling - wraps the shared meetings module ────────────
 export async function scheduleSiteVisit(params: {
   phaseId: number;
   r3AgentId: number;
@@ -348,7 +361,10 @@ export async function scheduleSiteVisit(params: {
   };
 }
 
-export async function markAssignedSiteVisitHeld(meetingId: number, r3AgentId: number): Promise<SiteVisitView> {
+export async function markAssignedSiteVisitHeld(
+  meetingId: number,
+  r3AgentId: number
+): Promise<SiteVisitView> {
   const [siteVisit] = await db
     .select()
     .from(meetings)
@@ -378,7 +394,7 @@ export async function markAssignedSiteVisitHeld(meetingId: number, r3AgentId: nu
   return toSiteVisitView(updated);
 }
 
-// ── R3 verdict — single submission, auto-closes the phase ───────────────
+// ── R3 verdict - single submission, auto-closes the phase ───────────────
 export async function submitInspectionVerdict(
   phaseId: number,
   r3AgentId: number,
@@ -412,7 +428,7 @@ export async function submitInspectionVerdict(
     .returning();
 
   // Auto-close: per M6 spec, no DN decision is required once R3's verdict
-  // lands — closure happens immediately as part of this same action.
+  // lands - closure happens immediately as part of this same action.
   await db
     .update(phases)
     .set({ status: 'closed', closedAt: new Date() })

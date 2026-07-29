@@ -10,7 +10,7 @@ import * as certificatesController from './certificates.controller.js';
 
 const router = Router();
 
-// Bundle — both sides (postulant can see their own certificate's status/content)
+// Bundle - both sides (postulant can see their own certificate's status/content)
 router.get(
   '/by-request/:requestId',
   authenticateEither,
@@ -25,7 +25,7 @@ router.get(
   certificatesController.getPaymentQueue
 );
 
-// Open M7 — DN/SU
+// Open M7 - DN/SU
 router.post(
   '/requests/:requestId/start-delivery',
   authenticate,
@@ -33,7 +33,7 @@ router.post(
   certificatesController.openPhase
 );
 
-// Invoice — S5 or DN/SU (identical to M5/M6)
+// Invoice - S5 or DN/SU (identical to M5/M6)
 router.post(
   '/phases/:phaseId/invoice',
   authenticate,
@@ -41,7 +41,7 @@ router.post(
   certificatesController.uploadInvoice
 );
 
-// Proof of payment — either auth
+// Proof of payment - either auth
 router.post(
   '/phases/:phaseId/requests/:requestId/proof',
   authenticateEither,
@@ -49,7 +49,7 @@ router.post(
   certificatesController.uploadProof
 );
 
-// Validate/reject proof — S5 or DN/SU. Validation is where the certificate
+// Validate/reject proof - S5 or DN/SU. Validation is where the certificate
 // row gets created.
 router.post(
   '/phases/:phaseId/payment/validate',
@@ -64,7 +64,7 @@ router.post(
   certificatesController.rejectPayment
 );
 
-// DN data entry — header fields, scope details, type override. Only while
+// DN data entry - header fields, scope details, type override. Only while
 // the certificate is still 'in_preparation' (enforced in the service).
 router.patch(
   '/:certificateId/fields',
@@ -87,7 +87,7 @@ router.post(
   certificatesController.generateDocument
 );
 
-// Status lifecycle — DN/SU
+// Status lifecycle - DN/SU
 router.post(
   '/:certificateId/printed',
   authenticate,

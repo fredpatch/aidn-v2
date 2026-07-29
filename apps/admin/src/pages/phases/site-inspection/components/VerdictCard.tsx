@@ -37,7 +37,9 @@ export default function VerdictCard({
       return;
     }
     if (!note.trim()) {
-      setActionError('La note est requise — elle fait partie de la même soumission que le verdict.');
+      setActionError(
+        'La note est requise - elle fait partie de la même soumission que le verdict.'
+      );
       return;
     }
     const ok = await submit(phaseId, verdict, note);
@@ -92,7 +94,7 @@ export default function VerdictCard({
       ) : (
         <form onSubmit={handleSubmit} className="space-y-3">
           <p className="text-anac-muted text-xs">
-            Verdict et note sont soumis ensemble, en une seule action — pas d&apos;étape séparée.
+            Verdict et note sont soumis ensemble, en une seule action - pas d&apos;étape séparée.
           </p>
           <div>
             <label className="label">Verdict</label>

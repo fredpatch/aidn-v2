@@ -53,50 +53,50 @@ preference.
 
 ## Previous baseline (2026-07-27)
 
-Sprint 0–6 (M1–M7) are all fully committed and confirmed working — API, admin,
+Sprint 0–6 (M1–M7) are all fully committed and confirmed working - API, admin,
 and portal, typecheck clean across all 3 workspaces. **All 5 OMA certification
 phases (Préliminaire → Demande Formelle → Évaluation Approfondie →
 Démonstration/Inspection → Délivrance) are feature-complete end-to-end.** Real
 certificate PDF generation confirmed working by Fred in his own environment (not
-just typecheck — an actual test run).
+just typecheck - an actual test run).
 
 ## ✅ Done today (2026-07-27, continued): Sprint 6 (M7) complete, all phases done
 
 - Certificate templates: went through several iterations with Fred (docx →
   HTML/CSS rebuild → several rounds of tag-structure fixes) before landing on
   a table-based HTML layout with a `renderCertificate(data)` JS function
-  exposed for population — much easier to iterate on than the OOXML
+  exposed for population - much easier to iterate on than the OOXML
   approach, and avoided the docx engine's page-frame/border rendering bugs
   hit along the way (see session log for the full story)
 - API module `certificates` (M7): payment cycle (invoice/proof/validate/
   reject, mirrors M5/M6), certificate row created at payment validation
   (KPI zero-point), DN-entry fields (approval reference, dates, DG override,
-  fixed 4-category scope details — NOT a dynamic list, locked with Fred),
+  fixed 4-category scope details - NOT a dynamic list, locked with Fred),
   `POST /:certificateId/generate` (Puppeteer: setContent + evaluate +
   page.pdf()), status lifecycle printed→signed→archived→notified→collected
   (auto-closes M7 phase on collection, same pattern as M6)
 - Admin: route `/demandes/:requestId/delivrance`, cards for payment/fields/
   scope/lifecycle
-- Portal: `CertificatesSection` — proof-of-payment upload, simplified status
+- Portal: `CertificatesSection` - proof-of-payment upload, simplified status
   (DN-internal steps collapsed to "en préparation"), no document download
   ever (certificates are always collected in person)
 - **Puppeteer's Chromium download is blocked in this sandbox's network
   allowlist** (confirmed, tried multiple workarounds including apt-based
-  Chromium/Firefox — both are snap-only on this Ubuntu version and snap
+  Chromium/Firefox - both are snap-only on this Ubuntu version and snap
   doesn't run in this container). All Puppeteer-dependent work was
   typechecked but not executed here; Fred's own test is what confirmed it
   actually works.
 
 ## ✅ Done today (2026-07-27, continued): Sprint 5 (M6) portal UI + security fix
 
-- `SiteInspectionSection.tsx` added to `ActiveRequestCard` — postulant uploads
+- `SiteInspectionSection.tsx` added to `ActiveRequestCard` - postulant uploads
   proof of payment (same pattern as M5's `DeepEvaluationSection`), sees site
   visit date/time/location and status read-only
 - **Real bug caught mid-build, not just a feature note**: the API's
-  `getBundle` was returning the R3 verdict+note (`inspection`) to *any*
+  `getBundle` was returning the R3 verdict+note (`inspection`) to _any_
   authenticated caller, including the applicant via `authenticateEither`.
   `modules-feasibility.md`'s doc-visibility section explicitly locks "avis
-  R3" as DN-internal only. Fixed at the controller level — the field is now
+  R3" as DN-internal only. Fixed at the controller level - the field is now
   stripped server-side for applicant callers, not just hidden in the portal
   UI (hiding it in the UI alone would have left it visible in the raw API
   response / network tab)
@@ -106,21 +106,21 @@ just typecheck — an actual test run).
 ## ✅ Done today (2026-07-27, continued): Sprint 5 (M6) API + admin UI
 
 - API module `site-inspection` built and typechecked (see prior entry in this
-  file for the full breakdown — API landed first, this entry covers the
+  file for the full breakdown - API landed first, this entry covers the
   admin UI built right after in the same session)
-- Added `GET /api/users/by-role/:role` — narrow, least-privilege lookup
+- Added `GET /api/users/by-role/:role` - narrow, least-privilege lookup
   (dn_agent/dn_supervisor/s5_agent/SU, not gated SU-only like the rest of
   `/api/users`) so DN can populate an r3_agent picker when scheduling a
   site visit
 - Admin: `pages/phases/site-inspection/` (page, hooks, PaymentCard,
   SiteVisitCard, VerdictCard, api/types/constants/helpers), route
   `/demandes/:requestId/demonstration-inspection`, `lib/api/site-inspection.*`
-- Admin: `pages/inspections/MyInspectionsPage.tsx` at `/mes-inspections` — R3's
+- Admin: `pages/inspections/MyInspectionsPage.tsx` at `/mes-inspections` - R3's
   own dossier queue, nav item scoped to `r3_agent`/`SU` in `AppShell.tsx`
-- No manual closure card for M6 (unlike M3/M4/M5) — closure is automatic on
+- No manual closure card for M6 (unlike M3/M4/M5) - closure is automatic on
   verdict submission, server-side, matches the spec
 - Typecheck clean on all 3 workspaces
-- **Portal UI for M6 not started** — applicant-facing surface (if any; M6 may
+- **Portal UI for M6 not started** - applicant-facing surface (if any; M6 may
   be internal-only, needs confirming) is the next real gap before Sprint 5
   can be called fully done
 
@@ -138,12 +138,12 @@ just typecheck — an actual test run).
   2026-07-10 and never resynced after the M5 frontend batch was pushed.
   Lesson: trust the repo tree + typecheck over this cache when they conflict;
   update this cache at the end of every session from now on, no exceptions.
-- Notion (dashboard + backlog DB) was also found stale — backlog rows for M3
+- Notion (dashboard + backlog DB) was also found stale - backlog rows for M3
   Formal, M4/M5 are still "Not started", dashboard shows Sprint 2 as not
   started. Both resynced same session (see Notion directly, not mirrored
   here).
 - Certificate templates for M7 added to `docs/`: `CERTIFICAT_DAGREMENT_RAG-5_3.docx`
-  and `CERTIFICAT_DE_RECONNAISSANCE_DAGREMENT_RAG-5_3.docx` — reviewed, field
+  and `CERTIFICAT_DE_RECONNAISSANCE_DAGREMENT_RAG-5_3.docx` - reviewed, field
   layout matches `certificate_type` enum (`agreement`/`recognition`) already
   in schema. Relevant when Sprint 6 starts: reference number, org
   name/address/phone/email, expiration date, Classe/Qualification/Limites
@@ -151,7 +151,7 @@ just typecheck — an actual test run).
 - Starting Sprint 5 (M6) now: `r3_agent` role and `site_inspections` table
   already exist in schema (schema-ready, zero endpoints/UI, confirmed via
   direct schema inspection). `r3_agent` reuses the existing staff
-  `users`/`user_roles` auth — no separate login system, just a
+  `users`/`user_roles` auth - no separate login system, just a
   role-filtered dossier queue in admin (decision confirmed with Fred).
 
 ## ✅ Done 2026-07-10: uploads governance UI + Sprint 4 kickoff (M5)
@@ -163,7 +163,7 @@ just typecheck — an actual test run).
 - Included and pushed related API changes in the same batch:
   - `deep-evaluation` module files and error mappings
   - upload-governance related error handling alignment
-- Started **Sprint 4 — Évaluation approfondie (M5)**, wired end-to-end kickoff:
+- Started **Sprint 4 - Évaluation approfondie (M5)**, wired end-to-end kickoff:
   - API route mounted in server: `/api/deep-evaluation`
   - deep-evaluation routes for bundle/open/invoice/proof/payment verdict/reject,
     per-document verdicts + resubmission, and phase closure
@@ -234,7 +234,7 @@ just typecheck — an actual test run).
   - extracted portal request logic into dedicated API/hook/component modules and adopted the same React Query/data-layer convention as admin
   - included the current admin/api/portal changes in the same working batch so the cache reflects the full tree
 
-## ✅ Done today (2026-07-08, this session): Sprint 2 — Phase Préliminaire (M3)
+## ✅ Done today (2026-07-08, this session): Sprint 2 - Phase Préliminaire (M3)
 
 - **Phase lifecycle**: `POST /api/phases/requests/:requestId/start-preliminary-phase`
   opens M3 (moves the request to `in_progress`); `POST /api/phases/:id/close` closes
@@ -243,14 +243,14 @@ just typecheck — an actual test run).
   `file_cancelled`, plus `scheduled` as the real initial status), reschedule.
   Hard conflict (same DN agent, exact same slot) blocked by the existing
   `meetings` DB constraint; same-day soft overlap surfaces as a non-blocking
-  warning. Tickets are server-rendered HTML at `GET /api/meetings/:id/ticket` —
+  warning. Tickets are server-rendered HTML at `GET /api/meetings/:id/ticket` -
   **not** a generated/stored PDF, a deliberate scope decision (`project/
 decisions.md` #12) since a real PDF generator is a cross-cutting M3/M4/M6 need
   better built once, later
 - **Déclaration de pré-évaluation**: made available post-meeting (backed by a
   configurable template, see below), submitted by the applicant from the portal,
   dynamic return deadline (`system_parameters`, default 15 days)
-- **New module, generalized ahead of M4**: `document_templates` — DN uploads/
+- **New module, generalized ahead of M4**: `document_templates` - DN uploads/
   replaces blank template forms by key (versioned via the M8 pattern). Seeded with
   4 keys: `preliminary_evaluation_declaration` (M3, in use now) plus
   `dn_air_r2_3_f_e_010/011/012` (M4, schema-ready for Sprint 3). See
@@ -261,16 +261,16 @@ decisions.md` #12) since a real PDF generator is a cross-cutting M3/M4/M6 need
   cookie matching the request's `Origin` header first. See `technical/gotchas.md`
   #18 and `project/decisions.md` #13
 - **6 real bugs found and fixed this sprint** (controllers crashing on empty
-  request bodies — systemic, not just new code; a router-mount collision that
+  request bodies - systemic, not just new code; a router-mount collision that
   silently blocked applicant access; check-ordering for a clearer error message;
   `packages/shared` drift from the schema's actual `meeting_status` default; a
-  missing bundle endpoint for the portal; missing imports caught by typecheck) —
+  missing bundle endpoint for the portal; missing imports caught by typecheck) -
   full detail in `technical/gotchas.md` #15-#18
 - Full admin UI (phase open/close, meeting scheduling/status/ticket, declaration
   tracking, document templates management page) and portal UI (ticket view, blank
   form download, filled declaration submission)
-- Legacy repo actually renamed: `aidn-v2-legacy` — https://github.com/fredpatch/aidn-v2-legacy.git
-- Verified via typecheck across `apps/api`, `apps/admin`, `apps/portal` — no browser
+- Legacy repo actually renamed: `aidn-v2-legacy` - https://github.com/fredpatch/aidn-v2-legacy.git
+- Verified via typecheck across `apps/api`, `apps/admin`, `apps/portal` - no browser
   rendering available in this sandbox (`active-session/blockers.md` B2, as usual)
 
 ## 🟢 Earlier today (2026-07-08, first session): fixed both broken builds
@@ -291,7 +291,7 @@ as `a4a5220` before starting Sprint 2 above:
 Full detail in `sessions/2026-07-07.md`. Summary: 13-module feasibility study,
 PostgreSQL+Drizzle scaffold, full M1+M2 API/UI, staff+applicant dual auth, Users
 management, UI redesign to structurally match SICOT (not just color tokens), admin
-axios refresh-queue hardening — 10+ real bugs found and fixed along the way.
+axios refresh-queue hardening - 10+ real bugs found and fixed along the way.
 
 ## Progress Tracker
 
@@ -311,11 +311,11 @@ Sprint 7-12 (transverse: Documents/Paiements/Réunions/Notifs/Dashboard/Admin) �
 
 ## Leftover items (not blocking, tracked in `docs/TASKS.md`)
 
-- [ ] M13 applicant account creation (self-registration, anti-bot, org dedup) — the
+- [ ] M13 applicant account creation (self-registration, anti-bot, org dedup) - the
       portal login only works today for applicants already seeded directly in the DB
 - [ ] Admin/portal production bundle exceeds 500kB after minification (Vite warning,
-      not an error) — worth code-splitting once more pages exist, not urgent now
-- [ ] Visual verification of the Sprint 1 + Sprint 2 UI — Claude cannot render a
+      not an error) - worth code-splitting once more pages exist, not urgent now
+- [ ] Visual verification of the Sprint 1 + Sprint 2 UI - Claude cannot render a
       browser in its sandbox; typechecked/built/dev-server-booted only
 - [x] `PORTAL_ORIGIN` env var added to `apps/api/.env.example` (2026-07-28)
 - [x] Personnel ANAC integration for internal user creation added (2026-07-28);

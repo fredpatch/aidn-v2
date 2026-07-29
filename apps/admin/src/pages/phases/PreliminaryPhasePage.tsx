@@ -1,16 +1,15 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
 import { Button } from '../../components/ui/button';
+import { useAuth } from '../../hooks/useAuth';
+import WorkflowCockpit from './components/WorkflowCockpit';
 import ClosureCard from './preliminary/components/ClosureCard';
 import DeclarationCard from './preliminary/components/DeclarationCard';
 import MeetingCard from './preliminary/components/MeetingCard';
-import PhaseHeader from './preliminary/components/PhaseHeader';
-import PhaseSidebar from './preliminary/components/PhaseSidebar';
-import PhaseStatusBadge from './preliminary/components/PhaseStatusBadge';
-import PhaseWorkflowSummary from './components/PhaseWorkflowSummary';
 import {
+  buildChecklist,
   canClosePreliminaryPhase,
+  formatDate,
   isMeetingResolved,
   preliminaryWorkflowSummary,
 } from './preliminary/helpers';
@@ -20,7 +19,6 @@ export default function PreliminaryPhasePage() {
   const { requestId } = useParams<{ requestId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-
   const [actionError, setActionError] = useState<string | null>(null);
 
   const { bundle, loading, error, startPhase, startingPhase } = usePreliminaryBundle(
@@ -28,37 +26,79 @@ export default function PreliminaryPhasePage() {
     setActionError
   );
 
-  if (loading) return <p className="text-anac-muted p-6">Chargement...</p>;
-  if (error) return <p className="text-anac-danger p-6">{error}</p>;
+  if (loading) return <p className="p-6 text-anac-muted">Chargement...</p>;
+  if (error) return <p className="p-6 text-anac-danger">{error}</p>;
 
   const canClose = canClosePreliminaryPhase(bundle);
   const meetingResolved = isMeetingResolved(bundle);
   const blockReason = !meetingResolved
-    ? 'La clôture sera disponible une fois la réunion résolue.'
-    : 'La clôture sera disponible une fois la déclaration retournée par le postulant.';
+    ? 'La cloture sera disponible une fois la reunion resolue.'
+    : 'La cloture sera disponible une fois la declaration retournee par le postulant.';
   const summary = bundle ? preliminaryWorkflowSummary(bundle, canClose ? null : blockReason) : null;
+  const checklist = bundle ? buildChecklist(bundle) : [];
+  const action = summary
+    ? {
+        title: summary.title,
+        description: summary.description,
+        owner: summary.owner,
+        tone: summary.tone,
+        blockReason: summary.blockReason,
+      }
+    : {
+        title: 'Demarrer la phase',
+        description: 'Ouvrir la phase preliminaire pour commencer le traitement operationnel.',
+        owner: 'DN',
+        tone: 'info' as const,
+        primaryAction: {
+          label: startingPhase ? 'Demarrage...' : 'Demarrer la phase',
+          onClick: startPhase,
+          disabled: startingPhase,
+        },
+      };
+  const keyInfo = [
+    { label: 'Responsable', value: action.owner },
+    { label: "Date d'ouverture", value: formatDate(bundle?.phase?.openedAt) },
+    { label: 'Reunion', value: bundle?.meeting?.status ?? 'Non planifiee' },
+    {
+      label: 'Declaration',
+      value: bundle?.evaluation?.submittedFileUrl
+        ? 'Retournee'
+        : bundle?.evaluation?.madeAvailableAt
+          ? 'En attente'
+          : '-',
+      tone: bundle?.evaluation?.submittedFileUrl ? 'success' : 'muted',
+    },
+    {
+      label: 'Compte-rendu',
+      value: bundle?.meeting?.crDocumentUrl ? 'Depose' : 'Facultatif',
+      tone: bundle?.meeting?.crDocumentUrl ? 'success' : 'muted',
+    },
+  ] as const;
 
   return (
-    <div className="flex gap-6 items-start">
-      <div className="w-64 flex-shrink-0 space-y-4">
-        <button
-          onClick={() => navigate('/')}
-          className="text-anac-muted text-xs hover:text-anac-navy transition-colors"
-        >
-          ← Retour aux demandes
-        </button>
-        <PhaseSidebar bundle={bundle} requestId={requestId} />
-      </div>
-
-      <div className="flex-1 min-w-0 space-y-6">
-        <PhaseHeader requestId={requestId ?? '-'} />
-
-        {actionError && <p className="text-anac-danger text-sm">{actionError}</p>}
+    <WorkflowCockpit
+      requestId={requestId}
+      currentCode="M3"
+      title="Phase - Preliminaire"
+      subtitle={`Demande #${requestId ?? '-'}`}
+      phaseStatus={bundle?.phase?.status}
+      onBack={() => navigate('/')}
+      checklistTitle="Checklist - phase en cours"
+      checklist={checklist}
+      action={action}
+      keyInfo={keyInfo}
+    >
+      <div className="space-y-4">
+        {actionError && (
+          <p className="rounded border border-anac-danger/20 bg-anac-danger/5 px-3 py-2 text-sm text-anac-danger">
+            {actionError}
+          </p>
+        )}
 
         {!bundle?.phase ? (
           <div className="card">
-            <p className="text-anac-muted text-sm mb-3">
-              Cette demande est en attente de traitement. Démarrez la phase préliminaire pour
+            <p className="mb-3 text-sm text-anac-muted">
+              Cette demande est en attente de traitement. Demarrez la phase preliminaire pour
               commencer.
             </p>
             <Button onClick={startPhase} disabled={startingPhase}>
@@ -67,20 +107,6 @@ export default function PreliminaryPhasePage() {
           </div>
         ) : (
           <>
-            <div className="card flex items-center justify-between">
-              <span className="text-sm font-medium">Statut administratif de la phase</span>
-              <PhaseStatusBadge
-                status={bundle.phase.status}
-                label={bundle.phase.status === 'closed' ? 'Clôturée' : 'Ouverte'}
-                toneMap={{
-                  closed: 'bg-anac-muted/10 text-anac-muted',
-                  open: 'bg-anac-success/10 text-anac-success',
-                }}
-              />
-            </div>
-
-            {summary && <PhaseWorkflowSummary state={summary} />}
-
             <MeetingCard
               phaseId={bundle.phase.id}
               meeting={bundle.meeting}
@@ -107,12 +133,12 @@ export default function PreliminaryPhasePage() {
 
             {bundle.phase.status === 'open' && !canClose && (
               <div className="card">
-                <p className="text-anac-muted text-sm">{blockReason}</p>
+                <p className="text-sm text-anac-muted">{blockReason}</p>
               </div>
             )}
           </>
         )}
       </div>
-    </div>
+    </WorkflowCockpit>
   );
 }

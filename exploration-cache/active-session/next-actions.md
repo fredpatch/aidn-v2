@@ -11,6 +11,8 @@ Last updated: 2026-07-29
      `Demandes` table.
    - Confirm M4/M5 collapsible cards default to the expected open/closed state.
    - Confirm the integrated viewer opens the expected M3/M4/M5/M6/M7 documents.
+   - Smoke-test the new M4 workflow cockpit on desktop and a narrow viewport,
+     including the hardened stepper and document file icons.
 
 2. **E - Notifications M11 V1**
    - Start with certificate ready, document to correct, and dossier rejected.

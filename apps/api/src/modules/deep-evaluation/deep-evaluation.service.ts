@@ -339,7 +339,7 @@ export async function rejectPayment(
         .update(requests)
         .set({
           status: 'rejected',
-          rejectionReason: `Paiement rejeté — dossier annulé : ${rejectionReason}`,
+          rejectionReason: `Paiement rejeté - dossier annulé : ${rejectionReason}`,
           updatedAt: new Date(),
         })
         .where(eq(requests.id, phase.requestId));

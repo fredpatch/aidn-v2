@@ -11,7 +11,7 @@ C-V2 viewer rollout, then Notifications M11 V1.
 
 ## 🟡 Soft Blockers (work around them for now)
 
-### B1 — M13 applicant account creation not built
+### B1 - M13 applicant account creation not built
 
 **Impact**: The portal's login screen only works for applicants that already exist
 in the database. There's no self-registration flow yet (that's the anti-bot,
@@ -19,16 +19,16 @@ organisation-dedup flow from `project/modules-feasibility.md` M13, scheduled for
 Sprint 12).
 **Current workaround**: Manually insert a test organisation + applicant row (with a
 real bcrypt password hash) directly via SQL for testing/demo purposes.
-**Waiting on**: Nothing external — just sprint sequencing. Could be pulled forward
+**Waiting on**: Nothing external - just sprint sequencing. Could be pulled forward
 if this becomes a recurring friction point before Sprint 12.
 
-### B2 — No visual/browser verification of the UI
+### B2 - No visual/browser verification of the UI
 
 **Impact**: Claude's sandbox has no browser rendering capability. All frontend work
 this session was verified via typecheck + production build + dev-server-boot +
-`curl`-based API flow tests — never an actual rendered screenshot.
+`curl`-based API flow tests - never an actual rendered screenshot.
 **Current workaround**: Fred verifies visually on his own machine after each UI diff.
-**Waiting on**: N/A — inherent tooling limitation, not something to "resolve," just
+**Waiting on**: N/A - inherent tooling limitation, not something to "resolve," just
 something to remember when a UI diff is handed over.
 
 ---

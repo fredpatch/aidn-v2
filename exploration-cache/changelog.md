@@ -1,7 +1,31 @@
-# 📝 AIDN v2 — Changelog
+# 📝 AIDN v2 - Changelog
 
 Commit-level history. Covers `be9fce9` through the current uncommitted
 2026-07-28 workflow hardening, document viewer, and Personnel ANAC users pass.
+
+## (uncommitted) - 2026-07-29 workflow cockpit redesign pilot
+
+- Added reusable admin `WorkflowCockpit` shell for request workflow screens:
+  breadcrumb bar, phase stepper, left phase/checklist rail, center work area, and
+  right next-action/key-info rail.
+- Migrated M4 / Demande Formelle to the cockpit layout while keeping existing
+  formal-letter, document checklist, meeting, and closure workflow logic intact.
+- Migrated the remaining full DN workflow phase screens (M3, M5, M6, M7) to the
+  same cockpit shell while preserving their existing business cards and keeping
+  compact S5/R3 task-only views outside the full cockpit.
+- Tightened card density inside the cockpit to better match the reference screen.
+- Hardened the cockpit phase stepper alignment and kept the active phase visually
+  distinct even when every phase is already closed.
+- Added reusable `DocumentFileIcon` using `lucide-react` so formal document rows
+  show lightweight PDF/Word/image/spreadsheet/generic file cues without adding a
+  new dependency.
+- Formal document checklist now shows the first 5 documents by default with an
+  expand/collapse control for the remaining 6.
+- M5 document evaluation list now matches the M4 document-list pattern: file-type
+  icons, compact rows, first 5 visible by default, and show more/less for the
+  remaining documents while preserving viewer verdict actions.
+- Verified with `npm run typecheck --workspaces --if-present` and
+  `npm run build --workspaces --if-present` (Vite large-chunk warning remains).
 
 ## (uncommitted) - 2026-07-29 D-V1 collapsible cards + C-V2 viewer pass
 
@@ -50,7 +74,7 @@ On top of `3b72053`:
 - Verified with `npm run typecheck --workspaces --if-present` and
   `npm run build --workspaces --if-present` (Vite large-chunk warning remains).
 
-## (uncommitted) — 2026-07-28 Phase 2 formal request hardening
+## (uncommitted) - 2026-07-28 Phase 2 formal request hardening
 
 On top of the Phase 1 intake hardening batch:
 
@@ -78,7 +102,7 @@ On top of the Phase 1 intake hardening batch:
 - Verified with `npm run typecheck --workspaces --if-present` and
   `npm run build --workspaces --if-present` (Vite large-chunk warning remains).
 
-## (uncommitted) — 2026-07-28 Phase 1 applicant account + intake hardening
+## (uncommitted) - 2026-07-28 Phase 1 applicant account + intake hardening
 
 On top of `origin/main`, current working diff:
 
@@ -109,7 +133,7 @@ On top of `origin/main`, current working diff:
 - Verified with `npm run typecheck --workspaces --if-present` and
   `npm run build --workspaces --if-present` (Vite large-chunk warning remains).
 
-## (uncommitted) — 2026-07-28 workflow hardening + C-V1 document viewer + Personnel ANAC users
+## (uncommitted) - 2026-07-28 workflow hardening + C-V1 document viewer + Personnel ANAC users
 
 On top of `origin/main`, current working diff:
 
@@ -128,12 +152,12 @@ On top of `origin/main`, current working diff:
     with a guarded legacy fallback for older local rows
   - document rows now say "déposé" and show current version info without implying
     review approval is required for closure
-- **Part C-V1 — integrated document viewer**:
+- **Part C-V1 - integrated document viewer**:
   - new reusable admin `DocumentViewer`
   - integrated first in M5 `DocumentEvaluationsCard`
   - PDF previews use iframe, images use img, DOC/DOCX/unsupported files fall back to
     "Nouvel onglet" and "Télécharger"
-- **M13 internal users — Personnel ANAC activation flow**:
+- **M13 internal users - Personnel ANAC activation flow**:
   - cloned and inspected SICOT's `personnel-anac`, users, auth, bootstrap, and
     activation logic as the enterprise reference
   - added backend Personnel ANAC client and SU-only module:
@@ -157,7 +181,7 @@ On top of `origin/main`, current working diff:
 - Verified with `npm run typecheck --workspaces --if-present` and full
   `npm run build` (Vite large-chunk warning remains).
 
-## (uncommitted) — 2026-07-10 Sprint 4 kickoff (M5 deep-evaluation)
+## (uncommitted) - 2026-07-10 Sprint 4 kickoff (M5 deep-evaluation)
 
 On top of `4c75bf2`, current working diff:
 
@@ -171,7 +195,7 @@ On top of `4c75bf2`, current working diff:
 - **Route naming convention alignment**:
   - renamed module file `deep-evaluation.routes.ts` -> `deep-evaluation.route.ts`
 
-## `4c75bf2` — feat(admin,api): add uploads maintenance settings and include api updates
+## `4c75bf2` - feat(admin,api): add uploads maintenance settings and include api updates
 
 - Added admin Parametres upload-governance section (diagnostics + manual orphan cleanup)
 - Added settings uploads hook/query-key/api/types integration in admin
@@ -179,14 +203,14 @@ On top of `4c75bf2`, current working diff:
   - deep-evaluation module files and route integration
   - upload-related error mapping adjustments
 
-## `19e5e48` — feat(api): add upload diagnostics, linking API, and orphan cleanup
+## `19e5e48` - feat(api): add upload diagnostics, linking API, and orphan cleanup
 
 - Added uploads diagnostics endpoint and service aggregation
 - Added explicit upload link/relink admin API
 - Added orphan cleanup API + scheduled cleanup job support
 - Added system parameter seed for orphan retention defaults
 
-## (uncommitted) — 2026-07-09 hardening pass (post-Sprint 2)
+## (uncommitted) - 2026-07-09 hardening pass (post-Sprint 2)
 
 On top of `0e29d06`, 2026-07-09 ongoing session:
 
@@ -236,7 +260,7 @@ On top of `0e29d06`, 2026-07-09 ongoing session:
     modules
   - added portal React Query query keys and `QueryClientProvider` wiring so the
     page now uses the same server-state pattern as admin
-- **Sprint 3 kickoff (M4) — formal request backend started**:
+- **Sprint 3 kickoff (M4) - formal request backend started**:
   - new module `apps/api/src/modules/formal-request/*` (route/controller/service/types)
   - route mounted in `server.ts`: `/api/formal-request`
   - M4 opening gated by M3 closure; pre-creates 11 formal document slots
@@ -245,18 +269,18 @@ On top of `0e29d06`, 2026-07-09 ongoing session:
   - M4 closure gates implemented: letter transmitted + 11/11 docs submitted + meeting resolved
   - added domain error mapping `handleFormalRequestError`
   - added `apps/api/src/shared/statuses.ts` with formal document slot constants/labels
-- **Sprint 3 kickoff (M4) — admin frontend started**:
+- **Sprint 3 kickoff (M4) - admin frontend started**:
   - new admin formal-phase route `/demandes/:requestId/phase-formelle`
   - new feature module `apps/admin/src/pages/phases/formal/*` (page, hooks, cards, helpers, constants)
   - new admin API/types layer `apps/admin/src/lib/api/formal.api.ts` + `formal.types.ts`
   - React Query integration for M4 (`queryKeys.formal.bundle(requestId)` + invalidation flows)
   - requests list now links to both M3 and M4 pages when dossier is `in_progress`
-- **Sprint 3 kickoff (M4) — portal frontend started (lightweight pass)**:
+- **Sprint 3 kickoff (M4) - portal frontend started (lightweight pass)**:
   - `apps/portal/src/pages/requests/MyRequestPage.tsx` updated with cleaner M3 section labels and API-origin link consistency
   - added initial `FormalPhaseSection` in portal for M4 read/submit flows (letter + document slots + meeting visibility)
   - later split into portal feature modules (`lib/api`, `hooks`, `components`, `constants`) and adopted the React Query convention
 
-## (uncommitted) — Sprint 2: Phase Préliminaire (M3), full API + UI
+## (uncommitted) - Sprint 2: Phase Préliminaire (M3), full API + UI
 
 On top of `a4a5220`, 2026-07-08:
 
@@ -264,12 +288,12 @@ On top of `a4a5220`, 2026-07-08:
   close with a doc or note
 - Meetings (`modules/meetings/`): schedule, status changes (added `scheduled` as
   the real initial status), reschedule, hard-conflict DB constraint, HTML ticket
-  (not a generated PDF — `project/decisions.md` #12)
+  (not a generated PDF - `project/decisions.md` #12)
 - Preliminary evaluation declaration (`modules/preliminary-evaluation/`): made
   available post-meeting, portal upload of the filled form, dynamic return delay
 - **New module, generalized ahead of M4**: `document_templates`
-  (`modules/document-templates/`) — DN uploads/replaces blank forms by key,
-  4 keys seeded (1 in use now, 3 ready for Sprint 3) — `project/decisions.md` #11
+  (`modules/document-templates/`) - DN uploads/replaces blank forms by key,
+  4 keys seeded (1 in use now, 3 ready for Sprint 3) - `project/decisions.md` #11
 - **Security fix**: `authenticateEither` now prefers the cookie matching the
   request's `Origin` header, closing a stale-staff-cookie-wins gap
   (`technical/gotchas.md` #19, `project/decisions.md` #13)
@@ -279,14 +303,14 @@ On top of `a4a5220`, 2026-07-08:
 - 6 real bugs found and fixed: controllers crashing on empty request bodies
   (systemic, not just new code), a router-mount collision blocking applicant
   access, error check-ordering, a `packages/shared`/schema drift, a missing
-  portal bundle endpoint, missing imports — `technical/gotchas.md` #15-#18
+  portal bundle endpoint, missing imports - `technical/gotchas.md` #15-#18
 - Legacy repo actually renamed to `aidn-v2-legacy`
 - Old reference `docs/*.diff` snapshots (redesign, schema, sprint1, sprint1-ui,
   axios-fix, exploration-cache) removed, replaced by fresh `aidn-v2-sprint2.diff`
   and `aidn-v2-personnel-note.diff`
 - Verified via typecheck across `apps/api`, `apps/admin`, `apps/portal`
 
-## `a4a5220` — fix(admin,portal): repair both builds broken by axios-hardening migration
+## `a4a5220` - fix(admin,portal): repair both builds broken by axios-hardening migration
 
 Created `apps/portal/src/lib/axios.ts` (was referenced but never created), switched
 `useApplicantAuth.tsx` onto it, deleted both apps' orphaned `lib/api.ts`. Fixed a
@@ -294,11 +318,11 @@ doubled `@/src/lib/axios` import in admin's `useAuth.tsx` (broke the admin build
 too). Fixed a `session_expired`/`session_expiree` sessionStorage key mismatch.
 Full detail in `sessions/2026-07-08.md`.
 
-## `2205261` — feat(admin): harden axios refresh queue, prettier reformat, vite/tsconfig tweaks
+## `2205261` - feat(admin): harden axios refresh queue, prettier reformat, vite/tsconfig tweaks
 
 The admin polish/hardening pass, on top of `b64a073`:
 
-- `apps/admin/src/lib/axios.ts` added — hardened refresh-queue axios client,
+- `apps/admin/src/lib/axios.ts` added - hardened refresh-queue axios client,
   replacing `lib/api.ts`'s single-promise version (`project/decisions.md` #10)
 - Repo-wide `.prettierrc` (present since Sprint 0, never enforced) actually applied
   across admin/portal source (`technical/gotchas.md` #13)
@@ -306,25 +330,25 @@ The admin polish/hardening pass, on top of `b64a073`:
 - `apps/admin/tsconfig.json`: target `ES2022` → `ES2020`, `allowImportingTsExtensions`
   added (rationale unconfirmed)
 - `apps/api/package.json`: `seed:params` script added
-- `apps/admin/components.json` (shadcn config) appeared — confirm this wasn't
+- `apps/admin/components.json` (shadcn config) appeared - confirm this wasn't
   produced by running the shadcn CLI, which the project has deliberately avoided
 - AppShell sidebar widened; "Utilisateurs" nav label → "Gestion des utilisateurs"
 - `docs/TASKS.md` corrected/caught up (19→20 tables, UI-redesign section documented)
 - **Left broken**: portal's `LoginPage.tsx`/`MyRequestPage.tsx` imported a
   `lib/axios` that was never created for the portal app, and admin's `useAuth.tsx`
-  had a doubled-path import bug of its own — see the uncommitted fix pass above.
+  had a doubled-path import bug of its own - see the uncommitted fix pass above.
 
-## `f07c6ed` — docs(exploration-cache): add cache and record uncommitted admin polish pass
+## `f07c6ed` - docs(exploration-cache): add cache and record uncommitted admin polish pass
 
 Initial exploration-cache scaffold (this folder), documenting the then-uncommitted
 admin polish pass and its broken-portal-build blocker.
 
-## `be9fce9`, `7fce228`, `623139a` — first/second/third commit
+## `be9fce9`, `7fce228`, `623139a` - first/second/third commit
 
 Initial empty repo commits (placeholder), prior to the spec-first methodology
 being applied.
 
-## `02f34ec` — Scaffold aidn-v2 monorepo (apps, packages, tooling)
+## `02f34ec` - Scaffold aidn-v2 monorepo (apps, packages, tooling)
 
 Full npm-workspaces monorepo: `apps/api` (Express+Drizzle skeleton),
 `apps/admin` + `apps/portal` (Vite+React+Tailwind, ANAC design tokens wired),
@@ -332,13 +356,13 @@ Full npm-workspaces monorepo: `apps/api` (Express+Drizzle skeleton),
 `.eslintrc.json`, `.prettierrc`. Verified via real `npm install` + typecheck +
 build + API boot before being handed over.
 
-## `af6c6c6` — fix: remove baseUrl (deprecated), use relative paths mapping instead
+## `af6c6c6` - fix: remove baseUrl (deprecated), use relative paths mapping instead
 
 `technical/gotchas.md` #1-2. Removed `ignoreDeprecations` (invalid on the resolved
 TypeScript version) and fixed the underlying `baseUrl` deprecation properly instead
 of silencing it.
 
-## `ad2b21d` — feat(api): schema init
+## `ad2b21d` - feat(api): schema init
 
 Full 20-table Drizzle/PostgreSQL schema covering all 13 modules from the
 feasibility study. Includes the two DB-level constraints enforcing locked business
@@ -346,20 +370,20 @@ rules: `requests_one_active_per_organisation_idx` (M1) and
 `meetings_dn_agent_slot_idx` (M10 hard-conflict blocking). Verified with
 `drizzle-kit generate` producing real migration SQL.
 
-## `ac8a1dd` — feat(api): Sprint 1 diff auth + bootstrap + request flow
+## `ac8a1dd` - feat(api): Sprint 1 diff auth + bootstrap + request flow
 
 Auth/Users/Bootstrap prerequisite (matricule+OTP, multi-role via `user_roles`,
 `system_parameters`) plus the M1 business logic module (`modules/requests/`) and
 the stuck-parapheur alert cron job. `scripts/migrate.ts` added here, replacing the
 raw `drizzle-kit migrate` CLI (`technical/gotchas.md` #3).
 
-## `b64a073` — feat: admin/portal auth UI, applicant auth, uploads module, requests flow
+## `b64a073` - feat: admin/portal auth UI, applicant auth, uploads module, requests flow
 
 Two things bundled into one push:
 
 1. The missing applicant-auth module (`technical/gotchas.md` #7) and the generic
    uploads module (`technical/gotchas.md` #6, including the auth-gap fix)
-2. The full UI redesign — Bootstrap/Login/Layout rebuilt to structurally match
+2. The full UI redesign - Bootstrap/Login/Layout rebuilt to structurally match
    SICOT (react-hook-form+zod, framer-motion, shadcn-style primitives), plus a new
    Users management page (`project/decisions.md` #8-9)
 

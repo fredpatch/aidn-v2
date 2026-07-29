@@ -9,7 +9,7 @@ import * as formalController from './formal-request.controller.js';
 
 const router = Router();
 
-// Bundle — both sides need to read their dossier's M4 state
+// Bundle - both sides need to read their dossier's M4 state
 router.get(
   '/by-request/:requestId',
   authenticateEither,
@@ -17,7 +17,7 @@ router.get(
   formalController.getBundle
 );
 
-// Open M4 phase — DN/SU only
+// Open M4 phase - DN/SU only
 router.post(
   '/requests/:requestId/start-formal-phase',
   authenticate,
@@ -25,7 +25,7 @@ router.post(
   formalController.openPhase
 );
 
-// Formal letter Circuit DG — submit is either auth (portal self-submit or
+// Formal letter Circuit DG - submit is either auth (portal self-submit or
 // admin on behalf), circuit actions are staff only
 router.post('/requests/:requestId/letter', authenticateEither, formalController.submitLetter);
 router.post(
@@ -41,10 +41,10 @@ router.post(
   formalController.markPendingReview
 );
 
-// Document slot upload — either auth (applicant primary, staff fallback)
+// Document slot upload - either auth (applicant primary, staff fallback)
 router.post('/requests/:requestId/documents', authenticateEither, formalController.submitDocument);
 
-// Close M4 — DN/SU only
+// Close M4 - DN/SU only
 router.post(
   '/phases/:phaseId/close',
   authenticate,

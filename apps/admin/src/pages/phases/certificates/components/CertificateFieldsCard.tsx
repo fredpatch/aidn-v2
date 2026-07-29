@@ -29,7 +29,9 @@ export default function CertificateFieldsCard({
   const [currentIssueDate, setCurrentIssueDate] = useState(
     toDateInputValue(certificate.currentIssueDate)
   );
-  const [dgFullNameOverride, setDgFullNameOverride] = useState(certificate.dgFullNameOverride ?? '');
+  const [dgFullNameOverride, setDgFullNameOverride] = useState(
+    certificate.dgFullNameOverride ?? ''
+  );
 
   async function handleSave() {
     await saveFields(certificate.id, {
@@ -47,7 +49,7 @@ export default function CertificateFieldsCard({
         <div className="flex items-center gap-2">
           <FileText size={16} className="text-anac-navy" />
           <span className="font-medium text-sm">
-            Certificat {certificate.reference} — Informations
+            Certificat {certificate.reference} - Informations
           </span>
         </div>
       </div>
@@ -64,9 +66,7 @@ export default function CertificateFieldsCard({
           <option value="recognition">Reconnaissance</option>
         </select>
         {certificate.typeOverriddenBy && (
-          <p className="text-anac-muted text-xs mt-1">
-            Type modifié manuellement par un agent DN.
-          </p>
+          <p className="text-anac-muted text-xs mt-1">Type modifié manuellement par un agent DN.</p>
         )}
       </div>
 
@@ -115,7 +115,9 @@ export default function CertificateFieldsCard({
       </div>
 
       <div>
-        <label className="label">Directeur Général (laisser vide pour utiliser le nom par défaut)</label>
+        <label className="label">
+          Directeur Général (laisser vide pour utiliser le nom par défaut)
+        </label>
         <input
           className="input"
           value={dgFullNameOverride}

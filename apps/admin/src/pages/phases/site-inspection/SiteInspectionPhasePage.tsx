@@ -1,14 +1,12 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useAuth } from '../../../hooks/useAuth';
 import { Button } from '../../../components/ui/button';
-import PhaseSidebar from '../preliminary/components/PhaseSidebar';
-import PhaseStatusBadge from '../preliminary/components/PhaseStatusBadge';
-import PhaseWorkflowSummary from '../components/PhaseWorkflowSummary';
+import { useAuth } from '../../../hooks/useAuth';
+import WorkflowCockpit from '../components/WorkflowCockpit';
 import PaymentCard from './components/PaymentCard';
 import SiteVisitCard from './components/SiteVisitCard';
 import VerdictCard from './components/VerdictCard';
-import { buildChecklist, siteInspectionWorkflowSummary } from './helpers';
+import { buildChecklist, formatDate, siteInspectionWorkflowSummary } from './helpers';
 import { useSiteInspectionBundle } from './hooks/useSiteInspectionBundle';
 
 const DN_ROLES = ['dn_agent', 'dn_supervisor', 'SU'];
@@ -23,7 +21,6 @@ export default function SiteInspectionPhasePage() {
   const { requestId } = useParams<{ requestId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-
   const [actionError, setActionError] = useState<string | null>(null);
 
   const { bundle, loading, error, startPhase, startingPhase } = useSiteInspectionBundle(
@@ -31,8 +28,8 @@ export default function SiteInspectionPhasePage() {
     setActionError
   );
 
-  if (loading) return <p className="text-anac-muted p-6">Chargement...</p>;
-  if (error) return <p className="text-anac-danger p-6">{error}</p>;
+  if (loading) return <p className="p-6 text-anac-muted">Chargement...</p>;
+  if (error) return <p className="p-6 text-anac-danger">{error}</p>;
 
   const checklist = bundle ? buildChecklist(bundle) : [];
   const summary = bundle ? siteInspectionWorkflowSummary(bundle) : null;
@@ -48,23 +45,23 @@ export default function SiteInspectionPhasePage() {
       <div className="mx-auto max-w-3xl space-y-5">
         <button
           onClick={() => navigate('/paiements-s5')}
-          className="text-anac-muted text-xs hover:text-anac-navy transition-colors"
+          className="text-xs text-anac-muted transition-colors hover:text-anac-navy"
         >
-          â† Retour aux paiements S5
+          {'<-'} Retour aux paiements S5
         </button>
 
         <div>
-          <h1 className="text-anac-navy text-xl font-semibold">
+          <h1 className="text-xl font-semibold text-anac-navy">
             Paiement - Demonstration / Inspection
           </h1>
-          <p className="text-anac-muted text-sm">Demande #{requestId}</p>
+          <p className="text-sm text-anac-muted">Demande #{requestId}</p>
         </div>
 
-        {actionError && <p className="text-anac-danger text-sm">{actionError}</p>}
+        {actionError && <p className="text-sm text-anac-danger">{actionError}</p>}
 
         {!bundle?.phase ? (
           <div className="card">
-            <p className="text-anac-muted text-sm">
+            <p className="text-sm text-anac-muted">
               Aucun paiement S5 n&apos;est disponible pour cette demande.
             </p>
           </div>
@@ -86,21 +83,21 @@ export default function SiteInspectionPhasePage() {
       <div className="mx-auto max-w-3xl space-y-5">
         <button
           onClick={() => navigate('/mes-inspections')}
-          className="text-anac-muted text-xs hover:text-anac-navy transition-colors"
+          className="text-xs text-anac-muted transition-colors hover:text-anac-navy"
         >
-          â† Retour aux inspections
+          {'<-'} Retour aux inspections
         </button>
 
         <div>
-          <h1 className="text-anac-navy text-xl font-semibold">Avis R3 - Inspection sur site</h1>
-          <p className="text-anac-muted text-sm">Demande #{requestId}</p>
+          <h1 className="text-xl font-semibold text-anac-navy">Avis R3 - Inspection sur site</h1>
+          <p className="text-sm text-anac-muted">Demande #{requestId}</p>
         </div>
 
-        {actionError && <p className="text-anac-danger text-sm">{actionError}</p>}
+        {actionError && <p className="text-sm text-anac-danger">{actionError}</p>}
 
         {!bundle?.phase ? (
           <div className="card">
-            <p className="text-anac-muted text-sm">
+            <p className="text-sm text-anac-muted">
               Aucune inspection R3 n&apos;est disponible pour cette demande.
             </p>
           </div>
@@ -130,62 +127,73 @@ export default function SiteInspectionPhasePage() {
     );
   }
 
+  const action = summary
+    ? {
+        title: summary.title,
+        description: summary.description,
+        owner: summary.owner,
+        tone: summary.tone,
+        blockReason: summary.blockReason,
+      }
+    : {
+        title: 'Demarrer la phase',
+        description: 'Ouvrir la demonstration / inspection apres l evaluation approfondie.',
+        owner: 'DN',
+        tone: 'info' as const,
+        primaryAction: {
+          label: startingPhase ? 'Demarrage...' : 'Demarrer la phase',
+          onClick: startPhase,
+          disabled: startingPhase,
+        },
+      };
+  const keyInfo = [
+    { label: 'Responsable', value: action.owner },
+    { label: "Date d'ouverture", value: formatDate(bundle?.phase?.openedAt) },
+    { label: 'Paiement', value: bundle?.payment?.status ?? 'Facture attendue' },
+    {
+      label: 'Visite',
+      value: bundle?.siteVisit?.status ?? 'Non planifiee',
+      tone: bundle?.siteVisit?.status === 'held' ? 'success' : 'muted',
+    },
+    {
+      label: 'Avis R3',
+      value: bundle?.inspection ? 'Soumis' : 'Attendu',
+      tone: bundle?.inspection ? 'success' : 'warning',
+    },
+  ] as const;
+
   return (
-    <div className="flex gap-6 items-start">
-      {/* Left column */}
-      <div className="w-64 flex-shrink-0 space-y-4">
-        <button
-          onClick={() => navigate('/')}
-          className="text-anac-muted text-xs hover:text-anac-navy transition-colors"
-        >
-          ← Retour aux demandes
-        </button>
-        <PhaseSidebar
-          bundle={null}
-          requestId={requestId}
-          currentCode="M6"
-          checklistTitle="Checklist — Démonstration / Inspection"
-          checklist={checklist}
-        />
-      </div>
-
-      {/* Right column */}
-      <div className="flex-1 min-w-0 space-y-6">
-        <div>
-          <h1 className="text-anac-navy text-xl font-semibold">
-            Phase — Démonstration et Inspection sur Site
-          </h1>
-          <p className="text-anac-muted text-sm">Demande #{requestId}</p>
-        </div>
-
-        {actionError && <p className="text-anac-danger text-sm">{actionError}</p>}
+    <WorkflowCockpit
+      requestId={requestId}
+      currentCode="M6"
+      title="Phase - Demonstration / Inspection"
+      subtitle={`Demande #${requestId ?? '-'}`}
+      phaseStatus={bundle?.phase?.status}
+      onBack={() => navigate('/')}
+      checklistTitle="Checklist - phase en cours"
+      checklist={checklist}
+      action={action}
+      keyInfo={keyInfo}
+    >
+      <div className="space-y-4">
+        {actionError && (
+          <p className="rounded border border-anac-danger/20 bg-anac-danger/5 px-3 py-2 text-sm text-anac-danger">
+            {actionError}
+          </p>
+        )}
 
         {!bundle?.phase ? (
           <div className="card">
-            <p className="text-anac-muted text-sm mb-3">
-              La phase d&apos;évaluation approfondie doit être clôturée avant de démarrer la
-              démonstration/inspection.
+            <p className="mb-3 text-sm text-anac-muted">
+              La phase d&apos;evaluation approfondie doit etre cloturee avant de demarrer la
+              demonstration/inspection.
             </p>
             <Button onClick={startPhase} disabled={startingPhase}>
-              {startingPhase ? 'Démarrage...' : 'Démarrer la Phase — Démonstration/Inspection'}
+              {startingPhase ? 'Demarrage...' : 'Demarrer la Phase - Demonstration/Inspection'}
             </Button>
           </div>
         ) : (
           <>
-            <div className="card flex items-center justify-between">
-              <span className="text-sm font-medium">Statut administratif de la phase</span>
-              <PhaseStatusBadge
-                status={bundle.phase.status}
-                label={bundle.phase.status === 'closed' ? 'Clôturée' : 'Ouverte'}
-                toneMap={{
-                  closed: 'bg-anac-muted/10 text-anac-muted',
-                  open: 'bg-anac-success/10 text-anac-success',
-                }}
-              />
-            </div>
-
-            {summary && <PhaseWorkflowSummary state={summary} />}
-
             <PaymentCard
               requestId={requestId}
               phaseId={bundle.phase.id}
@@ -215,6 +223,6 @@ export default function SiteInspectionPhasePage() {
           </>
         )}
       </div>
-    </div>
+    </WorkflowCockpit>
   );
 }

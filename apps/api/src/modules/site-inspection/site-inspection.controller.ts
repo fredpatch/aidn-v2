@@ -45,7 +45,7 @@ export async function getBundle(req: Request, res: Response): Promise<void> {
     }
     const bundle = await inspectionService.getBundleForRequest(requestId);
     // "Avis R3" is DN-internal only (modules-feasibility.md, doc visibility
-    // rules) — never returned to an applicant caller, not just hidden in UI.
+    // rules) - never returned to an applicant caller, not just hidden in UI.
     if (req.applicant) {
       res.json({ ...bundle, inspection: null });
       return;
@@ -177,7 +177,8 @@ export async function submitVerdict(req: Request, res: Response): Promise<void> 
     const { verdict, note } = req.body ?? {};
     if (!['compliant', 'non_compliant', 'compliant_with_reserves'].includes(verdict) || !note) {
       res.status(400).json({
-        message: 'verdict (compliant, non_compliant ou compliant_with_reserves) et note sont requis.',
+        message:
+          'verdict (compliant, non_compliant ou compliant_with_reserves) et note sont requis.',
       });
       return;
     }

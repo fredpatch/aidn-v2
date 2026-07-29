@@ -135,7 +135,12 @@ export async function getBundleForRequest(requestId: number): Promise<Certificat
     .where(eq(certificates.requestId, requestId));
 
   return {
-    phase: { id: phase.id, status: phase.status, openedAt: phase.openedAt, closedAt: phase.closedAt },
+    phase: {
+      id: phase.id,
+      status: phase.status,
+      openedAt: phase.openedAt,
+      closedAt: phase.closedAt,
+    },
     payment: payment ? toPaymentView(payment) : null,
     certificate: certificate ? toCertificateView(certificate) : null,
   };
@@ -202,7 +207,12 @@ export async function uploadInvoice(
     .where(eq(payments.id, payment.id))
     .returning();
 
-  await logAudit({ userId: actorUserId, action: 'INVOICE_UPLOADED', module: 'M7', entityId: payment.id });
+  await logAudit({
+    userId: actorUserId,
+    action: 'INVOICE_UPLOADED',
+    module: 'M7',
+    entityId: payment.id,
+  });
 
   return toPaymentView(updated);
 }
@@ -247,7 +257,7 @@ export async function uploadPaymentProof(
   return toPaymentView(updated);
 }
 
-// ── Validate proof — this is where the certificate row is created ────────
+// ── Validate proof - this is where the certificate row is created ────────
 // Per the M7 spec: "À la validation de la preuve de paiement, le certificat
 // est créé en base (statut initial En préparation)". createdAt is the point
 // zero of the time-to-deliver KPI.
@@ -291,7 +301,12 @@ export async function validatePayment(
     })
     .returning();
 
-  await logAudit({ userId: actorUserId, action: 'PAYMENT_VALIDATED', module: 'M7', entityId: payment.id });
+  await logAudit({
+    userId: actorUserId,
+    action: 'PAYMENT_VALIDATED',
+    module: 'M7',
+    entityId: payment.id,
+  });
   await logAudit({
     userId: actorUserId,
     action: 'CERTIFICATE_CREATED',
@@ -328,7 +343,7 @@ export async function rejectPayment(
         .update(requests)
         .set({
           status: 'rejected',
-          rejectionReason: `Paiement rejeté — dossier annulé : ${rejectionReason}`,
+          rejectionReason: `Paiement rejeté - dossier annulé : ${rejectionReason}`,
           updatedAt: new Date(),
         })
         .where(eq(requests.id, phase.requestId));
@@ -367,9 +382,12 @@ export async function updateCertificateFields(
   if (fields.approvalReferenceNumber !== undefined)
     updates.approvalReferenceNumber = fields.approvalReferenceNumber;
   if (fields.expiresAt !== undefined) updates.expiresAt = new Date(fields.expiresAt);
-  if (fields.initialIssueDate !== undefined) updates.initialIssueDate = new Date(fields.initialIssueDate);
-  if (fields.currentIssueDate !== undefined) updates.currentIssueDate = new Date(fields.currentIssueDate);
-  if (fields.dgFullNameOverride !== undefined) updates.dgFullNameOverride = fields.dgFullNameOverride;
+  if (fields.initialIssueDate !== undefined)
+    updates.initialIssueDate = new Date(fields.initialIssueDate);
+  if (fields.currentIssueDate !== undefined)
+    updates.currentIssueDate = new Date(fields.currentIssueDate);
+  if (fields.dgFullNameOverride !== undefined)
+    updates.dgFullNameOverride = fields.dgFullNameOverride;
   if (fields.scopeDetails !== undefined) updates.scopeDetails = fields.scopeDetails;
 
   const [updated] = await db
@@ -427,7 +445,10 @@ export async function generateCertificateDocument(
   certificateId: number,
   actorUserId: number
 ): Promise<{ fileUrl: string }> {
-  const [certificate] = await db.select().from(certificates).where(eq(certificates.id, certificateId));
+  const [certificate] = await db
+    .select()
+    .from(certificates)
+    .where(eq(certificates.id, certificateId));
   if (!certificate) throw new Error('CERTIFICATE_NOT_FOUND');
 
   const [request] = await db.select().from(requests).where(eq(requests.id, certificate.requestId));
@@ -472,7 +493,8 @@ export async function generateCertificateDocument(
     limitationsSpecialisee: scope.specialisee.limitations,
   };
 
-  const templateFile = certificate.certificateType === 'recognition' ? 'recognition.html' : 'agreement.html';
+  const templateFile =
+    certificate.certificateType === 'recognition' ? 'recognition.html' : 'agreement.html';
   const templatePath = path.join(TEMPLATES_DIR, templateFile);
   const html = await readFile(templatePath, 'utf-8');
 
@@ -557,7 +579,8 @@ async function setStatus(
   return toCertificateView(updated);
 }
 
-export const markPrinted = (id: number, userId: number) => setStatus(id, userId, 'printed', 'printedAt');
+export const markPrinted = (id: number, userId: number) =>
+  setStatus(id, userId, 'printed', 'printedAt');
 
 export async function markSigned(
   certificateId: number,
@@ -606,7 +629,10 @@ export async function markSigned(
 export const markArchived = (id: number, userId: number) =>
   setStatus(id, userId, 'archived', 'archivedAt');
 
-export async function notifyApplicant(certificateId: number, actorUserId: number): Promise<CertificateView> {
+export async function notifyApplicant(
+  certificateId: number,
+  actorUserId: number
+): Promise<CertificateView> {
   const [existing] = await db.select().from(certificates).where(eq(certificates.id, certificateId));
   if (!existing) throw new Error('CERTIFICATE_NOT_FOUND');
   if (existing.status !== 'archived') throw new Error('INVALID_STATUS_TRANSITION');
@@ -644,7 +670,10 @@ export async function notifyApplicant(certificateId: number, actorUserId: number
 // Collection auto-closes the M7 phase - the certificate lifecycle IS the
 // phase's reason to stay open, per the M7 spec ("la phase reste ouverte tout
 // le long du cycle"). No separate manual close endpoint exists for M7.
-export async function markCollected(certificateId: number, actorUserId: number): Promise<CertificateView> {
+export async function markCollected(
+  certificateId: number,
+  actorUserId: number
+): Promise<CertificateView> {
   const [existing] = await db.select().from(certificates).where(eq(certificates.id, certificateId));
   if (!existing) throw new Error('CERTIFICATE_NOT_FOUND');
   if (existing.status !== 'notified') throw new Error('INVALID_STATUS_TRANSITION');

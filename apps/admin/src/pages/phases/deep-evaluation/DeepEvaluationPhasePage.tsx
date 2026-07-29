@@ -1,18 +1,17 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useAuth } from '../../../hooks/useAuth';
 import { Button } from '../../../components/ui/button';
-import PhaseSidebar from '../preliminary/components/PhaseSidebar';
-import PhaseStatusBadge from '../preliminary/components/PhaseStatusBadge';
-import PhaseWorkflowSummary from '../components/PhaseWorkflowSummary';
-import PaymentCard from './components/PaymentCard';
-import DocumentEvaluationsCard from './components/DocumentEvaluationsCard';
+import { useAuth } from '../../../hooks/useAuth';
+import WorkflowCockpit from '../components/WorkflowCockpit';
 import DeepEvaluationClosureCard from './components/DeepEvaluationClosureCard';
+import DocumentEvaluationsCard from './components/DocumentEvaluationsCard';
+import PaymentCard from './components/PaymentCard';
 import {
   buildChecklist,
   canCloseDeepEvaluation,
   closureBlockReason,
   deepEvaluationWorkflowSummary,
+  formatDate,
 } from './helpers';
 import { useDeepEvaluationBundle } from './hooks/useDeepEvaluationBundle';
 
@@ -27,7 +26,6 @@ export default function DeepEvaluationPhasePage() {
   const { requestId } = useParams<{ requestId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-
   const [actionError, setActionError] = useState<string | null>(null);
 
   const { bundle, loading, error, startPhase, startingPhase } = useDeepEvaluationBundle(
@@ -35,8 +33,8 @@ export default function DeepEvaluationPhasePage() {
     setActionError
   );
 
-  if (loading) return <p className="text-anac-muted p-6">Chargement...</p>;
-  if (error) return <p className="text-anac-danger p-6">{error}</p>;
+  if (loading) return <p className="p-6 text-anac-muted">Chargement...</p>;
+  if (error) return <p className="p-6 text-anac-danger">{error}</p>;
 
   const canClose = canCloseDeepEvaluation(bundle);
   const blockReason = closureBlockReason(bundle);
@@ -51,21 +49,21 @@ export default function DeepEvaluationPhasePage() {
       <div className="mx-auto max-w-3xl space-y-5">
         <button
           onClick={() => navigate('/paiements-s5')}
-          className="text-anac-muted text-xs hover:text-anac-navy transition-colors"
+          className="text-xs text-anac-muted transition-colors hover:text-anac-navy"
         >
-          â† Retour aux paiements S5
+          {'<-'} Retour aux paiements S5
         </button>
 
         <div>
-          <h1 className="text-anac-navy text-xl font-semibold">Paiement - Evaluation approfondie</h1>
-          <p className="text-anac-muted text-sm">Demande #{requestId}</p>
+          <h1 className="text-xl font-semibold text-anac-navy">Paiement - Evaluation approfondie</h1>
+          <p className="text-sm text-anac-muted">Demande #{requestId}</p>
         </div>
 
-        {actionError && <p className="text-anac-danger text-sm">{actionError}</p>}
+        {actionError && <p className="text-sm text-anac-danger">{actionError}</p>}
 
         {!bundle?.phase ? (
           <div className="card">
-            <p className="text-anac-muted text-sm">
+            <p className="text-sm text-anac-muted">
               Aucun paiement S5 n&apos;est disponible pour cette demande.
             </p>
           </div>
@@ -82,62 +80,72 @@ export default function DeepEvaluationPhasePage() {
     );
   }
 
+  const action = summary
+    ? {
+        title: summary.title,
+        description: summary.description,
+        owner: summary.owner,
+        tone: summary.tone,
+        blockReason: summary.blockReason,
+      }
+    : {
+        title: 'Demarrer la phase',
+        description: 'Ouvrir l evaluation approfondie apres la cloture de la demande formelle.',
+        owner: 'DN',
+        tone: 'info' as const,
+        primaryAction: {
+          label: startingPhase ? 'Demarrage...' : 'Demarrer la phase',
+          onClick: startPhase,
+          disabled: startingPhase,
+        },
+      };
+  const keyInfo = [
+    { label: 'Responsable', value: action.owner },
+    { label: "Date d'ouverture", value: formatDate(bundle?.phase?.openedAt) },
+    { label: 'Paiement', value: bundle?.payment?.status ?? 'Facture attendue' },
+    {
+      label: 'Documents valides',
+      value: bundle ? `${bundle.completionRate.validated}/${bundle.completionRate.total}` : '-',
+      tone:
+        bundle && bundle.completionRate.total > 0 && bundle.completionRate.validated === bundle.completionRate.total
+          ? 'success'
+          : 'warning',
+    },
+    { label: 'A corriger', value: String(bundle?.completionRate.needsAction ?? 0) },
+  ] as const;
+
   return (
-    <div className="flex gap-6 items-start">
-      {/* Left column */}
-      <div className="w-64 flex-shrink-0 space-y-4">
-        <button
-          onClick={() => navigate('/')}
-          className="text-anac-muted text-xs hover:text-anac-navy transition-colors"
-        >
-          ← Retour aux demandes
-        </button>
-        <PhaseSidebar
-          bundle={null}
-          requestId={requestId}
-          currentCode="M5"
-          checklistTitle="Checklist — Évaluation approfondie"
-          checklist={checklist}
-        />
-      </div>
-
-      {/* Right column */}
-      <div className="flex-1 min-w-0 space-y-6">
-        <div>
-          <h1 className="text-anac-navy text-xl font-semibold">
-            Phase — Évaluation Approfondie des Documents
-          </h1>
-          <p className="text-anac-muted text-sm">Demande #{requestId}</p>
-        </div>
-
-        {actionError && <p className="text-anac-danger text-sm">{actionError}</p>}
+    <WorkflowCockpit
+      requestId={requestId}
+      currentCode="M5"
+      title="Phase - Evaluation Approfondie"
+      subtitle={`Demande #${requestId ?? '-'}`}
+      phaseStatus={bundle?.phase?.status}
+      onBack={() => navigate('/')}
+      checklistTitle="Checklist - phase en cours"
+      checklist={checklist}
+      action={action}
+      keyInfo={keyInfo}
+    >
+      <div className="space-y-4">
+        {actionError && (
+          <p className="rounded border border-anac-danger/20 bg-anac-danger/5 px-3 py-2 text-sm text-anac-danger">
+            {actionError}
+          </p>
+        )}
 
         {!bundle?.phase ? (
           <div className="card">
-            <p className="text-anac-muted text-sm mb-3">
-              La phase de demande formelle doit être clôturée avant de démarrer l&apos;évaluation
+            <p className="mb-3 text-sm text-anac-muted">
+              La phase de demande formelle doit etre cloturee avant de demarrer l&apos;evaluation
               approfondie.
             </p>
             <Button onClick={startPhase} disabled={startingPhase}>
-              {startingPhase ? 'Démarrage...' : 'Démarrer la Phase — Évaluation Approfondie'}
+              {startingPhase ? 'Demarrage...' : 'Demarrer la Phase - Evaluation Approfondie'}
             </Button>
           </div>
         ) : (
           <>
-            <div className="card flex items-center justify-between">
-              <span className="text-sm font-medium">Statut administratif de la phase</span>
-              <PhaseStatusBadge
-                status={bundle.phase.status}
-                label={bundle.phase.status === 'closed' ? 'Clôturée' : 'Ouverte'}
-                toneMap={{
-                  closed: 'bg-anac-muted/10 text-anac-muted',
-                  open: 'bg-anac-success/10 text-anac-success',
-                }}
-              />
-            </div>
-
-            {summary && <PhaseWorkflowSummary state={summary} />}
-
             <PaymentCard
               requestId={requestId}
               phaseId={bundle.phase.id}
@@ -164,12 +172,12 @@ export default function DeepEvaluationPhasePage() {
 
             {canEvaluateDocuments && bundle.phase.status === 'open' && !canClose && blockReason && (
               <div className="card">
-                <p className="text-anac-muted text-sm">{blockReason}</p>
+                <p className="text-sm text-anac-muted">{blockReason}</p>
               </div>
             )}
           </>
         )}
       </div>
-    </div>
+    </WorkflowCockpit>
   );
 }

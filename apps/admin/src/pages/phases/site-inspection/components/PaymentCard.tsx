@@ -66,7 +66,7 @@ export default function PaymentCard({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <CreditCard size={16} className="text-anac-navy" />
-          <span className="font-medium text-sm">Paiement — Frais de démonstration/inspection</span>
+          <span className="font-medium text-sm">Paiement - Frais de démonstration/inspection</span>
         </div>
         {payment && (
           <PhaseStatusBadge
@@ -92,13 +92,11 @@ export default function PaymentCard({
               </Button>
             </div>
           ) : (
-            <p className="text-anac-muted text-xs">
-              En attente de l&apos;envoi par le service S5.
-            </p>
+            <p className="text-anac-muted text-xs">En attente de l&apos;envoi par le service S5.</p>
           )
         ) : (
           <p className="text-xs text-anac-muted">
-            Envoyée le {formatDate(payment.invoiceUploadedAt)} —{' '}
+            Envoyée le {formatDate(payment.invoiceUploadedAt)} -{' '}
             <DocumentPreviewLink
               title="Facture demonstration/inspection"
               url={`${API_ORIGIN}${payment.invoiceFileUrl}`}
@@ -112,12 +110,12 @@ export default function PaymentCard({
           <p className="text-xs font-medium text-anac-navy">Preuve de paiement (postulant)</p>
           {!payment.proofFileUrl ? (
             <p className="text-anac-muted text-xs">
-              En attente — le postulant doit soumettre sa quittance via le portail.
+              En attente - le postulant doit soumettre sa quittance via le portail.
             </p>
           ) : (
             <div className="space-y-2">
               <p className="text-xs text-anac-muted">
-                Soumise le {formatDate(payment.proofUploadedAt)} —{' '}
+                Soumise le {formatDate(payment.proofUploadedAt)} -{' '}
                 <DocumentPreviewLink
                   title="Preuve de paiement demonstration/inspection"
                   url={`${API_ORIGIN}${payment.proofFileUrl}`}

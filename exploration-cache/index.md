@@ -1,11 +1,11 @@
-# 📚 AIDN v2 — Exploration Cache Index
+# 📚 AIDN v2 - Exploration Cache Index
 
 This folder is the living knowledge base for the AIDN v2 project. Update it as the
-project evolves. Structure mirrors SICOT's exploration-cache — see
+project evolves. Structure mirrors SICOT's exploration-cache - see
 `project/decisions.md` for the one deliberate difference (task tracking lives at
 `docs/TASKS.md`, not `exploration-cache/tasks/`).
 
-**Project**: AIDN — Application Informatique de la Direction de la Navigabilité —
+**Project**: AIDN - Application Informatique de la Direction de la Navigabilité -
 ANAC Gabon
 **Last updated**: 2026-07-28 | **Sprint**: 0–6 (M1–M7) are complete. Current
 focus is post-M7 workflow hardening: phase-level next-action summaries across
@@ -29,7 +29,7 @@ and C-V2 viewer rollout remain next.
 ## 📋 Tasks
 
 Master backlog lives at **[`../docs/TASKS.md`](../docs/TASKS.md)** (repo root, not
-this folder — see `project/decisions.md` for why). Sprint 0 and Sprint 1 are marked
+this folder - see `project/decisions.md` for why). Sprint 0 and Sprint 1 are marked
 complete there.
 
 ---
@@ -60,15 +60,15 @@ complete there.
 
 ## 📅 Session History
 
-| File                                               | What Happened                                                                                                                                                            |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| [`sessions/2026-07-07.md`](sessions/2026-07-07.md) | Sprint 0 + Sprint 1 (full stack), 10 real bugs found and fixed, UI redesign to match SICOT                                                                               |
-| [`sessions/2026-07-08.md`](sessions/2026-07-08.md) | Fixed both broken builds from `2205261`, then built Sprint 2 (Phase Préliminaire, M3) end to end                                                                         |
-| [`sessions/2026-07-09.md`](sessions/2026-07-09.md) | Sprint 2 hardening + M3 admin page refactor: settings/system-parameters UI+API, dev reset tools, meeting CR upload, closure gating fixes, hooks/helpers/components split |
-| [`sessions/2026-07-10.md`](sessions/2026-07-10.md) | Uploads governance admin consumption completed and Sprint 4 kickoff started (deep-evaluation API/admin/portal integration)                                               |
-| [`sessions/2026-07-27.md`](sessions/2026-07-27.md) | Cache/Notion drift correction (M4+M5 confirmed fully built, not "kickoff"); started Sprint 5 (M6 — Démonstration/Inspection sur Site)                                    |
-| [`sessions/2026-07-27-m6-m7.md`](sessions/2026-07-27-m6-m7.md) | Sprint 5 (M6) and Sprint 6 (M7) completed end-to-end — API+admin+portal for both. All 5 OMA phases now feature-complete. Certificate PDF generation confirmed working by Fred. |
-| [`sessions/2026-07-28.md`](sessions/2026-07-28.md) | Post-M7 workflow hardening: cross-phase next-action summaries, M4 document traceability, C-V1 integrated document viewer for M5, and Personnel ANAC-backed internal users. |
+| File                                                           | What Happened                                                                                                                                                                  |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [`sessions/2026-07-07.md`](sessions/2026-07-07.md)             | Sprint 0 + Sprint 1 (full stack), 10 real bugs found and fixed, UI redesign to match SICOT                                                                                     |
+| [`sessions/2026-07-08.md`](sessions/2026-07-08.md)             | Fixed both broken builds from `2205261`, then built Sprint 2 (Phase Préliminaire, M3) end to end                                                                               |
+| [`sessions/2026-07-09.md`](sessions/2026-07-09.md)             | Sprint 2 hardening + M3 admin page refactor: settings/system-parameters UI+API, dev reset tools, meeting CR upload, closure gating fixes, hooks/helpers/components split       |
+| [`sessions/2026-07-10.md`](sessions/2026-07-10.md)             | Uploads governance admin consumption completed and Sprint 4 kickoff started (deep-evaluation API/admin/portal integration)                                                     |
+| [`sessions/2026-07-27.md`](sessions/2026-07-27.md)             | Cache/Notion drift correction (M4+M5 confirmed fully built, not "kickoff"); started Sprint 5 (M6 - Démonstration/Inspection sur Site)                                          |
+| [`sessions/2026-07-27-m6-m7.md`](sessions/2026-07-27-m6-m7.md) | Sprint 5 (M6) and Sprint 6 (M7) completed end-to-end - API+admin+portal for both. All 5 OMA phases now feature-complete. Certificate PDF generation confirmed working by Fred. |
+| [`sessions/2026-07-28.md`](sessions/2026-07-28.md)             | Post-M7 workflow hardening: cross-phase next-action summaries, M4 document traceability, C-V1 integrated document viewer for M5, and Personnel ANAC-backed internal users.     |
 
 ---
 

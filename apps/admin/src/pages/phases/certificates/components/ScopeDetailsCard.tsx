@@ -45,7 +45,8 @@ export default function ScopeDetailsCard({
         <span className="font-medium text-sm">Classe(s) et qualification(s)</span>
       </div>
       <p className="text-anac-muted text-xs">
-        Ces 4 catégories sont fixes. Indiquer &quot;Nil&quot; si non applicable — ne pas laisser vide.
+        Ces 4 catégories sont fixes. Indiquer &quot;Nil&quot; si non applicable - ne pas laisser
+        vide.
       </p>
 
       <div className="space-y-4">

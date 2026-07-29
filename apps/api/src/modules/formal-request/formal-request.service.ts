@@ -18,9 +18,9 @@ import type {
 
 // ── Slot labels (French) ───────────────────────────────────────────────────
 export const SLOT_LABELS: Record<string, string> = {
-  form_dn_air_r2_3_f_e_010: "Formulaire DN-AIR-R2-3-F-E-010 — Demande d'agrément d'OMA",
+  form_dn_air_r2_3_f_e_010: "Formulaire DN-AIR-R2-3-F-E-010 - Demande d'agrément d'OMA",
   form_dn_air_r2_3_f_e_012_personnel:
-    "Formulaires DN-AIR-R2-3-F-E-012 — Acceptation du personnel d'encadrement (+ CV + qualifications)",
+    "Formulaires DN-AIR-R2-3-F-E-012 - Acceptation du personnel d'encadrement (+ CV + qualifications)",
   certification_personnel_list: 'Liste du personnel de certification',
   maintenance_procedures_manual: 'Manuel des Procédures de Maintenance (MPM)',
   quality_manual: 'Manuel Qualité (ou intégré au MPM)',
@@ -29,7 +29,7 @@ export const SLOT_LABELS: Record<string, string> = {
   training_program: 'Manuel ou programme de formation (ou intégré au MPM)',
   subcontractor_contracts: "Copies des contrats avec les sous-traitants ou lettres d'intention",
   technical_documents: 'Documents techniques relatifs à la capacité de la structure',
-  compliance_statement_011: 'État de conformité — Formulaire DN-AIR-R2-3-F-E-011',
+  compliance_statement_011: 'État de conformité - Formulaire DN-AIR-R2-3-F-E-011',
 };
 
 export const ALL_SLOTS = Object.keys(SLOT_LABELS);
@@ -97,7 +97,7 @@ export async function openFormalPhase(
 }
 
 // ── Formal letter Circuit DG ───────────────────────────────────────────────
-/** Postulant submits the official formal request letter — goes through the
+/** Postulant submits the official formal request letter - goes through the
  *  same DG parapheur circuit as M1 (same table, same statuses, different
  *  entityType). */
 export async function submitFormalLetter(
@@ -262,7 +262,7 @@ export async function submitDocument(
   if (!doc) throw new Error('SLOT_NOT_FOUND');
 
   // M8 - trash the previous version if replacing
-  // Applicants cannot replace a document once submitted — the rule is
+  // Applicants cannot replace a document once submitted - the rule is
   // one-shot per slot for the postulant. DN can still replace on behalf
   // (physical drop-off correction) since actorUserId comes from req.user
   // in that case, not req.applicant. Phase closed = nobody can replace.
@@ -393,7 +393,7 @@ export async function getBundleForRequest(requestId: number): Promise<FormalPhas
     versionsByOwnerId.set(version.ownerId, existing);
   }
 
-  // Build the full slot list — always all 11, even if not yet uploaded
+  // Build the full slot list - always all 11, even if not yet uploaded
   const documents: FormalDocumentView[] = ALL_SLOTS.map((slot) => {
     const found = docs.find((d) => d.slot === slot);
     const versions = found ? (versionsByOwnerId.get(found.id) ?? []) : [];
@@ -459,7 +459,7 @@ export async function closeFormalPhase(
   if (!phase) throw new Error('PHASE_NOT_FOUND');
   if (phase.status !== 'open') throw new Error('PHASE_ALREADY_CLOSED');
 
-  // Gate 1 — formal letter must have gone through DG
+  // Gate 1 - formal letter must have gone through DG
   const [circuit] = await db
     .select()
     .from(dgCircuitDocuments)
@@ -471,7 +471,7 @@ export async function closeFormalPhase(
     );
   if (!circuit || circuit.status !== 'pending_review') throw new Error('LETTER_NOT_TRANSMITTED');
 
-  // Gate 2 — all 11 documents
+  // Gate 2 - all 11 documents
   const docs = await db
     .select()
     .from(formalRequestDocuments)
@@ -479,7 +479,7 @@ export async function closeFormalPhase(
   const missing = docs.filter((d) => d.status === 'missing').length;
   if (missing > 0) throw new Error('DOCUMENTS_INCOMPLETE');
 
-  // Gate 3 — formal meeting resolved
+  // Gate 3 - formal meeting resolved
   const [currentMeeting] = await db
     .select()
     .from(meetings)
