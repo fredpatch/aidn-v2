@@ -17,6 +17,7 @@ import CertificatesPhasePage from './pages/phases/certificates/CertificatesPhase
 import MyInspectionsPage from './pages/inspections/MyInspectionsPage';
 import CourrierTasksPage from './pages/courrier-tasks/CourrierTasksPage';
 import S5PaymentsPage from './pages/payments/S5PaymentsPage';
+import DashboardPage from './pages/dashboard/DashboardPage';
 
 const DN_ROLES = ['dn_agent', 'dn_supervisor', 'SU'];
 const DEEP_EVALUATION_ROLES = ['dn_agent', 'dn_supervisor', 's5_agent', 'SU'];
@@ -52,7 +53,7 @@ function RoleRoute({
 function HomeRoute() {
   const { user } = useAuth();
 
-  if (hasAnyRole(user?.roles, DN_ROLES)) return <RequestsPage />;
+  if (hasAnyRole(user?.roles, DN_ROLES)) return <DashboardPage />;
   if (hasAnyRole(user?.roles, ['reception', 'assistant_dg'])) {
     return <Navigate to="/courriers" replace />;
   }
@@ -84,6 +85,14 @@ function Gate() {
     <Routes>
       <Route element={<AppShell />}>
         <Route index element={<HomeRoute />} />
+        <Route
+          path="demandes"
+          element={
+            <RoleRoute roles={DN_ROLES}>
+              <RequestsPage />
+            </RoleRoute>
+          }
+        />
         <Route
           path="demandes/:requestId/phase-preliminaire"
           element={

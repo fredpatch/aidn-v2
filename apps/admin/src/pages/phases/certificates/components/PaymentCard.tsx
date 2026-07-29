@@ -24,14 +24,14 @@ export default function PaymentCard({
   setActionError,
 }: PaymentCardProps) {
   const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
-  const [proofFile, setProofFile] = useState<File | null>(null);
+
   const [rejecting, setRejecting] = useState(false);
   const [rejectionAction, setRejectionAction] = useState<'request_new_proof' | 'reject_dossier'>(
     'request_new_proof'
   );
   const [rejectionReason, setRejectionReason] = useState('');
 
-  const { busy, uploadInvoiceFile, uploadProofFile, validate, reject } = usePaymentActions(
+  const { busy, uploadInvoiceFile, validate, reject } = usePaymentActions(
     requestId,
     phaseId,
     setActionError
@@ -43,11 +43,11 @@ export default function PaymentCard({
     if (ok) setInvoiceFile(null);
   }
 
-  async function handleProofUpload() {
-    if (!proofFile) return;
-    const ok = await uploadProofFile(proofFile);
-    if (ok) setProofFile(null);
-  }
+  // async function handleProofUpload() {
+  //   if (!proofFile) return;
+  //   const ok = await uploadProofFile(proofFile);
+  //   if (ok) setProofFile(null);
+  // }
 
   async function handleReject() {
     if (!rejectionReason.trim()) {

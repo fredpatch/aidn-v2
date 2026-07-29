@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   ClipboardList,
   CreditCard,
+  LayoutDashboard,
 } from 'lucide-react';
 
 import { cn } from '../../lib/utils';
@@ -28,7 +29,8 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { to: '/', label: 'Demandes', icon: Inbox, roles: ['dn_agent', 'dn_supervisor', 'SU'] },
+  { to: '/', label: 'Tableau de bord', icon: LayoutDashboard, roles: ['dn_agent', 'dn_supervisor', 'SU'] },
+  { to: '/demandes', label: 'Demandes', icon: Inbox, roles: ['dn_agent', 'dn_supervisor', 'SU'] },
   {
     to: '/comptes-postulants',
     label: 'Comptes postulants',

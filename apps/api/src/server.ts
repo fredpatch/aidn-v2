@@ -29,6 +29,7 @@ import courrierTasksRoute from './modules/courrier-tasks/courrier-tasks.route.js
 import deepEvaluationRoute from './modules/deep-evaluation/deep-evaluation.route.js';
 import siteInspectionRoute from './modules/site-inspection/site-inspection.route.js';
 import certificatesRoute from './modules/certificates/certificates.route.js';
+import dashboardRoute from './modules/dashboard/dashboard.route.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -74,6 +75,7 @@ app.use('/api/courrier-tasks', courrierTasksRoute);
 app.use('/api/deep-evaluation', deepEvaluationRoute);
 app.use('/api/site-inspection', siteInspectionRoute);
 app.use('/api/certificates', certificatesRoute);
+app.use('/api/dashboard', dashboardRoute);
 
 app.listen(port, () => {
   console.log(`AIDN API listening on port ${port}`);

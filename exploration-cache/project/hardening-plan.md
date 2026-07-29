@@ -314,4 +314,9 @@ sans pouvoir les exécuter.
   phase/checklist rail, center work cards, and right next-action/key-info rail.
   M4 and M5 document lists now use compact file-icon rows with first-five display
   and show more/less expansion.
-- Next priority: final role replay on the redesigned cockpit, then E V1 notifications.
+- Dashboard KPI V1 is started/done for the API and DN/SU admin landing page:
+  `/api/dashboard/summary` now exposes the first operational indicators requested
+  by DN (phase durations, global duration, volumes, deliveries, pending signature
+  courriers, pending payments, required actions, meetings, activity, alerts).
+- Next priority: final role replay on the redesigned cockpit/dashboard, then E V1
+  notifications and M12 exports/reports.

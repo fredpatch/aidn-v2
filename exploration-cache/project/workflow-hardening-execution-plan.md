@@ -28,6 +28,7 @@ Remaining themes:
 - B remaining - fine UI permission audit per role.
 - C-V2 - extend `DocumentViewer` to M3, M4, M6, and M7. Done 2026-07-29.
 - D-V1 - collapsible cards, especially M4 and M5. Done 2026-07-29.
+- M12 dashboard KPI V1 - API summary + DN/SU dashboard landing page. Done 2026-07-29.
 - E-V1 - notifications for certificate ready, document correction, and rejected dossier.
 
 ## Phase 1 - Applicant entrance, intake, and signature circuit
@@ -298,3 +299,5 @@ Expected deliverable:
 5. M6 role/permission + viewer pass - done.
 6. M7 workflow/status + viewer pass - done; certificate-ready notification remains.
 7. Final end-to-end replay with all role users.
+8. M12 reporting continuation: exports, date range, monthly/manual report generation,
+   and IA-assisted report review.

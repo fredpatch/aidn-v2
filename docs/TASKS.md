@@ -450,7 +450,10 @@ reste un audit plus étroit des permissions fines côté UI.
 
 ## Sprint 11 - Dashboard & Rapports (M12)
 
-- [ ] KPIs : durée par phase, durée globale, volumes de demandes/délivrances
+- [x] KPIs V1 : durée par phase, durée globale, volumes de demandes/délivrances,
+      dossiers actifs, courriers signature, paiements en attente, répartition par
+      statut - endpoint `/api/dashboard/summary` + tableau de bord DN/SU
+      (2026-07-29)
 - [ ] Export PDF/Excel, plage de dates libre
 - [ ] Génération rapport mensuel automatique (1er du mois)
 - [ ] Génération manuelle à la demande (quota/jour à définir)

@@ -3,6 +3,19 @@
 Commit-level history. Covers `be9fce9` through the current uncommitted
 2026-07-28 workflow hardening, document viewer, and Personnel ANAC users pass.
 
+## (uncommitted) - 2026-07-29 dashboard KPI V1
+
+- Added API module `/api/dashboard/summary` for DN/SU dashboard indicators:
+  active requests, open dossiers, global process duration, pending signature
+  courriers, pending payments, workflow phase distribution, status distribution,
+  required actions, upcoming meetings, recent activity, alerts, and performance.
+- Added typed admin API client for dashboard summaries.
+- Added DN/SU `Tableau de bord` page as the admin home screen, with the request
+  list moved to `/demandes`.
+- Updated admin navigation with separate `Tableau de bord` and `Demandes` entries.
+- Verified with `npm run typecheck --workspace @aidn/api` and
+  `npm run typecheck --workspace @aidn/admin`.
+
 ## (uncommitted) - 2026-07-29 workflow cockpit redesign pilot
 
 - Added reusable admin `WorkflowCockpit` shell for request workflow screens:
