@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { FileText } from 'lucide-react';
+import DocumentPreviewLink from '../../../../components/documents/DocumentPreviewLink';
 import { Button } from '../../../../components/ui/button';
 import { formatDate } from '../helpers';
 import { useDeclarationActions } from '../hooks/useDeclarationActions';
@@ -69,14 +70,11 @@ export default function DeclarationCard({
           {evaluation.submittedFileUrl ? (
             <p className="text-anac-success">
               Recue le {formatDate(evaluation.submittedAt)} -{' '}
-              <a
-                href={`http://localhost:4000${evaluation.submittedFileUrl}`}
-                target="_blank"
-                rel="noreferrer"
-                className="underline"
-              >
-                voir le fichier
-              </a>
+              <DocumentPreviewLink
+                title="Declaration de pre-evaluation retournee"
+                url={`http://localhost:4000${evaluation.submittedFileUrl}`}
+                className="underline text-anac-blue"
+              />
             </p>
           ) : (
             <p className="text-anac-warning">En attente du retour du postulant</p>

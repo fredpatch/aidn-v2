@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { CreditCard } from 'lucide-react';
+import DocumentPreviewLink from '../../../../components/documents/DocumentPreviewLink';
 import { Button } from '../../../../components/ui/button';
 import { API_ORIGIN, PAYMENT_STATUS_LABELS, PAYMENT_STATUS_TONES } from '../constants';
 import { formatDate } from '../helpers';
@@ -104,14 +105,10 @@ export default function PaymentCard({
         ) : (
           <p className="text-xs text-anac-muted">
             Envoyée le {formatDate(payment.invoiceUploadedAt)} —{' '}
-            <a
-              href={`${API_ORIGIN}${payment.invoiceFileUrl}`}
-              target="_blank"
-              rel="noreferrer"
-              className="underline text-anac-blue"
-            >
-              voir le fichier
-            </a>
+            <DocumentPreviewLink
+              title="Facture de delivrance"
+              url={`${API_ORIGIN}${payment.invoiceFileUrl}`}
+            />
           </p>
         )}
       </div>
@@ -127,14 +124,10 @@ export default function PaymentCard({
             <div className="space-y-2">
               <p className="text-xs text-anac-muted">
                 Soumise le {formatDate(payment.proofUploadedAt)} —{' '}
-                <a
-                  href={`${API_ORIGIN}${payment.proofFileUrl}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline text-anac-blue"
-                >
-                  voir le fichier
-                </a>
+                <DocumentPreviewLink
+                  title="Preuve de paiement delivrance"
+                  url={`${API_ORIGIN}${payment.proofFileUrl}`}
+                />
               </p>
 
               {payment.status === 'pending_validation' && canManagePayment && !rejecting && (

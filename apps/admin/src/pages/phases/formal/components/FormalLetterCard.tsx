@@ -1,4 +1,6 @@
 import { FileText } from 'lucide-react';
+import DocumentPreviewLink from '../../../../components/documents/DocumentPreviewLink';
+import CollapsibleCard from '../../../../components/ui/collapsible-card';
 import { API_ORIGIN, CIRCUIT_STATUS_LABELS, CIRCUIT_STATUS_TONES } from '../constants';
 import { formatDate } from '../helpers';
 import type { FormalLetterCircuitView } from '../types';
@@ -10,12 +12,12 @@ interface FormalLetterCardProps {
 
 export default function FormalLetterCard({ circuit }: FormalLetterCardProps) {
   return (
-    <div className="card space-y-3">
-      <div className="flex items-center gap-2">
-        <FileText size={16} className="text-anac-navy" />
-        <span className="font-medium text-sm">Lettre de demande officielle - Circuit signature</span>
-      </div>
-
+    <CollapsibleCard
+      title="Lettre de demande officielle - Circuit signature"
+      icon={<FileText size={16} className="text-anac-navy" />}
+      defaultOpen={circuit?.status !== 'pending_review'}
+      resetKey={circuit?.status ?? 'missing'}
+    >
       {!circuit ? (
         <div className="space-y-2">
           <p className="text-anac-muted text-sm">
@@ -39,14 +41,11 @@ export default function FormalLetterCard({ circuit }: FormalLetterCardProps) {
             {circuit.fileUrl ? (
               <>
                 Document courant le {formatDate(circuit.currentVersionUploadedAt)} -{' '}
-                <a
-                  href={`${API_ORIGIN}${circuit.fileUrl}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline text-anac-blue"
-                >
-                  ouvrir la lettre
-                </a>
+                <DocumentPreviewLink
+                  title="Lettre de demande officielle"
+                  url={`${API_ORIGIN}${circuit.fileUrl}`}
+                  label="ouvrir la lettre"
+                />
                 {circuit.hasPreviousVersions &&
                   ` - ${circuit.versionCount} versions conservees dans l'historique.`}
               </>
@@ -81,6 +80,6 @@ export default function FormalLetterCard({ circuit }: FormalLetterCardProps) {
           )}
         </div>
       )}
-    </div>
+    </CollapsibleCard>
   );
 }

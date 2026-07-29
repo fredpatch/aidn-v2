@@ -1,5 +1,7 @@
 import { FormEvent, useState } from 'react';
+import { LockKeyhole } from 'lucide-react';
 import { Button } from '../../../../components/ui/button';
+import CollapsibleCard from '../../../../components/ui/collapsible-card';
 import { useFormalCloseAction } from '../hooks/useFormalCloseAction';
 
 interface FormalClosureCardProps {
@@ -17,8 +19,8 @@ export default function FormalClosureCard({
   const [file, setFile] = useState<File | null>(null);
   const { busy, close } = useFormalCloseAction(requestId, setActionError);
 
-  async function handleClose(e: FormEvent) {
-    e.preventDefault();
+  async function handleClose(event: FormEvent) {
+    event.preventDefault();
     const ok = await close({ phaseId, note, file });
     if (ok) {
       setNote('');
@@ -27,25 +29,31 @@ export default function FormalClosureCard({
   }
 
   return (
-    <form onSubmit={handleClose} className="card space-y-3">
-      <span className="font-medium text-sm">Clôturer la phase — Demande formelle</span>
-      <p className="text-anac-muted text-xs">Document et note sont tous les deux facultatifs.</p>
-      <div>
-        <label className="label">Note (optionnel)</label>
-        <textarea
-          className="input"
-          rows={2}
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-        />
-      </div>
-      <div>
-        <label className="label">Document joint (optionnel)</label>
-        <input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-      </div>
-      <Button type="submit" disabled={busy}>
-        {busy ? 'Clôture...' : 'Clôturer la phase'}
-      </Button>
-    </form>
+    <CollapsibleCard
+      title="Cloturer la phase - Demande formelle"
+      icon={<LockKeyhole size={16} className="text-anac-navy" />}
+      defaultOpen
+      resetKey={busy}
+    >
+      <form onSubmit={handleClose} className="space-y-3">
+        <p className="text-anac-muted text-xs">Document et note sont tous les deux facultatifs.</p>
+        <div>
+          <label className="label">Note (optionnel)</label>
+          <textarea
+            className="input"
+            rows={2}
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
+          />
+        </div>
+        <div>
+          <label className="label">Document joint (optionnel)</label>
+          <input type="file" onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
+        </div>
+        <Button type="submit" disabled={busy}>
+          {busy ? 'Cloture...' : 'Cloturer la phase'}
+        </Button>
+      </form>
+    </CollapsibleCard>
   );
 }

@@ -3,6 +3,23 @@
 Commit-level history. Covers `be9fce9` through the current uncommitted
 2026-07-28 workflow hardening, document viewer, and Personnel ANAC users pass.
 
+## (uncommitted) - 2026-07-29 D-V1 collapsible cards + C-V2 viewer pass
+
+- Added reusable admin `CollapsibleCard` with keyboard-accessible toggle and
+  state-driven default open/closed behavior.
+- M4 cards now collapse for the formal letter circuit, formal dossier documents,
+  formal meeting, and closure action.
+- M5 cards now collapse for payment, document evaluations, and closure action.
+- Completed/resolved sections default closed; active/incomplete sections stay open
+  so the next operational action remains visible.
+- Added reusable `DocumentPreviewLink` so non-M5 document links open in the shared
+  integrated admin viewer.
+- M3 meeting tickets/CR and returned declaration, M4 formal letter/documents, M5
+  payment files, M6 payment files, and M7 payment/generated/signed certificate
+  documents now use the integrated viewer.
+- Verified with `npm run typecheck --workspaces --if-present` and
+  `npm run build --workspaces --if-present` (Vite large-chunk warning remains).
+
 ## (uncommitted) - 2026-07-28 Phase 3/M5 + Phase 4/M6 role hardening
 
 On top of `3b72053`:

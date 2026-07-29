@@ -199,6 +199,17 @@ spécifiquement, pas une exception à corriger en amont.
 - **V2 si le besoin persiste après retour terrain** : structure à onglets horizontaux
   par section (Paiement / Documents / Réunion / Clôture)
 
+### Implémentation V1 — M4/M5 (2026-07-29)
+
+- Nouveau composant admin réutilisable `CollapsibleCard`.
+- M4 : lettre officielle, dossier de demande formelle, réunion formelle et clôture
+  sont repliables.
+- M5 : paiement, évaluation des documents et clôture sont repliables.
+- Les sections complètes/résolues se replient par défaut en fonction de l'état réel
+  courant, pas d'un état figé au montage.
+- Les actions actives/incomplètes restent ouvertes par défaut pour ne pas cacher le
+  prochain travail à faire.
+
 ### Cas limites
 
 - Une carte "repliée par défaut car complète" doit se déplier automatiquement si son
@@ -268,8 +279,8 @@ réel, aucun des autres déclencheurs listés ci-dessous n'est câblé.
    à 4 chiffres (`0041`).
 3. **Phase 2 formal/courrier hardening** — ✅ Terminé (2026-07-28)
 4. **Phase 3/M5 workflow hardening** — prochain passage fonctionnel complet
-5. **D-V1 (collapse/expand)** — petit changement, gain UX immédiat sur M4/M5
-6. **C-V2 (visualiseur hors M5)** — brancher le composant réutilisable sur M3/M4/M6/M7
+5. **D-V1 (collapse/expand)** — ✅ Terminé (2026-07-29), voir section D ci-dessus
+6. **C-V2 (visualiseur hors M5)** — ✅ Terminé (2026-07-29) : M3/M4/M6/M7 utilisent le composant réutilisable
 7. **E** — le plus large ; recommandation : scoper une V1 minimale (les 3 déclencheurs
    déjà partiellement prévus : certificat prêt, document à corriger, dossier rejeté)
    avant de construire les seuils 24h/3j qui demandent un vrai mécanisme de
@@ -297,5 +308,7 @@ sans pouvoir les exécuter.
   Avis R3 view, mark the visit held, and submit the avis.
 - The integrated admin document viewer no longer has the redundant top-level
   `Imprimer` button, and M5 DN verdicts can be entered directly from the viewer.
-- Next priority: Phase 5/M7 deliverance hardening, especially applying the same
-  S5/DN/postulant payment ownership split around final certificate delivery.
+- C-V2 is done: M3 meeting/declaration files, M4 formal documents, M6 payment
+  files, and M7 payment/certificate documents now reuse the integrated admin
+  `DocumentViewer`.
+- Next priority: final role replay, then E V1 notifications.

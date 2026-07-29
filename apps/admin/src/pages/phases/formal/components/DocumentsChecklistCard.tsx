@@ -1,4 +1,6 @@
 import { CheckCircle2, Circle } from 'lucide-react';
+import DocumentPreviewLink from '../../../../components/documents/DocumentPreviewLink';
+import CollapsibleCard from '../../../../components/ui/collapsible-card';
 import { API_ORIGIN } from '../constants';
 import { formatDate } from '../helpers';
 import type { FormalDocumentView } from '../types';
@@ -14,13 +16,15 @@ export default function DocumentsChecklistCard({
   completionRate,
   phaseClosed,
 }: DocumentsChecklistCardProps) {
+  const isComplete = completionRate === 11 || phaseClosed;
+
   return (
-    <div className="card space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <CheckCircle2 size={16} className="text-anac-navy" />
-          <span className="font-medium text-sm">Dossier de demande formelle</span>
-        </div>
+    <CollapsibleCard
+      title="Dossier de demande formelle"
+      icon={<CheckCircle2 size={16} className="text-anac-navy" />}
+      defaultOpen={!isComplete}
+      resetKey={`${completionRate}-${phaseClosed}`}
+      badge={
         <span
           className={`text-xs font-medium px-2 py-0.5 rounded ${
             completionRate === 11
@@ -30,7 +34,8 @@ export default function DocumentsChecklistCard({
         >
           Deposes {completionRate}/11
         </span>
-      </div>
+      }
+    >
 
       <p className="text-xs text-anac-muted">
         Ces pieces sont deposees par le postulant depuis le portail. DN les consulte et poursuit la
@@ -55,14 +60,11 @@ export default function DocumentsChecklistCard({
                   <p className="text-[10px] text-anac-muted mt-0.5">
                     Version actuelle deposee le{' '}
                     {formatDate(doc.currentVersionUploadedAt ?? doc.submittedAt)} -{' '}
-                    <a
-                      href={`${API_ORIGIN}${doc.fileUrl}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="underline text-anac-blue"
-                    >
-                      ouvrir ce document
-                    </a>
+                    <DocumentPreviewLink
+                      title={doc.label}
+                      url={`${API_ORIGIN}${doc.fileUrl}`}
+                      label="ouvrir ce document"
+                    />
                   </p>
                 )}
                 {doc.status === 'submitted' && (
@@ -87,6 +89,6 @@ export default function DocumentsChecklistCard({
           </div>
         ))}
       </div>
-    </div>
+    </CollapsibleCard>
   );
 }

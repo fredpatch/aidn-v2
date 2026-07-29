@@ -26,8 +26,8 @@ Already done:
 Remaining themes:
 
 - B remaining - fine UI permission audit per role.
-- C-V2 - extend `DocumentViewer` to M3, M4, M6, and M7.
-- D-V1 - collapsible cards, especially M4 and M5.
+- C-V2 - extend `DocumentViewer` to M3, M4, M6, and M7. Done 2026-07-29.
+- D-V1 - collapsible cards, especially M4 and M5. Done 2026-07-29.
 - E-V1 - notifications for certificate ready, document correction, and rejected dossier.
 
 ## Phase 1 - Applicant entrance, intake, and signature circuit
@@ -231,6 +231,12 @@ Expected deliverable:
 
 - M4 is scannable and clear: documents, meeting, DG circuit, and closure gates are easy to manage.
 
+Implemented D-V1:
+
+- Added a reusable admin `CollapsibleCard`.
+- M4 formal letter, document dossier, meeting, and closure sections are collapsible.
+- Completed/resolved sections default closed based on real status; active/incomplete sections stay open.
+
 ## Phase 4 - M5: Evaluation Approfondie
 
 Roles: `s5_agent`, `dn_agent`, `dn_supervisor`, applicant.
@@ -246,6 +252,11 @@ Hardening focus:
 Expected deliverable:
 
 - M5 is efficient for repeated document review and correction loops.
+
+Implemented D-V1:
+
+- M5 payment, document evaluation, and closure sections are collapsible.
+- Validated payment and fully validated document lists default closed based on real current state.
 
 ## Phase 5 - M6: Demonstration / Inspection
 
@@ -281,9 +292,9 @@ Expected deliverable:
 ## Execution Order
 
 1. Intake and DG Circuit role/permission + feedback pass.
-2. M3 role/permission + viewer pass.
-3. M4 collapsible cards + viewer pass.
-4. M5 collapsible cards + correction notification candidate.
-5. M6 role/permission + viewer pass.
-6. M7 certificate-ready notification + viewer/status pass.
+2. M3 role/permission + viewer pass - done.
+3. M4 collapsible cards + viewer pass - done.
+4. M5 collapsible cards - done; correction notification candidate remains.
+5. M6 role/permission + viewer pass - done.
+6. M7 workflow/status + viewer pass - done; certificate-ready notification remains.
 7. Final end-to-end replay with all role users.

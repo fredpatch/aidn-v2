@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Download, Printer } from 'lucide-react';
+import { Printer } from 'lucide-react';
+import DocumentPreviewLink from '../../../../components/documents/DocumentPreviewLink';
 import { Button } from '../../../../components/ui/button';
 import { API_ORIGIN, CERTIFICATE_STATUS_LABELS, CERTIFICATE_STATUS_TONES } from '../constants';
 import { formatDateTime } from '../helpers';
@@ -75,14 +76,11 @@ export default function LifecycleCard({
           )}
           {lastGeneratedUrl && (
             <p className="text-xs">
-              <a
-                href={`${API_ORIGIN}${lastGeneratedUrl}`}
-                target="_blank"
-                rel="noreferrer"
-                className="underline text-anac-blue inline-flex items-center gap-1"
-              >
-                <Download size={12} /> Telecharger le document genere
-              </a>
+              <DocumentPreviewLink
+                title="Certificat genere"
+                url={`${API_ORIGIN}${lastGeneratedUrl}`}
+                label="Consulter le document genere"
+              />
             </p>
           )}
           {hasBeenGenerated && (
@@ -121,14 +119,11 @@ export default function LifecycleCard({
           <p className="text-xs text-anac-muted">Signe le {formatDateTime(certificate.signedAt)}.</p>
           {certificate.signedFileUrl && (
             <p className="text-xs">
-              <a
-                href={`${API_ORIGIN}${certificate.signedFileUrl}`}
-                target="_blank"
-                rel="noreferrer"
-                className="underline text-anac-blue inline-flex items-center gap-1"
-              >
-                <Download size={12} /> Consulter le certificat signe retourne
-              </a>
+              <DocumentPreviewLink
+                title="Certificat signe retourne"
+                url={`${API_ORIGIN}${certificate.signedFileUrl}`}
+                label="Consulter le certificat signe retourne"
+              />
             </p>
           )}
           <Button size="sm" onClick={() => advance(certificate.id, 'archived')} disabled={busy}>

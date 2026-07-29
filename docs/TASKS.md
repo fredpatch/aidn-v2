@@ -420,8 +420,8 @@ reste un audit plus étroit des permissions fines côté UI.
       existant), dashboard postulant, et circuit signature clarifié
       (`Ouvrir / imprimer` -> confirmation `En signature` -> scan retour signé) —
       terminé 2026-07-28
-- [ ] **D-V1** — Cartes repliables (collapse/expand) pour réduire le scroll M4/M5 — prochain
-- [ ] **C-V2** — Brancher `DocumentViewer` aux autres liens documentaires M3/M4/M6/M7 après validation terrain M5
+- [x] **D-V1** — Cartes repliables (collapse/expand) pour réduire le scroll M4/M5 — terminé 2026-07-29
+- [x] **C-V2** — Brancher `DocumentViewer` aux autres liens documentaires M3/M4/M6/M7 après validation terrain M5 — terminé 2026-07-29
 - [ ] **E** — Notifications (M11) — V1 minimale (certificat prêt, document à corriger, dossier rejeté)
 
 ## Sprint 7 — Documents (transverse, M8)

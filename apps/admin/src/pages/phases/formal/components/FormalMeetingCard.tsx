@@ -1,6 +1,8 @@
 import { FormEvent, useState } from 'react';
-import { CalendarClock, CheckCircle2, FileUp, RotateCcw, Ticket, XCircle } from 'lucide-react';
+import { CalendarClock, CheckCircle2, FileUp, RotateCcw, XCircle } from 'lucide-react';
+import DocumentPreviewLink from '../../../../components/documents/DocumentPreviewLink';
 import { Button } from '../../../../components/ui/button';
+import CollapsibleCard from '../../../../components/ui/collapsible-card';
 import { API_ORIGIN, MEETING_STATUS_LABELS, MEETING_STATUS_TONES } from '../constants';
 import { formatDate, formatDateTime } from '../helpers';
 import { useFormalMeetingActions } from '../hooks/useFormalMeetingActions';
@@ -85,13 +87,17 @@ export default function FormalMeetingCard({
     }
   }
 
-  return (
-    <div className="card space-y-3">
-      <div className="flex items-center gap-2">
-        <CalendarClock size={16} className="text-anac-navy" />
-        <span className="font-medium text-sm">Reunion formelle</span>
-      </div>
+  const meetingResolved =
+    meeting?.status === 'held' || meeting?.status === 'no_show' || meeting?.status === 'file_cancelled';
+  const shouldOpen = !meetingResolved;
 
+  return (
+    <CollapsibleCard
+      title="Reunion formelle"
+      icon={<CalendarClock size={16} className="text-anac-navy" />}
+      defaultOpen={shouldOpen}
+      resetKey={meeting?.status ?? 'missing'}
+    >
       {warning && <p className="text-anac-warning text-xs">{warning}</p>}
 
       {!letterReturned && !meeting ? (
@@ -184,14 +190,12 @@ export default function FormalMeetingCard({
 
           {meeting.status === 'scheduled' && (
             <div className="flex flex-wrap gap-2 pt-1">
-              <a
-                href={`${API_ORIGIN}/api/meetings/${meeting.id}/ticket`}
-                target="_blank"
-                rel="noreferrer"
+              <DocumentPreviewLink
+                title="Ticket de reunion formelle"
+                url={`${API_ORIGIN}/api/meetings/${meeting.id}/ticket`}
+                label="Voir le ticket"
                 className="btn-secondary text-xs inline-flex items-center gap-1 px-2 py-1 rounded"
-              >
-                <Ticket size={12} /> Voir le ticket
-              </a>
+              />
               <Button
                 size="sm"
                 variant="secondary"
@@ -235,14 +239,10 @@ export default function FormalMeetingCard({
               {meeting.crDocumentUrl ? (
                 <p className="text-sm">
                   Compte-rendu envoye le {formatDate(meeting.crUploadedAt)} -{' '}
-                  <a
-                    href={`${API_ORIGIN}${meeting.crDocumentUrl}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="underline text-anac-blue"
-                  >
-                    voir le fichier
-                  </a>
+                  <DocumentPreviewLink
+                    title="Compte-rendu de reunion formelle"
+                    url={`${API_ORIGIN}${meeting.crDocumentUrl}`}
+                  />
                   {' - '}
                   <button
                     type="button"
@@ -293,6 +293,6 @@ export default function FormalMeetingCard({
           )}
         </div>
       )}
-    </div>
+    </CollapsibleCard>
   );
 }
