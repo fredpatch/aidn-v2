@@ -45,6 +45,7 @@ export interface CertificateView {
   createdAt: Date;
   printedAt: Date | null;
   signedAt: Date | null;
+  signedFileUrl: string | null;
   archivedAt: Date | null;
   notifiedAt: Date | null;
   collectedAt: Date | null;
@@ -68,6 +69,16 @@ export interface CertificateBundle {
   } | null;
   payment: PaymentView | null;
   certificate: CertificateView | null;
+}
+
+export interface PaymentQueueItem {
+  phaseId: number;
+  requestId: number;
+  requestReference: string;
+  requestType: string;
+  organisationName: string;
+  payment: PaymentView;
+  nextAction: 'send_invoice' | 'validate_payment' | 'waiting_for_proof' | 'done' | 'rejected';
 }
 
 /** Data shape the HTML template's renderCertificate(data) expects - the full

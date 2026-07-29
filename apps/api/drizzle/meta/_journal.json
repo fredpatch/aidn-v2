@@ -36,6 +36,13 @@
       "when": 1785238494715,
       "tag": "0004_aberrant_snowbird",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1785304891418,
+      "tag": "0006_material_gideon",
+      "breakpoints": true
     }
   ]
 }

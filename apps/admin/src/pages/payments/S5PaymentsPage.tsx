@@ -3,12 +3,18 @@ import { Link } from 'react-router-dom';
 import { CreditCard } from 'lucide-react';
 import { fetchDeepEvaluationPaymentQueue } from '../../lib/api/deep-evaluation.api';
 import { fetchSiteInspectionPaymentQueue } from '../../lib/api/site-inspection.api';
+import { fetchCertificatesPaymentQueue } from '../../lib/api/certificates.api';
 import type { PaymentQueueItem as DeepPaymentQueueItem } from '../../lib/api/deep-evaluation.types';
 import type { PaymentQueueItem as SitePaymentQueueItem } from '../../lib/api/site-inspection.types';
+import type { PaymentQueueItem as CertificatePaymentQueueItem } from '../../lib/api/certificates.types';
 import { queryKeys } from '../../lib/react-query/queryKeys';
 
-type S5PaymentQueueItem = (DeepPaymentQueueItem | SitePaymentQueueItem) & {
-  phaseCode: 'M5' | 'M6';
+type S5PaymentQueueItem = (
+  | DeepPaymentQueueItem
+  | SitePaymentQueueItem
+  | CertificatePaymentQueueItem
+) & {
+  phaseCode: 'M5' | 'M6' | 'M7';
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -55,13 +61,18 @@ export default function S5PaymentsPage() {
     queryKey: queryKeys.siteInspection.paymentQueue(),
     queryFn: fetchSiteInspectionPaymentQueue,
   });
+  const certificateQueue = useQuery({
+    queryKey: queryKeys.certificates.paymentQueue(),
+    queryFn: fetchCertificatesPaymentQueue,
+  });
 
   const data: S5PaymentQueueItem[] = [
     ...(deepQueue.data ?? []).map((item) => ({ ...item, phaseCode: 'M5' as const })),
     ...(siteQueue.data ?? []).map((item) => ({ ...item, phaseCode: 'M6' as const })),
+    ...(certificateQueue.data ?? []).map((item) => ({ ...item, phaseCode: 'M7' as const })),
   ];
-  const isLoading = deepQueue.isLoading || siteQueue.isLoading;
-  const error = deepQueue.error || siteQueue.error;
+  const isLoading = deepQueue.isLoading || siteQueue.isLoading || certificateQueue.isLoading;
+  const error = deepQueue.error || siteQueue.error || certificateQueue.error;
 
   return (
     <div className="space-y-4">
@@ -70,7 +81,7 @@ export default function S5PaymentsPage() {
         <h1 className="text-anac-navy text-xl font-semibold">Paiements S5</h1>
       </div>
       <p className="text-anac-muted text-sm">
-        Dossiers en evaluation approfondie dont la facture ou la quittance attend une action S5.
+        Dossiers dont la facture ou la quittance attend une action S5.
       </p>
 
       {isLoading && <p className="text-anac-muted text-sm">Chargement...</p>}
@@ -100,7 +111,11 @@ export default function S5PaymentsPage() {
                 <tr key={item.phaseId}>
                   <td className="px-4 py-2 font-medium">{item.requestReference}</td>
                   <td className="px-4 py-2 text-anac-muted text-xs">
-                    {item.phaseCode === 'M5' ? 'Evaluation approfondie' : 'Demonstration'}
+                    {item.phaseCode === 'M5'
+                      ? 'Evaluation approfondie'
+                      : item.phaseCode === 'M6'
+                        ? 'Demonstration'
+                        : 'Delivrance'}
                   </td>
                   <td className="px-4 py-2">{item.organisationName}</td>
                   <td className="px-4 py-2">
@@ -114,7 +129,9 @@ export default function S5PaymentsPage() {
                       to={
                         item.phaseCode === 'M5'
                           ? `/demandes/${item.requestId}/evaluation-approfondie`
-                          : `/demandes/${item.requestId}/demonstration-inspection`
+                          : item.phaseCode === 'M6'
+                            ? `/demandes/${item.requestId}/demonstration-inspection`
+                            : `/demandes/${item.requestId}/delivrance`
                       }
                       className="text-anac-blue underline text-xs"
                     >

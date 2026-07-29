@@ -7,6 +7,7 @@ import {
   markPrinted,
   markSigned,
   notifyApplicant,
+  uploadFile,
 } from '../api';
 import { queryKeys } from '../../../../lib/react-query/queryKeys';
 
@@ -35,7 +36,10 @@ export function useCertificateLifecycle(
     onError: (err) => setActionError(apiErrorMessage(err, 'Impossible de marquer comme imprimé.')),
   });
   const signedMutation = useMutation({
-    mutationFn: (certificateId: number) => markSigned(certificateId),
+    mutationFn: async ({ certificateId, file }: { certificateId: number; file: File }) => {
+      const uploaded = await uploadFile(file);
+      await markSigned(certificateId, uploaded.fileUrl, uploaded.mimeType, uploaded.uploadAssetId);
+    },
     onSuccess: invalidate,
     onError: (err) => setActionError(apiErrorMessage(err, 'Impossible de marquer comme signé.')),
   });
@@ -66,15 +70,24 @@ export function useCertificateLifecycle(
 
   async function advance(
     certificateId: number,
-    step: 'printed' | 'signed' | 'archived' | 'notify' | 'collected'
+    step: 'printed' | 'archived' | 'notify' | 'collected'
   ): Promise<boolean> {
     setActionError(null);
     try {
       if (step === 'printed') await printedMutation.mutateAsync(certificateId);
-      else if (step === 'signed') await signedMutation.mutateAsync(certificateId);
       else if (step === 'archived') await archivedMutation.mutateAsync(certificateId);
       else if (step === 'notify') await notifyMutation.mutateAsync(certificateId);
       else if (step === 'collected') await collectedMutation.mutateAsync(certificateId);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async function registerSignedReturn(certificateId: number, file: File): Promise<boolean> {
+    setActionError(null);
+    try {
+      await signedMutation.mutateAsync({ certificateId, file });
       return true;
     } catch {
       return false;
@@ -89,5 +102,5 @@ export function useCertificateLifecycle(
     notifyMutation.isPending ||
     collectedMutation.isPending;
 
-  return { busy, generate, advance };
+  return { busy, generate, advance, registerSignedReturn };
 }

@@ -1,4 +1,4 @@
-import { eq, and } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import { readFile, mkdir, writeFile } from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -22,6 +22,7 @@ import {
   type PaymentView,
   type CertificateView,
   type CertificateBundle,
+  type PaymentQueueItem,
   type ScopeDetails,
   type CertificateTemplateData,
 } from './certificates.types.js';
@@ -58,6 +59,7 @@ function toCertificateView(row: typeof certificates.$inferSelect): CertificateVi
     createdAt: row.createdAt,
     printedAt: row.printedAt,
     signedAt: row.signedAt,
+    signedFileUrl: row.signedFileUrl,
     archivedAt: row.archivedAt,
     notifiedAt: row.notifiedAt,
     collectedAt: row.collectedAt,
@@ -70,6 +72,14 @@ function toCertificateView(row: typeof certificates.$inferSelect): CertificateVi
     daysToDeliver: daysBetween(row.createdAt, row.notifiedAt),
     daysToCollect: daysBetween(row.notifiedAt, row.collectedAt),
   };
+}
+
+function nextPaymentAction(status: string): PaymentQueueItem['nextAction'] {
+  if (status === 'awaiting_invoice') return 'send_invoice';
+  if (status === 'pending_validation') return 'validate_payment';
+  if (status === 'awaiting_proof') return 'waiting_for_proof';
+  if (status === 'validated') return 'done';
+  return 'rejected';
 }
 
 // ── Open M7 ───────────────────────────────────────────────────────────────
@@ -129,6 +139,34 @@ export async function getBundleForRequest(requestId: number): Promise<Certificat
     payment: payment ? toPaymentView(payment) : null,
     certificate: certificate ? toCertificateView(certificate) : null,
   };
+}
+
+export async function getPaymentQueue(): Promise<PaymentQueueItem[]> {
+  const rows = await db
+    .select({
+      phaseId: phases.id,
+      requestId: requests.id,
+      requestReference: requests.reference,
+      requestType: requests.requestType,
+      organisationName: organisations.name,
+      payment: payments,
+    })
+    .from(phases)
+    .innerJoin(requests, eq(phases.requestId, requests.id))
+    .innerJoin(organisations, eq(requests.organisationId, organisations.id))
+    .innerJoin(payments, eq(payments.phaseId, phases.id))
+    .where(and(eq(phases.phaseCode, 'M7'), eq(phases.status, 'open')))
+    .orderBy(desc(phases.openedAt));
+
+  return rows.map((row) => ({
+    phaseId: row.phaseId,
+    requestId: row.requestId,
+    requestReference: row.requestReference,
+    requestType: row.requestType,
+    organisationName: row.organisationName,
+    payment: toPaymentView(row.payment),
+    nextAction: nextPaymentAction(row.payment.status),
+  }));
 }
 
 // ── Invoice ───────────────────────────────────────────────────────────────
@@ -520,7 +558,51 @@ async function setStatus(
 }
 
 export const markPrinted = (id: number, userId: number) => setStatus(id, userId, 'printed', 'printedAt');
-export const markSigned = (id: number, userId: number) => setStatus(id, userId, 'signed', 'signedAt');
+
+export async function markSigned(
+  certificateId: number,
+  actorUserId: number,
+  fileUrl: string,
+  mimeType: string,
+  uploadAssetId?: number
+): Promise<CertificateView> {
+  const [existing] = await db.select().from(certificates).where(eq(certificates.id, certificateId));
+  if (!existing) throw new Error('CERTIFICATE_NOT_FOUND');
+  if (existing.status !== 'printed') throw new Error('INVALID_STATUS_TRANSITION');
+
+  await db.insert(documentVersions).values({
+    ownerType: 'certificate_document',
+    ownerId: certificateId,
+    fileUrl,
+    mimeType,
+    uploadedBy: actorUserId,
+    isCurrent: true,
+  });
+
+  await linkUploadAssetToOwner({
+    uploadAssetId,
+    ownerType: 'certificate_document',
+    ownerId: certificateId,
+    expectedFileUrl: fileUrl,
+  });
+
+  const [updated] = await db
+    .update(certificates)
+    .set({ status: 'signed', signedAt: new Date(), signedFileUrl: fileUrl })
+    .where(eq(certificates.id, certificateId))
+    .returning();
+
+  await logAudit({
+    userId: actorUserId,
+    action: 'CERTIFICATE_SIGNED_RETURN_REGISTERED',
+    module: 'M7',
+    entityId: certificateId,
+    details: { fileUrl },
+  });
+
+  return toCertificateView(updated);
+}
+
 export const markArchived = (id: number, userId: number) =>
   setStatus(id, userId, 'archived', 'archivedAt');
 
@@ -584,6 +666,11 @@ export async function markCollected(certificateId: number, actorUserId: number):
       .where(eq(phases.id, phase.id));
   }
 
+  await db
+    .update(requests)
+    .set({ status: 'completed', updatedAt: new Date() })
+    .where(eq(requests.id, existing.requestId));
+
   await logAudit({
     userId: actorUserId,
     action: 'CERTIFICATE_STATUS_CHANGED',
@@ -600,6 +687,13 @@ export async function markCollected(certificateId: number, actorUserId: number):
       details: { trigger: 'auto_on_collection' },
     });
   }
+  await logAudit({
+    userId: actorUserId,
+    action: 'REQUEST_COMPLETED',
+    module: 'M7',
+    entityId: existing.requestId,
+    details: { trigger: 'certificate_collected' },
+  });
 
   return toCertificateView(updated);
 }

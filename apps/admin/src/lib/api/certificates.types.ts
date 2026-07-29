@@ -32,6 +32,7 @@ export interface CertificateView {
   createdAt: string;
   printedAt: string | null;
   signedAt: string | null;
+  signedFileUrl: string | null;
   archivedAt: string | null;
   notifiedAt: string | null;
   collectedAt: string | null;
@@ -54,6 +55,16 @@ export interface CertificateBundle {
   } | null;
   payment: PaymentView | null;
   certificate: CertificateView | null;
+}
+
+export interface PaymentQueueItem {
+  phaseId: number;
+  requestId: number;
+  requestReference: string;
+  requestType: string;
+  organisationName: string;
+  payment: PaymentView;
+  nextAction: 'send_invoice' | 'validate_payment' | 'waiting_for_proof' | 'done' | 'rejected';
 }
 
 export interface UploadedFile {

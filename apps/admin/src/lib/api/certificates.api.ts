@@ -1,8 +1,18 @@
 import { api } from '../axios';
-import type { CertificateBundle, ScopeDetails, UploadedFile } from './certificates.types';
+import type {
+  CertificateBundle,
+  PaymentQueueItem,
+  ScopeDetails,
+  UploadedFile,
+} from './certificates.types';
 
 export async function fetchCertificateBundle(requestId: string): Promise<CertificateBundle> {
   const { data } = await api.get(`/certificates/by-request/${requestId}`);
+  return data;
+}
+
+export async function fetchCertificatesPaymentQueue(): Promise<PaymentQueueItem[]> {
+  const { data } = await api.get('/certificates/payment-queue');
   return data;
 }
 
@@ -81,8 +91,13 @@ export async function generateCertificateDocument(
 export async function markPrinted(certificateId: number): Promise<void> {
   await api.post(`/certificates/${certificateId}/printed`);
 }
-export async function markSigned(certificateId: number): Promise<void> {
-  await api.post(`/certificates/${certificateId}/signed`);
+export async function markSigned(
+  certificateId: number,
+  fileUrl: string,
+  mimeType: string,
+  uploadAssetId?: number
+): Promise<void> {
+  await api.post(`/certificates/${certificateId}/signed`, { fileUrl, mimeType, uploadAssetId });
 }
 export async function markArchived(certificateId: number): Promise<void> {
   await api.post(`/certificates/${certificateId}/archived`);

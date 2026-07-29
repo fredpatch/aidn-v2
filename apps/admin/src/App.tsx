@@ -21,6 +21,7 @@ import S5PaymentsPage from './pages/payments/S5PaymentsPage';
 const DN_ROLES = ['dn_agent', 'dn_supervisor', 'SU'];
 const DEEP_EVALUATION_ROLES = ['dn_agent', 'dn_supervisor', 's5_agent', 'SU'];
 const SITE_INSPECTION_ROLES = ['dn_agent', 'dn_supervisor', 's5_agent', 'r3_agent', 'SU'];
+const DELIVERY_ROLES = ['dn_agent', 'dn_supervisor', 's5_agent', 'SU'];
 
 function hasAnyRole(userRoles: string[] | undefined, allowedRoles: string[]): boolean {
   return allowedRoles.some((role) => userRoles?.includes(role));
@@ -122,7 +123,7 @@ function Gate() {
         <Route
           path="demandes/:requestId/delivrance"
           element={
-            <RoleRoute roles={DN_ROLES}>
+            <RoleRoute roles={DELIVERY_ROLES}>
               <CertificatesPhasePage />
             </RoleRoute>
           }

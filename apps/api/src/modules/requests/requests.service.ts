@@ -6,6 +6,7 @@ import {
   documentVersions,
   applicants,
   organisations,
+  phases,
 } from '../../shared/db/schema.js';
 import { logAudit } from '../auth/auth.service.js';
 import { generateRequestReference } from './requests.helpers.js';
@@ -48,6 +49,7 @@ async function toRequestView(
   circuitDoc: typeof dgCircuitDocuments.$inferSelect | null
 ): Promise<RequestView> {
   const currentDocument = circuitDoc ? await getCurrentCircuitDocument(circuitDoc.id) : null;
+  const status = await resolveRequestStatus(row);
   return {
     id: row.id,
     reference: row.reference,
@@ -55,7 +57,7 @@ async function toRequestView(
     organisationId: row.organisationId,
     requestType: row.requestType,
     message: row.message,
-    status: row.status,
+    status,
     rejectionReason: row.rejectionReason,
     circuitStatus: circuitDoc?.status ?? null,
     circuitDocumentUrl: currentDocument?.fileUrl ?? null,
@@ -63,6 +65,18 @@ async function toRequestView(
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
+}
+
+async function resolveRequestStatus(row: typeof requests.$inferSelect): Promise<string> {
+  if (['completed', 'rejected', 'cancelled'].includes(row.status)) return row.status;
+
+  const [deliveryPhase] = await db
+    .select({ status: phases.status })
+    .from(phases)
+    .where(and(eq(phases.requestId, row.id), eq(phases.phaseCode, 'M7')));
+
+  if (deliveryPhase?.status === 'closed') return 'completed';
+  return row.status;
 }
 
 /** M1 - submits a new demande. Works identically whether it came through the

@@ -32,6 +32,7 @@ const CIRCUIT_STATUS_LABELS: Record<string, string> = {
   in_signature_circuit: 'En signature',
   signed: 'Signe',
   pending_review: 'En attente de traitement',
+  completed: 'Circuit termine',
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -58,6 +59,7 @@ function StatusBadge({ status, labels }: { status: string; labels: Record<string
     signed: 'bg-anac-warning/10 text-anac-warning',
     pending_review: 'bg-anac-success/10 text-anac-success',
     in_progress: 'bg-anac-blue/10 text-anac-blue',
+    completed: 'bg-anac-success/10 text-anac-success',
     rejected: 'bg-anac-danger/10 text-anac-danger',
     cancelled: 'bg-anac-muted/10 text-anac-muted',
   };
@@ -232,8 +234,11 @@ export default function RequestsPage() {
                     {REQUEST_TYPE_LABELS[r.requestType] ?? r.requestType}
                   </td>
                   <td className="py-2 pr-4">
-                    {r.circuitStatus && (
-                      <StatusBadge status={r.circuitStatus} labels={CIRCUIT_STATUS_LABELS} />
+                    {(r.status === 'completed' || r.circuitStatus) && (
+                      <StatusBadge
+                        status={r.status === 'completed' ? 'completed' : r.circuitStatus!}
+                        labels={CIRCUIT_STATUS_LABELS}
+                      />
                     )}
                   </td>
                   <td className="py-2 pr-4">
@@ -289,7 +294,7 @@ export default function RequestsPage() {
                         Phase Préliminaire
                       </Link>
                     )}
-                    {r.status === 'in_progress' && (
+                    {(r.status === 'in_progress' || r.status === 'completed') && (
                       <>
                         <Link
                           to={`/demandes/${r.id}/phase-preliminaire`}

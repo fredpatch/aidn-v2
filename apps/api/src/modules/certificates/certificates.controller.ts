@@ -47,6 +47,15 @@ export async function getBundle(req: Request, res: Response): Promise<void> {
   }
 }
 
+export async function getPaymentQueue(_req: Request, res: Response): Promise<void> {
+  try {
+    const queue = await certificatesService.getPaymentQueue();
+    res.json(queue);
+  } catch (error) {
+    handleCertificatesError(res, error);
+  }
+}
+
 export async function uploadInvoice(req: Request, res: Response): Promise<void> {
   try {
     const { fileUrl, mimeType, uploadAssetId } = req.body ?? {};
@@ -180,9 +189,17 @@ export async function printed(req: Request, res: Response): Promise<void> {
 
 export async function signed(req: Request, res: Response): Promise<void> {
   try {
+    const { fileUrl, mimeType, uploadAssetId } = req.body ?? {};
+    if (!fileUrl || !mimeType) {
+      res.status(400).json({ message: 'fileUrl et mimeType sont requis.' });
+      return;
+    }
     const certificate = await certificatesService.markSigned(
       Number(req.params.certificateId),
-      req.user!.userId
+      req.user!.userId,
+      fileUrl,
+      mimeType,
+      parseUploadAssetId(uploadAssetId)
     );
     res.json(certificate);
   } catch (error) {

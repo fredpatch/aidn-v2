@@ -190,7 +190,7 @@ export function CertificatesSection({ requestId }: { requestId: number }) {
           </div>
           <div className="mt-3 space-y-3 text-sm">
             {!bundle.payment.invoiceFileUrl ? (
-              <p className="text-anac-muted">En attente de la facture de la DN.</p>
+              <p className="text-anac-muted">En attente de la facture du service S5.</p>
             ) : (
               <a
                 href={fileHref(bundle.payment.invoiceFileUrl)}

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   authenticate,
   authenticateEither,
+  requireApplicant,
   requireApplicantOrRole,
   requireRole,
 } from '../../shared/guards/auth.middleware.js';
@@ -13,8 +14,15 @@ const router = Router();
 router.get(
   '/by-request/:requestId',
   authenticateEither,
-  requireApplicantOrRole('dn_agent', 'dn_supervisor', 'SU'),
+  requireApplicantOrRole('dn_agent', 'dn_supervisor', 's5_agent', 'SU'),
   certificatesController.getBundle
+);
+
+router.get(
+  '/payment-queue',
+  authenticate,
+  requireRole('s5_agent', 'SU'),
+  certificatesController.getPaymentQueue
 );
 
 // Open M7 — DN/SU
@@ -29,7 +37,7 @@ router.post(
 router.post(
   '/phases/:phaseId/invoice',
   authenticate,
-  requireRole('s5_agent', 'dn_agent', 'dn_supervisor', 'SU'),
+  requireRole('s5_agent', 'SU'),
   certificatesController.uploadInvoice
 );
 
@@ -37,6 +45,7 @@ router.post(
 router.post(
   '/phases/:phaseId/requests/:requestId/proof',
   authenticateEither,
+  requireApplicant,
   certificatesController.uploadProof
 );
 
@@ -45,13 +54,13 @@ router.post(
 router.post(
   '/phases/:phaseId/payment/validate',
   authenticate,
-  requireRole('s5_agent', 'dn_agent', 'dn_supervisor', 'SU'),
+  requireRole('s5_agent', 'SU'),
   certificatesController.validatePayment
 );
 router.post(
   '/phases/:phaseId/payment/reject',
   authenticate,
-  requireRole('s5_agent', 'dn_agent', 'dn_supervisor', 'SU'),
+  requireRole('s5_agent', 'SU'),
   certificatesController.rejectPayment
 );
 

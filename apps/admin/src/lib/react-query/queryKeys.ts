@@ -33,6 +33,7 @@ export const queryKeys = {
   certificates: {
     all: ['certificates'] as const,
     bundle: (requestId: string) => ['certificates', 'bundle', requestId] as const,
+    paymentQueue: () => ['certificates', 'payment-queue'] as const,
   },
   phases: {
     all: ['phases'] as const,

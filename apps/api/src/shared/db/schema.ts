@@ -548,6 +548,7 @@ export const certificates = pgTable('certificates', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
   printedAt: timestamp('printed_at'),
   signedAt: timestamp('signed_at'),
+  signedFileUrl: text('signed_file_url'),
   archivedAt: timestamp('archived_at'),
   notifiedAt: timestamp('notified_at'), // time-to-collect KPI starts here
   collectedAt: timestamp('collected_at'), // time-to-collect KPI ends here
