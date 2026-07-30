@@ -2,6 +2,21 @@ import { Request, Response } from 'express';
 import * as meetingsService from './meetings.service.js';
 import { handleMeetingsError } from '../../shared/utils/error.js';
 
+export async function list(req: Request, res: Response): Promise<void> {
+  try {
+    const summary = await meetingsService.listMeetingCockpit({
+      from: typeof req.query.from === 'string' ? req.query.from : undefined,
+      to: typeof req.query.to === 'string' ? req.query.to : undefined,
+      meetingType: typeof req.query.meetingType === 'string' ? req.query.meetingType : undefined,
+      status: typeof req.query.status === 'string' ? req.query.status : undefined,
+      phaseCode: typeof req.query.phaseCode === 'string' ? req.query.phaseCode : undefined,
+    });
+    res.json(summary);
+  } catch (error) {
+    handleMeetingsError(res, error);
+  }
+}
+
 export async function schedule(req: Request, res: Response): Promise<void> {
   try {
     const { phaseId, meetingType, dnAgentId, scheduledAt, location } = req.body ?? {};

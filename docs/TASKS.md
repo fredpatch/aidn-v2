@@ -428,9 +428,11 @@ reste un audit plus étroit des permissions fines côté UI.
 - [x] **D-V1** - Cartes repliables (collapse/expand) pour réduire le scroll M4/M5 - terminé 2026-07-29
 - [x] **C-V2** - Brancher `DocumentViewer` aux autres liens documentaires M3/M4/M6/M7 après validation terrain M5 - terminé 2026-07-29
 - [x] **UI redesign workflow** - Nouveau cockpit appliqué aux phases M3-M7 du workflow - terminé 2026-07-29
-- [x] **UI redesign opérationnel** - Dashboard DN, inbox `Courriers officiels` et cockpit
-      `Facturation S5` alignés sur la même méthodologie UX : KPIs, listes denses,
-      panneau de détail, actions role-aware, visualiseur intégré - terminé 2026-07-29
+- [x] **UI redesign opérationnel** - Dashboard DN, inbox `Courriers officiels`, cockpit
+      `Facturation S5`, dashboards Reception/S5/R3, `Mes inspections`, `Reunions`
+      et `Demandes` alignés sur la même méthodologie UX : KPIs, listes denses,
+      panneau de détail, actions role-aware, visualiseur intégré, actions terminales
+      en lecture seule - terminé 2026-07-30
 - [ ] **E** - Notifications (M11) - V1 minimale (certificat prêt, document à corriger, dossier rejeté)
 
 ## Sprint 7 - Documents (transverse, M8)
@@ -446,7 +448,9 @@ reste un audit plus étroit des permissions fines côté UI.
 
 ## Sprint 9 - Réunions (transverse, M10)
 
-- [ ] Vue calendrier transverse (tous rendez-vous, tous dossiers)
+- [x] Vue calendrier transverse DN/SU (`/reunions`) : KPIs, semaine compacte,
+      vue liste, filtres, prochaines réunions, détail sélectionné, accès ticket,
+      tenue/absence, report et compte-rendu (2026-07-30)
 - [ ] Détection conflit dur (même agent, même créneau) → blocage
 - [ ] Détection chevauchement doux (même agent, même jour) → avertissement
 
@@ -481,6 +485,9 @@ reste un audit plus étroit des permissions fines côté UI.
       en cockpit opérationnel, home routing par rôle pur, retrait de la gestion des
       comptes postulants du périmètre Reception/Assistant, et redesign de `Mes
       inspections` en tableau de missions R3 avec panneau de détail (2026-07-29)
+- [x] Cockpit `Demandes` V1 : endpoint `/api/requests/cockpit`, KPIs, liste filtrée,
+      panneau de détail à droite, synthèse documentaire Chart.js, actions terminales
+      désactivées et suivi des dossiers clôturés/auditables (2026-07-30)
 - [ ] Export PDF/Excel, plage de dates libre
 - [ ] Génération rapport mensuel automatique (1er du mois)
 - [ ] Génération manuelle à la demande (quota/jour à définir)

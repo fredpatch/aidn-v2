@@ -3,6 +3,26 @@
 Commit-level history. Covers `be9fce9` through the current uncommitted
 2026-07-28 workflow hardening, document viewer, and Personnel ANAC users pass.
 
+## (uncommitted) - 2026-07-30 meetings and requests cockpits
+
+- Added `/api/meetings` as a DN/SU transverse meeting cockpit endpoint, with
+  typed admin client data for metrics, week/list views, filters, upcoming
+  meetings, selected meeting detail, and role-scoped actions.
+- Added a new `Reunions` admin route and sidebar entry for DN/SU users. The page
+  provides a compact scheduler-style workbench, selected meeting panel, ticket
+  access, held/no-show actions, report upload, and rescheduling.
+- Added `/api/requests/cockpit` as the request-list cockpit endpoint, aggregating
+  request metadata, current phase, signature circuit, document completeness,
+  recent business activity, next action, and operational metrics.
+- Redesigned the `Demandes` page into a split operational cockpit: KPI cards,
+  filtered request list, compact right-side detail workspace, Chart.js document
+  completeness donut, and disabled/read-only terminal workflow actions.
+- Added `chart.js` and `react-chartjs-2` to the admin app for proper chart
+  rendering instead of hand-built SVG/CSS donuts.
+- Verified with `npm run typecheck --workspace @aidn/api`,
+  `npm run typecheck --workspace @aidn/admin`, `npm run build --workspace @aidn/api`,
+  and `npm run build --workspace @aidn/admin` (Vite large-chunk warning remains).
+
 ## (uncommitted) - 2026-07-29 role dashboards: Reception and R3
 
 - Added `/api/dashboard/reception-summary` and a dedicated

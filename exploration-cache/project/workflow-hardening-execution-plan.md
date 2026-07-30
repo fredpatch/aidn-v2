@@ -30,8 +30,8 @@ Remaining themes:
 - D-V1 - collapsible cards, especially M4 and M5. Done 2026-07-29.
 - M12 dashboard KPI V1 - API summary + DN/SU dashboard landing page. Done 2026-07-29.
 - Operational cockpit redesign - workflow phases, dashboard, `Courriers officiels`,
-  and `Facturation S5` redesigned with dense inbox/detail-panel patterns. Done
-  2026-07-29.
+  `Facturation S5`, role dashboards, `Mes inspections`, `Reunions`, and `Demandes`
+  redesigned with dense inbox/detail-panel patterns. Done 2026-07-30.
 - E-V1 - notifications for certificate ready, document correction, and rejected dossier.
 
 ## Phase 1 - Applicant entrance, intake, and signature circuit
@@ -304,7 +304,7 @@ Expected deliverable:
 7. Operational screens redesign replay:
    dashboard done; courrier inbox done; S5 inbox done with retained history; S5
    dashboard V1 done; Reception/Assistant dashboard V1 done; R3 mission board and
-   dashboard V1 done.
+   dashboard V1 done; transverse `Reunions` cockpit done; `Demandes` cockpit done.
 8. Final end-to-end replay with all role users.
 9. M12 reporting continuation: exports, date range, monthly/manual report generation,
    and IA-assisted report review.

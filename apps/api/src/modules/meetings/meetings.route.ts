@@ -35,6 +35,13 @@ router.post(
   meetingsController.attachReport
 );
 
+router.get(
+  '/',
+  authenticate,
+  requireRole('dn_agent', 'dn_supervisor', 'SU'),
+  meetingsController.list
+);
+
 // Read access: either side needs to see the meeting/ticket.
 router.get('/:id', authenticateEither, meetingsController.get);
 router.get('/:id/ticket', authenticateEither, meetingsController.ticket);

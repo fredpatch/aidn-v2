@@ -15,6 +15,7 @@ import {
   ClipboardList,
   CreditCard,
   LayoutDashboard,
+  CalendarDays,
 } from 'lucide-react';
 
 import { cn } from '../../lib/utils';
@@ -59,6 +60,12 @@ const NAV_ITEMS: NavItem[] = [
     label: 'Paiements S5',
     icon: CreditCard,
     roles: ['s5_agent', 'SU'],
+  },
+  {
+    to: '/reunions',
+    label: 'Reunions',
+    icon: CalendarDays,
+    roles: ['dn_agent', 'dn_supervisor', 'SU'],
   },
   {
     to: '/modeles-documents',

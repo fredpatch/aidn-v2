@@ -16,6 +16,12 @@ router.post("/", authenticateEither, requestsController.submit);
 router.get("/mine", authenticateApplicant, requestsController.mine);
 
 router.get("/", authenticate, requireRole("dn_agent", "dn_supervisor", "SU"), requestsController.list);
+router.get(
+  "/cockpit",
+  authenticate,
+  requireRole("dn_agent", "dn_supervisor", "SU"),
+  requestsController.cockpit
+);
 router.get("/:id", authenticate, requireRole("dn_agent", "dn_supervisor", "SU"), requestsController.get);
 
 // Physical signature circuit transitions are internal-staff actions only.

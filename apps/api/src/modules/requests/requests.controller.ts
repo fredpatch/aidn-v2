@@ -91,6 +91,15 @@ export async function list(req: Request, res: Response): Promise<void> {
   }
 }
 
+export async function cockpit(req: Request, res: Response): Promise<void> {
+  try {
+    const result = await requestsService.listRequestCockpit();
+    res.json(result);
+  } catch (error) {
+    handleRequestsError(res, error);
+  }
+}
+
 export async function markSigned(req: Request, res: Response): Promise<void> {
   try {
     const result = await requestsService.markSigned(Number(req.params.id), req.user!.userId);

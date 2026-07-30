@@ -343,5 +343,12 @@ sans pouvoir les exécuter.
   inspections landing page, while `Mes inspections` is now the R3 mission workbench
   with assigned-mission table, filters, selected detail panel, visit-held action,
   and Avis R3 submission.
+- Transverse `Reunions` cockpit is done: `/api/meetings` powers a compact DN/SU
+  meeting workbench with metrics, filters, week/list views, upcoming meetings,
+  selected detail, ticket access, tenue/absence/reporting, and rescheduling.
+- `Demandes` cockpit V1 is done: `/api/requests/cockpit` powers a dense request
+  intake/monitoring page with KPIs, filtered list, right-side detail workspace,
+  Chart.js document completeness, activity, next action, and read-only terminal
+  workflow states.
 - Next priority: final role replay on the redesigned cockpit/dashboard, then E V1
   notifications and M12 exports/reports.

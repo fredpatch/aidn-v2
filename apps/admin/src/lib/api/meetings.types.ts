@@ -1,22 +1,19 @@
-export interface ScheduleMeetingParams {
-  phaseId: number;
-  meetingType: 'preliminary' | 'formal' | 'site_visit';
-  dnAgentId: number;
-  scheduledAt: string; // ISO
-  location?: string;
-}
+export type MeetingTypeFilter = 'all' | 'preliminary' | 'formal' | 'site_visit';
+export type MeetingStatusFilter =
+  | 'all'
+  | 'scheduled'
+  | 'held'
+  | 'no_show'
+  | 'rescheduled'
+  | 'file_cancelled';
+export type MeetingPhaseFilter = 'all' | 'M3' | 'M4' | 'M6';
 
-export interface MeetingView {
-  id: number;
-  phaseId: number;
-  meetingType: string;
-  dnAgentId: number;
-  scheduledAt: Date;
-  location: string | null;
-  status: string;
-  crDocumentUrl: string | null;
-  crUploadedAt: Date | null;
-  createdAt: Date;
+export interface MeetingCockpitMetric {
+  key: string;
+  label: string;
+  value: number | string;
+  helper: string;
+  tone: 'info' | 'warning' | 'success' | 'danger';
 }
 
 export interface MeetingCockpitItem {
@@ -44,14 +41,6 @@ export interface MeetingCockpitItem {
   phaseHref: string;
   canManage: boolean;
   actionLabel: string;
-}
-
-export interface MeetingCockpitMetric {
-  key: string;
-  label: string;
-  value: number | string;
-  helper: string;
-  tone: 'info' | 'warning' | 'success' | 'danger';
 }
 
 export interface MeetingCockpitSummary {

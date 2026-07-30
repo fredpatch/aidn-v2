@@ -1,8 +1,10 @@
-import { eq, and, gte, lt } from 'drizzle-orm';
+import { eq, and, gte, lt, desc } from 'drizzle-orm';
 import { db } from '../../shared/db/index.js';
 import {
+  applicants,
   dgCircuitDocuments,
   meetings,
+  organisations,
   phases,
   requests,
   users,
@@ -10,7 +12,12 @@ import {
 } from '../../shared/db/schema.js';
 import { logAudit } from '../auth/auth.service.js';
 import { linkUploadAssetToOwner } from '../uploads/uploads.service.js';
-import type { ScheduleMeetingParams, MeetingView } from './meetings.types.js';
+import type {
+  MeetingCockpitItem,
+  MeetingCockpitSummary,
+  ScheduleMeetingParams,
+  MeetingView,
+} from './meetings.types.js';
 
 export type { ScheduleMeetingParams, MeetingView } from './meetings.types.js';
 
@@ -32,6 +39,195 @@ function toMeetingView(row: typeof meetings.$inferSelect): MeetingView {
     crDocumentUrl: row.crDocumentUrl,
     crUploadedAt: row.crUploadedAt,
     createdAt: row.createdAt,
+  };
+}
+
+const PHASE_LABELS: Record<string, string> = {
+  M3: 'Preliminaire',
+  M4: 'Demande formelle',
+  M5: 'Evaluation approfondie',
+  M6: 'Demonstration / Inspection',
+  M7: 'Delivrance',
+};
+
+const MEETING_TYPE_LABELS: Record<string, string> = {
+  preliminary: 'Reunion preliminaire',
+  formal: 'Reunion formelle',
+  site_visit: 'Visite sur site',
+};
+
+const MEETING_STATUS_LABELS: Record<string, string> = {
+  scheduled: 'Planifiee',
+  held: 'Tenue',
+  no_show: 'Absence',
+  rescheduled: 'Reprogrammee',
+  file_cancelled: 'Dossier annule',
+};
+
+function phaseHref(phaseCode: string, requestId: number): string {
+  if (phaseCode === 'M3') return `/demandes/${requestId}/phase-preliminaire`;
+  if (phaseCode === 'M4') return `/demandes/${requestId}/phase-formelle`;
+  if (phaseCode === 'M5') return `/demandes/${requestId}/evaluation-approfondie`;
+  if (phaseCode === 'M6') return `/demandes/${requestId}/demonstration-inspection`;
+  return `/demandes/${requestId}/delivrance`;
+}
+
+function canManageMeeting(meetingType: string): boolean {
+  return meetingType === 'preliminary' || meetingType === 'formal';
+}
+
+function meetingActionLabel(row: typeof meetings.$inferSelect): string {
+  if (!canManageMeeting(row.meetingType)) return 'Suivi inspection R3';
+  if (row.status === 'scheduled') return 'Resoudre la reunion';
+  if (row.status === 'held' && !row.crDocumentUrl) return 'Compte-rendu facultatif';
+  if (row.status === 'held' && row.crDocumentUrl) return 'Compte-rendu depose';
+  if (row.status === 'rescheduled') return 'Historique conserve';
+  return 'Consulter';
+}
+
+function startOfDay(date: Date): Date {
+  const copy = new Date(date);
+  copy.setHours(0, 0, 0, 0);
+  return copy;
+}
+
+function addDays(date: Date, days: number): Date {
+  const copy = new Date(date);
+  copy.setDate(copy.getDate() + days);
+  return copy;
+}
+
+function toCockpitItem(row: {
+  meeting: typeof meetings.$inferSelect;
+  phase: typeof phases.$inferSelect;
+  request: typeof requests.$inferSelect;
+  organisation: typeof organisations.$inferSelect;
+  applicant: typeof applicants.$inferSelect;
+  agent: typeof users.$inferSelect;
+}): MeetingCockpitItem {
+  return {
+    id: row.meeting.id,
+    phaseId: row.phase.id,
+    phaseCode: row.phase.phaseCode,
+    phaseLabel: PHASE_LABELS[row.phase.phaseCode] ?? row.phase.phaseCode,
+    phaseStatus: row.phase.status,
+    requestId: row.request.id,
+    requestReference: row.request.reference,
+    requestType: row.request.requestType,
+    organisationName: row.organisation.name,
+    applicantName: row.applicant.fullName,
+    meetingType: row.meeting.meetingType,
+    meetingTypeLabel: MEETING_TYPE_LABELS[row.meeting.meetingType] ?? row.meeting.meetingType,
+    status: row.meeting.status,
+    statusLabel: MEETING_STATUS_LABELS[row.meeting.status] ?? row.meeting.status,
+    scheduledAt: row.meeting.scheduledAt.toISOString(),
+    location: row.meeting.location,
+    dnAgentId: row.meeting.dnAgentId,
+    dnAgentName: row.agent.fullName,
+    crDocumentUrl: row.meeting.crDocumentUrl,
+    crUploadedAt: row.meeting.crUploadedAt?.toISOString() ?? null,
+    ticketUrl: `/api/meetings/${row.meeting.id}/ticket`,
+    phaseHref: phaseHref(row.phase.phaseCode, row.request.id),
+    canManage: canManageMeeting(row.meeting.meetingType),
+    actionLabel: meetingActionLabel(row.meeting),
+  };
+}
+
+export async function listMeetingCockpit(params: {
+  from?: string;
+  to?: string;
+  meetingType?: string;
+  status?: string;
+  phaseCode?: string;
+}): Promise<MeetingCockpitSummary> {
+  const now = new Date();
+  const periodStart = params.from ? new Date(params.from) : startOfDay(now);
+  const periodEnd = params.to ? new Date(params.to) : addDays(periodStart, 7);
+
+  const conditions = [
+    gte(meetings.scheduledAt, periodStart),
+    lt(meetings.scheduledAt, periodEnd),
+  ];
+  if (params.meetingType && params.meetingType !== 'all') {
+    conditions.push(eq(meetings.meetingType, params.meetingType as typeof meetings.$inferSelect['meetingType']));
+  }
+  if (params.status && params.status !== 'all') {
+    conditions.push(eq(meetings.status, params.status as typeof meetings.$inferSelect['status']));
+  }
+  if (params.phaseCode && params.phaseCode !== 'all') {
+    conditions.push(eq(phases.phaseCode, params.phaseCode as typeof phases.$inferSelect['phaseCode']));
+  }
+
+  const rows = await db
+    .select({
+      meeting: meetings,
+      phase: phases,
+      request: requests,
+      organisation: organisations,
+      applicant: applicants,
+      agent: users,
+    })
+    .from(meetings)
+    .innerJoin(phases, eq(meetings.phaseId, phases.id))
+    .innerJoin(requests, eq(phases.requestId, requests.id))
+    .innerJoin(organisations, eq(requests.organisationId, organisations.id))
+    .innerJoin(applicants, eq(requests.applicantId, applicants.id))
+    .innerJoin(users, eq(meetings.dnAgentId, users.id))
+    .where(and(...conditions))
+    .orderBy(meetings.scheduledAt);
+
+  const items = rows.map(toCockpitItem);
+  const todayStart = startOfDay(now);
+  const tomorrowStart = addDays(todayStart, 1);
+  const upcoming = items
+    .filter((item) => item.status === 'scheduled' && new Date(item.scheduledAt) >= now)
+    .slice(0, 6);
+  const missingReports = items.filter(
+    (item) => item.status === 'held' && item.meetingType !== 'site_visit' && !item.crDocumentUrl
+  );
+  const heldThisPeriod = items.filter((item) => item.status === 'held');
+  const todayMeetings = items.filter((item) => {
+    const date = new Date(item.scheduledAt);
+    return date >= todayStart && date < tomorrowStart;
+  });
+
+  return {
+    periodStart: periodStart.toISOString(),
+    periodEnd: periodEnd.toISOString(),
+    metrics: [
+      {
+        key: 'scheduled',
+        label: 'Reunions prevues',
+        value: items.filter((item) => item.status === 'scheduled').length,
+        helper: 'Creneaux planifies sur la periode',
+        tone: 'info',
+      },
+      {
+        key: 'today',
+        label: "Aujourd'hui",
+        value: todayMeetings.length,
+        helper: 'Reunions au calendrier du jour',
+        tone: todayMeetings.length > 0 ? 'warning' : 'success',
+      },
+      {
+        key: 'missing_reports',
+        label: 'Comptes-rendus manquants',
+        value: missingReports.length,
+        helper: 'Reunions tenues sans compte-rendu',
+        tone: missingReports.length > 0 ? 'warning' : 'success',
+      },
+      {
+        key: 'held',
+        label: 'Reunions tenues',
+        value: heldThisPeriod.length,
+        helper: 'Reunions marquees tenues',
+        tone: 'success',
+      },
+    ],
+    items,
+    upcoming,
+    missingReports,
+    updatedAt: now.toISOString(),
   };
 }
 

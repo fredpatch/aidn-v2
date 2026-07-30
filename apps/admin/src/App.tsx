@@ -21,6 +21,7 @@ import DashboardPage from './pages/dashboard/DashboardPage';
 import ReceptionDashboardPage from './pages/dashboard/ReceptionDashboardPage';
 import R3DashboardPage from './pages/dashboard/R3DashboardPage';
 import S5DashboardPage from './pages/dashboard/S5DashboardPage';
+import MeetingsPage from './pages/meetings/MeetingsPage';
 
 const DN_ROLES = ['dn_agent', 'dn_supervisor', 'SU'];
 const DASHBOARD_ROLES = ['dn_agent', 'dn_supervisor', 'reception', 'assistant_dg', 's5_agent', 'r3_agent', 'SU'];
@@ -170,6 +171,14 @@ function Gate() {
           element={
             <RoleRoute roles={['s5_agent', 'SU']}>
               <S5PaymentsPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="reunions"
+          element={
+            <RoleRoute roles={DN_ROLES}>
+              <MeetingsPage />
             </RoleRoute>
           }
         />
