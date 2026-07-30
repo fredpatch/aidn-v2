@@ -14,6 +14,9 @@ Last updated: 2026-07-30
    - Smoke-test the workflow, dashboard, `Courriers officiels`, `Paiements S5`,
      `Mes inspections`, `Reunions`, and `Demandes` cockpits on desktop and a
      narrow viewport, including terminal/read-only actions.
+   - Smoke-test `Gestion des utilisateurs` with SU and DN supervisor: AIDN user
+     filters, Personnel ANAC activation, role edit restrictions, OTP reset,
+     suspension, and the adjustable table/detail split.
 
 2. **E - Notifications M11 V1**
    - Start with certificate ready, document to correct, and dossier rejected.

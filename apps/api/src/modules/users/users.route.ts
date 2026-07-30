@@ -17,6 +17,7 @@ router.get(
 router.use(authenticate);
 
 // User listing and role assignment are available to SU and DN supervisors.
+router.get('/summary', requireRole('SU', 'dn_supervisor'), usersController.summary);
 router.get('/', requireRole('SU', 'dn_supervisor'), usersController.list);
 router.get('/:id', requireRole('SU', 'dn_supervisor'), usersController.get);
 router.patch('/:id/roles', requireRole('SU', 'dn_supervisor'), usersController.updateRoles);

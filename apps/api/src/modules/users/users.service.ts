@@ -11,15 +11,15 @@ import type {
   UpdateUserParams,
   UpdateUserRolesParams,
   UserFilters,
+  UsersSummary,
   UserView,
 } from "./users.types.js";
 
-export type { CreateUserParams, UpdateUserParams, UserFilters, UserView } from "./users.types.js";
+export type { CreateUserParams, UpdateUserParams, UserFilters, UserView, UsersSummary } from "./users.types.js";
 
 export async function listUsers(filters: UserFilters): Promise<{ data: UserView[]; total: number }> {
   const page = filters.page ?? 1;
   const pageSize = filters.pageSize ?? 20;
-  const offset = (page - 1) * pageSize;
 
   const conditions = [];
   if (filters.search) {
@@ -33,25 +33,42 @@ export async function listUsers(filters: UserFilters): Promise<{ data: UserView[
   if (filters.active !== undefined) {
     conditions.push(eq(users.active, filters.active));
   }
+  if (filters.firstLogin !== undefined) {
+    conditions.push(eq(users.firstLogin, filters.firstLogin));
+  }
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
   const allUsers = await db
     .select()
     .from(users)
     .where(where)
-    .orderBy(desc(users.createdAt))
-    .limit(pageSize)
-    .offset(offset);
+    .orderBy(desc(users.createdAt));
 
-  const total = await db.$count(users, where);
   const data = await Promise.all(allUsers.map(toUserView));
 
-  // Optional role filter applied after roles are resolved (roles live in a
-  // join table, not a column, so this can't be pushed into the SQL where
-  // clause without a join - acceptable at this scale).
   const filtered = filters.role ? data.filter((u) => u.roles.includes(filters.role!)) : data;
+  const offset = (page - 1) * pageSize;
 
-  return { data: filtered, total };
+  return { data: filtered.slice(offset, offset + pageSize), total: filtered.length };
+}
+
+export async function getUsersSummary(): Promise<UsersSummary> {
+  const allUsers = await db.select().from(users);
+  const allRoles = await db.select().from(userRoles);
+
+  const roleCounts = new Map<string, number>();
+  for (const row of allRoles) {
+    roleCounts.set(row.role, (roleCounts.get(row.role) ?? 0) + 1);
+  }
+
+  return {
+    total: allUsers.length,
+    active: allUsers.filter((user) => user.active).length,
+    inactive: allUsers.filter((user) => !user.active).length,
+    firstLoginPending: allUsers.filter((user) => user.firstLogin && user.active).length,
+    rolesAssigned: allRoles.length,
+    byRole: Array.from(roleCounts.entries()).map(([role, count]) => ({ role, count })),
+  };
 }
 
 export async function getUser(id: number): Promise<UserView> {

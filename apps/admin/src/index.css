@@ -45,4 +45,16 @@ body {
   .label {
     @apply block text-anac-text font-medium mb-1 text-sm;
   }
+
+  .users-management-split {
+    @apply grid grid-cols-1 items-start gap-5;
+  }
+
+  @media (min-width: 768px) {
+    .users-management-split {
+      grid-template-columns:
+        minmax(0, var(--users-list-column, 7fr))
+        minmax(360px, var(--users-detail-column, 3fr));
+    }
+  }
 }

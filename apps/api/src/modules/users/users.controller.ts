@@ -14,11 +14,12 @@ export async function listByRole(req: Request, res: Response): Promise<void> {
 
 export async function list(req: Request, res: Response): Promise<void> {
   try {
-    const { search, role, active, page, pageSize } = req.query;
+    const { search, role, active, firstLogin, page, pageSize } = req.query;
     const result = await usersService.listUsers({
       search: search as string | undefined,
       role: role as string | undefined,
       active: active !== undefined ? active === "true" : undefined,
+      firstLogin: firstLogin !== undefined ? firstLogin === "true" : undefined,
       page: page ? Number(page) : undefined,
       pageSize: pageSize ? Number(pageSize) : undefined,
     });
@@ -68,6 +69,15 @@ export async function update(req: Request, res: Response): Promise<void> {
       updatedByUserId: req.user!.userId,
     });
     res.json(user);
+  } catch (error) {
+    handleUsersError(res, error);
+  }
+}
+
+export async function summary(_req: Request, res: Response): Promise<void> {
+  try {
+    const result = await usersService.getUsersSummary();
+    res.json(result);
   } catch (error) {
     handleUsersError(res, error);
   }

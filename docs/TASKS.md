@@ -120,6 +120,14 @@ Corrigé après retour explicite :
       utilisable via l'UI (sans elle, aucun moyen de créer un compte
       `dn_agent`/`reception` autrement qu'en curl)
 
+- [x] Page `Gestion des utilisateurs` durcie en cockpit maintenable :
+      onglets `Comptes AIDN` / `Personnel ANAC`, resumes KPI,
+      recherche/filtres, pagination, panneau de detail lateral, activation
+      depuis Personnel ANAC, modification de roles, suspension et
+      reinitialisation OTP. Le fichier page est desormais un orchestrateur ;
+      logique, constantes, helpers et composants ont ete extraits sous
+      `apps/admin/src/pages/users/`.
+
 ### ✅ Résolu au début de la session suivante : builds admin ET portail cassés
 
 Deux bugs réels trouvés en vérifiant l'état du repo avant de démarrer le Sprint 2 :

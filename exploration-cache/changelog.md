@@ -3,6 +3,26 @@
 Commit-level history. Covers `be9fce9` through the current uncommitted
 2026-07-28 workflow hardening, document viewer, and Personnel ANAC users pass.
 
+## (uncommitted) - 2026-07-30 users management cockpit refactor
+
+- Redesigned `Gestion des utilisateurs` around the cockpit pattern used by the
+  other operational screens: AIDN users and Personnel ANAC activation now share
+  metrics, filters, pagination, master/detail selection, compact right-side
+  account details, role editing, OTP reset, suspension, and activation drawer.
+- Added typed admin users API client, user summary query keys, and a reusable
+  shadcn-style `Sheet` primitive for account activation flows.
+- Added API support for user summaries, paginated/filterable user listing,
+  Personnel ANAC-backed account creation, role updates, account activation, and
+  OTP reset from the redesigned page.
+- Refactored `UsersPage` from a monolithic page into an orchestrator backed by
+  `useUsersCockpit`, reusable table/detail/drawer components, constants, types,
+  and formatting helpers.
+- Added `.users-management-split` with page-level CSS variables so the AIDN user
+  table and right detail panel ratio can be adjusted without editing panel
+  internals.
+- Verified with `npm run typecheck --workspace @aidn/admin` and
+  `npm run build --workspace @aidn/admin` (Vite large-chunk warning remains).
+
 ## (uncommitted) - 2026-07-30 meetings and requests cockpits
 
 - Added `/api/meetings` as a DN/SU transverse meeting cockpit endpoint, with
