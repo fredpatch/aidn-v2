@@ -496,7 +496,15 @@ reste un audit plus étroit des permissions fines côté UI.
 - [x] Cockpit `Demandes` V1 : endpoint `/api/requests/cockpit`, KPIs, liste filtrée,
       panneau de détail à droite, synthèse documentaire Chart.js, actions terminales
       désactivées et suivi des dossiers clôturés/auditables (2026-07-30)
-- [ ] Export PDF/Excel, plage de dates libre
+- [x] Analytique & rapports V1 : endpoint `/api/analytics/overview` + route admin
+      `/analytique` pour `dn_supervisor`/`SU`, KPIs de delai, respect SLA, attente
+      DG, inactivite, repartitions Chart.js, points de blocage, dossiers en retard,
+      cartes de rapports desactivees en attente de la vraie generation (2026-08-03)
+- [x] Seed de donnees analytiques realistes sur environ un an :
+      `npm run seed:analytics --workspace=apps/api` cree 42 dossiers demo sous le
+      prefixe organisme `seed-analytics-*` et peut etre rejoue sans toucher les
+      dossiers manuels (2026-08-03)
+- [ ] Export PDF/Excel et generation effective des rapports
 - [ ] Génération rapport mensuel automatique (1er du mois)
 - [ ] Génération manuelle à la demande (quota/jour à définir)
 - [ ] Intégration IA (Gemini) : analyse + statut Non relu/Relu, édition avant validation

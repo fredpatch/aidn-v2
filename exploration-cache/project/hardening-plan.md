@@ -352,3 +352,25 @@ sans pouvoir les exécuter.
   workflow states.
 - Next priority: final role replay on the redesigned cockpit/dashboard, then E V1
   notifications and M12 exports/reports.
+
+## Update 2026-08-03 - Analytics & reports V1
+
+- M12 analytics V1 is now implemented:
+  - backend endpoint `/api/analytics/overview`, scoped to `dn_supervisor` and `SU`;
+  - admin route `/analytique` with sidebar entry;
+  - reusable analytics components for filters, KPI cards, charts, blocker cards,
+    delayed dossier table, and report cards;
+  - Chart.js used for duration trend, phase-duration bar chart, aging distribution,
+    and SLA distribution.
+- Metrics are intentionally conservative and based only on existing reliable
+  workflow timestamps: M7 closure for completed dossier duration, open phase age vs
+  SLA target, DG circuit timestamps, payment proof/invoice state, meeting CR gaps,
+  and `requests.updatedAt` as the temporary inactivity proxy.
+- A rerunnable seed script was added:
+  `npm run seed:analytics --workspace=apps/api`. It creates 42 realistic demo
+  dossiers across roughly one year under `seed-analytics-*`, covering completed
+  dossiers, active phases, DG waits, payment blockers, overdue phases, missing CRs,
+  cancelled and rejected cases.
+- Follow-up remains: validate SLA definitions with DN, replace broad V1 table loads
+  with aggregate queries, add true PDF/Excel exports, monthly/manual generation, and
+  IA-assisted report review.

@@ -3,6 +3,22 @@
 Commit-level history. Covers `be9fce9` through the current uncommitted
 2026-07-28 workflow hardening, document viewer, and Personnel ANAC users pass.
 
+## (uncommitted) - 2026-08-03 analytics & reports V1
+
+- Added `/api/analytics/overview` for DN supervisor/SU analytics over existing
+  workflow timestamps: processing duration, median, SLA breaches, DG waiting,
+  inactivity, phase durations, aging distribution, blockers, and delayed dossiers.
+- Added the admin `/analytique` page and sidebar entry with reusable analytics
+  components, Chart.js trend/bar/doughnut charts, filter bar, KPI cards, blocker
+  cards, delayed dossier table, and disabled report cards for the future M12 export
+  workflow.
+- Added `npm run seed:analytics --workspace=apps/api`, a rerunnable demo-data seed
+  that creates 42 realistic dossiers over roughly one year under the
+  `seed-analytics-*` organisation prefix, using the existing role users
+  (`0000`, `0041`, `0200`, `0129`, `0148`, `0169`, `0103`).
+- Ran the seed successfully locally and verified with full `npm run build`
+  (Vite large-chunk warning remains).
+
 ## (uncommitted) - 2026-07-30 users management cockpit refactor
 
 - Redesigned `Gestion des utilisateurs` around the cockpit pattern used by the

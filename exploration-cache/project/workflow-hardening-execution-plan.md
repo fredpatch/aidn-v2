@@ -32,6 +32,9 @@ Remaining themes:
 - Operational cockpit redesign - workflow phases, dashboard, `Courriers officiels`,
   `Facturation S5`, role dashboards, `Mes inspections`, `Reunions`, and `Demandes`
   redesigned with dense inbox/detail-panel patterns. Done 2026-07-30.
+- M12 analytics V1 - `/api/analytics/overview`, `/analytique`, Chart.js analytics
+  widgets, blocker/delayed-dossier views, and rerunnable one-year demo seed for
+  KPI validation. Done 2026-08-03.
 - E-V1 - notifications for certificate ready, document correction, and rejected dossier.
 
 ## Phase 1 - Applicant entrance, intake, and signature circuit
@@ -307,4 +310,5 @@ Expected deliverable:
    dashboard V1 done; transverse `Reunions` cockpit done; `Demandes` cockpit done.
 8. Final end-to-end replay with all role users.
 9. M12 reporting continuation: exports, date range, monthly/manual report generation,
-   and IA-assisted report review.
+   optimized aggregate queries, and IA-assisted report review. Analytics V1 and
+   demo-data seed are done.

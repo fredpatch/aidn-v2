@@ -16,6 +16,7 @@ import {
   CreditCard,
   LayoutDashboard,
   CalendarDays,
+  BarChart3,
 } from 'lucide-react';
 
 import { cn } from '../../lib/utils';
@@ -66,6 +67,12 @@ const NAV_ITEMS: NavItem[] = [
     label: 'Reunions',
     icon: CalendarDays,
     roles: ['dn_agent', 'dn_supervisor', 'SU'],
+  },
+  {
+    to: '/analytique',
+    label: 'Analytique',
+    icon: BarChart3,
+    roles: ['dn_supervisor', 'SU'],
   },
   {
     to: '/modeles-documents',

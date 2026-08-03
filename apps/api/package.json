@@ -10,7 +10,8 @@
     "db:generate": "drizzle-kit generate --config drizzle.config.ts",
     "db:migrate": "npx tsx src/scripts/migrate.ts",
     "db:studio": "drizzle-kit studio --config drizzle.config.ts",
-    "seed:params": "npx tsx src/scripts/seed-system-parameters.ts"
+    "seed:params": "npx tsx src/scripts/seed-system-parameters.ts",
+    "seed:analytics": "npx tsx src/scripts/seed-analytics-demo-data.ts"
   },
   "dependencies": {
     "@aidn/shared": "*",

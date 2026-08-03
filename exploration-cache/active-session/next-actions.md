@@ -1,6 +1,6 @@
 # Next Actions
 
-Last updated: 2026-07-30
+Last updated: 2026-08-03
 
 ## Immediate
 
@@ -17,20 +17,31 @@ Last updated: 2026-07-30
    - Smoke-test `Gestion des utilisateurs` with SU and DN supervisor: AIDN user
      filters, Personnel ANAC activation, role edit restrictions, OTP reset,
      suspension, and the adjustable table/detail split.
+   - Smoke-test `/analytique` with SU/DN supervisor after running
+     `npm run seed:analytics --workspace=apps/api`: verify KPI counts, Chart.js
+     charts, points de blocage, dossiers en retard, and empty/sample warnings.
 
-2. **E - Notifications M11 V1**
+2. **M12 analytics hardening**
+   - Replace the V1 analytics service's broad table loads with targeted aggregate
+     queries once the metric definitions are validated.
+   - Confirm calendar days vs business days for SLA.
+   - Decide whether rejected/cancelled dossiers stay excluded from treatment-delay
+     KPIs.
+   - Add true export/report generation after the V1 screen is accepted.
+
+3. **E - Notifications M11 V1**
    - Start with certificate ready, document to correct, and dossier rejected.
    - Clarify whether "consultation obligatoire" means a strong badge or a blocking
      modal before building the admin notification center.
 
 ## Later
 
-3. **M13 applicant account polish**
+4. **M13 applicant account polish**
    - Consider explicit organisation alias records if manual acronym matching becomes
      a repeated reviewer task.
    - Consider applicant email notification on account approval/rejection.
 
-4. **Bundle size**
+5. **Bundle size**
    - Admin and portal still exceed Vite's 500 kB warning threshold.
    - Admin now includes Chart.js for the request cockpit document chart; not
      blocking, but code-splitting/manual chunks should happen before production

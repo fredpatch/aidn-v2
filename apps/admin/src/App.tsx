@@ -22,6 +22,7 @@ import ReceptionDashboardPage from './pages/dashboard/ReceptionDashboardPage';
 import R3DashboardPage from './pages/dashboard/R3DashboardPage';
 import S5DashboardPage from './pages/dashboard/S5DashboardPage';
 import MeetingsPage from './pages/meetings/MeetingsPage';
+import AnalyticsPage from './pages/analytics/AnalyticsPage';
 
 const DN_ROLES = ['dn_agent', 'dn_supervisor', 'SU'];
 const DASHBOARD_ROLES = ['dn_agent', 'dn_supervisor', 'reception', 'assistant_dg', 's5_agent', 'r3_agent', 'SU'];
@@ -29,6 +30,7 @@ const RECEPTION_ROLES = ['reception', 'assistant_dg', 'SU'];
 const DEEP_EVALUATION_ROLES = ['dn_agent', 'dn_supervisor', 's5_agent', 'SU'];
 const SITE_INSPECTION_ROLES = ['dn_agent', 'dn_supervisor', 's5_agent', 'r3_agent', 'SU'];
 const DELIVERY_ROLES = ['dn_agent', 'dn_supervisor', 's5_agent', 'SU'];
+const ANALYTICS_ROLES = ['dn_supervisor', 'SU'];
 
 function hasAnyRole(userRoles: string[] | undefined, allowedRoles: string[]): boolean {
   return allowedRoles.some((role) => userRoles?.includes(role));
@@ -179,6 +181,14 @@ function Gate() {
           element={
             <RoleRoute roles={DN_ROLES}>
               <MeetingsPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="analytique"
+          element={
+            <RoleRoute roles={ANALYTICS_ROLES}>
+              <AnalyticsPage />
             </RoleRoute>
           }
         />
