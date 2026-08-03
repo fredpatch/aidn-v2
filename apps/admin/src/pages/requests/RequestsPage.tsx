@@ -21,6 +21,14 @@ import {
   UserRound,
 } from 'lucide-react';
 import { Button, buttonVariants } from '../../components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select';
+import { Pagination, paginate } from '../../components/ui/pagination';
 import { apiErrorMessage } from '../../lib/axios';
 import { fetchRequestCockpit, startPreliminaryPhase } from '../../lib/api/requests.api';
 import type {
@@ -44,6 +52,14 @@ const BUCKETS: Array<{ key: Bucket; label: string }> = [
   { key: 'closed', label: 'Cloturees' },
 ];
 
+const SORT_OPTIONS: Array<{ key: SortKey; label: string }> = [
+  { key: 'newest', label: 'Date de depot' },
+  { key: 'oldest', label: 'Plus anciennes' },
+  { key: 'reference', label: 'Reference' },
+];
+
+const PAGE_SIZE = 5;
+
 const STATUS_STYLES: Record<string, string> = {
   submitted: 'border-blue-100 bg-blue-50 text-anac-blue',
   pending_review: 'border-green-100 bg-green-50 text-anac-success',
@@ -66,6 +82,22 @@ export default function RequestsPage() {
   const [sort, setSort] = useState<SortKey>('newest');
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+
+  function updateBucket(value: Bucket) {
+    setBucket(value);
+    setPage(1);
+  }
+
+  function updateSearch(value: string) {
+    setSearch(value);
+    setPage(1);
+  }
+
+  function updateSort(value: SortKey) {
+    setSort(value);
+    setPage(1);
+  }
 
   const query = useQuery({
     queryKey: queryKeys.requests.cockpit(),
@@ -96,6 +128,8 @@ export default function RequestsPage() {
       });
   }, [bucket, query.data?.items, search, sort]);
 
+  const { pageItems, totalPages, page: currentPage } = paginate(filtered, page, PAGE_SIZE);
+
   const selected =
     filtered.find((item) => item.id === selectedId) ?? filtered[0] ?? query.data?.items[0] ?? null;
 
@@ -104,7 +138,8 @@ export default function RequestsPage() {
     return {
       all: items.length,
       new: items.filter((item) => item.status === 'pending_review').length,
-      review: items.filter((item) => ['pending_review', 'in_progress'].includes(item.status)).length,
+      review: items.filter((item) => ['pending_review', 'in_progress'].includes(item.status))
+        .length,
       waiting_dg: items.filter((item) =>
         ['submitted', 'in_signature_circuit', 'signed'].includes(item.circuitStatus ?? '')
       ).length,
@@ -115,7 +150,7 @@ export default function RequestsPage() {
   return (
     <div className="-m-6 min-h-full bg-[#f8fafc] text-anac-text">
       <main className="mx-auto max-w-[1540px] space-y-5 px-6 py-6">
-        <RequestsHeader search={search} onSearchChange={setSearch} />
+        <RequestsHeader search={search} onSearchChange={updateSearch} />
 
         {actionError ? (
           <div className="rounded-lg border border-anac-danger/20 bg-red-50 px-4 py-3 text-sm text-anac-danger">
@@ -131,10 +166,15 @@ export default function RequestsPage() {
 
         <section className="grid items-start gap-5 xl:grid-cols-[minmax(520px,0.86fr)_minmax(720px,1.14fr)]">
           <div className="min-w-0 overflow-hidden rounded-lg border border-anac-border bg-white shadow-[0_8px_22px_rgba(17,34,83,0.04)]">
-            <BucketTabs value={bucket} counts={counts} onChange={setBucket} />
-            <ListToolbar search={search} sort={sort} onSearchChange={setSearch} onSortChange={setSort} />
+            <BucketTabs value={bucket} counts={counts} onChange={updateBucket} />
+            <ListToolbar
+              search={search}
+              sort={sort}
+              onSearchChange={updateSearch}
+              onSortChange={updateSort}
+            />
             <RequestsList
-              items={filtered}
+              items={pageItems}
               selectedId={selected?.id ?? null}
               loading={query.isLoading}
               error={!!query.error}
@@ -142,6 +182,12 @@ export default function RequestsPage() {
                 setSelectedId(item.id);
                 setActionError(null);
               }}
+            />
+            <Pagination
+              label={`${filtered.length} demande${filtered.length > 1 ? 's' : ''}`}
+              page={currentPage}
+              totalPages={totalPages}
+              onPageChange={setPage}
             />
           </div>
 
@@ -183,7 +229,11 @@ function RequestsHeader({
         <Button type="button" variant="secondary" disabled>
           Filtres
         </Button>
-        <Button type="button" disabled title="La nouvelle demande se fait depuis le portail ou le guichet autorise.">
+        <Button
+          type="button"
+          disabled
+          title="La nouvelle demande se fait depuis le portail ou le guichet autorise."
+        >
           Nouvelle demande
         </Button>
       </div>
@@ -204,7 +254,9 @@ function MetricCard({ metric }: { metric: RequestCockpitMetric }) {
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-[12px] font-semibold text-anac-muted">{metric.label}</p>
-          <p className="mt-2 text-[26px] font-semibold leading-none text-anac-navy">{metric.value}</p>
+          <p className="mt-2 text-[26px] font-semibold leading-none text-anac-navy">
+            {metric.value}
+          </p>
         </div>
         <div className={cn('rounded-lg border p-2.5', TONE_STYLES[metric.tone])}>
           <Icon size={19} strokeWidth={1.8} aria-hidden="true" />
@@ -280,18 +332,19 @@ function ListToolbar({
           placeholder="Rechercher dans la liste..."
         />
       </label>
-      <label className="inline-flex h-9 items-center gap-2 rounded-md border border-anac-border bg-white px-3 text-xs text-anac-muted">
-        <ArrowDownAZ size={14} aria-hidden="true" />
-        <select
-          value={sort}
-          onChange={(event) => onSortChange(event.target.value as SortKey)}
-          className="bg-transparent text-xs font-semibold text-anac-navy outline-none"
-        >
-          <option value="newest">Date de depot</option>
-          <option value="oldest">Plus anciennes</option>
-          <option value="reference">Reference</option>
-        </select>
-      </label>
+      <Select value={sort} onValueChange={(value) => onSortChange(value as SortKey)}>
+        <SelectTrigger className="h-9 w-[190px] gap-2 text-xs font-semibold text-anac-navy">
+          <ArrowDownAZ size={14} className="shrink-0 text-anac-muted" aria-hidden="true" />
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {SORT_OPTIONS.map((option) => (
+            <SelectItem key={option.key} value={option.key}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }
@@ -310,13 +363,26 @@ function RequestsList({
   onSelect: (item: RequestCockpitItem) => void;
 }) {
   if (loading) {
-    return <EmptyState title="Chargement des demandes" description="Recuperation du cockpit dossiers." />;
+    return (
+      <EmptyState title="Chargement des demandes" description="Recuperation du cockpit dossiers." />
+    );
   }
   if (error) {
-    return <EmptyState title="Chargement impossible" description="Impossible de charger les demandes." danger />;
+    return (
+      <EmptyState
+        title="Chargement impossible"
+        description="Impossible de charger les demandes."
+        danger
+      />
+    );
   }
   if (items.length === 0) {
-    return <EmptyState title="Aucune demande dans cette vue" description="Modifiez la recherche ou les filtres." />;
+    return (
+      <EmptyState
+        title="Aucune demande dans cette vue"
+        description="Modifiez la recherche ou les filtres."
+      />
+    );
   }
 
   return (
@@ -328,7 +394,8 @@ function RequestsList({
           onClick={() => onSelect(item)}
           className={cn(
             'grid w-full grid-cols-[24px_minmax(0,1fr)_130px] gap-3 px-4 py-3 text-left transition hover:bg-anac-blue/5',
-            selectedId === item.id && 'bg-anac-blue/5 outline outline-1 -outline-offset-1 outline-anac-blue'
+            selectedId === item.id &&
+              'bg-anac-blue/5 outline outline-1 -outline-offset-1 outline-anac-blue'
           )}
         >
           <StatusDot item={item} />
@@ -337,7 +404,9 @@ function RequestsList({
               <p className="font-semibold text-anac-navy">{item.reference}</p>
               <StatusBadge label={item.statusLabel} status={item.status} />
             </div>
-            <p className="mt-0.5 truncate text-sm font-medium text-anac-text">{item.organisationName}</p>
+            <p className="mt-0.5 truncate text-sm font-medium text-anac-text">
+              {item.organisationName}
+            </p>
             <div className="mt-2 grid gap-1 text-xs text-anac-muted sm:grid-cols-2">
               <span>{item.requestTypeLabel}</span>
               <span className="font-semibold text-anac-blue">{item.currentPhaseLabel}</span>
@@ -367,13 +436,17 @@ function RequestDetailPanel({
       setActionError(null);
       await queryClient.invalidateQueries({ queryKey: queryKeys.requests.all });
     },
-    onError: (err) => setActionError(apiErrorMessage(err, 'Impossible d ouvrir la phase preliminaire.')),
+    onError: (err) =>
+      setActionError(apiErrorMessage(err, 'Impossible d ouvrir la phase preliminaire.')),
   });
 
   if (!item) {
     return (
       <aside className="rounded-lg border border-anac-border bg-white p-6 shadow-sm">
-        <EmptyState title="Aucun dossier selectionne" description="Selectionnez une demande dans la liste." />
+        <EmptyState
+          title="Aucun dossier selectionne"
+          description="Selectionnez une demande dans la liste."
+        />
       </aside>
     );
   }
@@ -383,17 +456,27 @@ function RequestDetailPanel({
       <div className="border-b border-anac-border p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="text-lg font-semibold text-anac-navy">{item.reference} - {item.requestTypeLabel}</h2>
+            <h2 className="text-lg font-semibold text-anac-navy">
+              {item.reference} - {item.requestTypeLabel}
+            </h2>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <StatusBadge label={item.statusLabel} status={item.status} />
-              <span className={cn('rounded-full border px-2 py-0.5 text-[11px] font-semibold', TONE_STYLES[item.nextActionTone])}>
+              <span
+                className={cn(
+                  'rounded-full border px-2 py-0.5 text-[11px] font-semibold',
+                  TONE_STYLES[item.nextActionTone]
+                )}
+              >
                 {item.nextActionLabel}
               </span>
             </div>
           </div>
           <div className="flex gap-2">
             {item.nextActionHref ? (
-              <Link to={item.nextActionHref} className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'gap-2')}>
+              <Link
+                to={item.nextActionHref}
+                className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'gap-2')}
+              >
                 <FolderOpen size={14} />
                 Ouvrir le dossier
               </Link>
@@ -468,7 +551,9 @@ function RequestDetailPanel({
             <div>
               <p className="text-sm font-semibold text-anac-navy">Prochaine action recommandee</p>
               <p className="mt-1.5 text-sm font-semibold text-anac-navy">{item.nextActionLabel}</p>
-              <p className="mt-1 text-xs leading-relaxed text-anac-muted">{item.nextActionDescription}</p>
+              <p className="mt-1 text-xs leading-relaxed text-anac-muted">
+                {item.nextActionDescription}
+              </p>
             </div>
           </div>
           {item.canStartPreliminary ? (
@@ -481,12 +566,17 @@ function RequestDetailPanel({
               <Send size={14} />
               {startMutation.isPending ? 'Ouverture...' : 'Ouvrir la phase preliminaire'}
             </Button>
-          ) : item.status === 'completed' || item.status === 'rejected' || item.status === 'cancelled' ? (
+          ) : item.status === 'completed' ||
+            item.status === 'rejected' ||
+            item.status === 'cancelled' ? (
             <Button type="button" className="mt-3 w-full" disabled>
               {item.status === 'completed' ? 'Workflow termine' : 'Aucune action disponible'}
             </Button>
           ) : item.nextActionHref ? (
-            <Link to={item.nextActionHref} className={cn(buttonVariants(), 'mt-3 w-full justify-center')}>
+            <Link
+              to={item.nextActionHref}
+              className={cn(buttonVariants(), 'mt-3 w-full justify-center')}
+            >
               Traiter
             </Link>
           ) : (
@@ -553,7 +643,11 @@ function PhaseStepper({ phases }: { phases: RequestCockpitPhase[] }) {
           >
             {phase.status === 'closed' ? <CheckCircle2 size={12} /> : index + 1}
           </span>
-          <span className={phase.status === 'not_started' ? 'text-anac-muted' : 'font-semibold text-anac-navy'}>
+          <span
+            className={
+              phase.status === 'not_started' ? 'text-anac-muted' : 'font-semibold text-anac-navy'
+            }
+          >
             {phase.label}
           </span>
         </li>
@@ -564,7 +658,11 @@ function PhaseStepper({ phases }: { phases: RequestCockpitPhase[] }) {
 
 function DocumentSummary({ summary }: { summary: RequestCockpitItem['documentSummary'] }) {
   if (summary.total === 0) {
-    return <p className="text-sm text-anac-muted">Le dossier documentaire sera suivi a partir de la demande formelle.</p>;
+    return (
+      <p className="text-sm text-anac-muted">
+        Le dossier documentaire sera suivi a partir de la demande formelle.
+      </p>
+    );
   }
   const chartData = {
     labels: ['Completes', 'Manquants', 'En attente revue'],
@@ -630,7 +728,9 @@ function ActivityList({ item }: { item: RequestCockpitItem }) {
     <ol className="space-y-3">
       {item.activity.map((activity) => (
         <li key={activity.id} className="flex gap-3">
-          <span className={cn('mt-0.5 h-3 w-3 rounded-full border-2', activityDot(activity.tone))} />
+          <span
+            className={cn('mt-0.5 h-3 w-3 rounded-full border-2', activityDot(activity.tone))}
+          />
           <div>
             <p className="text-xs font-semibold text-anac-navy">{activity.title}</p>
             <p className="text-[11px] text-anac-muted">
@@ -645,7 +745,12 @@ function ActivityList({ item }: { item: RequestCockpitItem }) {
 
 function StatusBadge({ label, status }: { label: string; status: string }) {
   return (
-    <span className={cn('inline-flex w-fit rounded-full border px-2 py-0.5 text-[11px] font-semibold', STATUS_STYLES[status] ?? STATUS_STYLES.in_progress)}>
+    <span
+      className={cn(
+        'inline-flex w-fit rounded-full border px-2 py-0.5 text-[11px] font-semibold',
+        STATUS_STYLES[status] ?? STATUS_STYLES.in_progress
+      )}
+    >
       {label}
     </span>
   );
@@ -677,7 +782,9 @@ function EmptyState({
   return (
     <div className="grid min-h-[260px] place-items-center p-6 text-center">
       <div>
-        <p className={cn('font-semibold', danger ? 'text-anac-danger' : 'text-anac-navy')}>{title}</p>
+        <p className={cn('font-semibold', danger ? 'text-anac-danger' : 'text-anac-navy')}>
+          {title}
+        </p>
         <p className="mt-1 text-sm text-anac-muted">{description}</p>
       </div>
     </div>
@@ -686,9 +793,27 @@ function EmptyState({
 
 function fallbackMetrics(): RequestCockpitMetric[] {
   return [
-    { key: 'new', label: 'Nouvelles', value: '-', helper: 'Retours signes prets a ouvrir', tone: 'info' },
-    { key: 'in_review', label: "En cours d'examen", value: '-', helper: 'Dossiers ouverts ou prets DN', tone: 'info' },
-    { key: 'waiting_dg', label: 'En attente DG', value: '-', helper: 'Circuit signature non termine', tone: 'info' },
+    {
+      key: 'new',
+      label: 'Nouvelles',
+      value: '-',
+      helper: 'Retours signes prets a ouvrir',
+      tone: 'info',
+    },
+    {
+      key: 'in_review',
+      label: "En cours d'examen",
+      value: '-',
+      helper: 'Dossiers ouverts ou prets DN',
+      tone: 'info',
+    },
+    {
+      key: 'waiting_dg',
+      label: 'En attente DG',
+      value: '-',
+      helper: 'Circuit signature non termine',
+      tone: 'info',
+    },
     { key: 'closed', label: 'Cloturees', value: '-', helper: 'Dossiers termines', tone: 'info' },
   ];
 }
@@ -701,7 +826,10 @@ function activityDot(tone: RequestCockpitItem['nextActionTone']): string {
 }
 
 function normalize(value: string): string {
-  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
 }
 
 function dateMs(value: string): number {
