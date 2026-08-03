@@ -499,12 +499,15 @@ reste un audit plus étroit des permissions fines côté UI.
 - [x] Analytique & rapports V1 : endpoint `/api/analytics/overview` + route admin
       `/analytique` pour `dn_supervisor`/`SU`, KPIs de delai, respect SLA, attente
       DG, inactivite, repartitions Chart.js, points de blocage, dossiers en retard,
-      cartes de rapports desactivees en attente de la vraie generation (2026-08-03)
+      explication des KPIs et generation de rapports PDF/Excel (2026-08-03)
 - [x] Seed de donnees analytiques realistes sur environ un an :
       `npm run seed:analytics --workspace=apps/api` cree 42 dossiers demo sous le
       prefixe organisme `seed-analytics-*` et peut etre rejoue sans toucher les
       dossiers manuels (2026-08-03)
-- [ ] Export PDF/Excel et generation effective des rapports
+- [x] Export PDF/Excel et generation effective des rapports : `/api/reports`,
+      historique des rapports generes, stockage `/uploads/reports`, logo ANAC dans
+      le PDF, et templates distincts par type de rapport (`full_report`, delais,
+      SLA, goulots, inspections, S5) (2026-08-03)
 - [ ] Génération rapport mensuel automatique (1er du mois)
 - [ ] Génération manuelle à la demande (quota/jour à définir)
 - [ ] Intégration IA (Gemini) : analyse + statut Non relu/Relu, édition avant validation

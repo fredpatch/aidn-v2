@@ -10,8 +10,15 @@ Commit-level history. Covers `be9fce9` through the current uncommitted
   inactivity, phase durations, aging distribution, blockers, and delayed dossiers.
 - Added the admin `/analytique` page and sidebar entry with reusable analytics
   components, Chart.js trend/bar/doughnut charts, filter bar, KPI cards, blocker
-  cards, delayed dossier table, and disabled report cards for the future M12 export
-  workflow.
+  cards, delayed dossier table, KPI explanations, report cards, and generated report
+  history.
+- Added `/api/reports` for on-demand analytics report generation in PDF and Excel.
+  Report metadata is stored in `reports`, files are written to `/uploads/reports`,
+  and the PDF renderer embeds `apps/api/assets/logo.png`.
+- Split report generation by report key instead of reusing the same full export for
+  every button: full report, processing-delay report, SLA report, bottleneck report,
+  inspections report, and S5/payment-delay report now render distinct PDF sections
+  and Excel sheets.
 - Added `npm run seed:analytics --workspace=apps/api`, a rerunnable demo-data seed
   that creates 42 realistic dossiers over roughly one year under the
   `seed-analytics-*` organisation prefix, using the existing role users

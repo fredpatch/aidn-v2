@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import type { AnalyticsDelayedDossier } from '../../../lib/api/analytics.types';
-import { formatDisplayDate } from '../analytics.helpers';
+import { PHASE_LABELS, formatDisplayDate } from '../analytics.helpers';
 import { AnalyticsSection } from './AnalyticsSection';
 
 export function DelayedDossiersTable({ dossiers }: { dossiers: AnalyticsDelayedDossier[] }) {
@@ -31,7 +31,9 @@ export function DelayedDossiersTable({ dossiers }: { dossiers: AnalyticsDelayedD
                 <tr key={`${dossier.requestId}-${dossier.phaseCode}`} className="hover:bg-slate-50">
                   <td className="px-4 py-3 font-semibold text-anac-navy">{dossier.reference}</td>
                   <td className="px-4 py-3 text-anac-muted">{dossier.organisationName}</td>
-                  <td className="px-4 py-3 text-anac-navy">{dossier.phaseLabel}</td>
+                  <td className="px-4 py-3 text-anac-navy">
+                    {PHASE_LABELS[dossier.phaseCode] ?? dossier.phaseLabel}
+                  </td>
                   <td className="px-4 py-3 font-semibold text-red-600">{dossier.delayDays} j</td>
                   <td className="px-4 py-3 text-anac-muted">{formatDisplayDate(dossier.lastActionAt)}</td>
                   <td className="px-4 py-3">

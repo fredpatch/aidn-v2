@@ -31,6 +31,7 @@ import siteInspectionRoute from './modules/site-inspection/site-inspection.route
 import certificatesRoute from './modules/certificates/certificates.route.js';
 import dashboardRoute from './modules/dashboard/dashboard.route.js';
 import analyticsRoute from './modules/analytics/analytics.route.js';
+import reportsRoute from './modules/reports/reports.route.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -78,6 +79,7 @@ app.use('/api/site-inspection', siteInspectionRoute);
 app.use('/api/certificates', certificatesRoute);
 app.use('/api/dashboard', dashboardRoute);
 app.use('/api/analytics', analyticsRoute);
+app.use('/api/reports', reportsRoute);
 
 app.listen(port, () => {
   console.log(`AIDN API listening on port ${port}`);

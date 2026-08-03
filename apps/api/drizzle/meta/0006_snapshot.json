@@ -1,6 +1,6 @@
 {
-  "id": "a826985a-218d-48de-bfd5-509e23ab865b",
-  "prevId": "9b0baa43-0df1-4396-a5b3-d03368641623",
+  "id": "03d12825-35fe-4f44-95a0-31b2798f079f",
+  "prevId": "a826985a-218d-48de-bfd5-509e23ab865b",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1832,6 +1832,13 @@
           "primaryKey": true,
           "notNull": true
         },
+        "report_key": {
+          "name": "report_key",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'processing_delay'"
+        },
         "period_start": {
           "name": "period_start",
           "type": "timestamp",
@@ -1861,6 +1868,19 @@
         "file_url": {
           "name": "file_url",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "filters": {
+          "name": "filters",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "summary": {
+          "name": "summary",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": false
         },

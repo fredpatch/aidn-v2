@@ -9,13 +9,60 @@ import {
 } from 'lucide-react';
 import type { AnalyticsMetric } from '../../lib/api/analytics.types';
 
+export const PHASE_LABELS = {
+  M3: 'Préliminaire',
+  M4: 'Demande formelle',
+  M5: 'Évaluation approfondie',
+  M6: 'Démonstration / Inspection',
+  M7: 'Délivrance',
+} as const;
+
 export const PHASE_OPTIONS = [
   { value: '', label: 'Toutes les phases' },
-  { value: 'M3', label: 'Preliminaire' },
-  { value: 'M4', label: 'Demande formelle' },
-  { value: 'M5', label: 'Evaluation approfondie' },
-  { value: 'M6', label: 'Demonstration / Inspection' },
-  { value: 'M7', label: 'Delivrance' },
+  { value: 'M3', label: PHASE_LABELS.M3 },
+  { value: 'M4', label: PHASE_LABELS.M4 },
+  { value: 'M5', label: PHASE_LABELS.M5 },
+  { value: 'M6', label: PHASE_LABELS.M6 },
+  { value: 'M7', label: PHASE_LABELS.M7 },
+] as const;
+
+export const KPI_EXPLANATIONS = [
+  {
+    key: 'average_processing_duration',
+    label: 'Délai moyen de traitement',
+    definition: 'Moyenne entre le dépôt initial et la clôture de la délivrance.',
+    dnValue: 'Mesure la durée réelle du processus complet.',
+  },
+  {
+    key: 'median_processing_duration',
+    label: 'Médiane de traitement',
+    definition: 'Durée centrale des dossiers clôturés, moins sensible aux cas extrêmes.',
+    dnValue: 'Donne une lecture plus réaliste du dossier typique.',
+  },
+  {
+    key: 'outside_sla',
+    label: 'Dossiers hors délai',
+    definition: 'Phases encore ouvertes qui dépassent leur cible SLA.',
+    dnValue: 'Identifie immédiatement les dossiers à reprendre en priorité.',
+  },
+  {
+    key: 'sla_compliance',
+    label: 'Taux de respect SLA',
+    definition: 'Part des phases clôturées dans leur délai cible.',
+    dnValue: 'Suit la discipline opérationnelle par période.',
+  },
+  {
+    key: 'dg_wait',
+    label: 'Temps moyen en attente DG',
+    definition: 'Temps moyen des courriers encore en dépôt ou en signature.',
+    dnValue: 'Sépare les blocages du circuit signature du traitement DN.',
+  },
+  {
+    key: 'inactivity',
+    label: "Temps d'inactivité moyen",
+    definition: 'Temps moyen des dossiers actifs sans mise à jour depuis plus de 15 jours.',
+    dnValue: 'Repère les dossiers oubliés avant qu’ils deviennent critiques.',
+  },
 ] as const;
 
 export const REQUEST_TYPE_OPTIONS = [

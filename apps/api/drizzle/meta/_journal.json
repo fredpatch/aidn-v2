@@ -43,6 +43,13 @@
       "when": 1785304891418,
       "tag": "0006_material_gideon",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1785756394553,
+      "tag": "0007_curly_quentin_quire",
+      "breakpoints": true
     }
   ]
 }

@@ -19,7 +19,8 @@ Last updated: 2026-08-03
      suspension, and the adjustable table/detail split.
    - Smoke-test `/analytique` with SU/DN supervisor after running
      `npm run seed:analytics --workspace=apps/api`: verify KPI counts, Chart.js
-     charts, points de blocage, dossiers en retard, and empty/sample warnings.
+     charts, points de blocage, dossiers en retard, empty/sample warnings, and
+     distinct PDF/Excel report outputs for each report card.
 
 2. **M12 analytics hardening**
    - Replace the V1 analytics service's broad table loads with targeted aggregate
@@ -27,7 +28,8 @@ Last updated: 2026-08-03
    - Confirm calendar days vs business days for SLA.
    - Decide whether rejected/cancelled dossiers stay excluded from treatment-delay
      KPIs.
-   - Add true export/report generation after the V1 screen is accepted.
+   - Add monthly scheduled reports and IA-assisted report review after manual
+     PDF/Excel generation is accepted.
 
 3. **E - Notifications M11 V1**
    - Start with certificate ready, document to correct, and dossier rejected.

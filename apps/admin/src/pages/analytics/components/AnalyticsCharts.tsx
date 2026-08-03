@@ -16,6 +16,7 @@ import type {
   AnalyticsPhaseStat,
   AnalyticsTrendPoint,
 } from '../../../lib/api/analytics.types';
+import { PHASE_LABELS } from '../analytics.helpers';
 import { AnalyticsSection } from './AnalyticsSection';
 
 ChartJS.register(
@@ -108,7 +109,7 @@ export function PhaseDurationChart({ phases }: { phases: AnalyticsPhaseStat[] })
           <Bar
             height={210}
             data={{
-              labels: phases.map((phase) => phase.label),
+              labels: phases.map((phase) => PHASE_LABELS[phase.phaseCode]),
               datasets: [
                 {
                   label: 'Duree moyenne',

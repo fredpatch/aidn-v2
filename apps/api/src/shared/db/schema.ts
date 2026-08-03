@@ -624,11 +624,14 @@ export const notifications = pgTable(
 // ── M12 - Reports & AI analysis ──────────────────────────────────────────────
 export const reports = pgTable('reports', {
   id: serial('id').primaryKey(),
+  reportKey: varchar('report_key', { length: 50 }).notNull().default('processing_delay'),
   periodStart: timestamp('period_start').notNull(),
   periodEnd: timestamp('period_end').notNull(),
   format: reportFormatEnum('format').notNull(),
   trigger: reportTriggerEnum('trigger').notNull(),
   fileUrl: text('file_url'),
+  filters: jsonb('filters').$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
+  summary: jsonb('summary').$type<Record<string, unknown>>(),
   generatedBy: integer('generated_by').references(() => users.id), // null = system
   aiAnalysisText: text('ai_analysis_text'),
   aiAnalysisStatus: aiAnalysisStatusEnum('ai_analysis_status').notNull().default('not_applicable'),

@@ -358,10 +358,17 @@ sans pouvoir les exécuter.
 - M12 analytics V1 is now implemented:
   - backend endpoint `/api/analytics/overview`, scoped to `dn_supervisor` and `SU`;
   - admin route `/analytique` with sidebar entry;
-  - reusable analytics components for filters, KPI cards, charts, blocker cards,
-    delayed dossier table, and report cards;
+  - reusable analytics components for filters, KPI cards, KPI explanations, charts,
+    blocker cards, delayed dossier table, report cards, and generated report history;
   - Chart.js used for duration trend, phase-duration bar chart, aging distribution,
     and SLA distribution.
+- On-demand M12 reports are now implemented through `/api/reports`:
+  - PDF and Excel generation;
+  - generated files stored under `/uploads/reports`;
+  - PDF header includes `apps/api/assets/logo.png`;
+  - distinct templates per report key (`full_report`, processing delays, SLA,
+    bottlenecks, inspections, S5/payment delays) so report buttons no longer export
+    the same generic snapshot.
 - Metrics are intentionally conservative and based only on existing reliable
   workflow timestamps: M7 closure for completed dossier duration, open phase age vs
   SLA target, DG circuit timestamps, payment proof/invoice state, meeting CR gaps,
@@ -372,5 +379,5 @@ sans pouvoir les exécuter.
   dossiers, active phases, DG waits, payment blockers, overdue phases, missing CRs,
   cancelled and rejected cases.
 - Follow-up remains: validate SLA definitions with DN, replace broad V1 table loads
-  with aggregate queries, add true PDF/Excel exports, monthly/manual generation, and
-  IA-assisted report review.
+  with aggregate queries, add monthly scheduled report generation, define manual
+  generation quotas if needed, and add IA-assisted report review.

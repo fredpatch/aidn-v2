@@ -18,11 +18,11 @@ import type {
 } from './analytics.types.js';
 
 const PHASE_LABELS: Record<AnalyticsPhaseCode, string> = {
-  M3: 'Preliminaire',
+  M3: 'Préliminaire',
   M4: 'Demande formelle',
-  M5: 'Evaluation approfondie',
-  M6: 'Demonstration / Inspection',
-  M7: 'Delivrance',
+  M5: 'Évaluation approfondie',
+  M6: 'Démonstration / Inspection',
+  M7: 'Délivrance',
 };
 
 const PHASE_TARGETS: Record<AnalyticsPhaseCode, number> = {
@@ -33,36 +33,42 @@ const PHASE_TARGETS: Record<AnalyticsPhaseCode, number> = {
   M7: 10,
 };
 
-const REPORTS = [
+export const ANALYTICS_REPORTS = [
+  {
+    key: 'full_report',
+    title: 'Rapport analytique complet',
+    description: 'Synthese complete des delais, SLA, blocages, inspections et paiements.',
+    available: true,
+  },
   {
     key: 'processing_delay',
     title: 'Rapport delais de traitement',
     description: 'Analyse detaillee des delais par phase et par dossier.',
-    available: false,
+    available: true,
   },
   {
     key: 'sla',
     title: 'Rapport SLA',
     description: 'Respect des SLA et dossiers hors delai.',
-    available: false,
+    available: true,
   },
   {
     key: 'bottlenecks',
     title: "Rapport goulots d'etranglement",
     description: 'Identification des retards et points de blocage.',
-    available: false,
+    available: true,
   },
   {
     key: 'inspections',
     title: 'Rapport inspections',
     description: 'Durees des inspections et delais associes.',
-    available: false,
+    available: true,
   },
   {
     key: 's5',
     title: 'Rapport S5 / delais paiement',
     description: 'Paiements en attente et impact sur les delais.',
-    available: false,
+    available: true,
   },
 ];
 
@@ -447,7 +453,7 @@ export async function getAnalyticsOverview(filters: AnalyticsFilters): Promise<A
       },
     ],
     delayedDossiers,
-    reports: REPORTS,
+    reports: ANALYTICS_REPORTS,
   };
 }
 
