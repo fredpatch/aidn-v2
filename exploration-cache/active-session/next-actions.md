@@ -13,7 +13,8 @@ Last updated: 2026-08-03
    - Confirm the integrated viewer opens the expected M3/M4/M5/M6/M7 documents.
    - Smoke-test the workflow, dashboard, `Courriers officiels`, `Paiements S5`,
      `Mes inspections`, `Reunions`, and `Demandes` cockpits on desktop and a
-     narrow viewport, including terminal/read-only actions.
+     narrow viewport, including terminal/read-only actions and `Demandes`
+     pagination/search/sort interactions.
    - Smoke-test `Gestion des utilisateurs` with SU and DN supervisor: AIDN user
      filters, Personnel ANAC activation, role edit restrictions, OTP reset,
      suspension, and the adjustable table/detail split.

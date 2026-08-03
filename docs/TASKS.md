@@ -496,6 +496,9 @@ reste un audit plus étroit des permissions fines côté UI.
 - [x] Cockpit `Demandes` V1 : endpoint `/api/requests/cockpit`, KPIs, liste filtrée,
       panneau de détail à droite, synthèse documentaire Chart.js, actions terminales
       désactivées et suivi des dossiers clôturés/auditables (2026-07-30)
+- [x] Cockpit `Demandes` - pagination et primitives UI : pagination client sur la
+      liste des demandes, tri via `Select` partageable, et ajout des composants
+      admin reutilisables `Pagination`, `Select`, `Table` (2026-08-03)
 - [x] Analytique & rapports V1 : endpoint `/api/analytics/overview` + route admin
       `/analytique` pour `dn_supervisor`/`SU`, KPIs de delai, respect SLA, attente
       DG, inactivite, repartitions Chart.js, points de blocage, dossiers en retard,

@@ -25,6 +25,10 @@ Commit-level history. Covers `be9fce9` through the current uncommitted
   (`0000`, `0041`, `0200`, `0129`, `0148`, `0169`, `0103`).
 - Ran the seed successfully locally and verified with full `npm run build`
   (Vite large-chunk warning remains).
+- Added client-side pagination to the `Demandes` cockpit request list and replaced
+  the native sort dropdown with the shared Radix-backed `Select` primitive. Added
+  reusable admin `Pagination`, `Select`, and `Table` UI helpers for future cockpit
+  screens. Verified with full `npm run build`.
 
 ## (uncommitted) - 2026-07-30 users management cockpit refactor
 
