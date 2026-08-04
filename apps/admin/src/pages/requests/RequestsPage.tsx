@@ -21,6 +21,8 @@ import {
   UserRound,
 } from 'lucide-react';
 import { Button, buttonVariants } from '../../components/ui/button';
+import { EmptyState } from '../../components/common/EmptyState';
+import { StatusBadge } from '../../components/common/StatusBadge';
 import {
   Select,
   SelectContent,
@@ -402,7 +404,7 @@ function RequestsList({
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <p className="font-semibold text-anac-navy">{item.reference}</p>
-              <StatusBadge label={item.statusLabel} status={item.status} />
+              <StatusBadge label={item.statusLabel} tone={STATUS_STYLES[item.status] ?? STATUS_STYLES.in_progress} />
             </div>
             <p className="mt-0.5 truncate text-sm font-medium text-anac-text">
               {item.organisationName}
@@ -460,7 +462,7 @@ function RequestDetailPanel({
               {item.reference} - {item.requestTypeLabel}
             </h2>
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <StatusBadge label={item.statusLabel} status={item.status} />
+              <StatusBadge label={item.statusLabel} tone={STATUS_STYLES[item.status] ?? STATUS_STYLES.in_progress} />
               <span
                 className={cn(
                   'rounded-full border px-2 py-0.5 text-[11px] font-semibold',
@@ -743,19 +745,6 @@ function ActivityList({ item }: { item: RequestCockpitItem }) {
   );
 }
 
-function StatusBadge({ label, status }: { label: string; status: string }) {
-  return (
-    <span
-      className={cn(
-        'inline-flex w-fit rounded-full border px-2 py-0.5 text-[11px] font-semibold',
-        STATUS_STYLES[status] ?? STATUS_STYLES.in_progress
-      )}
-    >
-      {label}
-    </span>
-  );
-}
-
 function StatusDot({ item }: { item: RequestCockpitItem }) {
   const className =
     item.status === 'completed'
@@ -767,27 +756,6 @@ function StatusDot({ item }: { item: RequestCockpitItem }) {
     <span className={cn('mt-1 grid h-5 w-5 place-items-center rounded-full border', className)}>
       {item.status === 'completed' ? <CheckCircle2 size={12} /> : <Clock3 size={12} />}
     </span>
-  );
-}
-
-function EmptyState({
-  title,
-  description,
-  danger = false,
-}: {
-  title: string;
-  description: string;
-  danger?: boolean;
-}) {
-  return (
-    <div className="grid min-h-[260px] place-items-center p-6 text-center">
-      <div>
-        <p className={cn('font-semibold', danger ? 'text-anac-danger' : 'text-anac-navy')}>
-          {title}
-        </p>
-        <p className="mt-1 text-sm text-anac-muted">{description}</p>
-      </div>
-    </div>
   );
 }
 

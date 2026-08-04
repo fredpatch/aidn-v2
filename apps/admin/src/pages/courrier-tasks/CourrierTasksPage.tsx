@@ -19,6 +19,8 @@ import {
 import { Link } from 'react-router-dom';
 import DocumentViewer from '../../components/documents/DocumentViewer';
 import { Button, buttonVariants } from '../../components/ui/button';
+import { EmptyState } from '../../components/common/EmptyState';
+import { StatusBadge } from '../../components/common/StatusBadge';
 import { Pagination, paginate } from '../../components/ui/pagination';
 import {
   Select,
@@ -607,12 +609,12 @@ function CourrierTaskTable({
   onSelect: (id: string) => void;
 }) {
   if (loading) {
-    return <CourrierEmptyState icon={Inbox} title="Chargement des courriers" />;
+    return <EmptyState icon={Inbox} title="Chargement des courriers" />;
   }
 
   if (tasks.length === 0) {
     return (
-      <CourrierEmptyState
+      <EmptyState
         icon={CheckCircle2}
         title="Aucun courrier dans cette vue"
         description="Les courriers reapparaitront ici des qu'une action sera attendue."
@@ -711,7 +713,7 @@ function CourrierDetailPanel({
   if (!task) {
     return (
       <aside className="grid min-h-[420px] place-items-center p-6">
-        <CourrierEmptyState
+        <EmptyState
           icon={FileText}
           title="Selectionnez un courrier"
           description="Le detail du circuit, les documents et les actions apparaitront ici."
@@ -728,7 +730,12 @@ function CourrierDetailPanel({
             <span className="rounded border border-anac-border px-2 py-0.5 text-xs text-anac-navy">
               {task.requestReference}
             </span>
-            <StatusBadge bucket={task.bucket} />
+            <StatusBadge
+              label={BUCKET_LABELS[task.bucket]}
+              tone={statusClass(task.bucket)}
+              icon={statusIcon(task.bucket)}
+              pill={false}
+            />
           </div>
           <h2 className="text-lg font-semibold leading-tight text-anac-navy">
             {SOURCE_LABELS[task.source]}
@@ -997,21 +1004,6 @@ function CourrierInfo({ task }: { task: CourrierTask }) {
   );
 }
 
-function StatusBadge({ bucket }: { bucket: CourrierTaskBucket }) {
-  const Icon = statusIcon(bucket);
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-xs font-semibold',
-        statusClass(bucket)
-      )}
-    >
-      <Icon size={12} aria-hidden="true" />
-      {BUCKET_LABELS[bucket]}
-    </span>
-  );
-}
-
 function Info({ label, value }: { label: string; value: string }) {
   return (
     <div>
@@ -1021,29 +1013,6 @@ function Info({ label, value }: { label: string; value: string }) {
   );
 }
 
-function CourrierEmptyState({
-  icon: Icon,
-  title,
-  description,
-}: {
-  icon: React.ElementType;
-  title: string;
-  description?: string;
-}) {
-  return (
-    <div className="grid min-h-[260px] place-items-center p-6 text-center">
-      <div>
-        <div className="mx-auto mb-3 grid h-10 w-10 place-items-center rounded-lg border border-anac-border bg-white text-anac-muted">
-          <Icon size={16} aria-hidden="true" />
-        </div>
-        <p className="text-sm font-semibold text-anac-navy">{title}</p>
-        {description ? (
-          <p className="mt-1 max-w-sm text-xs text-anac-muted">{description}</p>
-        ) : null}
-      </div>
-    </div>
-  );
-}
 
 function ReturnSignedModal({
   task,

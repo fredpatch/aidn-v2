@@ -17,6 +17,8 @@ import {
   XCircle,
 } from 'lucide-react';
 import { Button, buttonVariants } from '../../components/ui/button';
+import { EmptyState } from '../../components/common/EmptyState';
+import { StatusBadge } from '../../components/common/StatusBadge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { apiErrorMessage } from '../../lib/axios';
@@ -156,12 +158,14 @@ export default function MeetingsPage() {
                 <EmptyState
                   title="Chargement du calendrier"
                   description="Recuperation des reunions planifiees."
+                  className="min-h-[360px]"
                 />
               ) : query.error ? (
                 <EmptyState
                   title="Chargement impossible"
                   description="Impossible de charger les reunions."
                   danger
+                  className="min-h-[360px]"
                 />
               ) : view === 'calendar' ? (
                 <WeekCalendar
@@ -436,6 +440,7 @@ function WeekCalendar({
       <EmptyState
         title="Aucune reunion sur cette semaine"
         description="Modifiez les filtres ou selectionnez une autre semaine."
+        className="min-h-[360px]"
       />
     );
   }
@@ -532,6 +537,7 @@ function MeetingsTable({
       <EmptyState
         title="Aucune reunion dans cette vue"
         description="Modifiez les filtres ou revenez plus tard."
+        className="min-h-[360px]"
       />
     );
   }
@@ -562,7 +568,7 @@ function MeetingsTable({
             <TableCell>{formatDateTime(item.scheduledAt)}</TableCell>
             <TableCell>{item.dnAgentName}</TableCell>
             <TableCell>
-              <StatusBadge item={item} />
+              <StatusBadge label={item.statusLabel} tone={STATUS_STYLES[item.status] ?? STATUS_STYLES.scheduled} />
             </TableCell>
             <TableCell className="text-xs font-semibold text-anac-blue">{item.actionLabel}</TableCell>
           </TableRow>
@@ -589,7 +595,7 @@ function UpcomingRail({
           <EmptyState
             title="Aucune reunion prevue"
             description="Aucun creneau planifie dans la periode."
-            compact
+            className="min-h-[140px]"
           />
         ) : (
           items.map((item) => (
@@ -611,7 +617,7 @@ function UpcomingRail({
                     {item.location ?? item.requestReference}
                   </p>
                 </div>
-                <StatusBadge item={item} />
+                <StatusBadge label={item.statusLabel} tone={STATUS_STYLES[item.status] ?? STATUS_STYLES.scheduled} />
               </div>
             </button>
           ))
@@ -695,7 +701,7 @@ function SelectedMeetingPanel({
         <EmptyState
           title="Aucune reunion selectionnee"
           description="Selectionnez un creneau dans le calendrier ou la liste."
-          compact
+          className="min-h-[140px]"
         />
       </section>
     );
@@ -715,7 +721,7 @@ function SelectedMeetingPanel({
                 <p className="text-xs font-semibold text-anac-muted">
                   Details de la reunion selectionnee
                 </p>
-                <StatusBadge item={item} />
+                <StatusBadge label={item.statusLabel} tone={STATUS_STYLES[item.status] ?? STATUS_STYLES.scheduled} />
               </div>
               <h2 className="mt-2 text-lg font-semibold text-anac-navy">{item.meetingTypeLabel}</h2>
               <p className="mt-1 text-sm text-anac-muted">
@@ -870,47 +876,6 @@ function Info({
         {label}
       </p>
       <p className="mt-1.5 text-sm font-semibold text-anac-navy">{value}</p>
-    </div>
-  );
-}
-
-function StatusBadge({ item }: { item: MeetingCockpitItem }) {
-  return (
-    <span
-      className={cn(
-        'inline-flex w-fit rounded-full border px-2 py-0.5 text-[11px] font-semibold',
-        STATUS_STYLES[item.status] ?? STATUS_STYLES.scheduled
-      )}
-    >
-      {item.statusLabel}
-    </span>
-  );
-}
-
-function EmptyState({
-  title,
-  description,
-  danger = false,
-  compact = false,
-}: {
-  title: string;
-  description: string;
-  danger?: boolean;
-  compact?: boolean;
-}) {
-  return (
-    <div
-      className={cn(
-        'grid place-items-center px-4 py-8 text-center',
-        compact ? 'min-h-[140px]' : 'min-h-[360px]'
-      )}
-    >
-      <div>
-        <p className={cn('font-semibold', danger ? 'text-anac-danger' : 'text-anac-navy')}>
-          {title}
-        </p>
-        <p className="mt-1 text-sm text-anac-muted">{description}</p>
-      </div>
     </div>
   );
 }

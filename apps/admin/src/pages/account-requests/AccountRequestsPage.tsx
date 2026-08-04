@@ -21,6 +21,8 @@ import {
 } from 'lucide-react';
 import { api, apiErrorMessage } from '../../lib/axios';
 import { Button } from '../../components/ui/button';
+import { EmptyState } from '../../components/common/EmptyState';
+import { StatusBadge } from '../../components/common/StatusBadge';
 import { Pagination, paginate } from '../../components/ui/pagination';
 import {
   Table,
@@ -381,9 +383,9 @@ export default function AccountRequestsPage() {
         >
           <div className="min-w-0 overflow-hidden rounded-lg border border-anac-border bg-white shadow-sm">
             {loading ? (
-              <EmptyState title="Chargement" description="Recuperation des comptes postulants." />
+              <EmptyState title="Chargement" description="Recuperation des comptes postulants." className="min-h-[220px]" />
             ) : error ? (
-              <EmptyState title="Chargement impossible" description={error} danger />
+              <EmptyState title="Chargement impossible" description={error} danger className="min-h-[220px]" />
             ) : tab === 'pending' ? (
               <>
                 <PendingRequestsTable
@@ -515,6 +517,7 @@ function PendingRequestsTable({
       <EmptyState
         title="Aucune demande en attente"
         description="Les demandes envoyees depuis le portail apparaitront ici."
+        className="min-h-[220px]"
       />
     );
   }
@@ -559,7 +562,7 @@ function PendingRequestsTable({
               <TableCell className="text-anac-muted">{request.contactEmail}</TableCell>
               <TableCell>{formatDateTime(request.submittedAt)}</TableCell>
               <TableCell>
-                <StatusBadge label="En attente" tone="pending" />
+                <StatusBadge label="En attente" tone={STATUS_STYLES.pending} />
               </TableCell>
               <TableCell>
                 <button className="rounded-md border border-anac-border p-1.5 text-anac-blue">
@@ -589,6 +592,7 @@ function ApplicantAccountsTable({
       <EmptyState
         title="Aucun compte approuve"
         description="Les comptes approuves apparaitront ici apres validation."
+        className="min-h-[220px]"
       />
     );
   }
@@ -646,7 +650,7 @@ function ApplicantAccountsTable({
               <TableCell>
                 <StatusBadge
                   label={account.active ? 'Actif' : 'Suspension'}
-                  tone={account.active ? 'active' : 'suspended'}
+                  tone={STATUS_STYLES[account.active ? 'active' : 'suspended']}
                 />
               </TableCell>
               <TableCell>
@@ -727,6 +731,7 @@ function PendingRequestPanel({
         <EmptyState
           title="Aucune demande selectionnee"
           description="Selectionnez une demande dans la liste."
+          className="min-h-[220px]"
         />
       </aside>
     );
@@ -750,7 +755,7 @@ function PendingRequestPanel({
               ID: REQ-{String(request.id).padStart(6, '0')}
             </p>
           </div>
-          <StatusBadge label="En attente" tone="pending" />
+          <StatusBadge label="En attente" tone={STATUS_STYLES.pending} />
         </div>
       </div>
 
@@ -910,6 +915,7 @@ function ApprovedAccountPanel({
         <EmptyState
           title="Aucun compte selectionne"
           description="Selectionnez un compte dans la liste."
+          className="min-h-[220px]"
         />
       </aside>
     );
@@ -933,7 +939,7 @@ function ApprovedAccountPanel({
           </div>
           <StatusBadge
             label={account.active ? 'Actif' : 'Suspension'}
-            tone={account.active ? 'active' : 'suspended'}
+            tone={STATUS_STYLES[account.active ? 'active' : 'suspended']}
           />
         </div>
       </div>
@@ -1069,40 +1075,6 @@ function FuturePill({ label }: { label: string }) {
     <span className="rounded-md bg-slate-50 px-2 py-2 text-center text-[11px] font-semibold text-anac-muted">
       {label}
     </span>
-  );
-}
-
-function StatusBadge({ label, tone }: { label: string; tone: keyof typeof STATUS_STYLES }) {
-  return (
-    <span
-      className={cn(
-        'inline-flex w-fit rounded-full border px-2 py-0.5 text-[11px] font-semibold',
-        STATUS_STYLES[tone]
-      )}
-    >
-      {label}
-    </span>
-  );
-}
-
-function EmptyState({
-  title,
-  description,
-  danger = false,
-}: {
-  title: string;
-  description: string;
-  danger?: boolean;
-}) {
-  return (
-    <div className="grid min-h-[220px] place-items-center px-4 py-8 text-center">
-      <div>
-        <p className={cn('font-semibold', danger ? 'text-anac-danger' : 'text-anac-navy')}>
-          {title}
-        </p>
-        <p className="mt-1 text-sm text-anac-muted">{description}</p>
-      </div>
-    </div>
   );
 }
 

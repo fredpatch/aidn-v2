@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import DocumentViewer from '../../components/documents/DocumentViewer';
 import { Button, buttonVariants } from '../../components/ui/button';
+import { EmptyState } from '../../components/common/EmptyState';
+import { StatusBadge } from '../../components/common/StatusBadge';
 import { Pagination, paginate } from '../../components/ui/pagination';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
@@ -672,11 +674,11 @@ function S5PaymentTable({
   onSelect: (key: string) => void;
 }) {
   if (loading) {
-    return <S5EmptyState icon={WalletCards} title="Chargement des paiements" />;
+    return <EmptyState icon={WalletCards} title="Chargement des paiements" />;
   }
   if (items.length === 0) {
     return (
-      <S5EmptyState
+      <EmptyState
         icon={CheckCircle2}
         title="Aucun paiement dans cette vue"
         description="Les paiements reapparaitront ici des qu'une action S5 sera attendue."
@@ -724,7 +726,7 @@ function S5PaymentTable({
               <TableCell className="text-xs text-anac-muted">{formatDate(item.payment.invoiceUploadedAt)}</TableCell>
               <TableCell className="text-xs text-anac-muted">{formatDate(item.payment.proofUploadedAt)}</TableCell>
               <TableCell>
-                <PaymentStatusBadge status={item.payment.status} />
+                <StatusBadge label={STATUS_LABELS[item.payment.status] ?? item.payment.status} tone={statusClass(item.payment.status)} icon={statusIcon(item.payment.status)} pill={false} />
               </TableCell>
               <TableCell className="text-xs font-medium text-anac-blue">
                 {NEXT_ACTION_LABELS[item.nextAction]}
@@ -755,7 +757,7 @@ function S5DetailPanel({
   if (!item) {
     return (
       <aside className="grid min-h-[420px] place-items-center p-6">
-        <S5EmptyState
+        <EmptyState
           icon={CreditCard}
           title="Selectionnez un paiement"
           description="Le resume, les pieces et les actions S5 apparaitront ici."
@@ -771,7 +773,7 @@ function S5DetailPanel({
           <span className="rounded border border-anac-border px-2 py-0.5 text-xs text-anac-navy">
             {item.requestReference}
           </span>
-          <PaymentStatusBadge status={item.payment.status} />
+          <StatusBadge label={STATUS_LABELS[item.payment.status] ?? item.payment.status} tone={statusClass(item.payment.status)} icon={statusIcon(item.payment.status)} pill={false} />
         </div>
         <h2 className="text-lg font-semibold leading-tight text-anac-navy">
           Paiement - {PHASE_LABELS[item.phaseCode]}
@@ -1012,21 +1014,6 @@ function PaymentDocumentRow({
   );
 }
 
-function PaymentStatusBadge({ status }: { status: string }) {
-  const Icon = statusIcon(status);
-  return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1.5 rounded border px-2 py-0.5 text-xs font-semibold',
-        statusClass(status)
-      )}
-    >
-      <Icon size={12} aria-hidden="true" />
-      {STATUS_LABELS[status] ?? status}
-    </span>
-  );
-}
-
 function Info({ label, value }: { label: string; value: string }) {
   return (
     <div>
@@ -1036,27 +1023,6 @@ function Info({ label, value }: { label: string; value: string }) {
   );
 }
 
-function S5EmptyState({
-  icon: Icon,
-  title,
-  description,
-}: {
-  icon: React.ElementType;
-  title: string;
-  description?: string;
-}) {
-  return (
-    <div className="grid min-h-[260px] place-items-center p-6 text-center">
-      <div>
-        <div className="mx-auto mb-3 grid h-10 w-10 place-items-center rounded-lg border border-anac-border bg-white text-anac-muted">
-          <Icon size={16} aria-hidden="true" />
-        </div>
-        <p className="text-sm font-semibold text-anac-navy">{title}</p>
-        {description ? <p className="mt-1 max-w-sm text-xs text-anac-muted">{description}</p> : null}
-      </div>
-    </div>
-  );
-}
 
 function InvoiceModal({
   item,

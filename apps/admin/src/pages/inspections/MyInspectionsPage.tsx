@@ -12,6 +12,8 @@ import {
   XCircle,
 } from 'lucide-react';
 import { Button, buttonVariants } from '../../components/ui/button';
+import { EmptyState } from '../../components/common/EmptyState';
+import { StatusBadge } from '../../components/common/StatusBadge';
 import { apiErrorMessage } from '../../lib/axios';
 import { markSiteVisitHeld, submitVerdict, fetchMyQueue } from '../../lib/api/site-inspection.api';
 import type { MyQueueItem } from '../../lib/api/site-inspection.types';
@@ -324,11 +326,11 @@ function InspectionTable({
       </div>
 
       {isLoading ? (
-        <EmptyState title="Chargement des inspections" description="Recuperation de vos missions R3." />
+        <EmptyState title="Chargement des inspections" description="Recuperation de vos missions R3." className="min-h-[150px]" />
       ) : error ? (
-        <EmptyState title="Chargement impossible" description="Impossible de charger la file de dossiers." danger />
+        <EmptyState title="Chargement impossible" description="Impossible de charger la file de dossiers." danger className="min-h-[150px]" />
       ) : items.length === 0 ? (
-        <EmptyState title="Aucune inspection dans cette vue" description="Modifiez les filtres ou revenez plus tard." />
+        <EmptyState title="Aucune inspection dans cette vue" description="Modifiez les filtres ou revenez plus tard." className="min-h-[150px]" />
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[920px] text-sm">
@@ -359,7 +361,7 @@ function InspectionTable({
                   <td className="px-4 py-3">{formatDateTime(item.siteVisit?.scheduledAt)}</td>
                   <td className="px-4 py-3">{item.siteVisit?.location ?? '-'}</td>
                   <td className="px-4 py-3">
-                    <StatusBadge item={item} />
+                    <StatusBadge label={item.statusLabel || STATUS_LABELS[item.missionStatus]} tone={STATUS_STYLES[item.missionStatus]} />
                   </td>
                   <td className="px-4 py-3 text-xs font-semibold text-anac-blue">{item.nextActionLabel}</td>
                 </tr>
@@ -417,7 +419,7 @@ function InspectionDetailPanel({
   if (!item) {
     return (
       <aside className="rounded-lg border border-anac-border bg-white p-5 shadow-sm">
-        <EmptyState title="Aucune mission selectionnee" description="Selectionnez une inspection dans la liste." />
+        <EmptyState title="Aucune mission selectionnee" description="Selectionnez une inspection dans la liste." className="min-h-[150px]" />
       </aside>
     );
   }
@@ -435,7 +437,7 @@ function InspectionDetailPanel({
             <h2 className="mt-2 text-xl font-semibold text-anac-navy">{item.requestReference}</h2>
             <p className="mt-1 text-sm text-anac-muted">{item.organisationName}</p>
           </div>
-          <StatusBadge item={item} />
+          <StatusBadge label={item.statusLabel || STATUS_LABELS[item.missionStatus]} tone={STATUS_STYLES[item.missionStatus]} />
         </div>
         <p className="mt-3 flex items-center gap-2 text-xs text-anac-muted">
           <CalendarDays size={14} aria-hidden="true" />
@@ -528,14 +530,6 @@ function InspectionDetailPanel({
   );
 }
 
-function StatusBadge({ item }: { item: MyQueueItem }) {
-  return (
-    <span className={cn('inline-flex w-fit rounded-full border px-2 py-0.5 text-[11px] font-semibold', STATUS_STYLES[item.missionStatus])}>
-      {item.statusLabel || STATUS_LABELS[item.missionStatus]}
-    </span>
-  );
-}
-
 function PanelBlock({
   title,
   icon: Icon,
@@ -574,25 +568,6 @@ function ProgressStep({ label, done }: { label: string; done: boolean }) {
         <XCircle size={14} className="text-anac-muted" aria-hidden="true" />
       )}
       <span className={done ? 'text-anac-navy' : 'text-anac-muted'}>{label}</span>
-    </div>
-  );
-}
-
-function EmptyState({
-  title,
-  description,
-  danger = false,
-}: {
-  title: string;
-  description: string;
-  danger?: boolean;
-}) {
-  return (
-    <div className="grid min-h-[150px] place-items-center px-4 py-8 text-center">
-      <div>
-        <p className={cn('font-semibold', danger ? 'text-anac-danger' : 'text-anac-navy')}>{title}</p>
-        <p className="mt-1 text-sm text-anac-muted">{description}</p>
-      </div>
     </div>
   );
 }
