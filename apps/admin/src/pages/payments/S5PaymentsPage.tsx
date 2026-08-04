@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import DocumentViewer from '../../components/documents/DocumentViewer';
 import { Button, buttonVariants } from '../../components/ui/button';
+import { BucketTabs } from '../../components/common/BucketTabs';
 import { EmptyState } from '../../components/common/EmptyState';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { Pagination, paginate } from '../../components/ui/pagination';
@@ -463,7 +464,11 @@ export default function S5PaymentsPage() {
         </section>
 
         <section className="overflow-hidden rounded-lg border border-anac-border bg-white shadow-[0_8px_22px_rgba(17,34,83,0.04)]">
-          <S5BucketTabs value={bucket} counts={counts} onChange={updateBucket} />
+          <BucketTabs
+            value={bucket}
+            items={BUCKET_SEQUENCE.map((b) => ({ key: b, label: BUCKET_LABELS[b], count: counts[b] }))}
+            onChange={updateBucket}
+          />
 
           <div className="grid min-h-[620px] lg:grid-cols-[minmax(0,1fr)_460px]">
             <div className="min-w-0 border-b border-anac-border lg:border-b-0 lg:border-r">
@@ -579,44 +584,6 @@ function S5MetricCard({
       </div>
       <p className="mt-4 text-[11px] text-anac-muted">{helper}</p>
     </section>
-  );
-}
-
-function S5BucketTabs({
-  value,
-  counts,
-  onChange,
-}: {
-  value: PaymentBucket;
-  counts: Record<PaymentBucket, number>;
-  onChange: (value: PaymentBucket) => void;
-}) {
-  return (
-    <div className="flex gap-1 overflow-x-auto border-b border-anac-border px-4 pt-3">
-      {BUCKET_SEQUENCE.map((bucket) => (
-        <button
-          key={bucket}
-          type="button"
-          onClick={() => onChange(bucket)}
-          className={cn(
-            'inline-flex min-h-10 items-center gap-2 border-b-2 px-4 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-anac-sky',
-            value === bucket
-              ? 'border-anac-blue text-anac-blue'
-              : 'border-transparent text-anac-muted hover:text-anac-navy'
-          )}
-        >
-          {BUCKET_LABELS[bucket]}
-          <span
-            className={cn(
-              'rounded-full px-2 py-0.5 text-[11px]',
-              value === bucket ? 'bg-anac-blue text-white' : 'bg-anac-gray text-anac-muted'
-            )}
-          >
-            {counts[bucket]}
-          </span>
-        </button>
-      ))}
-    </div>
   );
 }
 

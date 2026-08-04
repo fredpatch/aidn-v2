@@ -21,6 +21,7 @@ import {
   UserRound,
 } from 'lucide-react';
 import { Button, buttonVariants } from '../../components/ui/button';
+import { BucketTabs } from '../../components/common/BucketTabs';
 import { EmptyState } from '../../components/common/EmptyState';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import {
@@ -168,7 +169,11 @@ export default function RequestsPage() {
 
         <section className="grid items-start gap-5 xl:grid-cols-[minmax(520px,0.86fr)_minmax(720px,1.14fr)]">
           <div className="min-w-0 overflow-hidden rounded-lg border border-anac-border bg-white shadow-[0_8px_22px_rgba(17,34,83,0.04)]">
-            <BucketTabs value={bucket} counts={counts} onChange={updateBucket} />
+            <BucketTabs
+              value={bucket}
+              items={BUCKETS.map((b) => ({ key: b.key, label: b.label, count: counts[b.key] }))}
+              onChange={updateBucket}
+            />
             <ListToolbar
               search={search}
               sort={sort}
@@ -266,44 +271,6 @@ function MetricCard({ metric }: { metric: RequestCockpitMetric }) {
       </div>
       <p className="mt-4 text-[11px] text-anac-muted">{metric.helper}</p>
     </section>
-  );
-}
-
-function BucketTabs({
-  value,
-  counts,
-  onChange,
-}: {
-  value: Bucket;
-  counts: Record<Bucket, number>;
-  onChange: (value: Bucket) => void;
-}) {
-  return (
-    <div className="flex gap-1 overflow-x-auto border-b border-anac-border px-4 pt-3">
-      {BUCKETS.map((bucket) => (
-        <button
-          key={bucket.key}
-          type="button"
-          onClick={() => onChange(bucket.key)}
-          className={cn(
-            'inline-flex min-h-10 items-center gap-2 border-b-2 px-4 text-sm font-semibold transition-colors',
-            value === bucket.key
-              ? 'border-anac-blue text-anac-blue'
-              : 'border-transparent text-anac-muted hover:text-anac-navy'
-          )}
-        >
-          {bucket.label}
-          <span
-            className={cn(
-              'rounded-full px-2 py-0.5 text-[11px]',
-              value === bucket.key ? 'bg-anac-blue text-white' : 'bg-anac-gray text-anac-muted'
-            )}
-          >
-            {counts[bucket.key]}
-          </span>
-        </button>
-      ))}
-    </div>
   );
 }
 

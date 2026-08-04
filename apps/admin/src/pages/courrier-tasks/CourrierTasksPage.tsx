@@ -19,6 +19,7 @@ import {
 import { Link } from 'react-router-dom';
 import DocumentViewer from '../../components/documents/DocumentViewer';
 import { Button, buttonVariants } from '../../components/ui/button';
+import { BucketTabs } from '../../components/common/BucketTabs';
 import { EmptyState } from '../../components/common/EmptyState';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { Pagination, paginate } from '../../components/ui/pagination';
@@ -356,10 +357,19 @@ export default function CourrierTasksPage() {
         </section>
 
         <section className="overflow-hidden rounded-lg border border-anac-border bg-white shadow-[0_8px_22px_rgba(17,34,83,0.04)]">
-          <CourrierBucketTabs
+          <BucketTabs
             value={bucket}
-            counts={counts}
-            total={tasks.length}
+            items={BUCKET_SEQUENCE.map((b) => ({
+              key: b,
+              label: BUCKET_LABELS[b],
+              count: {
+                all: tasks.length,
+                to_signature: counts.toSignature,
+                in_signature: counts.inSignature,
+                returned: counts.returned,
+                legacy_signed: counts.legacySigned,
+              }[b],
+            }))}
             onChange={updateBucket}
           />
 
@@ -499,59 +509,6 @@ function CourrierMetricCard({
       </div>
       <p className="mt-4 text-[11px] text-anac-muted">{helper}</p>
     </section>
-  );
-}
-
-function CourrierBucketTabs({
-  value,
-  counts,
-  total,
-  onChange,
-}: {
-  value: CourrierTaskBucket | 'all';
-  counts: {
-    toSignature: number;
-    inSignature: number;
-    returned: number;
-    legacySigned: number;
-  };
-  total: number;
-  onChange: (value: CourrierTaskBucket | 'all') => void;
-}) {
-  const countFor = {
-    all: total,
-    to_signature: counts.toSignature,
-    in_signature: counts.inSignature,
-    returned: counts.returned,
-    legacy_signed: counts.legacySigned,
-  };
-
-  return (
-    <div className="flex gap-1 overflow-x-auto border-b border-anac-border px-4 pt-3">
-      {BUCKET_SEQUENCE.map((bucket) => (
-        <button
-          key={bucket}
-          type="button"
-          onClick={() => onChange(bucket)}
-          className={cn(
-            'inline-flex min-h-10 items-center gap-2 border-b-2 px-4 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-anac-sky',
-            value === bucket
-              ? 'border-anac-blue text-anac-blue'
-              : 'border-transparent text-anac-muted hover:text-anac-navy'
-          )}
-        >
-          {BUCKET_LABELS[bucket]}
-          <span
-            className={cn(
-              'rounded-full px-2 py-0.5 text-[11px]',
-              value === bucket ? 'bg-anac-blue text-white' : 'bg-anac-gray text-anac-muted'
-            )}
-          >
-            {countFor[bucket]}
-          </span>
-        </button>
-      ))}
-    </div>
   );
 }
 
