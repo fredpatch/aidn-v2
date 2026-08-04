@@ -20,7 +20,9 @@ import { Button, buttonVariants } from '../../components/ui/button';
 import { Modal } from '../../components/ui/modal';
 import { BucketTabs } from '../../components/common/BucketTabs';
 import { EmptyState } from '../../components/common/EmptyState';
+import { SelectableTableRow } from '../../components/common/SelectableTableRow';
 import { StatusBadge } from '../../components/common/StatusBadge';
+import { TableState } from '../../components/common/TableState';
 import { Pagination, paginate } from '../../components/ui/pagination';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
@@ -641,11 +643,12 @@ function S5PaymentTable({
   onSelect: (key: string) => void;
 }) {
   if (loading) {
-    return <EmptyState icon={WalletCards} title="Chargement des paiements" />;
+    return <TableState state="loading" icon={WalletCards} title="Chargement des paiements" />;
   }
   if (items.length === 0) {
     return (
-      <EmptyState
+      <TableState
+        state="empty"
         icon={CheckCircle2}
         title="Aucun paiement dans cette vue"
         description="Les paiements reapparaitront ici des qu'une action S5 sera attendue."
@@ -671,19 +674,16 @@ function S5PaymentTable({
           const key = `${item.phaseCode}:${item.phaseId}`;
           const selected = key === selectedKey;
           return (
-            <TableRow
+            <SelectableTableRow
               key={key}
-              className={cn('cursor-pointer', selected && 'bg-anac-blue/5 outline outline-1 -outline-offset-1 outline-anac-blue')}
-              onClick={() => onSelect(key)}
+              selected={selected}
+              onSelect={() => onSelect(key)}
+              ariaLabel={`Selectionner le paiement ${item.requestReference}`}
             >
               <TableCell>
-                <button
-                  type="button"
-                  onClick={() => onSelect(key)}
-                  className="text-left font-semibold text-anac-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-anac-sky"
-                >
+                <span className="block text-left font-semibold text-anac-blue">
                   {item.requestReference}
-                </button>
+                </span>
                 <p className="text-xs text-anac-muted">{item.requestType}</p>
               </TableCell>
               <TableCell className="max-w-[220px]">
@@ -698,7 +698,7 @@ function S5PaymentTable({
               <TableCell className="text-xs font-medium text-anac-blue">
                 {NEXT_ACTION_LABELS[item.nextAction]}
               </TableCell>
-            </TableRow>
+            </SelectableTableRow>
           );
         })}
       </TableBody>

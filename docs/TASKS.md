@@ -333,6 +333,10 @@ Voir `exploration-cache/technical/gotchas.md` pour le détail complet.
       conservé même après clôture de phase.
 - [x] Durcissement UI S5 2026-08-04 : liste des paiements paginee, tri via
       `Select` partage et table remplacee par la primitive `Table`.
+- [x] Durcissement accessibilite S5 2026-08-04 : etats table/list normalises via
+      `TableState`, lignes de paiement selectionnables au clavier via
+      `SelectableTableRow`, migration limitee a `Paiements S5` sans changement
+      des requetes, mutations, libelles ou workflows S5.
 - [x] Visualiseur admin simplifie : bouton `Imprimer` retire, verdicts DN
       disponibles directement depuis la previsualisation M5.
 - [x] Intégration portail : section `DeepEvaluationSection` dans la carte de demande active
@@ -421,6 +425,11 @@ Voir `exploration-cache/technical/gotchas.md` pour le détail complet.
 - [x] Génération Puppeteer confirmée fonctionnelle par Fred en conditions
       réelles (2026-07-27) - le rendu du PDF depuis le template HTML final
       fonctionne correctement de bout en bout
+- [x] Correction migration locale 2026-08-04 : le journal Drizzle reference
+      `0004_aberrant_snowbird`; le fichier SQL manquant a ete restaure pour
+      eviter l'erreur `No file ./drizzle/0004_aberrant_snowbird.sql found`.
+      Apres restauration, `npm run db:migrate --workspace=apps/api` passe sur
+      la base locale reparee.
 
 ## Durcissement du workflow (post-M7, avant Sprint 7+)
 
