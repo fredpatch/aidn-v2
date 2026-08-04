@@ -2,12 +2,13 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
+import { Pagination } from '../../../components/ui/pagination';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
 import { listPersonnelAnac, searchPersonnelAnac } from '../../../lib/api/personnel-anac.api';
 import type { PersonnelAnacResult } from '../../../lib/api/personnel-anac.types';
 import { apiErrorMessage } from '../../../lib/axios';
 import { PERSONNEL_ANAC_PAGE_SIZE } from '../constants';
 import { initials } from '../utils';
-import { PaginationFooter } from './PaginationFooter';
 
 export function PersonnelAnacTab({
   onCreate,
@@ -112,87 +113,73 @@ export function PersonnelAnacTab({
           Chargement du Personnel ANAC...
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[820px] text-sm">
-            <thead>
-              <tr className="border-b border-anac-border bg-anac-gray/50 text-left text-xs uppercase tracking-wide text-anac-muted">
-                <th className="px-4 py-3 font-medium">Agent ANAC</th>
-                <th className="px-4 py-3 font-medium">Organisation</th>
-                <th className="px-4 py-3 font-medium">Compte AIDN</th>
-                <th className="px-4 py-3 text-right font-medium">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {results.map((personnel) => {
-                const hasAccount = personnel.hasAccount || existing.has(personnel.employeeCode);
-                return (
-                  <tr
-                    key={personnel.employeeCode}
-                    className={`border-b border-anac-border last:border-0 ${
-                      selectedEmployeeCode === personnel.employeeCode
-                        ? 'bg-anac-blue/5'
-                        : 'hover:bg-anac-gray/40'
-                    }`}
-                  >
-                    <td className="px-4 py-3">
-                      <button
-                        type="button"
-                        onClick={() => onSelect(personnel)}
-                        className="flex items-center gap-3 text-left"
-                      >
-                        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-anac-blue/10 text-xs font-semibold text-anac-blue">
-                          {initials(personnel.fullName)}
-                        </span>
-                        <span>
-                          <span className="block font-semibold text-anac-navy">
-                            {personnel.fullName || 'Nom non renseigne'}
-                          </span>
-                          <span className="text-xs text-anac-muted">
-                            Matricule {personnel.employeeCode}
-                          </span>
-                        </span>
-                      </button>
-                    </td>
-                    <td className="px-4 py-3 text-anac-muted">
-                      {personnel.organisationLabel ?? 'Non renseigne'}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`rounded-full px-2 py-1 text-xs font-semibold ${
-                          hasAccount
-                            ? 'bg-emerald-50 text-emerald-700'
-                            : 'bg-amber-50 text-amber-700'
-                        }`}
-                      >
-                        {hasAccount ? 'Compte cree' : 'A activer'}
+        <Table className="min-w-[820px]">
+          <TableHeader>
+            <TableRow>
+              <TableHead>Agent ANAC</TableHead>
+              <TableHead>Organisation</TableHead>
+              <TableHead>Compte AIDN</TableHead>
+              <TableHead className="text-right">Action</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {results.map((personnel) => {
+              const hasAccount = personnel.hasAccount || existing.has(personnel.employeeCode);
+              return (
+                <TableRow
+                  key={personnel.employeeCode}
+                  className={selectedEmployeeCode === personnel.employeeCode ? 'bg-anac-blue/5' : undefined}
+                >
+                  <TableCell>
+                    <button
+                      type="button"
+                      onClick={() => onSelect(personnel)}
+                      className="flex items-center gap-3 text-left"
+                    >
+                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-anac-blue/10 text-xs font-semibold text-anac-blue">
+                        {initials(personnel.fullName)}
                       </span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <Button
-                        type="button"
-                        variant={hasAccount ? 'ghost' : 'default'}
-                        size="sm"
-                        disabled={hasAccount}
-                        onClick={() => onCreate(personnel)}
-                      >
-                        {hasAccount ? 'Deja actif' : 'Activer'}
-                      </Button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                      <span>
+                        <span className="block font-semibold text-anac-navy">
+                          {personnel.fullName || 'Nom non renseigne'}
+                        </span>
+                        <span className="text-xs text-anac-muted">Matricule {personnel.employeeCode}</span>
+                      </span>
+                    </button>
+                  </TableCell>
+                  <TableCell className="text-anac-muted">
+                    {personnel.organisationLabel ?? 'Non renseigne'}
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                        hasAccount ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
+                      }`}
+                    >
+                      {hasAccount ? 'Compte cree' : 'A activer'}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      type="button"
+                      variant={hasAccount ? 'ghost' : 'default'}
+                      size="sm"
+                      disabled={hasAccount}
+                      onClick={() => onCreate(personnel)}
+                    >
+                      {hasAccount ? 'Deja actif' : 'Activer'}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
       )}
 
       {mode === 'list' && (
-        <PaginationFooter
-          label={
-            total === 0
-              ? 'Aucun agent'
-              : `${firstItem}-${lastItem} sur ${total} agents Personnel ANAC`
-          }
+        <Pagination
+          label={total === 0 ? 'Aucun agent' : `${firstItem}-${lastItem} sur ${total} agents Personnel ANAC`}
           page={page}
           totalPages={totalPages}
           onPageChange={loadPersonnelPage}

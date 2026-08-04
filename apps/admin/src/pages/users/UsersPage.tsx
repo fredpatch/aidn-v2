@@ -2,11 +2,11 @@ import type { CSSProperties } from 'react';
 import { KeyRound, Lock, RefreshCw, Search, ShieldCheck, UserCheck, UserPlus } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
+import { Pagination } from '../../components/ui/pagination';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Sheet, SheetContent } from '../../components/ui/sheet';
 import { ALL_ROLES, ROLE_LABELS, USERS_PAGE_SIZE } from './constants';
 import { CreateUserDrawer } from './components/CreateUserDrawer';
-import { FilterSelect } from './components/FilterSelect';
-import { PaginationFooter } from './components/PaginationFooter';
 import { PersonnelAnacTab } from './components/PersonnelAnacTab';
 import { PersonnelDetailPanel } from './components/PersonnelDetailPanel';
 import { TabButton } from './components/TabButton';
@@ -63,7 +63,7 @@ export default function UsersPage() {
           <p className="text-xs font-medium text-anac-muted">Direction de la Navigabilite</p>
           <h1 className="mt-2 text-2xl font-semibold text-anac-navy">Utilisateurs</h1>
           <p className="mt-1 text-sm text-anac-muted">
-            Comptes internes AIDN et activation depuis l'annuaire Personnel ANAC.
+            Comptes internes AIDN et activation depuis l&apos;annuaire Personnel ANAC.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -161,30 +161,36 @@ export default function UsersPage() {
                     className="pl-9"
                   />
                 </div>
-                <FilterSelect
-                  value={roleFilter}
-                  onChange={(event) => setRoleFilter(event.target.value)}
-                  label="Role"
-                  className="md:w-40"
-                >
-                  <option value="all">Tous les roles</option>
-                  {ALL_ROLES.map((role) => (
-                    <option key={role} value={role}>
-                      {ROLE_LABELS[role]}
-                    </option>
-                  ))}
-                </FilterSelect>
-                <FilterSelect
-                  value={statusFilter}
-                  onChange={(event) => setStatusFilter(event.target.value as UserStatusFilter)}
-                  label="Statut"
-                  className="md:w-44"
-                >
-                  <option value="all">Tous les statuts</option>
-                  <option value="active">Actifs</option>
-                  <option value="inactive">Suspendus</option>
-                  <option value="first_login">Premiere connexion</option>
-                </FilterSelect>
+                <div className="flex h-11 items-center gap-2 rounded-lg border border-anac-border bg-white px-3 text-sm text-anac-muted md:w-40">
+                  <span className="shrink-0 text-xs">Role</span>
+                  <Select value={roleFilter} onValueChange={setRoleFilter}>
+                    <SelectTrigger className="h-auto border-0 bg-transparent p-0 text-anac-navy shadow-none focus:ring-0">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tous les roles</SelectItem>
+                      {ALL_ROLES.map((role) => (
+                        <SelectItem key={role} value={role}>
+                          {ROLE_LABELS[role]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex h-11 items-center gap-2 rounded-lg border border-anac-border bg-white px-3 text-sm text-anac-muted md:w-44">
+                  <span className="shrink-0 text-xs">Statut</span>
+                  <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as UserStatusFilter)}>
+                    <SelectTrigger className="h-auto border-0 bg-transparent p-0 text-anac-navy shadow-none focus:ring-0">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tous les statuts</SelectItem>
+                      <SelectItem value="active">Actifs</SelectItem>
+                      <SelectItem value="inactive">Suspendus</SelectItem>
+                      <SelectItem value="first_login">Premiere connexion</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <UsersTable
@@ -195,7 +201,7 @@ export default function UsersPage() {
                 onSelect={(user) => setSelectedUserId(user.id)}
               />
 
-              <PaginationFooter
+              <Pagination
                 label={
                   total === 0
                     ? 'Aucun utilisateur'

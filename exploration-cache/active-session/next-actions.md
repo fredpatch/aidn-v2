@@ -17,7 +17,10 @@ Last updated: 2026-08-03
      pagination/search/sort interactions.
    - Smoke-test `Gestion des utilisateurs` with SU and DN supervisor: AIDN user
      filters, Personnel ANAC activation, role edit restrictions, OTP reset,
-     suspension, and the adjustable table/detail split.
+     suspension, shared table/pagination controls, and the adjustable table/detail
+     split.
+   - Smoke-test `Paiements S5` pagination/search/sort with the shared Select/Table
+     primitives and verify row selection still opens the correct payment detail.
    - Smoke-test `/analytique` with SU/DN supervisor after running
      `npm run seed:analytics --workspace=apps/api`: verify KPI counts, Chart.js
      charts, points de blocage, dossiers en retard, empty/sample warnings, and

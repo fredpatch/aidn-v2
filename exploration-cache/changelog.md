@@ -29,6 +29,10 @@ Commit-level history. Covers `be9fce9` through the current uncommitted
   the native sort dropdown with the shared Radix-backed `Select` primitive. Added
   reusable admin `Pagination`, `Select`, and `Table` UI helpers for future cockpit
   screens. Verified with full `npm run build`.
+- Extended the shared cockpit primitives to `Paiements S5` and `Gestion des
+  utilisateurs`: S5 payment queues now paginate and use the shared select/table
+  components, while AIDN users and Personnel ANAC lists now render through the
+  shared table/pagination primitives. Verified with full `npm run build`.
 
 ## (uncommitted) - 2026-07-30 users management cockpit refactor
 

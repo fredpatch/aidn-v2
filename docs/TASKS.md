@@ -127,6 +127,9 @@ Corrigé après retour explicite :
       reinitialisation OTP. Le fichier page est desormais un orchestrateur ;
       logique, constantes, helpers et composants ont ete extraits sous
       `apps/admin/src/pages/users/`.
+- [x] Durcissement UI utilisateurs 2026-08-04 : filtres AIDN remplaces par le
+      `Select` partage, listes AIDN et Personnel ANAC rendues avec la primitive
+      `Table`, pagination via composant commun.
 
 ### ✅ Résolu au début de la session suivante : builds admin ET portail cassés
 
@@ -328,6 +331,8 @@ Voir `exploration-cache/technical/gotchas.md` pour le détail complet.
 - [x] Page `Paiements S5` redesignée en cockpit opérationnel : factures reçues à
       transmettre, preuves attendues, preuves à valider, historique validé/rejeté
       conservé même après clôture de phase.
+- [x] Durcissement UI S5 2026-08-04 : liste des paiements paginee, tri via
+      `Select` partage et table remplacee par la primitive `Table`.
 - [x] Visualiseur admin simplifie : bouton `Imprimer` retire, verdicts DN
       disponibles directement depuis la previsualisation M5.
 - [x] Intégration portail : section `DeepEvaluationSection` dans la carte de demande active

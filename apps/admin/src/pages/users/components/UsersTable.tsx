@@ -1,5 +1,6 @@
 import { Eye } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
 import type { UserView } from '../../../lib/api/users.types';
 import { apiErrorMessage } from '../../../lib/axios';
 import { RoleBadgeList, StatusBadge, UserAvatar } from './UserDisplay';
@@ -43,69 +44,50 @@ export function UsersTable({
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[640px] text-sm">
-        <thead>
-          <tr className="border-b border-anac-border bg-anac-gray/50 text-left text-[11px] uppercase text-anac-muted">
-            <th className="px-4 py-3 font-medium">Utilisateur</th>
-            <th className="px-4 py-3 font-medium">Matricule</th>
-            <th className="px-4 py-3 font-medium">Roles</th>
-            <th className="px-4 py-3 font-medium">Statut</th>
-            <th className="px-4 py-3 text-right font-medium">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((user) => (
-            <tr
-              key={user.id}
-              className={`border-b border-anac-border last:border-0 ${
-                selectedId === user.id ? 'bg-anac-blue/5' : 'hover:bg-anac-gray/40'
-              }`}
-            >
-              <td className="px-4 py-2.5">
-                <button
-                  type="button"
-                  onClick={() => onSelect(user)}
-                  className="flex items-center gap-3 text-left"
-                >
-                  <UserAvatar user={user} />
-                  <span>
-                    <span className="block max-w-[230px] truncate font-semibold text-anac-navy">
-                      {user.fullName}
-                    </span>
-                    <span className="block max-w-[230px] truncate text-xs text-anac-muted">
-                      {user.email}
-                    </span>
+    <Table className="min-w-[640px]">
+      <TableHeader>
+        <TableRow>
+          <TableHead>Utilisateur</TableHead>
+          <TableHead>Matricule</TableHead>
+          <TableHead>Roles</TableHead>
+          <TableHead>Statut</TableHead>
+          <TableHead className="text-right">Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {users.map((user) => (
+          <TableRow key={user.id} className={selectedId === user.id ? 'bg-anac-blue/5' : undefined}>
+            <TableCell>
+              <button type="button" onClick={() => onSelect(user)} className="flex items-center gap-3 text-left">
+                <UserAvatar user={user} />
+                <span>
+                  <span className="block max-w-[230px] truncate font-semibold text-anac-navy">
+                    {user.fullName}
                   </span>
-                </button>
-              </td>
-              <td className="px-4 py-2.5">
-                <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
-                  {user.employeeCode}
+                  <span className="block max-w-[230px] truncate text-xs text-anac-muted">{user.email}</span>
                 </span>
-              </td>
-              <td className="px-4 py-2.5">
-                <RoleBadgeList roles={user.roles} limit={2} />
-              </td>
-              <td className="px-4 py-2.5">
-                <StatusBadge user={user} />
-              </td>
-              <td className="px-4 py-2.5 text-right">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onSelect(user)}
-                  className="gap-1.5"
-                >
-                  <Eye size={14} />
-                  Consulter
-                </Button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+              </button>
+            </TableCell>
+            <TableCell>
+              <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
+                {user.employeeCode}
+              </span>
+            </TableCell>
+            <TableCell>
+              <RoleBadgeList roles={user.roles} limit={2} />
+            </TableCell>
+            <TableCell>
+              <StatusBadge user={user} />
+            </TableCell>
+            <TableCell className="text-right">
+              <Button type="button" variant="ghost" size="sm" onClick={() => onSelect(user)} className="gap-1.5">
+                <Eye size={14} />
+                Consulter
+              </Button>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
 }

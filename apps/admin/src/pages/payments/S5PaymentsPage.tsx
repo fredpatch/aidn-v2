@@ -18,6 +18,9 @@ import {
 } from 'lucide-react';
 import DocumentViewer from '../../components/documents/DocumentViewer';
 import { Button, buttonVariants } from '../../components/ui/button';
+import { Pagination, paginate } from '../../components/ui/pagination';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { fetchDeepEvaluationPaymentQueue } from '../../lib/api/deep-evaluation.api';
 import {
   rejectPayment as rejectDeepPayment,
@@ -58,6 +61,8 @@ type PaymentBucket =
   | 'validated'
   | 'rejected'
   | 'all';
+
+const PAGE_SIZE = 20;
 
 type SortKey = 'waiting' | 'newest' | 'oldest';
 
@@ -261,6 +266,22 @@ export default function S5PaymentsPage() {
   const [previewFile, setPreviewFile] = useState<{ title: string; url: string } | null>(null);
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+
+  function updateBucket(value: PaymentBucket) {
+    setBucket(value);
+    setPage(1);
+  }
+
+  function updateQuery(value: string) {
+    setQuery(value);
+    setPage(1);
+  }
+
+  function updateSort(value: SortKey) {
+    setSort(value);
+    setPage(1);
+  }
 
   const counts = useMemo(() => {
     const byBucket = data.reduce(
@@ -315,6 +336,8 @@ export default function S5PaymentsPage() {
       null,
     [filteredData, selectedKey]
   );
+
+  const { pageItems, totalPages, page: currentPage } = paginate(filteredData, page, PAGE_SIZE);
 
   useEffect(() => {
     if (filteredData.length === 0) {
@@ -438,21 +461,27 @@ export default function S5PaymentsPage() {
         </section>
 
         <section className="overflow-hidden rounded-lg border border-anac-border bg-white shadow-[0_8px_22px_rgba(17,34,83,0.04)]">
-          <S5BucketTabs value={bucket} counts={counts} onChange={setBucket} />
+          <S5BucketTabs value={bucket} counts={counts} onChange={updateBucket} />
 
           <div className="grid min-h-[620px] lg:grid-cols-[minmax(0,1fr)_460px]">
             <div className="min-w-0 border-b border-anac-border lg:border-b-0 lg:border-r">
               <S5Toolbar
                 query={query}
                 sort={sort}
-                onQueryChange={setQuery}
-                onSortChange={setSort}
+                onQueryChange={updateQuery}
+                onSortChange={updateSort}
               />
               <S5PaymentTable
-                items={filteredData}
+                items={pageItems}
                 selectedKey={selectedItem ? `${selectedItem.phaseCode}:${selectedItem.phaseId}` : null}
                 loading={isLoading}
                 onSelect={setSelectedKey}
+              />
+              <Pagination
+                label={`${filteredData.length} paiement${filteredData.length > 1 ? 's' : ''}`}
+                page={currentPage}
+                totalPages={totalPages}
+                onPageChange={setPage}
               />
             </div>
 
@@ -616,19 +645,17 @@ function S5Toolbar({
           className="h-10 w-full rounded-lg border border-anac-border bg-white pl-9 pr-3 text-sm text-anac-navy outline-none transition focus:border-anac-sky focus:ring-2 focus:ring-anac-sky/30"
         />
       </label>
-      <label className="inline-flex h-10 items-center gap-2 rounded-lg border border-anac-border bg-white px-3 text-sm text-anac-navy">
-        <ArrowDownAZ size={15} className="text-anac-muted" aria-hidden="true" />
-        <span className="sr-only">Trier</span>
-        <select
-          value={sort}
-          onChange={(event) => onSortChange(event.target.value as SortKey)}
-          className="bg-transparent text-sm font-medium outline-none"
-        >
-          <option value="waiting">Attente la plus longue</option>
-          <option value="newest">Plus recents</option>
-          <option value="oldest">Plus anciens</option>
-        </select>
-      </label>
+      <Select value={sort} onValueChange={(value) => onSortChange(value as SortKey)}>
+        <SelectTrigger className="h-10 w-[220px] gap-2 text-sm font-medium text-anac-navy">
+          <ArrowDownAZ size={15} className="shrink-0 text-anac-muted" aria-hidden="true" />
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="waiting">Attente la plus longue</SelectItem>
+          <SelectItem value="newest">Plus recents</SelectItem>
+          <SelectItem value="oldest">Plus anciens</SelectItem>
+        </SelectContent>
+      </Select>
     </div>
   );
 }
@@ -658,60 +685,55 @@ function S5PaymentTable({
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[860px] border-collapse text-left">
-        <thead>
-          <tr className="border-b border-anac-border bg-anac-gray/60 text-[11px] uppercase tracking-wide text-anac-muted">
-            <th className="px-4 py-3 font-semibold">Dossier</th>
-            <th className="px-4 py-3 font-semibold">Organisme</th>
-            <th className="px-4 py-3 font-semibold">Phase</th>
-            <th className="px-4 py-3 font-semibold">Facture</th>
-            <th className="px-4 py-3 font-semibold">Preuve</th>
-            <th className="px-4 py-3 font-semibold">Statut</th>
-            <th className="px-4 py-3 font-semibold">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((item) => {
-            const key = `${item.phaseCode}:${item.phaseId}`;
-            const selected = key === selectedKey;
-            return (
-              <tr
-                key={key}
-                className={cn(
-                  'cursor-pointer border-b border-anac-border/70 text-sm transition-colors hover:bg-anac-blue/5',
-                  selected && 'bg-anac-blue/5 outline outline-1 -outline-offset-1 outline-anac-blue'
-                )}
-                onClick={() => onSelect(key)}
-              >
-                <td className="px-4 py-3">
-                  <button
-                    type="button"
-                    onClick={() => onSelect(key)}
-                    className="text-left font-semibold text-anac-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-anac-sky"
-                  >
-                    {item.requestReference}
-                  </button>
-                  <p className="text-xs text-anac-muted">{item.requestType}</p>
-                </td>
-                <td className="max-w-[220px] px-4 py-3">
-                  <p className="truncate font-medium text-anac-navy">{item.organisationName}</p>
-                </td>
-                <td className="px-4 py-3 text-xs text-anac-muted">{PHASE_LABELS[item.phaseCode]}</td>
-                <td className="px-4 py-3 text-xs text-anac-muted">{formatDate(item.payment.invoiceUploadedAt)}</td>
-                <td className="px-4 py-3 text-xs text-anac-muted">{formatDate(item.payment.proofUploadedAt)}</td>
-                <td className="px-4 py-3">
-                  <PaymentStatusBadge status={item.payment.status} />
-                </td>
-                <td className="px-4 py-3 text-xs font-medium text-anac-blue">
-                  {NEXT_ACTION_LABELS[item.nextAction]}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+    <Table className="min-w-[860px]">
+      <TableHeader>
+        <TableRow>
+          <TableHead>Dossier</TableHead>
+          <TableHead>Organisme</TableHead>
+          <TableHead>Phase</TableHead>
+          <TableHead>Facture</TableHead>
+          <TableHead>Preuve</TableHead>
+          <TableHead>Statut</TableHead>
+          <TableHead>Action</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {items.map((item) => {
+          const key = `${item.phaseCode}:${item.phaseId}`;
+          const selected = key === selectedKey;
+          return (
+            <TableRow
+              key={key}
+              className={cn('cursor-pointer', selected && 'bg-anac-blue/5 outline outline-1 -outline-offset-1 outline-anac-blue')}
+              onClick={() => onSelect(key)}
+            >
+              <TableCell>
+                <button
+                  type="button"
+                  onClick={() => onSelect(key)}
+                  className="text-left font-semibold text-anac-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-anac-sky"
+                >
+                  {item.requestReference}
+                </button>
+                <p className="text-xs text-anac-muted">{item.requestType}</p>
+              </TableCell>
+              <TableCell className="max-w-[220px]">
+                <p className="truncate font-medium text-anac-navy">{item.organisationName}</p>
+              </TableCell>
+              <TableCell className="text-xs text-anac-muted">{PHASE_LABELS[item.phaseCode]}</TableCell>
+              <TableCell className="text-xs text-anac-muted">{formatDate(item.payment.invoiceUploadedAt)}</TableCell>
+              <TableCell className="text-xs text-anac-muted">{formatDate(item.payment.proofUploadedAt)}</TableCell>
+              <TableCell>
+                <PaymentStatusBadge status={item.payment.status} />
+              </TableCell>
+              <TableCell className="text-xs font-medium text-anac-blue">
+                {NEXT_ACTION_LABELS[item.nextAction]}
+              </TableCell>
+            </TableRow>
+          );
+        })}
+      </TableBody>
+    </Table>
   );
 }
 
@@ -902,7 +924,7 @@ function S5ActionPanel({
         Paiement traite
       </h3>
       <p className="mt-1 text-xs leading-relaxed text-anac-muted">
-        Le paiement ne requiert plus d'action S5 immediate.
+        Le paiement ne requiert plus d&apos;action S5 immediate.
       </p>
     </section>
   );
