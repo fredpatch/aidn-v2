@@ -29,6 +29,11 @@ If the specification is incomplete, inspect the repository and choose the smalle
 
 ## Restrictions
 
+- If a target file is above 400 lines, you may propose a decomposition plan before editing.
+- Do not extract more than one responsibility per batch.
+- Prefer feature-local components/hooks first.
+- Do not create shared abstractions from a single large file.
+- After extraction, behavior must remain unchanged and validation must pass.
 - Do not redesign the approved architecture while implementing it.
 - Do not mass-migrate all screens after implementing a new abstraction.
 - Do not modify backend contracts.

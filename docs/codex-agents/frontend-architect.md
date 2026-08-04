@@ -66,6 +66,46 @@ For each proposed abstraction specify:
 - initial representative screen;
 - later compatible migration candidates.
 
+## Also perform a large-component decomposition audit.
+
+Identify every component/page above 400 lines.
+
+For each large file, classify the responsibilities inside it:
+
+- page orchestration
+- data fetching
+- mutations
+- filters/search/sort
+- table/list rendering
+- detail panel
+- modal/dialog logic
+- form logic
+- status/action mapping
+- formatting helpers
+- permission checks
+- feature-specific business rules
+- reusable UI patterns
+
+For each file, recommend a safe decomposition plan.
+
+Do not split files just to reduce line count.
+
+For every proposed extraction, state:
+
+- new component/hook name
+- target folder
+- responsibility
+- props/API
+- dependencies
+- behavior that must remain unchanged
+- whether it should be shared or feature-specific
+- migration risk
+- validation steps
+
+Prefer feature-local extraction first.
+
+Only propose shared components when at least two real use cases justify it.
+
 ## Required deliverable
 
 Return:
