@@ -504,6 +504,10 @@ reste un audit plus étroit des permissions fines côté UI.
 - [x] Cockpit `Demandes` - pagination et primitives UI : pagination client sur la
       liste des demandes, tri via `Select` partageable, et ajout des composants
       admin reutilisables `Pagination`, `Select`, `Table` (2026-08-03)
+- [x] Harmonisation visuelle des cockpits admin : tailles d'icones compactes
+      normalisees sur les pages demandes, phases, documents, dashboards metiers,
+      courriers, paiements S5, reunions, inspections, parametrage, authentification
+      et gestion des utilisateurs (2026-08-04)
 - [x] Analytique & rapports V1 : endpoint `/api/analytics/overview` + route admin
       `/analytique` pour `dn_supervisor`/`SU`, KPIs de delai, respect SLA, attente
       DG, inactivite, repartitions Chart.js, points de blocage, dossiers en retard,

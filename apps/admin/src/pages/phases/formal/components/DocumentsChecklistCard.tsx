@@ -67,9 +67,9 @@ export default function DocumentsChecklistCard({
                     }`}
                   >
                     {doc.status === 'submitted' ? (
-                      <CheckCircle2 size={11} aria-hidden="true" />
+                      <CheckCircle2 size={12} aria-hidden="true" />
                     ) : (
-                      <Circle size={11} aria-hidden="true" />
+                      <Circle size={12} aria-hidden="true" />
                     )}
                     {doc.status === 'submitted' ? 'Depose' : 'Manquant'}
                   </span>

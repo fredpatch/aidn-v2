@@ -43,7 +43,7 @@ export function ReportCards({ reports, generatingKey, onGenerate }: ReportCardsP
                   className="h-8 gap-1.5"
                   onClick={() => onGenerate(report.key as ReportKey, 'pdf')}
                 >
-                  <FileText size={13} aria-hidden="true" />
+                  <FileText size={14} aria-hidden="true" />
                   {pdfBusy ? 'PDF...' : 'PDF'}
                 </Button>
                 <Button
@@ -53,7 +53,7 @@ export function ReportCards({ reports, generatingKey, onGenerate }: ReportCardsP
                   className="h-8 gap-1.5"
                   onClick={() => onGenerate(report.key as ReportKey, 'excel')}
                 >
-                  <FileSpreadsheet size={13} aria-hidden="true" />
+                  <FileSpreadsheet size={14} aria-hidden="true" />
                   {excelBusy ? 'Excel...' : 'Excel'}
                 </Button>
               </div>

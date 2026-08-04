@@ -51,7 +51,7 @@ export default function PhaseWorkflowSummary({ state }: PhaseWorkflowSummaryProp
     <section className={`border rounded-lg p-4 ${tone.wrapper}`} aria-labelledby="phase-action">
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
         <div className="flex gap-3">
-          <Icon size={18} className="mt-0.5 flex-shrink-0 text-anac-navy" aria-hidden="true" />
+          <Icon size={16} className="mt-0.5 flex-shrink-0 text-anac-navy" aria-hidden="true" />
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h2 id="phase-action" className="text-base font-semibold text-anac-navy">

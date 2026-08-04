@@ -298,7 +298,7 @@ export default function AccountRequestsPage() {
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-start gap-3">
             <div className="grid h-10 w-10 place-items-center rounded-lg bg-anac-navy/8">
-              <UserCheck size={19} className="text-anac-navy" aria-hidden="true" />
+              <UserCheck size={16} className="text-anac-navy" aria-hidden="true" />
             </div>
             <div>
               <h1 className="text-2xl font-semibold leading-tight text-anac-navy">
@@ -321,7 +321,7 @@ export default function AccountRequestsPage() {
             <label className="relative block">
               <span className="sr-only">Rechercher</span>
               <Search
-                size={15}
+                size={14}
                 className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-anac-muted"
                 aria-hidden="true"
               />
@@ -493,7 +493,7 @@ function MetricCard({
           </p>
         </div>
         <div className={cn('rounded-lg border p-2.5', toneClass(metric.tone))}>
-          <Icon size={19} strokeWidth={1.8} aria-hidden="true" />
+          <Icon size={16} strokeWidth={1.8} aria-hidden="true" />
         </div>
       </div>
       <p className="mt-4 text-[11px] text-anac-muted">{metric.helper}</p>
@@ -605,7 +605,7 @@ function ApplicantAccountsTable({
           </p>
         </div>
         <button className="inline-flex items-center gap-2 rounded-md border border-anac-border px-3 py-1.5 text-xs font-semibold text-anac-navy">
-          <Download size={13} aria-hidden="true" />
+          <Download size={14} aria-hidden="true" />
           Exporter
         </button>
       </div>
@@ -650,7 +650,7 @@ function ApplicantAccountsTable({
                 />
               </TableCell>
               <TableCell>
-                <MoreVertical size={15} className="text-anac-muted" aria-hidden="true" />
+                <MoreVertical size={14} className="text-anac-muted" aria-hidden="true" />
               </TableCell>
             </TableRow>
           ))}
@@ -941,7 +941,7 @@ function ApprovedAccountPanel({
       <div className="space-y-3 p-4">
         <section className="rounded-lg border border-anac-border p-3">
           <div className="flex items-start gap-2">
-            <UserRound size={15} className="mt-0.5 text-anac-navy" aria-hidden="true" />
+            <UserRound size={14} className="mt-0.5 text-anac-navy" aria-hidden="true" />
             <div className="min-w-0">
               <p className="text-sm font-semibold text-anac-navy">{account.fullName}</p>
               <p className="text-xs text-anac-muted">
@@ -955,7 +955,7 @@ function ApprovedAccountPanel({
 
         <section className="rounded-lg border border-anac-border p-3">
           <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-anac-navy">
-            <LockKeyhole size={15} aria-hidden="true" />
+            <LockKeyhole size={14} aria-hidden="true" />
             Actions rapides
           </h3>
           <div className="grid grid-cols-2 gap-2">
@@ -985,7 +985,7 @@ function ApprovedAccountPanel({
 
         <section className="rounded-lg border border-anac-border p-3">
           <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-anac-navy">
-            <FileClock size={15} aria-hidden="true" />
+            <FileClock size={14} aria-hidden="true" />
             Resume
           </h3>
           <div className="grid grid-cols-2 gap-2 text-xs">
@@ -1001,7 +1001,7 @@ function ApprovedAccountPanel({
 
         <section className="rounded-lg border border-anac-border p-3">
           <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-anac-navy">
-            <ShieldCheck size={15} aria-hidden="true" />A venir
+            <ShieldCheck size={14} aria-hidden="true" />A venir
           </h3>
           <div className="grid grid-cols-2 gap-2">
             <FuturePill label="Portee d'acces" />
@@ -1027,7 +1027,7 @@ function PanelBlock({
   return (
     <section className="rounded-lg border border-anac-border p-4">
       <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-anac-navy">
-        <Icon size={15} aria-hidden="true" />
+        <Icon size={14} aria-hidden="true" />
         {title}
       </h3>
       <div className="space-y-2">{children}</div>

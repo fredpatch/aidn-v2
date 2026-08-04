@@ -39,7 +39,7 @@ export default function DocumentFileIcon({ fileUrl, className }: DocumentFileIco
       )}
       aria-hidden="true"
     >
-      <Icon size={15} />
+      <Icon size={14} />
     </span>
   );
 }

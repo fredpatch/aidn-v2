@@ -125,7 +125,7 @@ function S5MetricCard({ metric }: { metric: S5DashboardMetric }) {
           </p>
         </div>
         <div className={cn('rounded-lg border p-2.5', TONE_STYLES[metric.tone])}>
-          <Icon size={19} strokeWidth={1.8} aria-hidden="true" />
+          <Icon size={16} strokeWidth={1.8} aria-hidden="true" />
         </div>
       </div>
       <p className="mt-4 text-[11px] text-anac-muted">{metric.helper}</p>
@@ -189,7 +189,7 @@ function S5FlowSummary({ flow, updatedAt }: { flow: S5DashboardFlowStep[]; updat
                 <span className="absolute left-1/2 right-[-50%] top-5 hidden h-px bg-anac-border sm:block" />
               ) : null}
               <div className={cn('relative mx-auto grid h-10 w-10 place-items-center rounded-full border bg-white', TONE_STYLES[step.tone])}>
-                <Icon size={17} aria-hidden="true" />
+                <Icon size={16} aria-hidden="true" />
               </div>
               <p className="mt-3 text-xs font-semibold text-anac-navy">{step.label}</p>
               <p className="mt-1 min-h-8 text-[11px] leading-snug text-anac-muted">{step.description}</p>
@@ -270,7 +270,7 @@ function S5Alerts({ alerts }: { alerts: S5DashboardAlert[] }) {
           const content = (
             <>
               <div className={cn('grid h-8 w-8 place-items-center rounded-lg border', TONE_STYLES[alert.tone])}>
-                <Icon size={15} aria-hidden="true" />
+                <Icon size={14} aria-hidden="true" />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-xs font-semibold text-anac-navy">{alert.title}</p>

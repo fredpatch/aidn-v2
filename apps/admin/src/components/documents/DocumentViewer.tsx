@@ -100,7 +100,7 @@ export default function DocumentViewer({
               rel="noreferrer"
               className="btn-secondary inline-flex h-8 items-center gap-1 rounded px-3 text-[13px]"
             >
-              <ExternalLink size={13} aria-hidden="true" />
+              <ExternalLink size={14} aria-hidden="true" />
               Nouvel onglet
             </a>
             <a
@@ -108,7 +108,7 @@ export default function DocumentViewer({
               download
               className="btn-secondary inline-flex h-8 items-center gap-1 rounded px-3 text-[13px]"
             >
-              <Download size={13} aria-hidden="true" />
+              <Download size={14} aria-hidden="true" />
               Télécharger
             </a>
             {onPrimaryAction && primaryActionLabel && (

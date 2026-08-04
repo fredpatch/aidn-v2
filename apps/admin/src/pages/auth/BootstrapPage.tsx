@@ -158,7 +158,7 @@ export default function BootstrapPage() {
 
           <div className="px-6 pt-5">
             <div className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-lg px-3.5 py-3">
-              <AlertTriangle size={13} className="text-amber-600 mt-0.5 shrink-0" />
+              <AlertTriangle size={14} className="text-amber-600 mt-0.5 shrink-0" />
               <div>
                 <p className="text-amber-800 font-semibold text-[11px]">
                   Initialisation d&apos;AIDN

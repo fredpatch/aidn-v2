@@ -27,7 +27,7 @@ export function ActivityTimeline({ activity }: { activity: DashboardActivityItem
                   TONE_STYLES[item.tone]
                 )}
               >
-                <Circle size={8} fill="currentColor" aria-hidden="true" />
+                <Circle size={12} fill="currentColor" aria-hidden="true" />
               </span>
               <div>
                 <p className="text-sm font-medium capitalize text-anac-navy">{item.title}</p>

@@ -77,7 +77,7 @@ export default function DocumentTemplatesPage() {
                 )}
               </div>
               <Button variant="secondary" size="sm" onClick={() => setEditingKey(known.key)} className="gap-1.5">
-                <UploadCloud size={13} />
+                <UploadCloud size={14} />
                 {existing?.fileUrl ? "Remplacer" : "Configurer"}
               </Button>
             </div>

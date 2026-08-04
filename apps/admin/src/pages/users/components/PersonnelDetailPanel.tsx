@@ -70,7 +70,7 @@ export function PersonnelDetailPanel({
             onClick={() => onActivate(personnel)}
             className="mt-3 w-full"
           >
-            <UserPlus size={15} />
+            <UserPlus size={14} />
             Activer le compte AIDN
           </Button>
         </DetailSection>

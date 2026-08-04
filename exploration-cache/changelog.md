@@ -3,6 +3,16 @@
 Commit-level history. Covers `be9fce9` through the current uncommitted
 2026-07-28 workflow hardening, document viewer, and Personnel ANAC users pass.
 
+## (uncommitted) - 2026-08-04 shared cockpit visual-density polish
+
+- Normalized compact Lucide icon sizing across admin cockpit surfaces so table
+  rows, detail panels, metric cards, viewers, and action buttons keep a steadier
+  rhythm after the recent redesign work.
+- Touched the shared operational screens that now drive the product UX: dashboard
+  variants, `Demandes`, `Courriers a traiter`, `Paiements S5`, `Mes inspections`,
+  `Reunions`, phase cockpits, document viewer/templates, settings, auth helpers,
+  account requests, and user/personnel detail panels.
+
 ## (uncommitted) - 2026-08-03 analytics & reports V1
 
 - Added `/api/analytics/overview` for DN supervisor/SU analytics over existing

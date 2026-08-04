@@ -291,7 +291,7 @@ function MeetingMetricCard({ metric }: { metric: MeetingCockpitMetric }) {
           </p>
         </div>
         <div className={cn('rounded-lg border p-2.5', toneClass(metric.tone))}>
-          <Icon size={19} strokeWidth={1.8} aria-hidden="true" />
+          <Icon size={16} strokeWidth={1.8} aria-hidden="true" />
         </div>
       </div>
       <p className="mt-3 text-[11px] text-anac-muted">{metric.helper}</p>
@@ -352,7 +352,7 @@ function MeetingFilters({
         <label className="relative block">
           <span className="sr-only">Rechercher une reunion</span>
           <Search
-            size={15}
+            size={14}
             className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-anac-muted"
           />
           <input
@@ -369,7 +369,7 @@ function MeetingFilters({
             onClick={onPreviousWeek}
             aria-label="Semaine precedente"
           >
-            <ChevronLeft size={15} />
+            <ChevronLeft size={14} />
           </button>
           <span className="min-w-[170px] border-x border-anac-border px-3 text-center text-xs font-semibold text-anac-navy">
             {formatDate(weekStart)} - {formatDate(addDays(weekEnd, -1))}
@@ -380,7 +380,7 @@ function MeetingFilters({
             onClick={onNextWeek}
             aria-label="Semaine suivante"
           >
-            <ChevronRight size={15} />
+            <ChevronRight size={14} />
           </button>
         </div>
       </div>

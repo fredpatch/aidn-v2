@@ -121,7 +121,7 @@ function phaseDot(status: string | undefined, isCurrent: boolean, index: number)
       </span>
     );
   }
-  return <CircleDashed size={18} className="text-anac-muted/60" aria-hidden="true" />;
+  return <CircleDashed size={16} className="text-anac-muted/60" aria-hidden="true" />;
 }
 
 function infoToneClass(tone: WorkflowKeyInfoItem['tone']) {
@@ -163,9 +163,9 @@ export default function WorkflowCockpit({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <nav className="flex items-center gap-2 text-xs text-anac-muted" aria-label="Fil d'Ariane">
             <span>Direction de la Navigabilite</span>
-            <ChevronRight size={13} aria-hidden="true" />
+            <ChevronRight size={14} aria-hidden="true" />
             <span>{dossierReference ?? `Demande #${requestId ?? '-'}`}</span>
-            <ChevronRight size={13} aria-hidden="true" />
+            <ChevronRight size={14} aria-hidden="true" />
             <span className="font-medium text-anac-navy">{title}</span>
           </nav>
           <div className="flex items-center gap-2 text-anac-muted">
@@ -325,11 +325,11 @@ export default function WorkflowCockpit({
                         )}
                       >
                         {item.done ? (
-                          <CheckCircle2 size={13} className="mt-0.5 flex-shrink-0 text-anac-success" />
+                          <CheckCircle2 size={14} className="mt-0.5 flex-shrink-0 text-anac-success" />
                         ) : item.optional ? (
-                          <CircleDashed size={13} className="mt-0.5 flex-shrink-0 text-anac-muted/60" />
+                          <CircleDashed size={14} className="mt-0.5 flex-shrink-0 text-anac-muted/60" />
                         ) : (
-                          <Circle size={13} className="mt-0.5 flex-shrink-0 text-anac-muted/50" />
+                          <Circle size={14} className="mt-0.5 flex-shrink-0 text-anac-muted/50" />
                         )}
                         <span
                           className={cn(
@@ -350,7 +350,7 @@ export default function WorkflowCockpit({
                             </span>
                           )}
                         </span>
-                        {currentItem && <ChevronRight size={13} className="ml-auto mt-0.5 text-anac-blue" />}
+                        {currentItem && <ChevronRight size={14} className="ml-auto mt-0.5 text-anac-blue" />}
                       </div>
                     );
                   })}
@@ -440,8 +440,8 @@ export default function WorkflowCockpit({
 }
 
 const defaultQuickLinks: WorkflowQuickLink[] = [
-  { label: 'Historique du dossier', icon: <History size={13} /> },
-  { label: 'Courriers officiels', icon: <Mail size={13} /> },
-  { label: 'Documents lies', icon: <FileArchive size={13} /> },
-  { label: "Journal d'audit", icon: <ShieldCheck size={13} /> },
+  { label: 'Historique du dossier', icon: <History size={14} /> },
+  { label: 'Courriers officiels', icon: <Mail size={14} /> },
+  { label: 'Documents lies', icon: <FileArchive size={14} /> },
+  { label: "Journal d'audit", icon: <ShieldCheck size={14} /> },
 ];

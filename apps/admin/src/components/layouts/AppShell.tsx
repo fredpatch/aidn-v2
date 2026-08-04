@@ -156,7 +156,7 @@ export default function AppShell() {
                   )
                 }
               >
-                <Icon size={15} className="flex-shrink-0" strokeWidth={1.75} />
+                <Icon size={14} className="flex-shrink-0" strokeWidth={1.75} />
                 <span
                   className={cn(
                     'text-[12px] font-medium truncate whitespace-nowrap transition-opacity duration-150',
@@ -175,7 +175,7 @@ export default function AppShell() {
           className="flex items-center justify-center h-10 border-t border-white/10 text-white/40 hover:text-white hover:bg-white/10 transition-colors flex-shrink-0"
           aria-label={sidebarOpen ? 'Reduire la barre laterale' : 'Agrandir la barre laterale'}
         >
-          {sidebarOpen ? <ChevronLeft size={15} /> : <ChevronRight size={15} />}
+          {sidebarOpen ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
         </button>
       </motion.aside>
 
@@ -209,7 +209,7 @@ export default function AppShell() {
               disabled={loggingOut}
               className="h-8 px-2.5 gap-1.5 text-anac-muted hover:text-anac-danger hover:bg-red-50"
             >
-              {loggingOut ? <Loader2 size={13} className="animate-spin" /> : <LogOut size={13} />}
+              {loggingOut ? <Loader2 size={14} className="animate-spin" /> : <LogOut size={14} />}
               <span className="text-[11px]">Deconnexion</span>
             </Button>
           </div>

@@ -46,7 +46,7 @@ export function PasswordStrength({ password }: { password: string }) {
               transition={{ type: "spring", stiffness: 380 }}
             >
               {r.ok ? (
-                <CheckCircle2 size={10} className="text-anac-success" />
+                <CheckCircle2 size={12} className="text-anac-success" />
               ) : (
                 <span className="w-2.5 h-2.5 rounded-full border border-anac-border inline-block" />
               )}

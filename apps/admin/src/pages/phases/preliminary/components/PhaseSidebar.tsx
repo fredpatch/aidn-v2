@@ -106,11 +106,11 @@ export default function PhaseSidebar({
             {checklist.map((item, i) => (
               <div key={i} className="flex items-start gap-2">
                 {item.done ? (
-                  <CheckCircle size={13} className="text-anac-success flex-shrink-0 mt-0.5" />
+                  <CheckCircle size={14} className="text-anac-success flex-shrink-0 mt-0.5" />
                 ) : item.optional ? (
-                  <CircleDashed size={13} className="text-anac-muted/50 flex-shrink-0 mt-0.5" />
+                  <CircleDashed size={14} className="text-anac-muted/50 flex-shrink-0 mt-0.5" />
                 ) : (
-                  <Circle size={13} className="text-anac-muted/40 flex-shrink-0 mt-0.5" />
+                  <Circle size={14} className="text-anac-muted/40 flex-shrink-0 mt-0.5" />
                 )}
                 <span
                   className={`text-xs leading-tight ${

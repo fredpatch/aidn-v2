@@ -210,7 +210,7 @@ function DevResetSection() {
             onClick={() => setConfirming(true)}
             className="gap-1.5"
           >
-            <Trash2 size={13} />
+            <Trash2 size={14} />
             Reinitialiser la selection
           </Button>
         ) : (

@@ -14,7 +14,7 @@ export function ServerError({ message }: { message: string | null }) {
           role="alert"
           aria-live="polite"
         >
-          <AlertCircle size={13} className="mt-0.5 shrink-0" />
+          <AlertCircle size={14} className="mt-0.5 shrink-0" />
           <span>{message}</span>
         </motion.div>
       )}

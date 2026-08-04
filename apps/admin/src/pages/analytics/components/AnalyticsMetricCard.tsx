@@ -14,7 +14,7 @@ export function AnalyticsMetricCard({ metric }: { metric: AnalyticsMetric }) {
           <p className="mt-2 text-[25px] font-semibold leading-none text-anac-navy">{metric.value}</p>
         </div>
         <div className={cn('rounded-lg border p-2.5', TONE_STYLES[metric.tone])}>
-          <Icon size={18} strokeWidth={1.8} aria-hidden="true" />
+          <Icon size={16} strokeWidth={1.8} aria-hidden="true" />
         </div>
       </div>
       <div className="mt-4 flex flex-wrap items-center gap-2 text-[11px]">

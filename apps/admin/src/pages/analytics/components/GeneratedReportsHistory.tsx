@@ -63,7 +63,7 @@ export function GeneratedReportsHistory({
                           rel="noreferrer"
                           className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'h-8 gap-1.5')}
                         >
-                          <Download size={13} aria-hidden="true" />
+                          <Download size={14} aria-hidden="true" />
                           Télécharger
                         </a>
                       ) : (
@@ -73,7 +73,7 @@ export function GeneratedReportsHistory({
                             'h-8 gap-1.5 opacity-50'
                           )}
                         >
-                          <Download size={13} aria-hidden="true" />
+                          <Download size={14} aria-hidden="true" />
                           Indisponible
                         </span>
                       )}

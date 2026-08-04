@@ -68,7 +68,7 @@ export default function UsersPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="secondary" onClick={refreshUsers} className="gap-1.5">
-            <RefreshCw size={15} />
+            <RefreshCw size={14} />
             Actualiser
           </Button>
           {canManageAccounts && (

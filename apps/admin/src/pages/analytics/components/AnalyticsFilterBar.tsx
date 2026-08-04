@@ -24,7 +24,7 @@ export function AnalyticsFilterBar({
     <div className="rounded-lg border border-anac-border bg-white p-3 shadow-sm">
       <div className="grid gap-2 md:grid-cols-[1.25fr_1fr_1fr_1fr_auto_auto]">
         <label className="flex h-10 items-center gap-2 rounded-md border border-anac-border bg-white px-3 text-[12px] text-anac-muted">
-          <CalendarDays size={15} aria-hidden="true" />
+          <CalendarDays size={14} aria-hidden="true" />
           <span>Periode</span>
           <input
             type="date"

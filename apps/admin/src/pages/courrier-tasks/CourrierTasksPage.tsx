@@ -492,7 +492,7 @@ function CourrierMetricCard({
           <p className="mt-2 text-[26px] font-semibold leading-none text-anac-navy">{value}</p>
         </div>
         <div className={cn('rounded-lg border p-2.5', toneClass)}>
-          <Icon size={19} strokeWidth={1.8} aria-hidden="true" />
+          <Icon size={16} strokeWidth={1.8} aria-hidden="true" />
         </div>
       </div>
       <p className="mt-4 text-[11px] text-anac-muted">{helper}</p>
@@ -568,7 +568,7 @@ function CourrierToolbar({
     <div className="flex flex-col gap-3 border-b border-anac-border p-4 md:flex-row md:items-center md:justify-between">
       <label className="relative min-w-0 flex-1">
         <Search
-          size={15}
+          size={14}
           className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-anac-muted"
           aria-hidden="true"
         />
@@ -582,7 +582,7 @@ function CourrierToolbar({
       </label>
       <Select value={sort} onValueChange={(value) => onSortChange(value as SortKey)}>
         <SelectTrigger className="h-10 w-[220px] gap-2 text-sm font-medium text-anac-navy">
-          <ArrowDownAZ size={15} className="shrink-0 text-anac-muted" aria-hidden="true" />
+          <ArrowDownAZ size={14} className="shrink-0 text-anac-muted" aria-hidden="true" />
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -1034,7 +1034,7 @@ function CourrierEmptyState({
     <div className="grid min-h-[260px] place-items-center p-6 text-center">
       <div>
         <div className="mx-auto mb-3 grid h-10 w-10 place-items-center rounded-lg border border-anac-border bg-white text-anac-muted">
-          <Icon size={18} aria-hidden="true" />
+          <Icon size={16} aria-hidden="true" />
         </div>
         <p className="text-sm font-semibold text-anac-navy">{title}</p>
         {description ? (

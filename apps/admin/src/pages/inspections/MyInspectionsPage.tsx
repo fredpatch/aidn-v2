@@ -148,7 +148,7 @@ export default function MyInspectionsPage() {
               <label className="relative block">
                 <span className="sr-only">Rechercher une inspection</span>
                 <Search
-                  size={15}
+                  size={14}
                   className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-anac-muted"
                   aria-hidden="true"
                 />
@@ -240,7 +240,7 @@ function MetricCard({
           </p>
         </div>
         <div className={cn('rounded-lg border p-2.5', toneClass)}>
-          <Icon size={19} strokeWidth={1.8} aria-hidden="true" />
+          <Icon size={16} strokeWidth={1.8} aria-hidden="true" />
         </div>
       </div>
       <p className="mt-4 text-[11px] text-anac-muted">{metric.helper}</p>
@@ -548,7 +548,7 @@ function PanelBlock({
   return (
     <section className="rounded-lg border border-anac-border p-4">
       <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-anac-navy">
-        <Icon size={15} aria-hidden="true" />
+        <Icon size={14} aria-hidden="true" />
         {title}
       </h3>
       <div className="space-y-2">{children}</div>
@@ -569,9 +569,9 @@ function ProgressStep({ label, done }: { label: string; done: boolean }) {
   return (
     <div className="flex items-center gap-2 text-sm">
       {done ? (
-        <CheckCircle2 size={15} className="text-anac-success" aria-hidden="true" />
+        <CheckCircle2 size={14} className="text-anac-success" aria-hidden="true" />
       ) : (
-        <XCircle size={15} className="text-anac-muted" aria-hidden="true" />
+        <XCircle size={14} className="text-anac-muted" aria-hidden="true" />
       )}
       <span className={done ? 'text-anac-navy' : 'text-anac-muted'}>{label}</span>
     </div>

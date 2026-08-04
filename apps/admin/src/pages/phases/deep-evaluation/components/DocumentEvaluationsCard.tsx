@@ -108,7 +108,7 @@ export default function DocumentEvaluationsCard({
                     />
                   ) : (
                     <span className="inline-flex items-center gap-1 rounded bg-anac-muted/10 px-2 py-0.5 text-[10px] font-semibold text-anac-muted">
-                      <Circle size={11} aria-hidden="true" />
+                      <Circle size={12} aria-hidden="true" />
                       En attente
                     </span>
                   )}
@@ -128,7 +128,7 @@ export default function DocumentEvaluationsCard({
                       })
                     }
                   >
-                    <Eye size={11} aria-hidden="true" />
+                    <Eye size={12} aria-hidden="true" />
                     Previsualiser le document
                     {evaluation.resubmittedFileUrl ? ' (version corrigee)' : ''}
                   </button>

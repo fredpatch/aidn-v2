@@ -97,11 +97,11 @@ export function NextActionList({ actions }: { actions: DashboardActionItem[] }) 
                   className="inline-flex items-center gap-1 self-start whitespace-nowrap text-[12px] font-semibold text-anac-blue hover:underline"
                 >
                   Traiter
-                  <ArrowRight size={13} aria-hidden="true" />
+                  <ArrowRight size={14} aria-hidden="true" />
                 </Link>
               ) : !action.canAct ? (
                 <span className="inline-flex items-center gap-1 self-start whitespace-nowrap text-[12px] font-semibold text-anac-muted">
-                  <Eye size={13} aria-hidden="true" />
+                  <Eye size={14} aria-hidden="true" />
                   Suivre
                 </span>
               ) : null}

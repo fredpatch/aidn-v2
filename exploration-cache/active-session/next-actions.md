@@ -1,6 +1,6 @@
 # Next Actions
 
-Last updated: 2026-08-03
+Last updated: 2026-08-04
 
 ## Immediate
 
@@ -18,7 +18,9 @@ Last updated: 2026-08-03
    - Smoke-test `Gestion des utilisateurs` with SU and DN supervisor: AIDN user
      filters, Personnel ANAC activation, role edit restrictions, OTP reset,
      suspension, shared table/pagination controls, and the adjustable table/detail
-     split.
+     split. Latest polish normalized compact icon sizing across the user/detail,
+     request, dashboard, payment, courier, meeting, inspection, document viewer,
+     and workflow cockpit surfaces.
    - Smoke-test `Paiements S5` pagination/search/sort with the shared Select/Table
      primitives and verify row selection still opens the correct payment detail.
    - Smoke-test `/analytique` with SU/DN supervisor after running

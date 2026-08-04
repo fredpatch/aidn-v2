@@ -19,7 +19,7 @@ export function DashboardMetricCard({ metric }: { metric: DashboardMetric }) {
           </p>
         </div>
         <div className="rounded-lg border border-blue-100 bg-blue-50 p-2.5 text-anac-blue">
-          <Icon size={18} strokeWidth={1.8} aria-hidden="true" />
+          <Icon size={16} strokeWidth={1.8} aria-hidden="true" />
         </div>
       </div>
       <div className="mt-4 space-y-2 text-[11px]">

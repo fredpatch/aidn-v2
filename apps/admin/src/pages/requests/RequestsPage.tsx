@@ -215,7 +215,7 @@ function RequestsHeader({
         <label className="relative block">
           <span className="sr-only">Rechercher une demande</span>
           <Search
-            size={15}
+            size={14}
             className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-anac-muted"
             aria-hidden="true"
           />
@@ -259,7 +259,7 @@ function MetricCard({ metric }: { metric: RequestCockpitMetric }) {
           </p>
         </div>
         <div className={cn('rounded-lg border p-2.5', TONE_STYLES[metric.tone])}>
-          <Icon size={19} strokeWidth={1.8} aria-hidden="true" />
+          <Icon size={16} strokeWidth={1.8} aria-hidden="true" />
         </div>
       </div>
       <p className="mt-4 text-[11px] text-anac-muted">{metric.helper}</p>
@@ -321,7 +321,7 @@ function ListToolbar({
       <label className="relative block min-w-[260px] flex-1">
         <span className="sr-only">Rechercher dans la liste</span>
         <Search
-          size={15}
+          size={14}
           className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-anac-muted"
           aria-hidden="true"
         />
@@ -482,7 +482,7 @@ function RequestDetailPanel({
               </Link>
             ) : null}
             <button className="grid h-9 w-9 place-items-center rounded-md border border-anac-border text-anac-muted">
-              <MoreVertical size={15} aria-hidden="true" />
+              <MoreVertical size={14} aria-hidden="true" />
               <span className="sr-only">Plus d'actions</span>
             </button>
           </div>
@@ -543,9 +543,9 @@ function RequestDetailPanel({
               )}
             >
               {item.status === 'completed' ? (
-                <CheckCircle2 size={18} aria-hidden="true" />
+                <CheckCircle2 size={16} aria-hidden="true" />
               ) : (
-                <AlertTriangle size={18} aria-hidden="true" />
+                <AlertTriangle size={16} aria-hidden="true" />
               )}
             </div>
             <div>
@@ -609,7 +609,7 @@ function PanelBlock({
   return (
     <section className="rounded-lg border border-anac-border bg-white p-3.5">
       <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-anac-navy">
-        <Icon size={15} aria-hidden="true" />
+        <Icon size={14} aria-hidden="true" />
         {title}
       </h3>
       <div className="space-y-2">{children}</div>

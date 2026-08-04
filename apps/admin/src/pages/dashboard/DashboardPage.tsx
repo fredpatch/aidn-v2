@@ -58,7 +58,7 @@ export default function DashboardPage() {
         <div className="flex flex-wrap items-center gap-2">
           <PeriodFilter value={period} onChange={setPeriod} />
           <Link to="/demandes" className={cn(buttonVariants(), 'h-9 gap-2 px-3')}>
-            <Plus size={15} aria-hidden="true" />
+            <Plus size={14} aria-hidden="true" />
             Nouvelle demande
           </Link>
         </div>

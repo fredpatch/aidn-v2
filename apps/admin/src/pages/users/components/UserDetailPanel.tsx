@@ -114,7 +114,7 @@ export function UserDetailPanel({
               onClick={() => onResetOtp(user)}
               className="text-xs min-w-12 h-8"
             >
-              {busy ? <Loader2 size={13} className="animate-spin" /> : <KeyRound size={13} />}
+              {busy ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />}
               Reinitialiser OTP
             </Button>
             <Button
@@ -124,11 +124,11 @@ export function UserDetailPanel({
               onClick={() => onToggleActive(user)}
               className="text-xs min-w-12 h-8"
             >
-              <Lock size={13} />
+              <Lock size={14} />
               {user.active ? 'Suspendre le compte' : 'Reactiver le compte'}
             </Button>
             <Button type="button" variant="secondary" disabled className="text-xs min-w-12 h-8">
-              <MoreVertical size={13} />
+              <MoreVertical size={14} />
               Voir le journal d'audit
             </Button>
           </div>

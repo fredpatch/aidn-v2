@@ -29,7 +29,7 @@ export function StepTab({
           !active && !completed && "bg-anac-border text-anac-muted"
         )}
       >
-        {completed ? <CheckCircle2 size={11} /> : step}
+        {completed ? <CheckCircle2 size={12} /> : step}
       </span>
       {label}
     </div>

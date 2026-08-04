@@ -35,7 +35,7 @@ export function FormField({ id, label, error, hint, required, children }: FormFi
             className="text-[11px] text-anac-danger flex items-center gap-1"
             role="alert"
           >
-            <AlertCircle size={10} className="shrink-0" />
+            <AlertCircle size={12} className="shrink-0" />
             {error}
           </motion.p>
         ) : hint ? (
