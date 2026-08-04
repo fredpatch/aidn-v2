@@ -17,6 +17,8 @@ import {
   XCircle,
 } from 'lucide-react';
 import { Button, buttonVariants } from '../../components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { apiErrorMessage } from '../../lib/axios';
 import {
   attachMeetingReport,
@@ -398,20 +400,21 @@ function FilterSelect<T extends string>({
   onChange: (value: T) => void;
 }) {
   return (
-    <label className="inline-flex h-9 items-center gap-2 rounded-md border border-anac-border bg-white px-3 text-xs text-anac-muted">
-      {label}
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value as T)}
-        className="bg-transparent text-xs font-semibold text-anac-navy outline-none"
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </label>
+    <div className="inline-flex h-9 items-center gap-2 rounded-md border border-anac-border bg-white px-3 text-xs text-anac-muted">
+      <span className="shrink-0">{label}</span>
+      <Select value={value} onValueChange={(next) => onChange(next as T)}>
+        <SelectTrigger className="h-auto border-0 bg-transparent p-0 text-xs font-semibold text-anac-navy shadow-none focus:ring-0">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 }
 
@@ -534,43 +537,38 @@ function MeetingsTable({
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[980px] text-sm">
-        <thead className="border-b border-anac-border bg-slate-50 text-left text-[11px] uppercase tracking-wide text-anac-muted">
-          <tr>
-            <th className="px-4 py-3 font-semibold">Dossier</th>
-            <th className="px-4 py-3 font-semibold">Organisme</th>
-            <th className="px-4 py-3 font-semibold">Type</th>
-            <th className="px-4 py-3 font-semibold">Date</th>
-            <th className="px-4 py-3 font-semibold">Responsable</th>
-            <th className="px-4 py-3 font-semibold">Statut</th>
-            <th className="px-4 py-3 font-semibold">Action</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-anac-border">
-          {items.map((item) => (
-            <tr
-              key={item.id}
-              onClick={() => onSelect(item)}
-              className={cn(
-                'cursor-pointer hover:bg-anac-blue/5',
-                selectedId === item.id && 'bg-anac-blue/5'
-              )}
-            >
-              <td className="px-4 py-3 font-semibold text-anac-navy">{item.requestReference}</td>
-              <td className="px-4 py-3">{item.organisationName}</td>
-              <td className="px-4 py-3">{item.meetingTypeLabel}</td>
-              <td className="px-4 py-3">{formatDateTime(item.scheduledAt)}</td>
-              <td className="px-4 py-3">{item.dnAgentName}</td>
-              <td className="px-4 py-3">
-                <StatusBadge item={item} />
-              </td>
-              <td className="px-4 py-3 text-xs font-semibold text-anac-blue">{item.actionLabel}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <Table className="min-w-[980px]">
+      <TableHeader>
+        <TableRow>
+          <TableHead>Dossier</TableHead>
+          <TableHead>Organisme</TableHead>
+          <TableHead>Type</TableHead>
+          <TableHead>Date</TableHead>
+          <TableHead>Responsable</TableHead>
+          <TableHead>Statut</TableHead>
+          <TableHead>Action</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {items.map((item) => (
+          <TableRow
+            key={item.id}
+            onClick={() => onSelect(item)}
+            className={cn('cursor-pointer', selectedId === item.id && 'bg-anac-blue/5')}
+          >
+            <TableCell className="font-semibold text-anac-navy">{item.requestReference}</TableCell>
+            <TableCell>{item.organisationName}</TableCell>
+            <TableCell>{item.meetingTypeLabel}</TableCell>
+            <TableCell>{formatDateTime(item.scheduledAt)}</TableCell>
+            <TableCell>{item.dnAgentName}</TableCell>
+            <TableCell>
+              <StatusBadge item={item} />
+            </TableCell>
+            <TableCell className="text-xs font-semibold text-anac-blue">{item.actionLabel}</TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
 }
 
