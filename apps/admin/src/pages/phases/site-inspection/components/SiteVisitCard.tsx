@@ -1,4 +1,7 @@
-import { FormEvent, useState } from 'react';
+import { useState } from 'react';
+import { useForm, type FieldErrors } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { CalendarClock, CheckCircle2 } from 'lucide-react';
 import { Button } from '../../../../components/ui/button';
 import { SITE_VISIT_STATUS_LABELS, SITE_VISIT_STATUS_TONES } from '../constants';
@@ -6,6 +9,14 @@ import { formatDateTime } from '../helpers';
 import { useR3Agents, useSiteVisitActions } from '../hooks/useSiteVisitActions';
 import type { SiteVisitView } from '../types';
 import PhaseStatusBadge from '../../preliminary/components/PhaseStatusBadge';
+
+const scheduleSchema = z.object({
+  r3AgentId: z.string().min(1, 'Merci de sélectionner un agent R3.'),
+  scheduledAt: z.string(),
+  location: z.string().optional(),
+});
+
+type ScheduleFormValues = z.infer<typeof scheduleSchema>;
 
 interface SiteVisitCardProps {
   phaseId: number;
@@ -27,26 +38,29 @@ export default function SiteVisitCard({
   setActionError,
 }: SiteVisitCardProps) {
   const [scheduling, setScheduling] = useState(false);
-  const [r3AgentId, setR3AgentId] = useState('');
-  const [dateTime, setDateTime] = useState('');
-  const [location, setLocation] = useState('');
 
   const { agents, loading: loadingAgents } = useR3Agents();
   const { busy, schedule, markHeld } = useSiteVisitActions(requestId, setActionError);
+  const { register, handleSubmit, reset } = useForm<ScheduleFormValues>({
+    resolver: zodResolver(scheduleSchema),
+    defaultValues: { r3AgentId: '', scheduledAt: '', location: '' },
+  });
 
-  async function handleSchedule(e: FormEvent) {
-    e.preventDefault();
-    if (!r3AgentId) {
-      setActionError('Merci de sélectionner un agent R3.');
-      return;
-    }
-    const ok = await schedule({ phaseId, r3AgentId: Number(r3AgentId), scheduledAt: dateTime, location });
+  async function onSubmit(values: ScheduleFormValues) {
+    const ok = await schedule({
+      phaseId,
+      r3AgentId: Number(values.r3AgentId),
+      scheduledAt: values.scheduledAt,
+      location: values.location,
+    });
     if (ok) {
       setScheduling(false);
-      setR3AgentId('');
-      setDateTime('');
-      setLocation('');
+      reset();
     }
+  }
+
+  function onInvalid(errors: FieldErrors<ScheduleFormValues>) {
+    setActionError(errors.r3AgentId?.message ?? null);
   }
 
   return (
@@ -62,15 +76,10 @@ export default function SiteVisitCard({
             La facture doit être envoyée avant de planifier la visite.
           </p>
         ) : canScheduleVisit && scheduling ? (
-          <form onSubmit={handleSchedule} className="space-y-3">
+          <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-3">
             <div>
               <label className="label">Agent R3</label>
-              <select
-                className="input"
-                value={r3AgentId}
-                onChange={(e) => setR3AgentId(e.target.value)}
-                required
-              >
+              <select className="input" {...register('r3AgentId')} required>
                 <option value="">
                   {loadingAgents ? 'Chargement...' : 'Sélectionner un agent'}
                 </option>
@@ -83,21 +92,11 @@ export default function SiteVisitCard({
             </div>
             <div>
               <label className="label">Date et heure</label>
-              <input
-                type="datetime-local"
-                className="input"
-                value={dateTime}
-                onChange={(e) => setDateTime(e.target.value)}
-                required
-              />
+              <input type="datetime-local" className="input" {...register('scheduledAt')} required />
             </div>
             <div>
               <label className="label">Lieu (optionnel)</label>
-              <input
-                className="input"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-              />
+              <input className="input" {...register('location')} />
             </div>
             <div className="flex gap-2">
               <Button type="submit" size="sm" disabled={busy}>

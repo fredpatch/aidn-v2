@@ -1,4 +1,7 @@
-import { FormEvent, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useForm, type FieldErrors } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -12,6 +15,8 @@ import {
   XCircle,
 } from 'lucide-react';
 import { Button, buttonVariants } from '../../components/ui/button';
+import { EmptyState } from '../../components/common/EmptyState';
+import { StatusBadge } from '../../components/common/StatusBadge';
 import { apiErrorMessage } from '../../lib/axios';
 import { markSiteVisitHeld, submitVerdict, fetchMyQueue } from '../../lib/api/site-inspection.api';
 import type { MyQueueItem } from '../../lib/api/site-inspection.types';
@@ -324,11 +329,11 @@ function InspectionTable({
       </div>
 
       {isLoading ? (
-        <EmptyState title="Chargement des inspections" description="Recuperation de vos missions R3." />
+        <EmptyState title="Chargement des inspections" description="Recuperation de vos missions R3." className="min-h-[150px]" />
       ) : error ? (
-        <EmptyState title="Chargement impossible" description="Impossible de charger la file de dossiers." danger />
+        <EmptyState title="Chargement impossible" description="Impossible de charger la file de dossiers." danger className="min-h-[150px]" />
       ) : items.length === 0 ? (
-        <EmptyState title="Aucune inspection dans cette vue" description="Modifiez les filtres ou revenez plus tard." />
+        <EmptyState title="Aucune inspection dans cette vue" description="Modifiez les filtres ou revenez plus tard." className="min-h-[150px]" />
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[920px] text-sm">
@@ -359,7 +364,7 @@ function InspectionTable({
                   <td className="px-4 py-3">{formatDateTime(item.siteVisit?.scheduledAt)}</td>
                   <td className="px-4 py-3">{item.siteVisit?.location ?? '-'}</td>
                   <td className="px-4 py-3">
-                    <StatusBadge item={item} />
+                    <StatusBadge label={item.statusLabel || STATUS_LABELS[item.missionStatus]} tone={STATUS_STYLES[item.missionStatus]} />
                   </td>
                   <td className="px-4 py-3 text-xs font-semibold text-anac-blue">{item.nextActionLabel}</td>
                 </tr>
@@ -380,8 +385,15 @@ function InspectionDetailPanel({
   setActionError: (message: string | null) => void;
 }) {
   const queryClient = useQueryClient();
-  const [verdict, setVerdict] = useState<VerdictValue>('compliant');
-  const [note, setNote] = useState('');
+  const verdictForm = useForm<{ verdict: VerdictValue; note: string }>({
+    resolver: zodResolver(
+      z.object({
+        verdict: z.enum(['compliant', 'non_compliant', 'compliant_with_reserves']),
+        note: z.string().trim().min(1, "La note est obligatoire pour soumettre l'avis R3."),
+      })
+    ),
+    defaultValues: { verdict: 'compliant', note: '' },
+  });
 
   const markHeldMutation = useMutation({
     mutationFn: (meetingId: number) => markSiteVisitHeld(meetingId),
@@ -396,28 +408,26 @@ function InspectionDetailPanel({
     mutationFn: (params: { phaseId: number; verdict: VerdictValue; note: string }) =>
       submitVerdict(params.phaseId, params.verdict, params.note),
     onSuccess: async () => {
-      setNote('');
-      setVerdict('compliant');
+      verdictForm.reset();
       setActionError(null);
       await queryClient.invalidateQueries({ queryKey: queryKeys.siteInspection.myQueue() });
     },
     onError: (err) => setActionError(apiErrorMessage(err, "Impossible de soumettre l'avis R3.")),
   });
 
-  async function handleVerdictSubmit(event: FormEvent) {
-    event.preventDefault();
+  async function onVerdictSubmit(values: { verdict: VerdictValue; note: string }) {
     if (!item) return;
-    if (!note.trim()) {
-      setActionError("La note est obligatoire pour soumettre l'avis R3.");
-      return;
-    }
-    await verdictMutation.mutateAsync({ phaseId: item.phaseId, verdict, note });
+    await verdictMutation.mutateAsync({ phaseId: item.phaseId, verdict: values.verdict, note: values.note });
+  }
+
+  function onVerdictInvalid(errors: FieldErrors<{ verdict: VerdictValue; note: string }>) {
+    setActionError(errors.note?.message ?? errors.verdict?.message ?? null);
   }
 
   if (!item) {
     return (
       <aside className="rounded-lg border border-anac-border bg-white p-5 shadow-sm">
-        <EmptyState title="Aucune mission selectionnee" description="Selectionnez une inspection dans la liste." />
+        <EmptyState title="Aucune mission selectionnee" description="Selectionnez une inspection dans la liste." className="min-h-[150px]" />
       </aside>
     );
   }
@@ -435,7 +445,7 @@ function InspectionDetailPanel({
             <h2 className="mt-2 text-xl font-semibold text-anac-navy">{item.requestReference}</h2>
             <p className="mt-1 text-sm text-anac-muted">{item.organisationName}</p>
           </div>
-          <StatusBadge item={item} />
+          <StatusBadge label={item.statusLabel || STATUS_LABELS[item.missionStatus]} tone={STATUS_STYLES[item.missionStatus]} />
         </div>
         <p className="mt-3 flex items-center gap-2 text-xs text-anac-muted">
           <CalendarDays size={14} aria-hidden="true" />
@@ -468,15 +478,14 @@ function InspectionDetailPanel({
             <p className="mt-3 whitespace-pre-wrap text-sm text-anac-text">{item.inspection.note}</p>
           </PanelBlock>
         ) : canSubmitVerdict ? (
-          <form onSubmit={handleVerdictSubmit} className="rounded-lg border border-anac-border p-4">
+          <form onSubmit={verdictForm.handleSubmit(onVerdictSubmit, onVerdictInvalid)} className="rounded-lg border border-anac-border p-4">
             <h3 className="text-sm font-semibold text-anac-navy">Soumettre l'avis R3</h3>
             <label className="mt-3 block text-xs font-semibold text-anac-muted" htmlFor="r3-verdict">
               Verdict
             </label>
             <select
               id="r3-verdict"
-              value={verdict}
-              onChange={(event) => setVerdict(event.target.value as VerdictValue)}
+              {...verdictForm.register('verdict')}
               className="mt-1 h-9 w-full rounded-md border border-anac-border bg-white px-3 text-sm outline-none focus:border-anac-blue focus:ring-2 focus:ring-anac-blue/15"
             >
               {Object.entries(VERDICT_LABELS).map(([value, label]) => (
@@ -491,8 +500,7 @@ function InspectionDetailPanel({
             <textarea
               id="r3-note"
               rows={4}
-              value={note}
-              onChange={(event) => setNote(event.target.value)}
+              {...verdictForm.register('note')}
               className="mt-1 w-full rounded-md border border-anac-border bg-white px-3 py-2 text-sm outline-none focus:border-anac-blue focus:ring-2 focus:ring-anac-blue/15"
               required
             />
@@ -525,14 +533,6 @@ function InspectionDetailPanel({
         </div>
       </div>
     </aside>
-  );
-}
-
-function StatusBadge({ item }: { item: MyQueueItem }) {
-  return (
-    <span className={cn('inline-flex w-fit rounded-full border px-2 py-0.5 text-[11px] font-semibold', STATUS_STYLES[item.missionStatus])}>
-      {item.statusLabel || STATUS_LABELS[item.missionStatus]}
-    </span>
   );
 }
 
@@ -574,25 +574,6 @@ function ProgressStep({ label, done }: { label: string; done: boolean }) {
         <XCircle size={14} className="text-anac-muted" aria-hidden="true" />
       )}
       <span className={done ? 'text-anac-navy' : 'text-anac-muted'}>{label}</span>
-    </div>
-  );
-}
-
-function EmptyState({
-  title,
-  description,
-  danger = false,
-}: {
-  title: string;
-  description: string;
-  danger?: boolean;
-}) {
-  return (
-    <div className="grid min-h-[150px] place-items-center px-4 py-8 text-center">
-      <div>
-        <p className={cn('font-semibold', danger ? 'text-anac-danger' : 'text-anac-navy')}>{title}</p>
-        <p className="mt-1 text-sm text-anac-muted">{description}</p>
-      </div>
     </div>
   );
 }

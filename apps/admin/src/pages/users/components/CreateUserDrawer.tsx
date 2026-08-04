@@ -1,10 +1,21 @@
-import { FormEvent, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
 import { SheetBody, SheetHeader } from '../../../components/ui/sheet';
 import type { PrefillUser } from '../types';
 import { RoleSelector } from './RoleSelector';
+
+const createUserSchema = z.object({
+  employeeCode: z.string(),
+  fullName: z.string(),
+  email: z.string(),
+  roles: z.array(z.string()).min(1, 'Selectionnez au moins un role.'),
+});
+
+type CreateUserFormValues = z.infer<typeof createUserSchema>;
 
 export function CreateUserDrawer({
   prefill,
@@ -22,27 +33,31 @@ export function CreateUserDrawer({
     roles: string[];
   }) => void;
 }) {
-  const [employeeCode, setEmployeeCode] = useState(prefill?.employeeCode ?? '');
-  const [fullName, setFullName] = useState(prefill?.fullName ?? '');
-  const [email, setEmail] = useState('');
-  const [roles, setRoles] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const { register, handleSubmit, watch, setValue, formState } = useForm<CreateUserFormValues>({
+    resolver: zodResolver(createUserSchema),
+    defaultValues: {
+      employeeCode: prefill?.employeeCode ?? '',
+      fullName: prefill?.fullName ?? '',
+      email: '',
+      roles: [],
+    },
+  });
+
+  const roles = watch('roles');
 
   function toggleRole(role: string) {
-    setRoles((current) =>
-      current.includes(role) ? current.filter((item) => item !== role) : [...current, role]
+    setValue(
+      'roles',
+      roles.includes(role) ? roles.filter((item) => item !== role) : [...roles, role],
+      { shouldValidate: formState.isSubmitted }
     );
   }
 
-  function handleSubmit(event: FormEvent) {
-    event.preventDefault();
-    setError(null);
-    if (roles.length === 0) {
-      setError('Selectionnez au moins un role.');
-      return;
-    }
-    onCreate({ employeeCode, fullName, email, roles });
+  function onSubmit(values: CreateUserFormValues) {
+    onCreate(values);
   }
+
+  const error = formState.errors.roles?.message;
 
   return (
     <>
@@ -55,33 +70,19 @@ export function CreateUserDrawer({
         </div>
       </SheetHeader>
       <SheetBody>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-anac-danger">{error}</p>}
           <div>
             <Label>Matricule</Label>
-            <Input
-              value={employeeCode}
-              onChange={(event) => setEmployeeCode(event.target.value)}
-              disabled={!!prefill}
-              required
-            />
+            <Input {...register('employeeCode')} disabled={!!prefill} required />
           </div>
           <div>
             <Label>Nom complet</Label>
-            <Input
-              value={fullName}
-              onChange={(event) => setFullName(event.target.value)}
-              required
-            />
+            <Input {...register('fullName')} required />
           </div>
           <div>
             <Label>Email</Label>
-            <Input
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              required
-            />
+            <Input type="email" {...register('email')} required />
           </div>
           <div>
             <Label>Roles</Label>

@@ -21,6 +21,9 @@ import {
   UserRound,
 } from 'lucide-react';
 import { Button, buttonVariants } from '../../components/ui/button';
+import { BucketTabs } from '../../components/common/BucketTabs';
+import { EmptyState } from '../../components/common/EmptyState';
+import { StatusBadge } from '../../components/common/StatusBadge';
 import {
   Select,
   SelectContent,
@@ -166,7 +169,11 @@ export default function RequestsPage() {
 
         <section className="grid items-start gap-5 xl:grid-cols-[minmax(520px,0.86fr)_minmax(720px,1.14fr)]">
           <div className="min-w-0 overflow-hidden rounded-lg border border-anac-border bg-white shadow-[0_8px_22px_rgba(17,34,83,0.04)]">
-            <BucketTabs value={bucket} counts={counts} onChange={updateBucket} />
+            <BucketTabs
+              value={bucket}
+              items={BUCKETS.map((b) => ({ key: b.key, label: b.label, count: counts[b.key] }))}
+              onChange={updateBucket}
+            />
             <ListToolbar
               search={search}
               sort={sort}
@@ -267,44 +274,6 @@ function MetricCard({ metric }: { metric: RequestCockpitMetric }) {
   );
 }
 
-function BucketTabs({
-  value,
-  counts,
-  onChange,
-}: {
-  value: Bucket;
-  counts: Record<Bucket, number>;
-  onChange: (value: Bucket) => void;
-}) {
-  return (
-    <div className="flex gap-1 overflow-x-auto border-b border-anac-border px-4 pt-3">
-      {BUCKETS.map((bucket) => (
-        <button
-          key={bucket.key}
-          type="button"
-          onClick={() => onChange(bucket.key)}
-          className={cn(
-            'inline-flex min-h-10 items-center gap-2 border-b-2 px-4 text-sm font-semibold transition-colors',
-            value === bucket.key
-              ? 'border-anac-blue text-anac-blue'
-              : 'border-transparent text-anac-muted hover:text-anac-navy'
-          )}
-        >
-          {bucket.label}
-          <span
-            className={cn(
-              'rounded-full px-2 py-0.5 text-[11px]',
-              value === bucket.key ? 'bg-anac-blue text-white' : 'bg-anac-gray text-anac-muted'
-            )}
-          >
-            {counts[bucket.key]}
-          </span>
-        </button>
-      ))}
-    </div>
-  );
-}
-
 function ListToolbar({
   search,
   sort,
@@ -402,7 +371,7 @@ function RequestsList({
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <p className="font-semibold text-anac-navy">{item.reference}</p>
-              <StatusBadge label={item.statusLabel} status={item.status} />
+              <StatusBadge label={item.statusLabel} tone={STATUS_STYLES[item.status] ?? STATUS_STYLES.in_progress} />
             </div>
             <p className="mt-0.5 truncate text-sm font-medium text-anac-text">
               {item.organisationName}
@@ -460,7 +429,7 @@ function RequestDetailPanel({
               {item.reference} - {item.requestTypeLabel}
             </h2>
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <StatusBadge label={item.statusLabel} status={item.status} />
+              <StatusBadge label={item.statusLabel} tone={STATUS_STYLES[item.status] ?? STATUS_STYLES.in_progress} />
               <span
                 className={cn(
                   'rounded-full border px-2 py-0.5 text-[11px] font-semibold',
@@ -743,19 +712,6 @@ function ActivityList({ item }: { item: RequestCockpitItem }) {
   );
 }
 
-function StatusBadge({ label, status }: { label: string; status: string }) {
-  return (
-    <span
-      className={cn(
-        'inline-flex w-fit rounded-full border px-2 py-0.5 text-[11px] font-semibold',
-        STATUS_STYLES[status] ?? STATUS_STYLES.in_progress
-      )}
-    >
-      {label}
-    </span>
-  );
-}
-
 function StatusDot({ item }: { item: RequestCockpitItem }) {
   const className =
     item.status === 'completed'
@@ -767,27 +723,6 @@ function StatusDot({ item }: { item: RequestCockpitItem }) {
     <span className={cn('mt-1 grid h-5 w-5 place-items-center rounded-full border', className)}>
       {item.status === 'completed' ? <CheckCircle2 size={12} /> : <Clock3 size={12} />}
     </span>
-  );
-}
-
-function EmptyState({
-  title,
-  description,
-  danger = false,
-}: {
-  title: string;
-  description: string;
-  danger?: boolean;
-}) {
-  return (
-    <div className="grid min-h-[260px] place-items-center p-6 text-center">
-      <div>
-        <p className={cn('font-semibold', danger ? 'text-anac-danger' : 'text-anac-navy')}>
-          {title}
-        </p>
-        <p className="mt-1 text-sm text-anac-muted">{description}</p>
-      </div>
-    </div>
   );
 }
 

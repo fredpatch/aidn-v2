@@ -1,4 +1,7 @@
 import { FormEvent, useMemo, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -17,6 +20,8 @@ import {
   XCircle,
 } from 'lucide-react';
 import { Button, buttonVariants } from '../../components/ui/button';
+import { EmptyState } from '../../components/common/EmptyState';
+import { StatusBadge } from '../../components/common/StatusBadge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { apiErrorMessage } from '../../lib/axios';
@@ -156,12 +161,14 @@ export default function MeetingsPage() {
                 <EmptyState
                   title="Chargement du calendrier"
                   description="Recuperation des reunions planifiees."
+                  className="min-h-[360px]"
                 />
               ) : query.error ? (
                 <EmptyState
                   title="Chargement impossible"
                   description="Impossible de charger les reunions."
                   danger
+                  className="min-h-[360px]"
                 />
               ) : view === 'calendar' ? (
                 <WeekCalendar
@@ -436,6 +443,7 @@ function WeekCalendar({
       <EmptyState
         title="Aucune reunion sur cette semaine"
         description="Modifiez les filtres ou selectionnez une autre semaine."
+        className="min-h-[360px]"
       />
     );
   }
@@ -532,6 +540,7 @@ function MeetingsTable({
       <EmptyState
         title="Aucune reunion dans cette vue"
         description="Modifiez les filtres ou revenez plus tard."
+        className="min-h-[360px]"
       />
     );
   }
@@ -562,7 +571,7 @@ function MeetingsTable({
             <TableCell>{formatDateTime(item.scheduledAt)}</TableCell>
             <TableCell>{item.dnAgentName}</TableCell>
             <TableCell>
-              <StatusBadge item={item} />
+              <StatusBadge label={item.statusLabel} tone={STATUS_STYLES[item.status] ?? STATUS_STYLES.scheduled} />
             </TableCell>
             <TableCell className="text-xs font-semibold text-anac-blue">{item.actionLabel}</TableCell>
           </TableRow>
@@ -589,7 +598,7 @@ function UpcomingRail({
           <EmptyState
             title="Aucune reunion prevue"
             description="Aucun creneau planifie dans la periode."
-            compact
+            className="min-h-[140px]"
           />
         ) : (
           items.map((item) => (
@@ -611,7 +620,7 @@ function UpcomingRail({
                     {item.location ?? item.requestReference}
                   </p>
                 </div>
-                <StatusBadge item={item} />
+                <StatusBadge label={item.statusLabel} tone={STATUS_STYLES[item.status] ?? STATUS_STYLES.scheduled} />
               </div>
             </button>
           ))
@@ -629,7 +638,10 @@ function SelectedMeetingPanel({
   setActionError: (message: string | null) => void;
 }) {
   const queryClient = useQueryClient();
-  const [rescheduleAt, setRescheduleAt] = useState('');
+  const rescheduleForm = useForm<{ rescheduleAt: string }>({
+    resolver: zodResolver(z.object({ rescheduleAt: z.string().min(1) })),
+    defaultValues: { rescheduleAt: '' },
+  });
   const [reportFile, setReportFile] = useState<File | null>(null);
 
   const refresh = async () => {
@@ -651,7 +663,7 @@ function SelectedMeetingPanel({
     mutationFn: ({ id, value }: { id: number; value: string }) =>
       rescheduleMeeting(id, new Date(value).toISOString()),
     onSuccess: async () => {
-      setRescheduleAt('');
+      rescheduleForm.reset();
       setActionError(null);
       await refresh();
     },
@@ -677,10 +689,9 @@ function SelectedMeetingPanel({
       setActionError(apiErrorMessage(err, 'Impossible de joindre le compte-rendu.')),
   });
 
-  async function handleReschedule(event: FormEvent) {
-    event.preventDefault();
-    if (!item || !rescheduleAt) return;
-    await rescheduleMutation.mutateAsync({ id: item.id, value: rescheduleAt });
+  async function onReschedule(values: { rescheduleAt: string }) {
+    if (!item) return;
+    await rescheduleMutation.mutateAsync({ id: item.id, value: values.rescheduleAt });
   }
 
   async function handleReport(event: FormEvent) {
@@ -695,7 +706,7 @@ function SelectedMeetingPanel({
         <EmptyState
           title="Aucune reunion selectionnee"
           description="Selectionnez un creneau dans le calendrier ou la liste."
-          compact
+          className="min-h-[140px]"
         />
       </section>
     );
@@ -715,7 +726,7 @@ function SelectedMeetingPanel({
                 <p className="text-xs font-semibold text-anac-muted">
                   Details de la reunion selectionnee
                 </p>
-                <StatusBadge item={item} />
+                <StatusBadge label={item.statusLabel} tone={STATUS_STYLES[item.status] ?? STATUS_STYLES.scheduled} />
               </div>
               <h2 className="mt-2 text-lg font-semibold text-anac-navy">{item.meetingTypeLabel}</h2>
               <p className="mt-1 text-sm text-anac-muted">
@@ -787,7 +798,7 @@ function SelectedMeetingPanel({
 
             {item.canManage && item.status === 'scheduled' ? (
               <form
-                onSubmit={handleReschedule}
+                onSubmit={rescheduleForm.handleSubmit(onReschedule)}
                 className="rounded-lg border border-anac-border p-3"
               >
                 <label className="text-xs font-semibold text-anac-muted" htmlFor="reschedule-at">
@@ -796,15 +807,14 @@ function SelectedMeetingPanel({
                 <input
                   id="reschedule-at"
                   type="datetime-local"
-                  value={rescheduleAt}
-                  onChange={(event) => setRescheduleAt(event.target.value)}
+                  {...rescheduleForm.register('rescheduleAt')}
                   className="mt-2 h-9 w-full rounded-md border border-anac-border px-3 text-sm outline-none focus:border-anac-blue focus:ring-2 focus:ring-anac-blue/15"
                 />
                 <Button
                   type="submit"
                   variant="secondary"
                   className="mt-2 w-full"
-                  disabled={!rescheduleAt || busy}
+                  disabled={!rescheduleForm.watch('rescheduleAt') || busy}
                 >
                   <RotateCcw size={14} />
                   Reporter
@@ -870,47 +880,6 @@ function Info({
         {label}
       </p>
       <p className="mt-1.5 text-sm font-semibold text-anac-navy">{value}</p>
-    </div>
-  );
-}
-
-function StatusBadge({ item }: { item: MeetingCockpitItem }) {
-  return (
-    <span
-      className={cn(
-        'inline-flex w-fit rounded-full border px-2 py-0.5 text-[11px] font-semibold',
-        STATUS_STYLES[item.status] ?? STATUS_STYLES.scheduled
-      )}
-    >
-      {item.statusLabel}
-    </span>
-  );
-}
-
-function EmptyState({
-  title,
-  description,
-  danger = false,
-  compact = false,
-}: {
-  title: string;
-  description: string;
-  danger?: boolean;
-  compact?: boolean;
-}) {
-  return (
-    <div
-      className={cn(
-        'grid place-items-center px-4 py-8 text-center',
-        compact ? 'min-h-[140px]' : 'min-h-[360px]'
-      )}
-    >
-      <div>
-        <p className={cn('font-semibold', danger ? 'text-anac-danger' : 'text-anac-navy')}>
-          {title}
-        </p>
-        <p className="mt-1 text-sm text-anac-muted">{description}</p>
-      </div>
     </div>
   );
 }

@@ -1,4 +1,6 @@
-import { FormEvent, useState } from 'react';
+import { useForm, type FieldErrors } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { ClipboardCheck } from 'lucide-react';
 import { Button } from '../../../../components/ui/button';
 import { VERDICT_LABELS, VERDICT_TONES } from '../constants';
@@ -6,6 +8,23 @@ import { formatDateTime } from '../helpers';
 import { useVerdictAction } from '../hooks/useVerdictAction';
 import type { InspectionView, SiteVisitView } from '../types';
 import PhaseStatusBadge from '../../preliminary/components/PhaseStatusBadge';
+
+const VERDICT_VALUES = ['compliant', 'non_compliant', 'compliant_with_reserves'] as const;
+type Verdict = (typeof VERDICT_VALUES)[number];
+
+const verdictSchema = z.object({
+  verdict: z
+    .string()
+    .refine((v) => (VERDICT_VALUES as readonly string[]).includes(v), {
+      message: 'Merci de sélectionner un verdict.',
+    }),
+  note: z
+    .string()
+    .trim()
+    .min(1, 'La note est requise - elle fait partie de la même soumission que le verdict.'),
+});
+
+type VerdictFormValues = z.infer<typeof verdictSchema>;
 
 interface VerdictCardProps {
   phaseId: number;
@@ -24,29 +43,19 @@ export default function VerdictCard({
   requestId,
   setActionError,
 }: VerdictCardProps) {
-  const [verdict, setVerdict] = useState<
-    'compliant' | 'non_compliant' | 'compliant_with_reserves' | ''
-  >('');
-  const [note, setNote] = useState('');
   const { busy, submit } = useVerdictAction(requestId, setActionError);
+  const { register, handleSubmit, reset } = useForm<VerdictFormValues>({
+    resolver: zodResolver(verdictSchema),
+    defaultValues: { verdict: '', note: '' },
+  });
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (!verdict) {
-      setActionError('Merci de sélectionner un verdict.');
-      return;
-    }
-    if (!note.trim()) {
-      setActionError(
-        'La note est requise - elle fait partie de la même soumission que le verdict.'
-      );
-      return;
-    }
-    const ok = await submit(phaseId, verdict, note);
-    if (ok) {
-      setVerdict('');
-      setNote('');
-    }
+  async function onSubmit(values: VerdictFormValues) {
+    const ok = await submit(phaseId, values.verdict as Verdict, values.note);
+    if (ok) reset();
+  }
+
+  function onInvalid(errors: FieldErrors<VerdictFormValues>) {
+    setActionError(errors.verdict?.message ?? errors.note?.message ?? null);
   }
 
   if (inspection) {
@@ -92,18 +101,13 @@ export default function VerdictCard({
       {blockReason ? (
         <p className="text-anac-muted text-xs">{blockReason}</p>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-3">
           <p className="text-anac-muted text-xs">
             Verdict et note sont soumis ensemble, en une seule action - pas d&apos;étape séparée.
           </p>
           <div>
             <label className="label">Verdict</label>
-            <select
-              className="input"
-              value={verdict}
-              onChange={(e) => setVerdict(e.target.value as typeof verdict)}
-              required
-            >
+            <select className="input" {...register('verdict')} required>
               <option value="">Sélectionner</option>
               <option value="compliant">Conforme</option>
               <option value="compliant_with_reserves">Conforme avec réserves</option>
@@ -112,13 +116,7 @@ export default function VerdictCard({
           </div>
           <div>
             <label className="label">Note</label>
-            <textarea
-              className="input"
-              rows={4}
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              required
-            />
+            <textarea className="input" rows={4} {...register('note')} required />
           </div>
           <Button type="submit" disabled={busy}>
             {busy ? 'Soumission...' : "Soumettre l'avis et clôturer la phase"}
