@@ -1,4 +1,7 @@
-import { FormEvent, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useForm, type FieldErrors } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -382,8 +385,15 @@ function InspectionDetailPanel({
   setActionError: (message: string | null) => void;
 }) {
   const queryClient = useQueryClient();
-  const [verdict, setVerdict] = useState<VerdictValue>('compliant');
-  const [note, setNote] = useState('');
+  const verdictForm = useForm<{ verdict: VerdictValue; note: string }>({
+    resolver: zodResolver(
+      z.object({
+        verdict: z.enum(['compliant', 'non_compliant', 'compliant_with_reserves']),
+        note: z.string().trim().min(1, "La note est obligatoire pour soumettre l'avis R3."),
+      })
+    ),
+    defaultValues: { verdict: 'compliant', note: '' },
+  });
 
   const markHeldMutation = useMutation({
     mutationFn: (meetingId: number) => markSiteVisitHeld(meetingId),
@@ -398,22 +408,20 @@ function InspectionDetailPanel({
     mutationFn: (params: { phaseId: number; verdict: VerdictValue; note: string }) =>
       submitVerdict(params.phaseId, params.verdict, params.note),
     onSuccess: async () => {
-      setNote('');
-      setVerdict('compliant');
+      verdictForm.reset();
       setActionError(null);
       await queryClient.invalidateQueries({ queryKey: queryKeys.siteInspection.myQueue() });
     },
     onError: (err) => setActionError(apiErrorMessage(err, "Impossible de soumettre l'avis R3.")),
   });
 
-  async function handleVerdictSubmit(event: FormEvent) {
-    event.preventDefault();
+  async function onVerdictSubmit(values: { verdict: VerdictValue; note: string }) {
     if (!item) return;
-    if (!note.trim()) {
-      setActionError("La note est obligatoire pour soumettre l'avis R3.");
-      return;
-    }
-    await verdictMutation.mutateAsync({ phaseId: item.phaseId, verdict, note });
+    await verdictMutation.mutateAsync({ phaseId: item.phaseId, verdict: values.verdict, note: values.note });
+  }
+
+  function onVerdictInvalid(errors: FieldErrors<{ verdict: VerdictValue; note: string }>) {
+    setActionError(errors.note?.message ?? errors.verdict?.message ?? null);
   }
 
   if (!item) {
@@ -470,15 +478,14 @@ function InspectionDetailPanel({
             <p className="mt-3 whitespace-pre-wrap text-sm text-anac-text">{item.inspection.note}</p>
           </PanelBlock>
         ) : canSubmitVerdict ? (
-          <form onSubmit={handleVerdictSubmit} className="rounded-lg border border-anac-border p-4">
+          <form onSubmit={verdictForm.handleSubmit(onVerdictSubmit, onVerdictInvalid)} className="rounded-lg border border-anac-border p-4">
             <h3 className="text-sm font-semibold text-anac-navy">Soumettre l'avis R3</h3>
             <label className="mt-3 block text-xs font-semibold text-anac-muted" htmlFor="r3-verdict">
               Verdict
             </label>
             <select
               id="r3-verdict"
-              value={verdict}
-              onChange={(event) => setVerdict(event.target.value as VerdictValue)}
+              {...verdictForm.register('verdict')}
               className="mt-1 h-9 w-full rounded-md border border-anac-border bg-white px-3 text-sm outline-none focus:border-anac-blue focus:ring-2 focus:ring-anac-blue/15"
             >
               {Object.entries(VERDICT_LABELS).map(([value, label]) => (
@@ -493,8 +500,7 @@ function InspectionDetailPanel({
             <textarea
               id="r3-note"
               rows={4}
-              value={note}
-              onChange={(event) => setNote(event.target.value)}
+              {...verdictForm.register('note')}
               className="mt-1 w-full rounded-md border border-anac-border bg-white px-3 py-2 text-sm outline-none focus:border-anac-blue focus:ring-2 focus:ring-anac-blue/15"
               required
             />

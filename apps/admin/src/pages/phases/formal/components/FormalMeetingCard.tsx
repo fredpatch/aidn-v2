@@ -1,4 +1,7 @@
-import { FormEvent, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { useState } from 'react';
 import { CalendarClock, CheckCircle2, FileUp, RotateCcw, XCircle } from 'lucide-react';
 import DocumentPreviewLink from '../../../../components/documents/DocumentPreviewLink';
 import { Button } from '../../../../components/ui/button';
@@ -8,6 +11,17 @@ import { formatDate, formatDateTime } from '../helpers';
 import { useFormalMeetingActions } from '../hooks/useFormalMeetingActions';
 import type { FormalMeetingView } from '../types';
 import PhaseStatusBadge from '../../preliminary/components/PhaseStatusBadge';
+
+const scheduleSchema = z.object({
+  dateTime: z.string(),
+  location: z.string().optional(),
+});
+type ScheduleFormValues = z.infer<typeof scheduleSchema>;
+
+const rescheduleSchema = z.object({
+  dateTime: z.string(),
+});
+type RescheduleFormValues = z.infer<typeof rescheduleSchema>;
 
 interface FormalMeetingCardProps {
   phaseId: number;
@@ -30,8 +44,6 @@ export default function FormalMeetingCard({
 }: FormalMeetingCardProps) {
   const [scheduling, setScheduling] = useState(false);
   const [rescheduling, setRescheduling] = useState(false);
-  const [dateTime, setDateTime] = useState('');
-  const [location, setLocation] = useState('');
   const [warning, setWarning] = useState<string | null>(null);
   const [sendingReport, setSendingReport] = useState(false);
   const [reportFile, setReportFile] = useState<File | null>(null);
@@ -41,27 +53,34 @@ export default function FormalMeetingCard({
     setActionError
   );
 
-  async function handleSchedule(e: FormEvent) {
-    e.preventDefault();
+  const scheduleForm = useForm<ScheduleFormValues>({
+    resolver: zodResolver(scheduleSchema),
+    defaultValues: { dateTime: '', location: '' },
+  });
+
+  const rescheduleForm = useForm<RescheduleFormValues>({
+    resolver: zodResolver(rescheduleSchema),
+    defaultValues: { dateTime: '' },
+  });
+
+  async function onSchedule(values: ScheduleFormValues) {
     setWarning(null);
-    const result = await schedule({ phaseId, dnAgentId, dateTime, location });
+    const result = await schedule({ phaseId, dnAgentId, dateTime: values.dateTime, location: values.location });
     if (result?.softOverlapWarning) {
       setWarning('Attention : vous avez deja une autre reunion ce jour-la, a un horaire different.');
     }
     if (result) {
       setScheduling(false);
-      setDateTime('');
-      setLocation('');
+      scheduleForm.reset();
     }
   }
 
-  async function handleReschedule(e: FormEvent) {
-    e.preventDefault();
+  async function onReschedule(values: RescheduleFormValues) {
     if (!meeting) return;
-    const ok = await reschedule(meeting.id, dateTime);
+    const ok = await reschedule(meeting.id, values.dateTime);
     if (ok) {
       setRescheduling(false);
-      setDateTime('');
+      rescheduleForm.reset();
     }
   }
 
@@ -107,24 +126,19 @@ export default function FormalMeetingCard({
         </p>
       ) : !meeting ? (
         scheduling ? (
-          <form onSubmit={handleSchedule} className="space-y-3">
+          <form onSubmit={scheduleForm.handleSubmit(onSchedule)} className="space-y-3">
             <div>
               <label className="label">Date et heure</label>
               <input
                 type="datetime-local"
                 className="input"
-                value={dateTime}
-                onChange={(e) => setDateTime(e.target.value)}
+                {...scheduleForm.register('dateTime')}
                 required
               />
             </div>
             <div>
               <label className="label">Lieu (optionnel)</label>
-              <input
-                className="input"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-              />
+              <input className="input" {...scheduleForm.register('location')} />
             </div>
             <div className="flex gap-2">
               <Button type="submit" size="sm" disabled={busy || !canManage}>
@@ -149,14 +163,13 @@ export default function FormalMeetingCard({
           </div>
         )
       ) : rescheduling ? (
-        <form onSubmit={handleReschedule} className="space-y-3">
+        <form onSubmit={rescheduleForm.handleSubmit(onReschedule)} className="space-y-3">
           <div>
             <label className="label">Nouvelle date et heure</label>
             <input
               type="datetime-local"
               className="input"
-              value={dateTime}
-              onChange={(e) => setDateTime(e.target.value)}
+              {...rescheduleForm.register('dateTime')}
               required
             />
           </div>

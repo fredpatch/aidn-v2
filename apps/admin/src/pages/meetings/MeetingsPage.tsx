@@ -1,4 +1,7 @@
 import { FormEvent, useMemo, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -635,7 +638,10 @@ function SelectedMeetingPanel({
   setActionError: (message: string | null) => void;
 }) {
   const queryClient = useQueryClient();
-  const [rescheduleAt, setRescheduleAt] = useState('');
+  const rescheduleForm = useForm<{ rescheduleAt: string }>({
+    resolver: zodResolver(z.object({ rescheduleAt: z.string().min(1) })),
+    defaultValues: { rescheduleAt: '' },
+  });
   const [reportFile, setReportFile] = useState<File | null>(null);
 
   const refresh = async () => {
@@ -657,7 +663,7 @@ function SelectedMeetingPanel({
     mutationFn: ({ id, value }: { id: number; value: string }) =>
       rescheduleMeeting(id, new Date(value).toISOString()),
     onSuccess: async () => {
-      setRescheduleAt('');
+      rescheduleForm.reset();
       setActionError(null);
       await refresh();
     },
@@ -683,10 +689,9 @@ function SelectedMeetingPanel({
       setActionError(apiErrorMessage(err, 'Impossible de joindre le compte-rendu.')),
   });
 
-  async function handleReschedule(event: FormEvent) {
-    event.preventDefault();
-    if (!item || !rescheduleAt) return;
-    await rescheduleMutation.mutateAsync({ id: item.id, value: rescheduleAt });
+  async function onReschedule(values: { rescheduleAt: string }) {
+    if (!item) return;
+    await rescheduleMutation.mutateAsync({ id: item.id, value: values.rescheduleAt });
   }
 
   async function handleReport(event: FormEvent) {
@@ -793,7 +798,7 @@ function SelectedMeetingPanel({
 
             {item.canManage && item.status === 'scheduled' ? (
               <form
-                onSubmit={handleReschedule}
+                onSubmit={rescheduleForm.handleSubmit(onReschedule)}
                 className="rounded-lg border border-anac-border p-3"
               >
                 <label className="text-xs font-semibold text-anac-muted" htmlFor="reschedule-at">
@@ -802,15 +807,14 @@ function SelectedMeetingPanel({
                 <input
                   id="reschedule-at"
                   type="datetime-local"
-                  value={rescheduleAt}
-                  onChange={(event) => setRescheduleAt(event.target.value)}
+                  {...rescheduleForm.register('rescheduleAt')}
                   className="mt-2 h-9 w-full rounded-md border border-anac-border px-3 text-sm outline-none focus:border-anac-blue focus:ring-2 focus:ring-anac-blue/15"
                 />
                 <Button
                   type="submit"
                   variant="secondary"
                   className="mt-2 w-full"
-                  disabled={!rescheduleAt || busy}
+                  disabled={!rescheduleForm.watch('rescheduleAt') || busy}
                 >
                   <RotateCcw size={14} />
                   Reporter
