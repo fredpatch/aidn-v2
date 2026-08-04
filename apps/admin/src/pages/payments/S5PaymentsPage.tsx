@@ -678,7 +678,7 @@ function S5PaymentTable({
               key={key}
               selected={selected}
               onSelect={() => onSelect(key)}
-              ariaLabel={`Selectionner le paiement ${item.requestReference}`}
+              ariaLabel={`Selectionner le paiement ${item.requestReference} de ${item.organisationName}`}
             >
               <TableCell>
                 <span className="block text-left font-semibold text-anac-blue">

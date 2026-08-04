@@ -21,7 +21,9 @@ import {
 } from 'lucide-react';
 import { Button, buttonVariants } from '../../components/ui/button';
 import { EmptyState } from '../../components/common/EmptyState';
+import { SelectableTableRow } from '../../components/common/SelectableTableRow';
 import { StatusBadge } from '../../components/common/StatusBadge';
+import { TableState } from '../../components/common/TableState';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { apiErrorMessage } from '../../lib/axios';
@@ -537,7 +539,8 @@ function MeetingsTable({
 }) {
   if (items.length === 0) {
     return (
-      <EmptyState
+      <TableState
+        state="empty"
         title="Aucune reunion dans cette vue"
         description="Modifiez les filtres ou revenez plus tard."
         className="min-h-[360px]"
@@ -560,10 +563,11 @@ function MeetingsTable({
       </TableHeader>
       <TableBody>
         {items.map((item) => (
-          <TableRow
+          <SelectableTableRow
             key={item.id}
-            onClick={() => onSelect(item)}
-            className={cn('cursor-pointer', selectedId === item.id && 'bg-anac-blue/5')}
+            selected={selectedId === item.id}
+            onSelect={() => onSelect(item)}
+            ariaLabel={`Selectionner la reunion ${item.requestReference} de ${item.organisationName}`}
           >
             <TableCell className="font-semibold text-anac-navy">{item.requestReference}</TableCell>
             <TableCell>{item.organisationName}</TableCell>
@@ -574,7 +578,7 @@ function MeetingsTable({
               <StatusBadge label={item.statusLabel} tone={STATUS_STYLES[item.status] ?? STATUS_STYLES.scheduled} />
             </TableCell>
             <TableCell className="text-xs font-semibold text-anac-blue">{item.actionLabel}</TableCell>
-          </TableRow>
+          </SelectableTableRow>
         ))}
       </TableBody>
     </Table>

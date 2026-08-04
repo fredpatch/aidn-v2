@@ -19,8 +19,8 @@ export function SelectableTableRow({
   selected: boolean;
   onSelect: () => void;
   children: ReactNode;
+  ariaLabel: string;
   className?: string;
-  ariaLabel?: string;
 }) {
   function handleClick(event: MouseEvent<HTMLTableRowElement>) {
     if (isInteractiveTarget(event.target)) return;
