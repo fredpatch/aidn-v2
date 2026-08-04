@@ -13,11 +13,11 @@ import {
   Send,
   ShieldCheck,
   WalletCards,
-  X,
   XCircle,
 } from 'lucide-react';
 import DocumentViewer from '../../components/documents/DocumentViewer';
 import { Button, buttonVariants } from '../../components/ui/button';
+import { Modal } from '../../components/ui/modal';
 import { BucketTabs } from '../../components/common/BucketTabs';
 import { EmptyState } from '../../components/common/EmptyState';
 import { StatusBadge } from '../../components/common/StatusBadge';
@@ -1007,23 +1007,12 @@ function InvoiceModal({
   onSubmit: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-anac-navy/40 p-4" role="dialog" aria-modal="true">
-      <div className="w-full max-w-md rounded-lg border border-anac-border bg-white p-5 shadow-xl">
-        <ModalHeader title="Joindre la facture transmise" subtitle={`${item.requestReference} - ${PHASE_LABELS[item.phaseCode]}`} onClose={onClose} />
-        <div className="mt-4 space-y-2">
-          <label className="label">Facture recue par S5</label>
-          <input
-            type="file"
-            accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-            disabled={busy}
-            onChange={(event) => onFileChange(event.target.files?.[0] ?? null)}
-          />
-          <p className="text-xs text-anac-muted">
-            Cette action enregistre la facture comme transmise au postulant.
-          </p>
-          {file ? <p className="text-xs font-medium text-anac-navy">{file.name}</p> : null}
-        </div>
-        <div className="mt-5 flex justify-end gap-2">
+    <Modal
+      title="Joindre la facture transmise"
+      subtitle={`${item.requestReference} - ${PHASE_LABELS[item.phaseCode]}`}
+      onClose={onClose}
+      footer={
+        <>
           <Button type="button" variant="secondary" size="sm" disabled={busy} onClick={onClose}>
             Annuler
           </Button>
@@ -1031,9 +1020,23 @@ function InvoiceModal({
             <Send size={14} aria-hidden="true" />
             {busy ? 'Enregistrement...' : 'Enregistrer'}
           </Button>
-        </div>
+        </>
+      }
+    >
+      <div className="space-y-2">
+        <label className="label">Facture recue par S5</label>
+        <input
+          type="file"
+          accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+          disabled={busy}
+          onChange={(event) => onFileChange(event.target.files?.[0] ?? null)}
+        />
+        <p className="text-xs text-anac-muted">
+          Cette action enregistre la facture comme transmise au postulant.
+        </p>
+        {file ? <p className="text-xs font-medium text-anac-navy">{file.name}</p> : null}
       </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -1055,32 +1058,12 @@ function RejectModal({
   const [action, setAction] = useState<'request_new_proof' | 'reject_dossier'>('request_new_proof');
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-anac-navy/40 p-4" role="dialog" aria-modal="true">
-      <div className="w-full max-w-md rounded-lg border border-anac-border bg-white p-5 shadow-xl">
-        <ModalHeader title="Rejeter la preuve de paiement" subtitle={item.requestReference} onClose={onClose} />
-        <div className="mt-4 space-y-3">
-          <label className="label" htmlFor="rejection-action">Action apres rejet</label>
-          <select
-            id="rejection-action"
-            value={action}
-            disabled={busy}
-            onChange={(event) => setAction(event.target.value as 'request_new_proof' | 'reject_dossier')}
-            className="input"
-          >
-            <option value="request_new_proof">Demander une nouvelle preuve</option>
-            <option value="reject_dossier">Rejeter le dossier</option>
-          </select>
-          <label className="label" htmlFor="rejection-reason">Motif</label>
-          <textarea
-            id="rejection-reason"
-            value={reason}
-            disabled={busy}
-            onChange={(event) => setReason(event.target.value)}
-            className="input min-h-24"
-            placeholder="Expliquez ce qui rend la preuve non conforme..."
-          />
-        </div>
-        <div className="mt-5 flex justify-end gap-2">
+    <Modal
+      title="Rejeter la preuve de paiement"
+      subtitle={item.requestReference}
+      onClose={onClose}
+      footer={
+        <>
           <Button type="button" variant="secondary" size="sm" disabled={busy} onClick={onClose}>
             Annuler
           </Button>
@@ -1094,35 +1077,32 @@ function RejectModal({
             <XCircle size={14} aria-hidden="true" />
             {busy ? 'Rejet...' : 'Confirmer le rejet'}
           </Button>
-        </div>
+        </>
+      }
+    >
+      <div className="space-y-3">
+        <label className="label" htmlFor="rejection-action">Action apres rejet</label>
+        <select
+          id="rejection-action"
+          value={action}
+          disabled={busy}
+          onChange={(event) => setAction(event.target.value as 'request_new_proof' | 'reject_dossier')}
+          className="input"
+        >
+          <option value="request_new_proof">Demander une nouvelle preuve</option>
+          <option value="reject_dossier">Rejeter le dossier</option>
+        </select>
+        <label className="label" htmlFor="rejection-reason">Motif</label>
+        <textarea
+          id="rejection-reason"
+          value={reason}
+          disabled={busy}
+          onChange={(event) => setReason(event.target.value)}
+          className="input min-h-24"
+          placeholder="Expliquez ce qui rend la preuve non conforme..."
+        />
       </div>
-    </div>
+    </Modal>
   );
 }
 
-function ModalHeader({
-  title,
-  subtitle,
-  onClose,
-}: {
-  title: string;
-  subtitle: string;
-  onClose: () => void;
-}) {
-  return (
-    <div className="flex items-start justify-between gap-3">
-      <div>
-        <h2 className="text-sm font-semibold text-anac-navy">{title}</h2>
-        <p className="mt-1 text-xs text-anac-muted">{subtitle}</p>
-      </div>
-      <button
-        type="button"
-        className="grid h-8 w-8 place-items-center rounded text-anac-muted hover:bg-anac-gray hover:text-anac-navy"
-        onClick={onClose}
-        aria-label="Fermer"
-      >
-        <X size={16} aria-hidden="true" />
-      </button>
-    </div>
-  );
-}

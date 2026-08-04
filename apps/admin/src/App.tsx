@@ -41,6 +41,9 @@ const SITE_INSPECTION_ROLES: InternalRole[] = ['dn_agent', 'dn_supervisor', 's5_
 const DELIVERY_ROLES: InternalRole[] = ['dn_agent', 'dn_supervisor', 's5_agent', 'SU'];
 const ANALYTICS_ROLES: InternalRole[] = ['dn_supervisor', 'SU'];
 const PAYMENTS_ROLES: InternalRole[] = ['s5_agent', 'SU'];
+const INSPECTION_ROLES: InternalRole[] = ['r3_agent', 'SU'];
+const USER_MANAGEMENT_ROLES: InternalRole[] = ['SU', 'dn_supervisor'];
+const SETTINGS_ROLES: InternalRole[] = ['SU'];
 
 function hasAnyRole(userRoles: string[] | undefined, allowedRoles: InternalRole[]): boolean {
   return allowedRoles.some((role) => userRoles?.includes(role));
@@ -169,7 +172,14 @@ function Gate() {
           }
         />
 
-        <Route path="mes-inspections" element={<MyInspectionsPage />} />
+        <Route
+          path="mes-inspections"
+          element={
+            <RoleRoute roles={INSPECTION_ROLES}>
+              <MyInspectionsPage />
+            </RoleRoute>
+          }
+        />
         <Route
           path="courriers"
           element={
@@ -203,7 +213,14 @@ function Gate() {
           }
         />
 
-        <Route path="modeles-documents" element={<DocumentTemplatesPage />} />
+        <Route
+          path="modeles-documents"
+          element={
+            <RoleRoute roles={DN_ROLES}>
+              <DocumentTemplatesPage />
+            </RoleRoute>
+          }
+        />
         <Route
           path="comptes-postulants"
           element={
@@ -212,8 +229,22 @@ function Gate() {
             </RoleRoute>
           }
         />
-        <Route path="utilisateurs" element={<UsersPage />} />
-        <Route path="parametres" element={<SettingsPage />} />
+        <Route
+          path="utilisateurs"
+          element={
+            <RoleRoute roles={USER_MANAGEMENT_ROLES}>
+              <UsersPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="parametres"
+          element={
+            <RoleRoute roles={SETTINGS_ROLES}>
+              <SettingsPage />
+            </RoleRoute>
+          }
+        />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

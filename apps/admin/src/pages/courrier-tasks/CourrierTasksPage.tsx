@@ -19,6 +19,7 @@ import {
 import { Link } from 'react-router-dom';
 import DocumentViewer from '../../components/documents/DocumentViewer';
 import { Button, buttonVariants } from '../../components/ui/button';
+import { Modal } from '../../components/ui/modal';
 import { BucketTabs } from '../../components/common/BucketTabs';
 import { EmptyState } from '../../components/common/EmptyState';
 import { StatusBadge } from '../../components/common/StatusBadge';
@@ -987,39 +988,12 @@ function ReturnSignedModal({
   onSubmit: () => void;
 }) {
   return (
-    <div
-      className="fixed inset-0 z-50 grid place-items-center bg-anac-navy/40 p-4"
-      role="dialog"
-      aria-modal="true"
-    >
-      <div className="w-full max-w-md rounded-lg border border-anac-border bg-white p-5 shadow-xl">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h2 className="text-sm font-semibold text-anac-navy">Scanner le retour signe</h2>
-            <p className="mt-1 text-xs text-anac-muted">
-              {SOURCE_LABELS[task.source]} - {task.requestReference}
-            </p>
-          </div>
-          <button
-            type="button"
-            className="grid h-8 w-8 place-items-center rounded text-anac-muted hover:bg-anac-gray hover:text-anac-navy"
-            onClick={onClose}
-            aria-label="Fermer"
-          >
-            <X size={16} aria-hidden="true" />
-          </button>
-        </div>
-        <div className="mt-4 space-y-2">
-          <label className="label">Document signe</label>
-          <input
-            type="file"
-            accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-            disabled={busy}
-            onChange={(event) => onFileChange(event.target.files?.[0] ?? null)}
-          />
-          {file ? <p className="text-xs text-anac-muted">{file.name}</p> : null}
-        </div>
-        <div className="mt-5 flex justify-end gap-2">
+    <Modal
+      title="Scanner le retour signe"
+      subtitle={`${SOURCE_LABELS[task.source]} - ${task.requestReference}`}
+      onClose={onClose}
+      footer={
+        <>
           <Button type="button" variant="secondary" size="sm" disabled={busy} onClick={onClose}>
             Annuler
           </Button>
@@ -1027,8 +1001,19 @@ function ReturnSignedModal({
             <Send size={14} aria-hidden="true" />
             {busy ? 'Enregistrement...' : 'Enregistrer le retour'}
           </Button>
-        </div>
+        </>
+      }
+    >
+      <div className="space-y-2">
+        <label className="label">Document signe</label>
+        <input
+          type="file"
+          accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+          disabled={busy}
+          onChange={(event) => onFileChange(event.target.files?.[0] ?? null)}
+        />
+        {file ? <p className="text-xs text-anac-muted">{file.name}</p> : null}
       </div>
-    </div>
+    </Modal>
   );
 }
