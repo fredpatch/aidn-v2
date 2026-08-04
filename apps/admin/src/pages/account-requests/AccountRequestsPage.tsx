@@ -21,6 +21,15 @@ import {
 } from 'lucide-react';
 import { api, apiErrorMessage } from '../../lib/axios';
 import { Button } from '../../components/ui/button';
+import { Pagination, paginate } from '../../components/ui/pagination';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../components/ui/table';
 import { cn } from '../../lib/utils';
 
 interface OrganisationCandidate {
@@ -82,6 +91,8 @@ const STATUS_STYLES = {
 
 type Tab = 'pending' | 'accounts';
 
+const PAGE_SIZE = 8;
+
 export default function AccountRequestsPage() {
   const [tab, setTab] = useState<Tab>('pending');
   const [requests, setRequests] = useState<AccountRequestView[]>([]);
@@ -93,6 +104,17 @@ export default function AccountRequestsPage() {
   const [search, setSearch] = useState('');
   const [selectedRequestId, setSelectedRequestId] = useState<number | null>(null);
   const [selectedAccountId, setSelectedAccountId] = useState<number | null>(null);
+  const [page, setPage] = useState(1);
+
+  function updateTab(value: Tab) {
+    setTab(value);
+    setPage(1);
+  }
+
+  function updateSearch(value: string) {
+    setSearch(value);
+    setPage(1);
+  }
 
   async function loadRequests() {
     setLoading(true);
@@ -196,6 +218,9 @@ export default function AccountRequestsPage() {
     filteredAccounts.find((account) => account.id === selectedAccountId) ??
     filteredAccounts[0] ??
     null;
+
+  const pagedRequests = paginate(filteredRequests, page, PAGE_SIZE);
+  const pagedAccounts = paginate(filteredAccounts, page, PAGE_SIZE);
 
   const activeAccounts = accounts.filter((account) => account.active).length;
   const suspendedAccounts = accounts.filter((account) => !account.active).length;
@@ -302,12 +327,10 @@ export default function AccountRequestsPage() {
               />
               <input
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) => updateSearch(event.target.value)}
                 className="h-9 w-[300px] rounded-md border border-anac-border bg-white pl-9 pr-3 text-sm outline-none transition focus:border-anac-blue focus:ring-2 focus:ring-anac-blue/15"
                 placeholder={
-                  tab === 'pending'
-                    ? 'Rechercher une demande...'
-                    : 'Rechercher un compte...'
+                  tab === 'pending' ? 'Rechercher une demande...' : 'Rechercher un compte...'
                 }
               />
             </label>
@@ -319,7 +342,7 @@ export default function AccountRequestsPage() {
             active={tab === 'pending'}
             count={requests.length}
             onClick={() => {
-              setTab('pending');
+              updateTab('pending');
               setActionError(null);
             }}
           >
@@ -329,7 +352,7 @@ export default function AccountRequestsPage() {
             active={tab === 'accounts'}
             count={accounts.length}
             onClick={() => {
-              setTab('accounts');
+              updateTab('accounts');
               setActionError(null);
             }}
           >
@@ -362,23 +385,39 @@ export default function AccountRequestsPage() {
             ) : error ? (
               <EmptyState title="Chargement impossible" description={error} danger />
             ) : tab === 'pending' ? (
-              <PendingRequestsTable
-                requests={filteredRequests}
-                selectedId={selectedRequest?.id ?? null}
-                onSelect={(request) => {
-                  setSelectedRequestId(request.id);
-                  setActionError(null);
-                }}
-              />
+              <>
+                <PendingRequestsTable
+                  requests={pagedRequests.pageItems}
+                  selectedId={selectedRequest?.id ?? null}
+                  onSelect={(request) => {
+                    setSelectedRequestId(request.id);
+                    setActionError(null);
+                  }}
+                />
+                <Pagination
+                  label={`${filteredRequests.length} demande(s) en attente`}
+                  page={pagedRequests.page}
+                  totalPages={pagedRequests.totalPages}
+                  onPageChange={setPage}
+                />
+              </>
             ) : (
-              <ApplicantAccountsTable
-                accounts={filteredAccounts}
-                selectedId={selectedAccount?.id ?? null}
-                onSelect={(account) => {
-                  setSelectedAccountId(account.id);
-                  setActionError(null);
-                }}
-              />
+              <>
+                <ApplicantAccountsTable
+                  accounts={pagedAccounts.pageItems}
+                  selectedId={selectedAccount?.id ?? null}
+                  onSelect={(account) => {
+                    setSelectedAccountId(account.id);
+                    setActionError(null);
+                  }}
+                />
+                <Pagination
+                  label={`${filteredAccounts.length} compte(s) approuve(s)`}
+                  page={pagedAccounts.page}
+                  totalPages={pagedAccounts.totalPages}
+                  onPageChange={setPage}
+                />
+              </>
             )}
           </div>
 
@@ -487,54 +526,51 @@ function PendingRequestsTable({
           <h2 className="text-sm font-semibold text-anac-navy">
             {requests.length} demande(s) en attente
           </h2>
-          <p className="text-xs text-anac-muted">Selectionnez une demande pour verifier l'organisme.</p>
+          <p className="text-xs text-anac-muted">
+            Selectionnez une demande pour verifier l'organisme.
+          </p>
         </div>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[860px] text-sm">
-          <thead className="border-b border-anac-border bg-slate-50 text-left text-[11px] uppercase tracking-wide text-anac-muted">
-            <tr>
-              <th className="px-4 py-3 font-semibold">Organisation</th>
-              <th className="px-4 py-3 font-semibold">Contact</th>
-              <th className="px-4 py-3 font-semibold">Email</th>
-              <th className="px-4 py-3 font-semibold">Soumise le</th>
-              <th className="px-4 py-3 font-semibold">Statut</th>
-              <th className="px-4 py-3 font-semibold">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-anac-border">
-            {requests.map((request) => (
-              <tr
-                key={request.id}
-                onClick={() => onSelect(request)}
-                className={cn(
-                  'cursor-pointer transition hover:bg-anac-blue/5',
-                  selectedId === request.id && 'bg-anac-blue/5'
-                )}
-              >
-                <td className="px-4 py-3">
-                  <p className="font-semibold text-anac-navy">{request.organisationNameInput}</p>
-                  <p className="text-xs text-anac-muted">
-                    {request.originalApprovalNumber ?? 'Agrement non renseigne'}
-                  </p>
-                </td>
-                <td className="px-4 py-3">{request.contactFullName}</td>
-                <td className="px-4 py-3 text-anac-muted">{request.contactEmail}</td>
-                <td className="px-4 py-3">{formatDateTime(request.submittedAt)}</td>
-                <td className="px-4 py-3">
-                  <StatusBadge label="En attente" tone="pending" />
-                </td>
-                <td className="px-4 py-3">
-                  <button className="rounded-md border border-anac-border p-1.5 text-anac-blue">
-                    <Eye size={14} aria-hidden="true" />
-                    <span className="sr-only">Voir la demande</span>
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Table className="min-w-[860px]">
+        <TableHeader>
+          <TableRow>
+            <TableHead>Organisation</TableHead>
+            <TableHead>Contact</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Soumise le</TableHead>
+            <TableHead>Statut</TableHead>
+            <TableHead>Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {requests.map((request) => (
+            <TableRow
+              key={request.id}
+              onClick={() => onSelect(request)}
+              className={cn('cursor-pointer', selectedId === request.id && 'bg-anac-blue/5')}
+            >
+              <TableCell>
+                <p className="font-semibold text-anac-navy">{request.organisationNameInput}</p>
+                <p className="text-xs text-anac-muted">
+                  {request.originalApprovalNumber ?? 'Agrement non renseigne'}
+                </p>
+              </TableCell>
+              <TableCell>{request.contactFullName}</TableCell>
+              <TableCell className="text-anac-muted">{request.contactEmail}</TableCell>
+              <TableCell>{formatDateTime(request.submittedAt)}</TableCell>
+              <TableCell>
+                <StatusBadge label="En attente" tone="pending" />
+              </TableCell>
+              <TableCell>
+                <button className="rounded-md border border-anac-border p-1.5 text-anac-blue">
+                  <Eye size={14} aria-hidden="true" />
+                  <span className="sr-only">Voir la demande</span>
+                </button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </>
   );
 }
@@ -564,65 +600,62 @@ function ApplicantAccountsTable({
           <h2 className="text-sm font-semibold text-anac-navy">
             {accounts.length} compte(s) approuve(s)
           </h2>
-          <p className="text-xs text-anac-muted">Selectionnez un compte pour consulter son profil.</p>
+          <p className="text-xs text-anac-muted">
+            Selectionnez un compte pour consulter son profil.
+          </p>
         </div>
         <button className="inline-flex items-center gap-2 rounded-md border border-anac-border px-3 py-1.5 text-xs font-semibold text-anac-navy">
           <Download size={13} aria-hidden="true" />
           Exporter
         </button>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[940px] text-sm">
-          <thead className="border-b border-anac-border bg-slate-50 text-left text-[11px] uppercase tracking-wide text-anac-muted">
-            <tr>
-              <th className="px-4 py-3 font-semibold">Organisation</th>
-              <th className="px-4 py-3 font-semibold">Responsable</th>
-              <th className="px-4 py-3 font-semibold">Email</th>
-              <th className="px-4 py-3 font-semibold">Profil</th>
-              <th className="px-4 py-3 font-semibold">Date d'approbation</th>
-              <th className="px-4 py-3 font-semibold">Statut</th>
-              <th className="px-4 py-3 font-semibold">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-anac-border">
-            {accounts.map((account) => (
-              <tr
-                key={account.id}
-                onClick={() => onSelect(account)}
-                className={cn(
-                  'cursor-pointer transition hover:bg-anac-blue/5',
-                  selectedId === account.id && 'bg-anac-blue/5'
-                )}
-              >
-                <td className="px-4 py-3">
-                  <p className="font-semibold text-anac-navy">{account.organisationName}</p>
-                  <p className="text-xs text-anac-muted">Organisation #{account.organisationId}</p>
-                </td>
-                <td className="px-4 py-3">
-                  <p>{account.fullName}</p>
-                  {account.phone ? <p className="text-xs text-anac-muted">{account.phone}</p> : null}
-                </td>
-                <td className="px-4 py-3 text-anac-muted">{account.email}</td>
-                <td className="px-4 py-3">
-                  <span className="rounded-md bg-slate-100 px-2 py-1 text-[11px] font-semibold text-anac-muted">
-                    {CONTACT_ORDER_SHORT[account.contactOrder] ?? account.contactOrder}
-                  </span>
-                </td>
-                <td className="px-4 py-3">{formatDateTime(account.createdAt)}</td>
-                <td className="px-4 py-3">
-                  <StatusBadge
-                    label={account.active ? 'Actif' : 'Suspension'}
-                    tone={account.active ? 'active' : 'suspended'}
-                  />
-                </td>
-                <td className="px-4 py-3">
-                  <MoreVertical size={15} className="text-anac-muted" aria-hidden="true" />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Table className="min-w-[940px]">
+        <TableHeader>
+          <TableRow>
+            <TableHead>Organisation</TableHead>
+            <TableHead>Responsable</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Profil</TableHead>
+            <TableHead>Date d&apos;approbation</TableHead>
+            <TableHead>Statut</TableHead>
+            <TableHead>Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {accounts.map((account) => (
+            <TableRow
+              key={account.id}
+              onClick={() => onSelect(account)}
+              className={cn('cursor-pointer', selectedId === account.id && 'bg-anac-blue/5')}
+            >
+              <TableCell>
+                <p className="font-semibold text-anac-navy">{account.organisationName}</p>
+                <p className="text-xs text-anac-muted">Organisation #{account.organisationId}</p>
+              </TableCell>
+              <TableCell>
+                <p>{account.fullName}</p>
+                {account.phone ? <p className="text-xs text-anac-muted">{account.phone}</p> : null}
+              </TableCell>
+              <TableCell className="text-anac-muted">{account.email}</TableCell>
+              <TableCell>
+                <span className="rounded-md bg-slate-100 px-2 py-1 text-[11px] font-semibold text-anac-muted">
+                  {CONTACT_ORDER_SHORT[account.contactOrder] ?? account.contactOrder}
+                </span>
+              </TableCell>
+              <TableCell>{formatDateTime(account.createdAt)}</TableCell>
+              <TableCell>
+                <StatusBadge
+                  label={account.active ? 'Actif' : 'Suspension'}
+                  tone={account.active ? 'active' : 'suspended'}
+                />
+              </TableCell>
+              <TableCell>
+                <MoreVertical size={15} className="text-anac-muted" aria-hidden="true" />
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </>
   );
 }
@@ -691,13 +724,18 @@ function PendingRequestPanel({
   if (!request) {
     return (
       <aside className="rounded-lg border border-anac-border bg-white p-5 shadow-sm">
-        <EmptyState title="Aucune demande selectionnee" description="Selectionnez une demande dans la liste." />
+        <EmptyState
+          title="Aucune demande selectionnee"
+          description="Selectionnez une demande dans la liste."
+        />
       </aside>
     );
   }
 
   const candidatePool = mergeCandidates(request.candidates, searchResults);
-  const selectedCandidate = candidatePool.find((candidate) => candidate.id === selectedOrganisationId);
+  const selectedCandidate = candidatePool.find(
+    (candidate) => candidate.id === selectedOrganisationId
+  );
 
   return (
     <aside className="h-fit rounded-lg border border-anac-border bg-white shadow-sm xl:sticky xl:top-6">
@@ -708,7 +746,9 @@ function PendingRequestPanel({
             <h2 className="mt-2 text-xl font-semibold text-anac-navy">
               {request.organisationNameInput}
             </h2>
-            <p className="mt-1 text-sm text-anac-muted">ID: REQ-{String(request.id).padStart(6, '0')}</p>
+            <p className="mt-1 text-sm text-anac-muted">
+              ID: REQ-{String(request.id).padStart(6, '0')}
+            </p>
           </div>
           <StatusBadge label="En attente" tone="pending" />
         </div>
@@ -770,9 +810,13 @@ function PendingRequestPanel({
                       : 'border-anac-border hover:border-anac-blue/40'
                   )}
                 >
-                  <span className="block text-sm font-semibold text-anac-navy">{candidate.name}</span>
+                  <span className="block text-sm font-semibold text-anac-navy">
+                    {candidate.name}
+                  </span>
                   <span className="block text-xs text-anac-blue">{candidate.matchReason}</span>
-                  <span className="mt-1 block text-xs text-anac-muted">{candidate.legalAddress}</span>
+                  <span className="mt-1 block text-xs text-anac-muted">
+                    {candidate.legalAddress}
+                  </span>
                 </button>
               ))
             )}
@@ -863,7 +907,10 @@ function ApprovedAccountPanel({
   if (!account) {
     return (
       <aside className="rounded-lg border border-anac-border bg-white p-5 shadow-sm">
-        <EmptyState title="Aucun compte selectionne" description="Selectionnez un compte dans la liste." />
+        <EmptyState
+          title="Aucun compte selectionne"
+          description="Selectionnez un compte dans la liste."
+        />
       </aside>
     );
   }
@@ -878,11 +925,16 @@ function ApprovedAccountPanel({
             </div>
             <div>
               <p className="text-xs font-semibold text-anac-muted">Details du compte</p>
-              <h2 className="mt-1 text-base font-semibold text-anac-navy">{account.organisationName}</h2>
+              <h2 className="mt-1 text-base font-semibold text-anac-navy">
+                {account.organisationName}
+              </h2>
               <p className="text-xs text-anac-muted">{account.email}</p>
             </div>
           </div>
-          <StatusBadge label={account.active ? 'Actif' : 'Suspension'} tone={account.active ? 'active' : 'suspended'} />
+          <StatusBadge
+            label={account.active ? 'Actif' : 'Suspension'}
+            tone={account.active ? 'active' : 'suspended'}
+          />
         </div>
       </div>
 
@@ -907,10 +959,16 @@ function ApprovedAccountPanel({
             Actions rapides
           </h3>
           <div className="grid grid-cols-2 gap-2">
-            <button className="rounded-md border border-anac-border px-2 py-2 text-xs font-semibold text-anac-muted" disabled>
+            <button
+              className="rounded-md border border-anac-border px-2 py-2 text-xs font-semibold text-anac-muted"
+              disabled
+            >
               Reinitialiser
             </button>
-            <button className="rounded-md border border-anac-border px-2 py-2 text-xs font-semibold text-anac-muted" disabled>
+            <button
+              className="rounded-md border border-anac-border px-2 py-2 text-xs font-semibold text-anac-muted"
+              disabled
+            >
               Modifier
             </button>
           </div>
@@ -931,7 +989,10 @@ function ApprovedAccountPanel({
             Resume
           </h3>
           <div className="grid grid-cols-2 gap-2 text-xs">
-            <CompactInfo label="Profil" value={CONTACT_ORDER_SHORT[account.contactOrder] ?? account.contactOrder} />
+            <CompactInfo
+              label="Profil"
+              value={CONTACT_ORDER_SHORT[account.contactOrder] ?? account.contactOrder}
+            />
             <CompactInfo label="Statut" value={account.active ? 'Actif' : 'Suspension'} />
             <CompactInfo label="Approbation" value={formatShortDate(account.createdAt)} />
             <CompactInfo label="Connexion" value="A venir" />
@@ -940,8 +1001,7 @@ function ApprovedAccountPanel({
 
         <section className="rounded-lg border border-anac-border p-3">
           <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-anac-navy">
-            <ShieldCheck size={15} aria-hidden="true" />
-            A venir
+            <ShieldCheck size={15} aria-hidden="true" />A venir
           </h3>
           <div className="grid grid-cols-2 gap-2">
             <FuturePill label="Portee d'acces" />
@@ -1014,7 +1074,12 @@ function FuturePill({ label }: { label: string }) {
 
 function StatusBadge({ label, tone }: { label: string; tone: keyof typeof STATUS_STYLES }) {
   return (
-    <span className={cn('inline-flex w-fit rounded-full border px-2 py-0.5 text-[11px] font-semibold', STATUS_STYLES[tone])}>
+    <span
+      className={cn(
+        'inline-flex w-fit rounded-full border px-2 py-0.5 text-[11px] font-semibold',
+        STATUS_STYLES[tone]
+      )}
+    >
       {label}
     </span>
   );
@@ -1032,7 +1097,9 @@ function EmptyState({
   return (
     <div className="grid min-h-[220px] place-items-center px-4 py-8 text-center">
       <div>
-        <p className={cn('font-semibold', danger ? 'text-anac-danger' : 'text-anac-navy')}>{title}</p>
+        <p className={cn('font-semibold', danger ? 'text-anac-danger' : 'text-anac-navy')}>
+          {title}
+        </p>
         <p className="mt-1 text-sm text-anac-muted">{description}</p>
       </div>
     </div>
@@ -1050,7 +1117,11 @@ function mergeCandidates(
   initial: OrganisationCandidate[],
   searchResults: OrganisationCandidate[]
 ): OrganisationCandidate[] {
-  return [...new Map([...initial, ...searchResults].map((candidate) => [candidate.id, candidate])).values()];
+  return [
+    ...new Map(
+      [...initial, ...searchResults].map((candidate) => [candidate.id, candidate])
+    ).values(),
+  ];
 }
 
 function normalize(value: string): string {

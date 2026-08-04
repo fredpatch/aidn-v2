@@ -19,6 +19,22 @@ import {
 import { Link } from 'react-router-dom';
 import DocumentViewer from '../../components/documents/DocumentViewer';
 import { Button, buttonVariants } from '../../components/ui/button';
+import { Pagination, paginate } from '../../components/ui/pagination';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../components/ui/table';
 import { useAuth } from '../../hooks/useAuth';
 import {
   confirmCourrierPrinted,
@@ -51,6 +67,8 @@ const REQUEST_TYPE_LABELS: Record<string, string> = {
 };
 
 type SortKey = 'newest' | 'oldest' | 'waiting';
+
+const PAGE_SIZE = 8;
 
 const BUCKET_SEQUENCE: Array<CourrierTaskBucket | 'all'> = [
   'to_signature',
@@ -91,7 +109,8 @@ function waitingLabel(task: CourrierTask): string {
 
 function statusClass(bucket: CourrierTaskBucket): string {
   if (bucket === 'to_signature') return 'bg-anac-info/10 text-anac-info border-anac-info/20';
-  if (bucket === 'in_signature') return 'bg-anac-warning/10 text-anac-warning border-anac-warning/20';
+  if (bucket === 'in_signature')
+    return 'bg-anac-warning/10 text-anac-warning border-anac-warning/20';
   if (bucket === 'returned') return 'bg-anac-success/10 text-anac-success border-anac-success/20';
   return 'bg-anac-muted/10 text-anac-muted border-anac-border';
 }
@@ -163,6 +182,22 @@ export default function CourrierTasksPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+
+  function updateBucket(value: CourrierTaskBucket | 'all') {
+    setBucket(value);
+    setPage(1);
+  }
+
+  function updateQuery(value: string) {
+    setQuery(value);
+    setPage(1);
+  }
+
+  function updateSort(value: SortKey) {
+    setSort(value);
+    setPage(1);
+  }
 
   async function loadTasks() {
     setLoading(true);
@@ -221,6 +256,8 @@ export default function CourrierTasksPage() {
     [filteredTasks, selectedId]
   );
 
+  const { pageItems, totalPages, page: currentPage } = paginate(filteredTasks, page, PAGE_SIZE);
+
   useEffect(() => {
     if (filteredTasks.length === 0) {
       setSelectedId(null);
@@ -258,12 +295,7 @@ export default function CourrierTasksPage() {
       const { data: uploaded } = await api.post('/uploads', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      await returnSignedCourrier(
-        returnTask.id,
-        uploaded.fileUrl,
-        uploaded.mimeType,
-        uploaded.id
-      );
+      await returnSignedCourrier(returnTask.id, uploaded.fileUrl, uploaded.mimeType, uploaded.id);
       setReturnTask(null);
       setReturnFile(null);
       await loadTasks();
@@ -279,9 +311,15 @@ export default function CourrierTasksPage() {
       <main className="mx-auto max-w-[1480px] space-y-5 px-6 py-6">
         <CourrierHeader />
 
-        {error && <p className="rounded border border-anac-danger/20 bg-anac-danger/5 p-3 text-sm text-anac-danger">{error}</p>}
+        {error && (
+          <p className="rounded border border-anac-danger/20 bg-anac-danger/5 p-3 text-sm text-anac-danger">
+            {error}
+          </p>
+        )}
         {actionError && (
-          <p className="rounded border border-anac-danger/20 bg-anac-danger/5 p-3 text-sm text-anac-danger">{actionError}</p>
+          <p className="rounded border border-anac-danger/20 bg-anac-danger/5 p-3 text-sm text-anac-danger">
+            {actionError}
+          </p>
         )}
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -320,7 +358,7 @@ export default function CourrierTasksPage() {
             value={bucket}
             counts={counts}
             total={tasks.length}
-            onChange={setBucket}
+            onChange={updateBucket}
           />
 
           <div className="grid min-h-[620px] lg:grid-cols-[minmax(0,1fr)_460px]">
@@ -328,14 +366,20 @@ export default function CourrierTasksPage() {
               <CourrierToolbar
                 query={query}
                 sort={sort}
-                onQueryChange={setQuery}
-                onSortChange={setSort}
+                onQueryChange={updateQuery}
+                onSortChange={updateSort}
               />
               <CourrierTaskTable
-                tasks={filteredTasks}
+                tasks={pageItems}
                 selectedId={selectedTask?.id ?? null}
                 loading={loading}
                 onSelect={setSelectedId}
+              />
+              <Pagination
+                label={`${filteredTasks.length} tache${filteredTasks.length > 1 ? 's' : ''}`}
+                page={currentPage}
+                totalPages={totalPages}
+                onPageChange={setPage}
               />
             </div>
 
@@ -536,19 +580,17 @@ function CourrierToolbar({
           className="h-10 w-full rounded-lg border border-anac-border bg-white pl-9 pr-3 text-sm text-anac-navy outline-none transition focus:border-anac-sky focus:ring-2 focus:ring-anac-sky/30"
         />
       </label>
-      <label className="inline-flex h-10 items-center gap-2 rounded-lg border border-anac-border bg-white px-3 text-sm text-anac-navy">
-        <ArrowDownAZ size={15} className="text-anac-muted" aria-hidden="true" />
-        <span className="sr-only">Trier</span>
-        <select
-          value={sort}
-          onChange={(event) => onSortChange(event.target.value as SortKey)}
-          className="bg-transparent text-sm font-medium outline-none"
-        >
-          <option value="waiting">Attente la plus longue</option>
-          <option value="newest">Plus recents</option>
-          <option value="oldest">Plus anciens</option>
-        </select>
-      </label>
+      <Select value={sort} onValueChange={(value) => onSortChange(value as SortKey)}>
+        <SelectTrigger className="h-10 w-[220px] gap-2 text-sm font-medium text-anac-navy">
+          <ArrowDownAZ size={15} className="shrink-0 text-anac-muted" aria-hidden="true" />
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="waiting">Attente la plus longue</SelectItem>
+          <SelectItem value="newest">Plus recents</SelectItem>
+          <SelectItem value="oldest">Plus anciens</SelectItem>
+        </SelectContent>
+      </Select>
     </div>
   );
 }
@@ -579,73 +621,71 @@ function CourrierTaskTable({
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[820px] border-collapse text-left">
-        <thead>
-          <tr className="border-b border-anac-border bg-anac-gray/60 text-[11px] uppercase tracking-wide text-anac-muted">
-            <th className="px-4 py-3 font-semibold">Reference dossier</th>
-            <th className="px-4 py-3 font-semibold">Demandeur</th>
-            <th className="px-4 py-3 font-semibold">Type de courrier</th>
-            <th className="px-4 py-3 font-semibold">Depot</th>
-            <th className="px-4 py-3 font-semibold">Attente</th>
-            <th className="px-4 py-3 font-semibold">Statut circuit</th>
-            <th className="px-4 py-3 font-semibold">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {tasks.map((task) => {
-            const selected = task.id === selectedId;
-            const StatusIcon = statusIcon(task.bucket);
-            return (
-              <tr
-                key={task.id}
-                className={cn(
-                  'cursor-pointer border-b border-anac-border/70 text-sm transition-colors hover:bg-anac-blue/5',
-                  selected && 'bg-anac-blue/5 outline outline-1 -outline-offset-1 outline-anac-blue'
-                )}
-                onClick={() => onSelect(task.id)}
-              >
-                <td className="px-4 py-3">
-                  <button
-                    type="button"
-                    onClick={() => onSelect(task.id)}
-                    className="text-left font-semibold text-anac-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-anac-sky"
-                  >
-                    {task.requestReference}
-                  </button>
-                </td>
-                <td className="max-w-[190px] px-4 py-3">
-                  <p className="truncate font-medium text-anac-navy">{task.organisationName}</p>
-                  <p className="truncate text-xs text-anac-muted">{task.applicantName}</p>
-                </td>
-                <td className="max-w-[220px] px-4 py-3">
-                  <p className="truncate text-anac-navy">{SOURCE_LABELS[task.source]}</p>
-                  <p className="truncate text-xs text-anac-muted">
-                    {REQUEST_TYPE_LABELS[task.requestType] ?? task.requestType}
-                  </p>
-                </td>
-                <td className="px-4 py-3 text-anac-muted">{formatDate(task.depositedAt)}</td>
-                <td className="px-4 py-3 text-anac-muted">{waitingLabel(task)}</td>
-                <td className="px-4 py-3">
-                  <span
-                    className={cn(
-                      'inline-flex items-center gap-1.5 rounded border px-2 py-1 text-[11px] font-semibold',
-                      statusClass(task.bucket)
-                    )}
-                  >
-                    <StatusIcon size={12} aria-hidden="true" />
-                    {BUCKET_LABELS[task.bucket]}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-xs font-medium text-anac-blue">
-                  {nextActionLabel(task)}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+    <Table className="min-w-[820px]">
+      <TableHeader>
+        <TableRow>
+          <TableHead>Reference dossier</TableHead>
+          <TableHead>Demandeur</TableHead>
+          <TableHead>Type de courrier</TableHead>
+          <TableHead>Depot</TableHead>
+          <TableHead>Attente</TableHead>
+          <TableHead>Statut circuit</TableHead>
+          <TableHead>Action</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {tasks.map((task) => {
+          const selected = task.id === selectedId;
+          const StatusIcon = statusIcon(task.bucket);
+          return (
+            <TableRow
+              key={task.id}
+              className={cn(
+                'cursor-pointer',
+                selected && 'bg-anac-blue/5 outline outline-1 -outline-offset-1 outline-anac-blue'
+              )}
+              onClick={() => onSelect(task.id)}
+            >
+              <TableCell>
+                <button
+                  type="button"
+                  onClick={() => onSelect(task.id)}
+                  className="text-left font-semibold text-anac-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-anac-sky"
+                >
+                  {task.requestReference}
+                </button>
+              </TableCell>
+              <TableCell className="max-w-[190px]">
+                <p className="truncate font-medium text-anac-navy">{task.organisationName}</p>
+                <p className="truncate text-xs text-anac-muted">{task.applicantName}</p>
+              </TableCell>
+              <TableCell className="max-w-[220px]">
+                <p className="truncate text-anac-navy">{SOURCE_LABELS[task.source]}</p>
+                <p className="truncate text-xs text-anac-muted">
+                  {REQUEST_TYPE_LABELS[task.requestType] ?? task.requestType}
+                </p>
+              </TableCell>
+              <TableCell className="text-anac-muted">{formatDate(task.depositedAt)}</TableCell>
+              <TableCell className="text-anac-muted">{waitingLabel(task)}</TableCell>
+              <TableCell>
+                <span
+                  className={cn(
+                    'inline-flex items-center gap-1.5 rounded border px-2 py-1 text-[11px] font-semibold',
+                    statusClass(task.bucket)
+                  )}
+                >
+                  <StatusIcon size={12} aria-hidden="true" />
+                  {BUCKET_LABELS[task.bucket]}
+                </span>
+              </TableCell>
+              <TableCell className="text-xs font-medium text-anac-blue">
+                {nextActionLabel(task)}
+              </TableCell>
+            </TableRow>
+          );
+        })}
+      </TableBody>
+    </Table>
   );
 }
 
@@ -727,7 +767,10 @@ function CourrierDetailPanel({
             {canViewDossier ? (
               <Link
                 to={dossierPath(task)}
-                className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'justify-start gap-2')}
+                className={cn(
+                  buttonVariants({ variant: 'secondary', size: 'sm' }),
+                  'justify-start gap-2'
+                )}
               >
                 <ChevronRight size={14} aria-hidden="true" />
                 Voir le dossier
@@ -741,7 +784,10 @@ function CourrierDetailPanel({
               <button
                 type="button"
                 onClick={() => onPreview(task)}
-                className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'justify-start gap-2')}
+                className={cn(
+                  buttonVariants({ variant: 'secondary', size: 'sm' }),
+                  'justify-start gap-2'
+                )}
               >
                 <Eye size={14} aria-hidden="true" />
                 Ouvrir document
@@ -809,8 +855,8 @@ function CourrierActionPanel({
               Retour DG attendu
             </h3>
             <p className="mt-1 text-xs leading-relaxed text-anac-muted">
-              Le courrier est en signature depuis {waitingLabel(task)}. Scannez le retour signe
-              des qu'il revient.
+              Le courrier est en signature depuis {waitingLabel(task)}. Scannez le retour signe des
+              qu'il revient.
             </p>
           </div>
           <Button size="sm" disabled={busy || !canOperate} onClick={() => onReturn(task)}>
@@ -939,7 +985,10 @@ function CourrierInfo({ task }: { task: CourrierTask }) {
       <h3 className="mb-4 text-sm font-semibold text-anac-navy">Informations cles</h3>
       <dl className="space-y-3">
         <Info label="Type de courrier" value={SOURCE_LABELS[task.source]} />
-        <Info label="Nature de demande" value={REQUEST_TYPE_LABELS[task.requestType] ?? task.requestType} />
+        <Info
+          label="Nature de demande"
+          value={REQUEST_TYPE_LABELS[task.requestType] ?? task.requestType}
+        />
         <Info label="Reference dossier" value={task.requestReference} />
         <Info label="Demandeur" value={task.organisationName} />
         <Info label="Postulant" value={task.applicantName} />
@@ -988,7 +1037,9 @@ function CourrierEmptyState({
           <Icon size={18} aria-hidden="true" />
         </div>
         <p className="text-sm font-semibold text-anac-navy">{title}</p>
-        {description ? <p className="mt-1 max-w-sm text-xs text-anac-muted">{description}</p> : null}
+        {description ? (
+          <p className="mt-1 max-w-sm text-xs text-anac-muted">{description}</p>
+        ) : null}
       </div>
     </div>
   );
@@ -1010,7 +1061,11 @@ function ReturnSignedModal({
   onSubmit: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-anac-navy/40 p-4" role="dialog" aria-modal="true">
+    <div
+      className="fixed inset-0 z-50 grid place-items-center bg-anac-navy/40 p-4"
+      role="dialog"
+      aria-modal="true"
+    >
       <div className="w-full max-w-md rounded-lg border border-anac-border bg-white p-5 shadow-xl">
         <div className="flex items-start justify-between gap-3">
           <div>

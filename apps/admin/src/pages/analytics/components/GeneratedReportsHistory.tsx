@@ -1,5 +1,6 @@
 import { Download, FileSpreadsheet, FileText } from 'lucide-react';
 import { buttonVariants } from '../../../components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
 import { cn } from '../../../lib/utils';
 import type { GeneratedReport } from '../../../lib/api/reports.types';
 import { formatDisplayDate } from '../analytics.helpers';
@@ -29,32 +30,32 @@ export function GeneratedReportsHistory({
           Aucun rapport généré pour le moment.
         </div>
       ) : (
-        <div className="mt-3 overflow-x-auto">
-          <table className="w-full text-left text-[12px]">
-            <thead className="bg-slate-50 text-[11px] uppercase tracking-wide text-anac-muted">
-              <tr>
-                <th className="px-4 py-3 font-semibold">Rapport</th>
-                <th className="px-4 py-3 font-semibold">Format</th>
-                <th className="px-4 py-3 font-semibold">Période</th>
-                <th className="px-4 py-3 font-semibold">Généré le</th>
-                <th className="px-4 py-3 font-semibold">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-anac-border">
+        <div className="mt-3">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Rapport</TableHead>
+                <TableHead>Format</TableHead>
+                <TableHead>Période</TableHead>
+                <TableHead>Généré le</TableHead>
+                <TableHead>Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {reports.map((report) => {
                 const Icon = report.format === 'pdf' ? FileText : FileSpreadsheet;
                 return (
-                  <tr key={report.id} className="hover:bg-slate-50">
-                    <td className="px-4 py-3 font-semibold text-anac-navy">{report.title}</td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2 py-0.5 font-semibold uppercase text-anac-blue">
+                  <TableRow key={report.id}>
+                    <TableCell className="font-semibold text-anac-navy">{report.title}</TableCell>
+                    <TableCell>
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-semibold uppercase text-anac-blue">
                         <Icon size={12} aria-hidden="true" />
                         {report.format === 'excel' ? 'xlsx' : report.format}
                       </span>
-                    </td>
-                    <td className="px-4 py-3 text-anac-muted">{formatPeriod(report)}</td>
-                    <td className="px-4 py-3 text-anac-muted">{formatDisplayDate(report.createdAt)}</td>
-                    <td className="px-4 py-3">
+                    </TableCell>
+                    <TableCell className="text-anac-muted">{formatPeriod(report)}</TableCell>
+                    <TableCell className="text-anac-muted">{formatDisplayDate(report.createdAt)}</TableCell>
+                    <TableCell>
                       {report.fileUrl ? (
                         <a
                           href={`/api/reports/${report.id}/download`}
@@ -76,12 +77,12 @@ export function GeneratedReportsHistory({
                           Indisponible
                         </span>
                       )}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 );
               })}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
     </section>
