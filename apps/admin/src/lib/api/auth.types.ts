@@ -1,8 +1,10 @@
+import type { InternalRole } from '@aidn/shared';
+
 export interface UserPublic {
   id: number;
   employeeCode: string;
   fullName: string;
-  roles: string[];
+  roles: InternalRole[];
 }
 
 export interface BootstrapStatus {

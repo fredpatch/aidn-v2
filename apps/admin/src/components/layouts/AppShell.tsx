@@ -19,6 +19,7 @@ import {
   BarChart3,
 } from 'lucide-react';
 
+import type { InternalRole } from '@aidn/shared';
 import { cn } from '../../lib/utils';
 import { Button } from '../ui/button';
 import { useAuth } from '../../hooks/useAuth';
@@ -27,7 +28,7 @@ interface NavItem {
   to: string;
   label: string;
   icon: React.ElementType;
-  roles?: string[];
+  roles?: InternalRole[];
 }
 
 const NAV_ITEMS: NavItem[] = [

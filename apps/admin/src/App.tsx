@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import type { ReactElement } from 'react';
+import type { InternalRole } from '@aidn/shared';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import BootstrapPage from './pages/auth/BootstrapPage';
 import LoginPage from './pages/auth/LoginPage';
@@ -24,15 +25,24 @@ import S5DashboardPage from './pages/dashboard/S5DashboardPage';
 import MeetingsPage from './pages/meetings/MeetingsPage';
 import AnalyticsPage from './pages/analytics/AnalyticsPage';
 
-const DN_ROLES = ['dn_agent', 'dn_supervisor', 'SU'];
-const DASHBOARD_ROLES = ['dn_agent', 'dn_supervisor', 'reception', 'assistant_dg', 's5_agent', 'r3_agent', 'SU'];
-const RECEPTION_ROLES = ['reception', 'assistant_dg', 'SU'];
-const DEEP_EVALUATION_ROLES = ['dn_agent', 'dn_supervisor', 's5_agent', 'SU'];
-const SITE_INSPECTION_ROLES = ['dn_agent', 'dn_supervisor', 's5_agent', 'r3_agent', 'SU'];
-const DELIVERY_ROLES = ['dn_agent', 'dn_supervisor', 's5_agent', 'SU'];
-const ANALYTICS_ROLES = ['dn_supervisor', 'SU'];
+const DN_ROLES: InternalRole[] = ['dn_agent', 'dn_supervisor', 'SU'];
+const DASHBOARD_ROLES: InternalRole[] = [
+  'dn_agent',
+  'dn_supervisor',
+  'reception',
+  'assistant_dg',
+  's5_agent',
+  'r3_agent',
+  'SU',
+];
+const RECEPTION_ROLES: InternalRole[] = ['reception', 'assistant_dg', 'SU'];
+const DEEP_EVALUATION_ROLES: InternalRole[] = ['dn_agent', 'dn_supervisor', 's5_agent', 'SU'];
+const SITE_INSPECTION_ROLES: InternalRole[] = ['dn_agent', 'dn_supervisor', 's5_agent', 'r3_agent', 'SU'];
+const DELIVERY_ROLES: InternalRole[] = ['dn_agent', 'dn_supervisor', 's5_agent', 'SU'];
+const ANALYTICS_ROLES: InternalRole[] = ['dn_supervisor', 'SU'];
+const PAYMENTS_ROLES: InternalRole[] = ['s5_agent', 'SU'];
 
-function hasAnyRole(userRoles: string[] | undefined, allowedRoles: string[]): boolean {
+function hasAnyRole(userRoles: string[] | undefined, allowedRoles: InternalRole[]): boolean {
   return allowedRoles.some((role) => userRoles?.includes(role));
 }
 
@@ -51,7 +61,7 @@ function RoleRoute({
   roles,
   children,
 }: {
-  roles: string[];
+  roles: InternalRole[];
   children: ReactElement;
 }) {
   const { user } = useAuth();
@@ -171,7 +181,7 @@ function Gate() {
         <Route
           path="paiements-s5"
           element={
-            <RoleRoute roles={['s5_agent', 'SU']}>
+            <RoleRoute roles={PAYMENTS_ROLES}>
               <S5PaymentsPage />
             </RoleRoute>
           }
