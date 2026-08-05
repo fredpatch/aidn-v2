@@ -12,7 +12,6 @@ import {
   Search,
   Send,
   ShieldCheck,
-  WalletCards,
   XCircle,
 } from 'lucide-react';
 import DocumentViewer from '../../components/documents/DocumentViewer';
@@ -20,12 +19,9 @@ import { Button, buttonVariants } from '../../components/ui/button';
 import { Modal } from '../../components/ui/modal';
 import { BucketTabs } from '../../components/common/BucketTabs';
 import { EmptyState } from '../../components/common/EmptyState';
-import { SelectableTableRow } from '../../components/common/SelectableTableRow';
 import { StatusBadge } from '../../components/common/StatusBadge';
-import { TableState } from '../../components/common/TableState';
 import { Pagination, paginate } from '../../components/ui/pagination';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { fetchDeepEvaluationPaymentQueue } from '../../lib/api/deep-evaluation.api';
 import {
   rejectPayment as rejectDeepPayment,
@@ -44,20 +40,12 @@ import {
   uploadInvoice as uploadCertificateInvoice,
   validatePayment as validateCertificatePayment,
 } from '../../lib/api/certificates.api';
-import type { PaymentQueueItem as DeepPaymentQueueItem } from '../../lib/api/deep-evaluation.types';
-import type { PaymentQueueItem as SitePaymentQueueItem } from '../../lib/api/site-inspection.types';
-import type { PaymentQueueItem as CertificatePaymentQueueItem } from '../../lib/api/certificates.types';
 import { api, apiErrorMessage } from '../../lib/axios';
 import { queryKeys } from '../../lib/react-query/queryKeys';
 import { cn } from '../../lib/utils';
-
-type S5PaymentQueueItem = (
-  | DeepPaymentQueueItem
-  | SitePaymentQueueItem
-  | CertificatePaymentQueueItem
-) & {
-  phaseCode: 'M5' | 'M6' | 'M7';
-};
+import { S5PaymentTable } from './components/S5PaymentTable';
+import { PHASE_LABELS, STATUS_LABELS, statusClass, statusIcon } from './s5PaymentLabels';
+import type { S5PaymentQueueItem } from './s5PaymentTypes';
 
 type PaymentBucket =
   | 'to_invoice'
@@ -70,28 +58,6 @@ type PaymentBucket =
 const PAGE_SIZE = 20;
 
 type SortKey = 'waiting' | 'newest' | 'oldest';
-
-const STATUS_LABELS: Record<string, string> = {
-  awaiting_invoice: 'Facture a transmettre',
-  awaiting_proof: 'Preuve attendue',
-  pending_validation: 'Preuve a valider',
-  validated: 'Paiement valide',
-  rejected: 'Paiement rejete',
-};
-
-const NEXT_ACTION_LABELS: Record<S5PaymentQueueItem['nextAction'], string> = {
-  send_invoice: 'Importer la facture transmise',
-  waiting_for_proof: 'Attendre la preuve postulant',
-  validate_payment: 'Valider ou rejeter la preuve',
-  done: 'Paiement termine',
-  rejected: 'Paiement a verifier',
-};
-
-const PHASE_LABELS: Record<S5PaymentQueueItem['phaseCode'], string> = {
-  M5: 'Evaluation approfondie',
-  M6: 'Demonstration / Inspection',
-  M7: 'Delivrance',
-};
 
 const BUCKET_LABELS: Record<PaymentBucket, string> = {
   to_invoice: 'Facture a envoyer',
@@ -118,11 +84,6 @@ interface UploadedFile {
   uploadAssetId?: number;
 }
 
-function formatDate(value: string | null | undefined): string {
-  if (!value) return '-';
-  return new Date(value).toLocaleDateString('fr-FR');
-}
-
 function formatDateTime(value: string | null | undefined): string {
   if (!value) return '-';
   return new Date(value).toLocaleString('fr-FR');
@@ -135,23 +96,6 @@ function bucketForItem(item: S5PaymentQueueItem): PaymentBucket {
   if (item.payment.status === 'validated') return 'validated';
   if (item.payment.status === 'rejected') return 'rejected';
   return 'all';
-}
-
-function statusClass(status: string): string {
-  if (status === 'awaiting_invoice') return 'border-anac-info/20 bg-anac-info/10 text-anac-info';
-  if (status === 'awaiting_proof') return 'border-anac-muted/20 bg-anac-muted/10 text-anac-muted';
-  if (status === 'pending_validation') return 'border-anac-warning/20 bg-anac-warning/10 text-anac-warning';
-  if (status === 'validated') return 'border-anac-success/20 bg-anac-success/10 text-anac-success';
-  if (status === 'rejected') return 'border-anac-danger/20 bg-anac-danger/10 text-anac-danger';
-  return 'border-anac-border bg-anac-gray text-anac-muted';
-}
-
-function statusIcon(status: string) {
-  if (status === 'awaiting_invoice') return Send;
-  if (status === 'pending_validation') return ShieldCheck;
-  if (status === 'validated') return CheckCircle2;
-  if (status === 'rejected') return XCircle;
-  return Clock3;
 }
 
 function waitingReferenceDate(item: S5PaymentQueueItem): string {
@@ -628,81 +572,6 @@ function S5Toolbar({
         </SelectContent>
       </Select>
     </div>
-  );
-}
-
-function S5PaymentTable({
-  items,
-  selectedKey,
-  loading,
-  onSelect,
-}: {
-  items: S5PaymentQueueItem[];
-  selectedKey: string | null;
-  loading: boolean;
-  onSelect: (key: string) => void;
-}) {
-  if (loading) {
-    return <TableState state="loading" icon={WalletCards} title="Chargement des paiements" />;
-  }
-  if (items.length === 0) {
-    return (
-      <TableState
-        state="empty"
-        icon={CheckCircle2}
-        title="Aucun paiement dans cette vue"
-        description="Les paiements reapparaitront ici des qu'une action S5 sera attendue."
-      />
-    );
-  }
-
-  return (
-    <Table className="min-w-[860px]">
-      <TableHeader>
-        <TableRow>
-          <TableHead>Dossier</TableHead>
-          <TableHead>Organisme</TableHead>
-          <TableHead>Phase</TableHead>
-          <TableHead>Facture</TableHead>
-          <TableHead>Preuve</TableHead>
-          <TableHead>Statut</TableHead>
-          <TableHead>Action</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {items.map((item) => {
-          const key = `${item.phaseCode}:${item.phaseId}`;
-          const selected = key === selectedKey;
-          return (
-            <SelectableTableRow
-              key={key}
-              selected={selected}
-              onSelect={() => onSelect(key)}
-              ariaLabel={`Selectionner le paiement ${item.requestReference} de ${item.organisationName}`}
-            >
-              <TableCell>
-                <span className="block text-left font-semibold text-anac-blue">
-                  {item.requestReference}
-                </span>
-                <p className="text-xs text-anac-muted">{item.requestType}</p>
-              </TableCell>
-              <TableCell className="max-w-[220px]">
-                <p className="truncate font-medium text-anac-navy">{item.organisationName}</p>
-              </TableCell>
-              <TableCell className="text-xs text-anac-muted">{PHASE_LABELS[item.phaseCode]}</TableCell>
-              <TableCell className="text-xs text-anac-muted">{formatDate(item.payment.invoiceUploadedAt)}</TableCell>
-              <TableCell className="text-xs text-anac-muted">{formatDate(item.payment.proofUploadedAt)}</TableCell>
-              <TableCell>
-                <StatusBadge label={STATUS_LABELS[item.payment.status] ?? item.payment.status} tone={statusClass(item.payment.status)} icon={statusIcon(item.payment.status)} pill={false} />
-              </TableCell>
-              <TableCell className="text-xs font-medium text-anac-blue">
-                {NEXT_ACTION_LABELS[item.nextAction]}
-              </TableCell>
-            </SelectableTableRow>
-          );
-        })}
-      </TableBody>
-    </Table>
   );
 }
 
