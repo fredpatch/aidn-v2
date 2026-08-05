@@ -286,7 +286,7 @@ function S5Timeline({ item }: { item: S5PaymentQueueItem }) {
                     : 'border-anac-border bg-white text-anac-muted'
               )}
             >
-              {step.done ? <CheckCircle2 size={12} aria-hidden="true" /> : step.current ? '•' : ''}
+              {step.done ? <CheckCircle2 size={12} aria-hidden="true" /> : step.current ? <span aria-hidden="true">&bull;</span> : ''}
             </span>
             <div>
               <p className="text-xs font-semibold text-anac-navy">{step.label}</p>
