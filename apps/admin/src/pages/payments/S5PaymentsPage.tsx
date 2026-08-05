@@ -6,7 +6,6 @@ import {
   Clock3,
   FileText,
   Search,
-  Send,
   ShieldCheck,
   XCircle,
 } from 'lucide-react';
@@ -37,6 +36,7 @@ import {
 import { api, apiErrorMessage } from '../../lib/axios';
 import { queryKeys } from '../../lib/react-query/queryKeys';
 import { cn } from '../../lib/utils';
+import { S5InvoiceModal } from './components/S5InvoiceModal';
 import { S5PaymentDetailPanel } from './components/S5PaymentDetailPanel';
 import { S5PaymentTable } from './components/S5PaymentTable';
 import { PHASE_LABELS, STATUS_LABELS } from './s5PaymentLabels';
@@ -423,8 +423,8 @@ export default function S5PaymentsPage() {
         />
 
         {invoiceTask ? (
-          <InvoiceModal
-            item={invoiceTask}
+          <S5InvoiceModal
+            task={invoiceTask}
             file={invoiceFile}
             busy={busyKey === `${invoiceTask.phaseCode}:${invoiceTask.phaseId}`}
             onFileChange={setInvoiceFile}
@@ -536,55 +536,6 @@ function S5Toolbar({
         </SelectContent>
       </Select>
     </div>
-  );
-}
-
-function InvoiceModal({
-  item,
-  file,
-  busy,
-  onFileChange,
-  onClose,
-  onSubmit,
-}: {
-  item: S5PaymentQueueItem;
-  file: File | null;
-  busy: boolean;
-  onFileChange: (file: File | null) => void;
-  onClose: () => void;
-  onSubmit: () => void;
-}) {
-  return (
-    <Modal
-      title="Joindre la facture transmise"
-      subtitle={`${item.requestReference} - ${PHASE_LABELS[item.phaseCode]}`}
-      onClose={onClose}
-      footer={
-        <>
-          <Button type="button" variant="secondary" size="sm" disabled={busy} onClick={onClose}>
-            Annuler
-          </Button>
-          <Button type="button" size="sm" disabled={!file || busy} onClick={onSubmit}>
-            <Send size={14} aria-hidden="true" />
-            {busy ? 'Enregistrement...' : 'Enregistrer'}
-          </Button>
-        </>
-      }
-    >
-      <div className="space-y-2">
-        <label className="label">Facture recue par S5</label>
-        <input
-          type="file"
-          accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-          disabled={busy}
-          onChange={(event) => onFileChange(event.target.files?.[0] ?? null)}
-        />
-        <p className="text-xs text-anac-muted">
-          Cette action enregistre la facture comme transmise au postulant.
-        </p>
-        {file ? <p className="text-xs font-medium text-anac-navy">{file.name}</p> : null}
-      </div>
-    </Modal>
   );
 }
 
