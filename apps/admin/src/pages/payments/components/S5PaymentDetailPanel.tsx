@@ -7,7 +7,7 @@ import { cn } from '../../../lib/utils';
 import { PHASE_LABELS, STATUS_LABELS, statusClass, statusIcon } from '../s5PaymentLabels';
 import type { S5PaymentQueueItem } from '../s5PaymentTypes';
 
-type PreviewFile = { url: string; title?: string };
+type PreviewFile = { url: string; title: string };
 
 function paymentKey(item: S5PaymentQueueItem): string {
   return `${item.phaseCode}:${item.phaseId}`;
@@ -286,7 +286,7 @@ function S5Timeline({ item }: { item: S5PaymentQueueItem }) {
                     : 'border-anac-border bg-white text-anac-muted'
               )}
             >
-              {step.done ? <CheckCircle2 size={12} aria-hidden="true" /> : step.current ? 'â€¢' : ''}
+              {step.done ? <CheckCircle2 size={12} aria-hidden="true" /> : step.current ? '�' : ''}
             </span>
             <div>
               <p className="text-xs font-semibold text-anac-navy">{step.label}</p>
@@ -338,3 +338,4 @@ function Info({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
