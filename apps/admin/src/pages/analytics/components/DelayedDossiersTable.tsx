@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import type { AnalyticsDelayedDossier } from '../../../lib/api/analytics.types';
+import { TableState } from '../../../components/common/TableState';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
 import { PHASE_LABELS, formatDisplayDate } from '../analytics.helpers';
 import { AnalyticsSection } from './AnalyticsSection';
@@ -13,7 +14,11 @@ export function DelayedDossiersTable({ dossiers }: { dossiers: AnalyticsDelayedD
       className="overflow-hidden"
     >
       {dossiers.length === 0 ? (
-        <div className="p-6 text-sm text-anac-muted">Aucun dossier hors delai dans cette vue.</div>
+        <TableState
+          state="empty"
+          title="Aucun dossier hors delai dans cette vue."
+          className="min-h-[96px]"
+        />
       ) : (
         <Table>
           <TableHeader>

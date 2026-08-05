@@ -1,5 +1,6 @@
 import { Download, FileSpreadsheet, FileText } from 'lucide-react';
 import { buttonVariants } from '../../../components/ui/button';
+import { TableState } from '../../../components/common/TableState';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
 import { cn } from '../../../lib/utils';
 import type { GeneratedReport } from '../../../lib/api/reports.types';
@@ -24,11 +25,17 @@ export function GeneratedReportsHistory({
       </div>
 
       {loading ? (
-        <div className="mt-3 rounded-md bg-slate-50 p-4 text-sm text-anac-muted">Chargement des rapports...</div>
+        <TableState
+          state="loading"
+          title="Chargement des rapports..."
+          className="mt-3 min-h-[72px] rounded-md bg-slate-50"
+        />
       ) : reports.length === 0 ? (
-        <div className="mt-3 rounded-md bg-slate-50 p-4 text-sm text-anac-muted">
-          Aucun rapport généré pour le moment.
-        </div>
+        <TableState
+          state="empty"
+          title="Aucun rapport généré pour le moment."
+          className="mt-3 min-h-[72px] rounded-md bg-slate-50"
+        />
       ) : (
         <div className="mt-3">
           <Table>
