@@ -1,11 +1,75 @@
 import { CheckCircle2, WalletCards } from 'lucide-react';
-import { SelectableTableRow } from '../../../components/common/SelectableTableRow';
+import {
+  SelectableDataTable,
+  type SelectableDataTableColumn,
+} from '../../../components/common/SelectableDataTable';
 import { StatusBadge } from '../../../components/common/StatusBadge';
-import { TableState } from '../../../components/common/TableState';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
 import { formatDate } from '../s5PaymentFormatters';
 import { NEXT_ACTION_LABELS, PHASE_LABELS, STATUS_LABELS, statusClass, statusIcon } from '../s5PaymentLabels';
 import type { S5PaymentQueueItem } from '../s5PaymentTypes';
+
+const s5PaymentColumns: SelectableDataTableColumn<S5PaymentQueueItem>[] = [
+  {
+    id: 'dossier',
+    header: 'Dossier',
+    cell: (item) => (
+      <>
+        <span className="block text-left font-semibold text-anac-blue">
+          {item.requestReference}
+        </span>
+        <p className="text-xs text-anac-muted">{item.requestType}</p>
+      </>
+    ),
+  },
+  {
+    id: 'organisme',
+    header: 'Organisme',
+    className: 'max-w-[220px]',
+    cell: (item) => (
+      <p className="truncate font-medium text-anac-navy">{item.organisationName}</p>
+    ),
+  },
+  {
+    id: 'phase',
+    header: 'Phase',
+    className: 'text-xs text-anac-muted',
+    cell: (item) => PHASE_LABELS[item.phaseCode],
+  },
+  {
+    id: 'facture',
+    header: 'Facture',
+    className: 'text-xs text-anac-muted',
+    cell: (item) => formatDate(item.payment.invoiceUploadedAt),
+  },
+  {
+    id: 'preuve',
+    header: 'Preuve',
+    className: 'text-xs text-anac-muted',
+    cell: (item) => formatDate(item.payment.proofUploadedAt),
+  },
+  {
+    id: 'statut',
+    header: 'Statut',
+    cell: (item) => (
+      <StatusBadge
+        label={STATUS_LABELS[item.payment.status] ?? item.payment.status}
+        tone={statusClass(item.payment.status)}
+        icon={statusIcon(item.payment.status)}
+        pill={false}
+      />
+    ),
+  },
+  {
+    id: 'action',
+    header: 'Action',
+    className: 'text-xs font-medium text-anac-blue',
+    cell: (item) => NEXT_ACTION_LABELS[item.nextAction],
+  },
+];
+
+function getS5PaymentKey(item: S5PaymentQueueItem): string {
+  return `${item.phaseCode}:${item.phaseId}`;
+}
 
 export function S5PaymentTable({
   items,
@@ -18,66 +82,27 @@ export function S5PaymentTable({
   loading: boolean;
   onSelect: (key: string) => void;
 }) {
-  if (loading) {
-    return <TableState state="loading" icon={WalletCards} title="Chargement des paiements" />;
-  }
-  if (items.length === 0) {
-    return (
-      <TableState
-        state="empty"
-        icon={CheckCircle2}
-        title="Aucun paiement dans cette vue"
-        description="Les paiements reapparaitront ici des qu'une action S5 sera attendue."
-      />
-    );
-  }
-
   return (
-    <Table className="min-w-[860px]">
-      <TableHeader>
-        <TableRow>
-          <TableHead>Dossier</TableHead>
-          <TableHead>Organisme</TableHead>
-          <TableHead>Phase</TableHead>
-          <TableHead>Facture</TableHead>
-          <TableHead>Preuve</TableHead>
-          <TableHead>Statut</TableHead>
-          <TableHead>Action</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {items.map((item) => {
-          const key = `${item.phaseCode}:${item.phaseId}`;
-          const selected = key === selectedKey;
-          return (
-            <SelectableTableRow
-              key={key}
-              selected={selected}
-              onSelect={() => onSelect(key)}
-              ariaLabel={`Selectionner le paiement ${item.requestReference} de ${item.organisationName}`}
-            >
-              <TableCell>
-                <span className="block text-left font-semibold text-anac-blue">
-                  {item.requestReference}
-                </span>
-                <p className="text-xs text-anac-muted">{item.requestType}</p>
-              </TableCell>
-              <TableCell className="max-w-[220px]">
-                <p className="truncate font-medium text-anac-navy">{item.organisationName}</p>
-              </TableCell>
-              <TableCell className="text-xs text-anac-muted">{PHASE_LABELS[item.phaseCode]}</TableCell>
-              <TableCell className="text-xs text-anac-muted">{formatDate(item.payment.invoiceUploadedAt)}</TableCell>
-              <TableCell className="text-xs text-anac-muted">{formatDate(item.payment.proofUploadedAt)}</TableCell>
-              <TableCell>
-                <StatusBadge label={STATUS_LABELS[item.payment.status] ?? item.payment.status} tone={statusClass(item.payment.status)} icon={statusIcon(item.payment.status)} pill={false} />
-              </TableCell>
-              <TableCell className="text-xs font-medium text-anac-blue">
-                {NEXT_ACTION_LABELS[item.nextAction]}
-              </TableCell>
-            </SelectableTableRow>
-          );
-        })}
-      </TableBody>
-    </Table>
+    <SelectableDataTable
+      rows={items}
+      columns={s5PaymentColumns}
+      getRowKey={getS5PaymentKey}
+      selectedKey={selectedKey}
+      onSelect={(_item, key) => onSelect(key)}
+      getAriaLabel={(item) =>
+        `Selectionner le paiement ${item.requestReference} de ${item.organisationName}`
+      }
+      loading={loading}
+      loadingState={{
+        icon: WalletCards,
+        title: 'Chargement des paiements',
+      }}
+      emptyState={{
+        icon: CheckCircle2,
+        title: 'Aucun paiement dans cette vue',
+        description: "Les paiements reapparaitront ici des qu'une action S5 sera attendue.",
+      }}
+      className="min-w-[860px]"
+    />
   );
 }
