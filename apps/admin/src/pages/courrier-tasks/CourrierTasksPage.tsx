@@ -22,7 +22,9 @@ import { Button, buttonVariants } from '../../components/ui/button';
 import { Modal } from '../../components/ui/modal';
 import { BucketTabs } from '../../components/common/BucketTabs';
 import { EmptyState } from '../../components/common/EmptyState';
+import { SelectableTableRow } from '../../components/common/SelectableTableRow';
 import { StatusBadge } from '../../components/common/StatusBadge';
+import { TableState } from '../../components/common/TableState';
 import { Pagination, paginate } from '../../components/ui/pagination';
 import {
   Select,
@@ -567,12 +569,13 @@ function CourrierTaskTable({
   onSelect: (id: string) => void;
 }) {
   if (loading) {
-    return <EmptyState icon={Inbox} title="Chargement des courriers" />;
+    return <TableState state="loading" icon={Inbox} title="Chargement des courriers" />;
   }
 
   if (tasks.length === 0) {
     return (
-      <EmptyState
+      <TableState
+        state="empty"
         icon={CheckCircle2}
         title="Aucun courrier dans cette vue"
         description="Les courriers reapparaitront ici des qu'une action sera attendue."
@@ -598,22 +601,16 @@ function CourrierTaskTable({
           const selected = task.id === selectedId;
           const StatusIcon = statusIcon(task.bucket);
           return (
-            <TableRow
+            <SelectableTableRow
               key={task.id}
-              className={cn(
-                'cursor-pointer',
-                selected && 'bg-anac-blue/5 outline outline-1 -outline-offset-1 outline-anac-blue'
-              )}
-              onClick={() => onSelect(task.id)}
+              selected={selected}
+              onSelect={() => onSelect(task.id)}
+              ariaLabel={`Selectionner le courrier ${task.requestReference} de ${task.organisationName}`}
             >
               <TableCell>
-                <button
-                  type="button"
-                  onClick={() => onSelect(task.id)}
-                  className="text-left font-semibold text-anac-blue focus:outline-none focus-visible:ring-2 focus-visible:ring-anac-sky"
-                >
+                <span className="block text-left font-semibold text-anac-blue">
                   {task.requestReference}
-                </button>
+                </span>
               </TableCell>
               <TableCell className="max-w-[190px]">
                 <p className="truncate font-medium text-anac-navy">{task.organisationName}</p>
@@ -641,7 +638,7 @@ function CourrierTaskTable({
               <TableCell className="text-xs font-medium text-anac-blue">
                 {nextActionLabel(task)}
               </TableCell>
-            </TableRow>
+            </SelectableTableRow>
           );
         })}
       </TableBody>

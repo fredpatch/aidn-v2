@@ -18,4 +18,5 @@ apps/api/uploads/*
 __pycache__/
 *.pyc
 *.pyo
+docs/diffs/.codex/tmp/
 docs/diffs/

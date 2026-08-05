@@ -16,7 +16,17 @@ import {
 } from 'lucide-react';
 import { Button, buttonVariants } from '../../components/ui/button';
 import { EmptyState } from '../../components/common/EmptyState';
+import { SelectableTableRow } from '../../components/common/SelectableTableRow';
 import { StatusBadge } from '../../components/common/StatusBadge';
+import { TableState } from '../../components/common/TableState';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../components/ui/table';
 import { apiErrorMessage } from '../../lib/axios';
 import { markSiteVisitHeld, submitVerdict, fetchMyQueue } from '../../lib/api/site-inspection.api';
 import type { MyQueueItem } from '../../lib/api/site-inspection.types';
@@ -329,49 +339,45 @@ function InspectionTable({
       </div>
 
       {isLoading ? (
-        <EmptyState title="Chargement des inspections" description="Recuperation de vos missions R3." className="min-h-[150px]" />
+        <TableState title="Chargement des inspections" description="Recuperation de vos missions R3." state="loading" className="min-h-[150px]" />
       ) : error ? (
-        <EmptyState title="Chargement impossible" description="Impossible de charger la file de dossiers." danger className="min-h-[150px]" />
+        <TableState title="Chargement impossible" description="Impossible de charger la file de dossiers." state="error" className="min-h-[150px]" />
       ) : items.length === 0 ? (
-        <EmptyState title="Aucune inspection dans cette vue" description="Modifiez les filtres ou revenez plus tard." className="min-h-[150px]" />
+        <TableState title="Aucune inspection dans cette vue" description="Modifiez les filtres ou revenez plus tard." state="empty" className="min-h-[150px]" />
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[920px] text-sm">
-            <thead className="border-b border-anac-border bg-slate-50 text-left text-[11px] uppercase tracking-wide text-anac-muted">
-              <tr>
-                <th className="px-4 py-3 font-semibold">Reference dossier</th>
-                <th className="px-4 py-3 font-semibold">Operateur</th>
-                <th className="px-4 py-3 font-semibold">Type</th>
-                <th className="px-4 py-3 font-semibold">Date planifiee</th>
-                <th className="px-4 py-3 font-semibold">Lieu</th>
-                <th className="px-4 py-3 font-semibold">Statut</th>
-                <th className="px-4 py-3 font-semibold">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-anac-border">
-              {items.map((item) => (
-                <tr
-                  key={item.phaseId}
-                  className={cn(
-                    'cursor-pointer transition hover:bg-anac-blue/5',
-                    selectedId === item.phaseId && 'bg-anac-blue/5'
-                  )}
-                  onClick={() => onSelect(item)}
-                >
-                  <td className="px-4 py-3 font-semibold text-anac-navy">{item.requestReference}</td>
-                  <td className="px-4 py-3">{item.organisationName}</td>
-                  <td className="px-4 py-3">{REQUEST_TYPE_LABELS[item.requestType] ?? item.requestType}</td>
-                  <td className="px-4 py-3">{formatDateTime(item.siteVisit?.scheduledAt)}</td>
-                  <td className="px-4 py-3">{item.siteVisit?.location ?? '-'}</td>
-                  <td className="px-4 py-3">
+        <Table className="min-w-[920px]">
+          <TableHeader className="bg-slate-50 text-left text-[11px] uppercase tracking-wide text-anac-muted">
+            <TableRow>
+              <TableHead className="py-3 uppercase tracking-wide">Reference dossier</TableHead>
+              <TableHead className="py-3 uppercase tracking-wide">Operateur</TableHead>
+              <TableHead className="py-3 uppercase tracking-wide">Type</TableHead>
+              <TableHead className="py-3 uppercase tracking-wide">Date planifiee</TableHead>
+              <TableHead className="py-3 uppercase tracking-wide">Lieu</TableHead>
+              <TableHead className="py-3 uppercase tracking-wide">Statut</TableHead>
+              <TableHead className="py-3 uppercase tracking-wide">Action</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {items.map((item) => (
+              <SelectableTableRow
+                key={item.phaseId}
+                selected={selectedId === item.phaseId}
+                onSelect={() => onSelect(item)}
+                ariaLabel={`Selectionner l'inspection ${item.requestReference} de ${item.organisationName}`}
+              >
+                <TableCell className="font-semibold text-anac-navy">{item.requestReference}</TableCell>
+                <TableCell>{item.organisationName}</TableCell>
+                <TableCell>{REQUEST_TYPE_LABELS[item.requestType] ?? item.requestType}</TableCell>
+                <TableCell>{formatDateTime(item.siteVisit?.scheduledAt)}</TableCell>
+                <TableCell>{item.siteVisit?.location ?? '-'}</TableCell>
+                <TableCell>
                     <StatusBadge label={item.statusLabel || STATUS_LABELS[item.missionStatus]} tone={STATUS_STYLES[item.missionStatus]} />
-                  </td>
-                  <td className="px-4 py-3 text-xs font-semibold text-anac-blue">{item.nextActionLabel}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                </TableCell>
+                <TableCell className="text-xs font-semibold text-anac-blue">{item.nextActionLabel}</TableCell>
+              </SelectableTableRow>
+            ))}
+          </TableBody>
+        </Table>
       )}
     </section>
   );
