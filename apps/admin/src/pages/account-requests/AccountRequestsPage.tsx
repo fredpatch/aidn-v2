@@ -22,7 +22,9 @@ import {
 import { api, apiErrorMessage } from '../../lib/axios';
 import { Button } from '../../components/ui/button';
 import { EmptyState } from '../../components/common/EmptyState';
+import { SelectableTableRow } from '../../components/common/SelectableTableRow';
 import { StatusBadge } from '../../components/common/StatusBadge';
+import { TableState } from '../../components/common/TableState';
 import { Pagination, paginate } from '../../components/ui/pagination';
 import {
   Table,
@@ -383,9 +385,19 @@ export default function AccountRequestsPage() {
         >
           <div className="min-w-0 overflow-hidden rounded-lg border border-anac-border bg-white shadow-sm">
             {loading ? (
-              <EmptyState title="Chargement" description="Recuperation des comptes postulants." className="min-h-[220px]" />
+              <TableState
+                state="loading"
+                title="Chargement"
+                description="Recuperation des comptes postulants."
+                className="min-h-[220px]"
+              />
             ) : error ? (
-              <EmptyState title="Chargement impossible" description={error} danger className="min-h-[220px]" />
+              <TableState
+                state="error"
+                title="Chargement impossible"
+                description={error}
+                className="min-h-[220px]"
+              />
             ) : tab === 'pending' ? (
               <>
                 <PendingRequestsTable
@@ -514,7 +526,8 @@ function PendingRequestsTable({
 }) {
   if (requests.length === 0) {
     return (
-      <EmptyState
+      <TableState
+        state="empty"
         title="Aucune demande en attente"
         description="Les demandes envoyees depuis le portail apparaitront ici."
         className="min-h-[220px]"
@@ -547,10 +560,11 @@ function PendingRequestsTable({
         </TableHeader>
         <TableBody>
           {requests.map((request) => (
-            <TableRow
+            <SelectableTableRow
               key={request.id}
-              onClick={() => onSelect(request)}
-              className={cn('cursor-pointer', selectedId === request.id && 'bg-anac-blue/5')}
+              selected={selectedId === request.id}
+              onSelect={() => onSelect(request)}
+              ariaLabel={`Selectionner la demande de compte ${request.organisationNameInput}`}
             >
               <TableCell>
                 <p className="font-semibold text-anac-navy">{request.organisationNameInput}</p>
@@ -565,12 +579,16 @@ function PendingRequestsTable({
                 <StatusBadge label="En attente" tone={STATUS_STYLES.pending} />
               </TableCell>
               <TableCell>
-                <button className="rounded-md border border-anac-border p-1.5 text-anac-blue">
+                <button
+                  type="button"
+                  onClick={() => onSelect(request)}
+                  className="rounded-md border border-anac-border p-1.5 text-anac-blue"
+                >
                   <Eye size={14} aria-hidden="true" />
                   <span className="sr-only">Voir la demande</span>
                 </button>
               </TableCell>
-            </TableRow>
+            </SelectableTableRow>
           ))}
         </TableBody>
       </Table>
@@ -589,7 +607,8 @@ function ApplicantAccountsTable({
 }) {
   if (accounts.length === 0) {
     return (
-      <EmptyState
+      <TableState
+        state="empty"
         title="Aucun compte approuve"
         description="Les comptes approuves apparaitront ici apres validation."
         className="min-h-[220px]"
@@ -627,10 +646,11 @@ function ApplicantAccountsTable({
         </TableHeader>
         <TableBody>
           {accounts.map((account) => (
-            <TableRow
+            <SelectableTableRow
               key={account.id}
-              onClick={() => onSelect(account)}
-              className={cn('cursor-pointer', selectedId === account.id && 'bg-anac-blue/5')}
+              selected={selectedId === account.id}
+              onSelect={() => onSelect(account)}
+              ariaLabel={`Selectionner le compte postulant ${account.fullName} de ${account.organisationName}`}
             >
               <TableCell>
                 <p className="font-semibold text-anac-navy">{account.organisationName}</p>
@@ -656,7 +676,7 @@ function ApplicantAccountsTable({
               <TableCell>
                 <MoreVertical size={14} className="text-anac-muted" aria-hidden="true" />
               </TableCell>
-            </TableRow>
+            </SelectableTableRow>
           ))}
         </TableBody>
       </Table>
