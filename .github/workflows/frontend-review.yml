@@ -1,0 +1,150 @@
+name: Frontend Automated Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'apps/admin/**'
+      - 'apps/portal/**'
+      - 'packages/**'
+      - '!**/*.md'
+      - '!**/*.test.ts'
+      - '!**/*.test.tsx'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  statuses: write
+
+jobs:
+  frontend-review:
+    name: Review Frontend Changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run typecheck
+        run: npm run typecheck
+        continue-on-error: true
+
+      - name: Run lint
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Build affected packages
+        run: npm run build
+        continue-on-error: true
+
+      - name: Get PR diff
+        id: diff
+        run: |
+          git diff origin/${{ github.base_ref }}...HEAD > /tmp/pr.diff
+          echo "diff_size=$(wc -l < /tmp/pr.diff)" >> $GITHUB_OUTPUT
+          echo "diff_path=/tmp/pr.diff" >> $GITHUB_OUTPUT
+
+      - name: Extract changed files
+        id: files
+        run: |
+          git diff --name-only origin/${{ github.base_ref }}...HEAD > /tmp/changed-files.txt
+          echo "files_list=$(cat /tmp/changed-files.txt | tr '\n' ',' | sed 's/,$//')" >> $GITHUB_OUTPUT
+
+      - name: Run Frontend Review Agent
+        id: review
+        uses: actions/github-script@v7
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
+          CHANGED_FILES: ${{ steps.files.outputs.files_list }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            // Import the review agent module
+            const ReviewAgent = require('./.github/scripts/frontend-review-agent.js');
+            
+            const reviewAgent = new ReviewAgent({
+              github,
+              context,
+              prNumber: process.env.PR_NUMBER,
+              baseRef: process.env.BASE_REF,
+              headRef: process.env.HEAD_REF,
+              changedFiles: process.env.CHANGED_FILES.split(',').filter(f => f)
+            });
+            
+            const report = await reviewAgent.review();
+            
+            core.setOutput('verdict', report.verdict);
+            core.setOutput('blocking_issues', JSON.stringify(report.blockingIssues));
+            core.setOutput('has_blocking', report.blockingIssues.length > 0 ? 'true' : 'false');
+            
+            return report;
+
+      - name: Comment PR with Review Report
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const ReviewReport = require('./.github/scripts/review-report-formatter.js');
+            
+            const report = JSON.parse('${{ steps.review.outputs.review_report }}' || '{}');
+            const formatter = new ReviewReport();
+            const comment = formatter.formatAsMarkdown(report);
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+      - name: Set PR status
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const hasBlocking = '${{ steps.review.outputs.has_blocking }}' === 'true';
+            const verdict = '${{ steps.review.outputs.verdict }}';
+            
+            let state = 'success';
+            let description = `Frontend review completed: ${verdict}`;
+            
+            if (hasBlocking) {
+              state = 'failure';
+              description = 'Frontend review: BLOCKING issues found';
+            } else if (verdict === 'APPROVE WITH FOLLOW-UP') {
+              state = 'success';
+              description = 'Frontend review: Approved with follow-up items';
+            }
+            
+            github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.payload.pull_request.head.sha,
+              state,
+              context: 'Frontend Review',
+              description
+            });
