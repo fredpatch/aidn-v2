@@ -4,11 +4,11 @@ build/
 .env
 .env.local
 .env.production
+.env.staging
 *.log
 .DS_Store
 coverage/
 .nyc_output/
-drizzle/
 *.sqlite
 *.tsbuildinfo
 apps/api/uploads/*

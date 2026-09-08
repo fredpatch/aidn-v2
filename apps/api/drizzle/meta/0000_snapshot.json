@@ -1,5 +1,5 @@
 {
-  "id": "12c01887-d006-4433-80c1-ed622e9a23f4",
+  "id": "4f9ef79e-cb5e-47ea-acf2-3e95d48411f1",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -459,6 +459,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "signed_file_url": {
+          "name": "signed_file_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "archived_at": {
           "name": "archived_at",
           "type": "timestamp",
@@ -594,6 +600,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "signature_sent_at": {
+          "name": "signature_sent_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
         },
         "signed_at": {
           "name": "signed_at",
@@ -1172,6 +1184,7 @@
             }
           ],
           "isUnique": true,
+          "where": "\"meetings\".\"status\" = 'scheduled'",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -1819,6 +1832,13 @@
           "primaryKey": true,
           "notNull": true
         },
+        "report_key": {
+          "name": "report_key",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'processing_delay'"
+        },
         "period_start": {
           "name": "period_start",
           "type": "timestamp",
@@ -1848,6 +1868,19 @@
         "file_url": {
           "name": "file_url",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "filters": {
+          "name": "filters",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "summary": {
+          "name": "summary",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": false
         },
@@ -2734,6 +2767,7 @@
       "schema": "public",
       "values": [
         "submitted",
+        "in_signature_circuit",
         "signed",
         "pending_review"
       ]

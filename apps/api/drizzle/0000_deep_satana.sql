@@ -4,7 +4,7 @@ CREATE TYPE "public"."applicant_contact_order" AS ENUM('primary', 'secondary', '
 CREATE TYPE "public"."certificate_status" AS ENUM('in_preparation', 'printed', 'signed', 'archived', 'notified', 'collected');--> statement-breakpoint
 CREATE TYPE "public"."certificate_type" AS ENUM('agreement', 'recognition');--> statement-breakpoint
 CREATE TYPE "public"."dg_circuit_entity_type" AS ENUM('intake_request', 'formal_request_letter');--> statement-breakpoint
-CREATE TYPE "public"."dg_circuit_status" AS ENUM('submitted', 'signed', 'pending_review');--> statement-breakpoint
+CREATE TYPE "public"."dg_circuit_status" AS ENUM('submitted', 'in_signature_circuit', 'signed', 'pending_review');--> statement-breakpoint
 CREATE TYPE "public"."document_owner_type" AS ENUM('dg_circuit_document', 'formal_request_document', 'preliminary_evaluation_form', 'payment_invoice', 'payment_proof', 'document_template', 'meeting_report', 'phase_closure_document', 'certificate_document');--> statement-breakpoint
 CREATE TYPE "public"."document_submission_status" AS ENUM('missing', 'submitted');--> statement-breakpoint
 CREATE TYPE "public"."document_template_key" AS ENUM('preliminary_evaluation_declaration', 'dn_air_r2_3_f_e_010', 'dn_air_r2_3_f_e_011', 'dn_air_r2_3_f_e_012');--> statement-breakpoint
@@ -80,6 +80,7 @@ CREATE TABLE "certificates" (
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"printed_at" timestamp,
 	"signed_at" timestamp,
+	"signed_file_url" text,
 	"archived_at" timestamp,
 	"notified_at" timestamp,
 	"collected_at" timestamp,
@@ -98,6 +99,7 @@ CREATE TABLE "dg_circuit_documents" (
 	"request_id" integer NOT NULL,
 	"status" "dg_circuit_status" DEFAULT 'submitted' NOT NULL,
 	"deposited_at" timestamp DEFAULT now() NOT NULL,
+	"signature_sent_at" timestamp,
 	"signed_at" timestamp,
 	"pending_review_at" timestamp,
 	"blocked_alert_sent_at" timestamp,
@@ -226,11 +228,14 @@ CREATE TABLE "preliminary_evaluation_forms" (
 --> statement-breakpoint
 CREATE TABLE "reports" (
 	"id" serial PRIMARY KEY NOT NULL,
+	"report_key" varchar(50) DEFAULT 'processing_delay' NOT NULL,
 	"period_start" timestamp NOT NULL,
 	"period_end" timestamp NOT NULL,
 	"format" "report_format" NOT NULL,
 	"trigger" "report_trigger" NOT NULL,
 	"file_url" text,
+	"filters" jsonb DEFAULT '{}'::jsonb NOT NULL,
+	"summary" jsonb,
 	"generated_by" integer,
 	"ai_analysis_text" text,
 	"ai_analysis_status" "ai_analysis_status" DEFAULT 'not_applicable' NOT NULL,
@@ -367,7 +372,7 @@ CREATE INDEX "document_evaluations_request_document_idx" ON "document_evaluation
 CREATE INDEX "document_versions_owner_idx" ON "document_versions" USING btree ("owner_type","owner_id");--> statement-breakpoint
 CREATE INDEX "document_versions_trashed_idx" ON "document_versions" USING btree ("trashed_at");--> statement-breakpoint
 CREATE UNIQUE INDEX "formal_request_documents_phase_slot_idx" ON "formal_request_documents" USING btree ("phase_id","slot");--> statement-breakpoint
-CREATE UNIQUE INDEX "meetings_dn_agent_slot_idx" ON "meetings" USING btree ("dn_agent_id","scheduled_at");--> statement-breakpoint
+CREATE UNIQUE INDEX "meetings_dn_agent_slot_idx" ON "meetings" USING btree ("dn_agent_id","scheduled_at") WHERE "meetings"."status" = 'scheduled';--> statement-breakpoint
 CREATE INDEX "meetings_phase_idx" ON "meetings" USING btree ("phase_id");--> statement-breakpoint
 CREATE INDEX "notifications_applicant_idx" ON "notifications" USING btree ("applicant_id");--> statement-breakpoint
 CREATE INDEX "notifications_user_idx" ON "notifications" USING btree ("user_id");--> statement-breakpoint
