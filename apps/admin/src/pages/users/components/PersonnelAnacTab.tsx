@@ -1,5 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
+import { SelectableTableRow } from '../../../components/common/SelectableTableRow';
+import { TableState } from '../../../components/common/TableState';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Pagination } from '../../../components/ui/pagination';
@@ -109,9 +111,7 @@ export function PersonnelAnacTab({
       {error && <p className="px-4 pt-3 text-sm text-anac-danger">{error}</p>}
 
       {loading ? (
-        <div className="p-8 text-center text-sm text-anac-muted">
-          Chargement du Personnel ANAC...
-        </div>
+        <TableState state="loading" title="Chargement du Personnel ANAC..." />
       ) : (
         <Table className="min-w-[820px]">
           <TableHeader>
@@ -126,16 +126,16 @@ export function PersonnelAnacTab({
             {results.map((personnel) => {
               const hasAccount = personnel.hasAccount || existing.has(personnel.employeeCode);
               return (
-                <TableRow
+                <SelectableTableRow
                   key={personnel.employeeCode}
-                  className={selectedEmployeeCode === personnel.employeeCode ? 'bg-anac-blue/5' : undefined}
+                  selected={selectedEmployeeCode === personnel.employeeCode}
+                  onSelect={() => onSelect(personnel)}
+                  ariaLabel={`Selectionner l'agent Personnel ANAC ${
+                    personnel.fullName || personnel.employeeCode
+                  }`}
                 >
                   <TableCell>
-                    <button
-                      type="button"
-                      onClick={() => onSelect(personnel)}
-                      className="flex items-center gap-3 text-left"
-                    >
+                    <div className="flex items-center gap-3 text-left">
                       <span className="flex h-9 w-9 items-center justify-center rounded-full bg-anac-blue/10 text-xs font-semibold text-anac-blue">
                         {initials(personnel.fullName)}
                       </span>
@@ -145,7 +145,7 @@ export function PersonnelAnacTab({
                         </span>
                         <span className="text-xs text-anac-muted">Matricule {personnel.employeeCode}</span>
                       </span>
-                    </button>
+                    </div>
                   </TableCell>
                   <TableCell className="text-anac-muted">
                     {personnel.organisationLabel ?? 'Non renseigne'}
@@ -170,7 +170,7 @@ export function PersonnelAnacTab({
                       {hasAccount ? 'Deja actif' : 'Activer'}
                     </Button>
                   </TableCell>
-                </TableRow>
+                </SelectableTableRow>
               );
             })}
           </TableBody>
