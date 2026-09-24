@@ -1,0 +1,126 @@
+name: aidn_staging
+
+services:
+  postgres_staging:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_staging_data:/var/lib/postgresql/data
+    networks: [internal]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  api_staging:
+    build:
+      context: .
+      dockerfile: infra/api.Dockerfile
+    image: aidn-v2-api:staging
+    environment:
+      NODE_ENV: staging
+      PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres_staging:5432/${POSTGRES_DB}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      ADMIN_ORIGIN: ${ADMIN_ORIGIN}
+      PORTAL_ORIGIN: ${PORTAL_ORIGIN}
+      API_ORIGIN: ${API_ORIGIN:-}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      PERSONNEL_ANAC_BASE_URL: ${PERSONNEL_ANAC_BASE_URL}
+      PERSONNEL_ANAC_API_KEY: ${PERSONNEL_ANAC_API_KEY:-}
+      PERSONNEL_ANAC_ENFORCE: ${PERSONNEL_ANAC_ENFORCE:-true}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
+      PUPPETEER_SKIP_DOWNLOAD: "true"
+    depends_on:
+      postgres_staging:
+        condition: service_healthy
+    volumes:
+      - uploads_staging_data:/app/apps/api/uploads
+    networks: [internal]
+    restart: unless-stopped
+    shm_size: 512mb
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+  admin_staging:
+    build:
+      context: .
+      dockerfile: infra/frontend.Dockerfile
+      args:
+        APP: admin
+    image: aidn-v2-admin:staging
+    networks: [internal]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/healthz || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  portal_staging:
+    build:
+      context: .
+      dockerfile: infra/frontend.Dockerfile
+      args:
+        APP: portal
+    image: aidn-v2-portal:staging
+    networks: [internal]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/healthz || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  nginx_staging:
+    image: nginx:1.27-alpine
+    ports:
+      - "${ADMIN_HOST_PORT:-8200}:80"
+      - "${PORTAL_HOST_PORT:-8201}:81"
+    volumes:
+      - ./infra/nginx/staging.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      api_staging:
+        condition: service_healthy
+      admin_staging:
+        condition: service_healthy
+      portal_staging:
+        condition: service_healthy
+    networks: [internal]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:80/ && wget -q -O /dev/null http://127.0.0.1:81/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+networks:
+  internal:
+    name: aidn_staging_internal
+    driver: bridge
+
+volumes:
+  postgres_staging_data:
+    name: aidn_postgres_staging_data
+  uploads_staging_data:
+    name: aidn_uploads_staging_data

@@ -5,50 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1785219704449,
-      "tag": "0000_giant_groot",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1785228900000,
-      "tag": "0001_signature_circuit_status",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1785229104538,
-      "tag": "0002_groovy_war_machine",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1785232800000,
-      "tag": "0003_meeting_active_slot_index",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1785238494715,
-      "tag": "0004_aberrant_snowbird",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1785304891418,
-      "tag": "0006_material_gideon",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1785756394553,
-      "tag": "0007_curly_quentin_quire",
+      "when": 1788872666556,
+      "tag": "0000_deep_satana",
       "breakpoints": true
     }
   ]
