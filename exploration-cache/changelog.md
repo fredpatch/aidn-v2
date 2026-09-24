@@ -542,3 +542,13 @@ Two things bundled into one push:
 
 Full cross-app flow verified against a real running Postgres instance before this
 was pushed.
+# 2026-09-24 - Documentation reconciliation checkpoint
+
+- Confirmed `main` is clean and aligned with `origin/main` at `26f6c71 feat: ai advanced`.
+- Confirmed staging infrastructure and the reset Drizzle migration baseline are part of current `main` via `d65214c` and `26f6c71`.
+- Reconciled repo/cache/Notion status: M1-M7 are complete, operational cockpits are present, analytics/reporting V1 exists, and the next gate is final role replay plus transverse hardening.
+- Identified Notion backlog drift: several M3 rows and reporting rows remained `Not started` despite repo evidence.
+- Identified branch drift: `chore/codex-frontend-agents` contains useful frontend table/decomposition work but is not safe to merge directly because it is behind current staging/migration history.
+- Updated active-session docs, quick reference, cache index, and added `sessions/2026-09-24.md`.
+
+Note: older entries below may still use the historical label `(uncommitted)` because they were written before those batches were committed into the current history. Treat the current Git log as authoritative for commit state.

@@ -1,47 +1,51 @@
-# 🔴 Active Blockers
+# Active Blockers
 
-Last updated: 2026-07-28
+Last updated: 2026-09-24
 
-No active hard blockers. Sprint 0–6 (M1–M7) are complete, and the current
-post-M7 workflow-hardening batch typechecks/builds cleanly. Remaining work is
-sequencing/product choice rather than a technical block: D-V1 collapse/expand,
-C-V2 viewer rollout, then Notifications M11 V1.
+No runtime hard blocker is known on current `main`. The current blockers are reconciliation and sequencing issues before new feature development.
 
----
+## Active Reconciliation Risks
 
-## 🟡 Soft Blockers (work around them for now)
+### B1 - Frontend-agent branch is not merge-ready
 
-### B1 - M13 applicant account creation not built
+**Impact**: `chore/codex-frontend-agents` contains useful frontend documentation, table migrations, and large-component decomposition work, but it is behind current `main`. A direct merge/diff would risk removing current staging infrastructure and latest Drizzle migration files.
 
-**Impact**: The portal's login screen only works for applicants that already exist
-in the database. There's no self-registration flow yet (that's the anti-bot,
-organisation-dedup flow from `project/modules-feasibility.md` M13, scheduled for
-Sprint 12).
-**Current workaround**: Manually insert a test organisation + applicant row (with a
-real bcrypt password hash) directly via SQL for testing/demo purposes.
-**Waiting on**: Nothing external - just sprint sequencing. Could be pulled forward
-if this becomes a recurring friction point before Sprint 12.
+**Current workaround**: Do not merge directly. Rebase/cherry-pick scoped groups or replay selected refactors on top of current `main`.
 
-### B2 - No visual/browser verification of the UI
+**Waiting on**: Decision on whether to preserve the full branch, cherry-pick selected commits, or redo the useful parts from current `main`.
 
-**Impact**: Claude's sandbox has no browser rendering capability. All frontend work
-this session was verified via typecheck + production build + dev-server-boot +
-`curl`-based API flow tests - never an actual rendered screenshot.
-**Current workaround**: Fred verifies visually on his own machine after each UI diff.
-**Waiting on**: N/A - inherent tooling limitation, not something to "resolve," just
-something to remember when a UI diff is handed over.
+### B2 - Notion backlog status drift
 
----
+**Impact**: The active Notion backlog still lists some already-built items as `Not started`, especially older M3 items and report generation/export items. This can mislead planning if read without repo/cache context.
 
-## 🟢 Resolved Blockers (History)
+**Current workaround**: Treat the repo tree and current Git history as technical source of truth. Use Notion for shared high-level planning after status cleanup.
 
-| Blocker                                                                                                                                                                                                               | Resolved   | How                                                                                                                                                                              |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `drizzle-kit migrate` CLI hangs/fails with zero error output                                                                                                                                                          | 2026-07-07 | Found the bug is a confirmed upstream drizzle-kit 0.31.10 issue; wrote `scripts/migrate.ts` calling `drizzle-orm`'s `migrate()` directly instead                                 |
-| Postgres enum transaction error (`unsafe use of new value`)                                                                                                                                                           | 2026-07-07 | Collapsed to one fresh migration (pre-production, no data to preserve)                                                                                                           |
-| Postgres `schema "public" does not exist`                                                                                                                                                                             | 2026-07-07 | `CREATE SCHEMA public` run once against the affected DB                                                                                                                          |
-| `tsc --noEmit` broken via `ignoreDeprecations` copied from SICOT                                                                                                                                                      | 2026-07-07 | Removed the flag entirely; fixed the underlying `baseUrl` deprecation properly instead                                                                                           |
-| Uploads endpoint had no authentication                                                                                                                                                                                | 2026-07-07 | `authenticateEither` middleware added                                                                                                                                            |
-| Applicant auth didn't exist (Sprint 1 "tested" with a staff token)                                                                                                                                                    | 2026-07-07 | Built `modules/applicant-auth/` with a `kind`-discriminated JWT                                                                                                                  |
-| UI/UX only matched SICOT's colors, not its structure                                                                                                                                                                  | 2026-07-07 | Rebuilt Bootstrap/Login/Layout with the same component/animation system                                                                                                          |
-| Portal _and_ admin builds both broken (incomplete axios-hardening migration: missing `portal/lib/axios.ts`, a doubled-`src` broken import in admin's `useAuth.tsx`, and a French/English sessionStorage key mismatch) | 2026-07-07 | Created portal's `lib/axios.ts` mirroring admin's, fixed the broken import path, standardized the key on English `session_expired`, deleted both apps' now-orphaned `lib/api.ts` |
+**Waiting on**: Update stale Notion backlog rows during documentation reconciliation.
+
+## Soft Blockers
+
+### S1 - M13 applicant account/self-registration polish remains separate
+
+**Impact**: Applicant account creation/self-registration, anti-bot flow, and deeper organisation dedup remain a later product area. Existing applicant/account-request surfaces should not be mistaken for the full M13 polish scope unless verified.
+
+**Current workaround**: Use existing seeded/test applicants or existing account-request flow where available. Keep M13 scoped separately.
+
+### S2 - Browser/visual verification is manual
+
+**Impact**: CLI validation can prove type/build health, but final cockpit/document-viewer ergonomics still need Fred's browser verification.
+
+**Current workaround**: Run typecheck/build locally, then do the final role replay in the browser on Fred's machine.
+
+### S3 - Vite large-chunk warnings
+
+**Impact**: Admin/portal builds can pass with large bundle warnings. This is not blocking dev, but it should be handled before production hardening.
+
+**Current workaround**: Track as later bundle-size/code-splitting task.
+
+## Resolved Historical Blockers
+
+- Drizzle CLI migration issue: resolved by using the project migration script instead of raw `drizzle-kit migrate`.
+- Staff/applicant token confusion: resolved with `kind`-discriminated auth and origin-aware cookie selection.
+- Empty request body crashes: resolved by using `req.body ?? {}` patterns.
+- Applicant visibility leak for R3 inspection verdict: resolved server-side.
+- M4/M5 cache drift from July: superseded by current repo/cache reconciliation.

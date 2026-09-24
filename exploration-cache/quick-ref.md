@@ -1,123 +1,124 @@
-# ⚡ AIDN v2 - Quick Reference
+# AIDN v2 - Quick Reference
 
-> One-page overview. For deeper detail see `technical/cheat-sheet.md`.
+One-page orientation. For deeper detail see `technical/cheat-sheet.md`, `active-session/current-task.md`, and `active-session/next-actions.md`.
 
-## 🚀 Start Dev
+## Start Dev
 
 ```bash
-npm install                                            # postinstall builds packages/shared
-cp apps/api/.env.example apps/api/.env                 # fill in real values
-npm run db:generate
-npm run db:migrate                                      # scripts/migrate.ts, not the drizzle-kit CLI
-npm run seed:params --workspace apps/api               # new script, wraps the tsx call
-npm run dev                                             # API :4000, admin :5173, portal :5174
+npm install
+cp apps/api/.env.example apps/api/.env
+npm run db:migrate
+npm run seed:params --workspace=apps/api
+npm run dev
 ```
 
-## 📁 Where Is…
+Default local services:
 
-| Thing                  | Path                                                       |
-| ---------------------- | ---------------------------------------------------------- |
-| ANAC color tokens      | `apps/admin/src/index.css` and `apps/portal/src/index.css` |
-| DB schema              | `apps/api/src/shared/db/schema.ts`                         |
-| Server entry           | `apps/api/src/server.ts`                                   |
-| Staff auth context     | `apps/admin/src/hooks/useAuth.tsx`                         |
-| Applicant auth context | `apps/portal/src/hooks/useApplicantAuth.tsx`               |
-| Env vars               | `apps/api/.env` (copy from `.env.example`)                 |
+- API: `http://localhost:4000`
+- Admin: `http://localhost:5173`
+- Portal: `http://localhost:5174`
 
-## 🎨 Key CSS Classes
+## Current Git State
 
-```
-bg-anac-navy    (primary brand #1B2A5E)
-bg-anac-gray    (page background)
-text-anac-muted (secondary text)
-border-anac-border
-bg-anac-danger  (errors #DC2626)
-bg-anac-success (success #16A34A)
-.card           (white panel, border, shadow, p-6)
-.btn-primary    (navy button, legacy utility class - components/ui/button.tsx preferred now)
-```
+- Main branch: `main`
+- Current source of truth: `origin/main`
+- Latest known commit: `26f6c71 feat: ai advanced`
+- Staging/infra baseline commit: `d65214c feat(infra): add AIDN staging deployment and reset migrations baseline`
+- Important unmerged branch: `chore/codex-frontend-agents`
 
-## 🔒 Auth Model
+Do not merge `chore/codex-frontend-agents` directly into `main`; it is behind the current staging/migration baseline. Rebase/cherry-pick scoped groups or replay selected refactors on top of current `main`.
+
+## Where Is...
+
+| Thing | Path |
+| --- | --- |
+| API entry | `apps/api/src/server.ts` |
+| DB schema | `apps/api/src/shared/db/schema.ts` |
+| Drizzle migrations | `apps/api/drizzle/` |
+| Admin app | `apps/admin/src` |
+| Portal app | `apps/portal/src` |
+| Shared constants/types | `packages/shared/src` |
+| Staging guide | `README-STAGING-INFRA.md` |
+| Staging env template | `.env.staging.example` |
+| Active handoff | `exploration-cache/active-session/current-task.md` |
+| Next actions | `exploration-cache/active-session/next-actions.md` |
+
+## Auth Model
 
 Two separate systems, one API:
 
-```
-Staff (users table):      matricule + OTP first-login, multi-role via user_roles
-Applicant (applicants):   email + password, no OTP, no roles
-```
-
-Both JWTs carry `kind: "staff" | "applicant"` - never interchangeable.
-
-## 📡 Key API Endpoints
-
-```
-GET  /api/bootstrap/status
-POST /api/bootstrap/init
-POST /api/auth/login              matricule + (otp | password)
-POST /api/auth/set-password
-GET  /api/auth/me
-POST /api/applicant-auth/login    email + password
-GET  /api/applicant-auth/me
-GET  /api/users                   SU only
-POST /api/users                   SU only
-POST /api/uploads                 multipart, either auth type
-POST /api/requests                either auth type
-GET  /api/requests/mine           applicant only
-POST /api/requests/:id/mark-signed
-POST /api/requests/:id/mark-pending-review
-POST /api/requests/:id/cancel     either auth type, ownership enforced
-
-POST /api/phases/requests/:requestId/start-preliminary-phase   staff (DN/SU)
-POST /api/meetings                                             staff (DN/SU)
-GET  /api/meetings/:id/ticket                                  either auth type
-POST /api/meetings/:id/report                                  staff (DN/SU)
-GET  /api/document-templates/:key                              either auth type
-GET  /api/preliminary-evaluation/by-request/:requestId         either auth type
-GET  /api/deep-evaluation/by-request/:requestId                either auth type
-POST /api/deep-evaluation/requests/:requestId/start-deep-evaluation   staff (DN/SU)
-POST /api/deep-evaluation/phases/:phaseId/invoice              staff (S5/DN/SU)
-POST /api/deep-evaluation/phases/:phaseId/requests/:requestId/proof   either auth type
-POST /api/deep-evaluation/phases/:phaseId/payment/validate     staff (S5/DN/SU)
-POST /api/deep-evaluation/phases/:phaseId/payment/reject       staff (S5/DN/SU)
-PATCH /api/deep-evaluation/evaluations/:evaluationId/verdict   staff (DN/SU)
-POST /api/deep-evaluation/evaluations/:evaluationId/resubmit   either auth type
-POST /api/deep-evaluation/phases/:phaseId/close                staff (DN/SU)
-GET  /api/system-parameters                                    SU only
-PATCH /api/system-parameters/:key                              SU only
-GET  /api/dev-tools/status                                     SU only
-POST /api/dev-tools/reset                                      SU only + ENABLE_DEV_RESET=true
+```text
+Staff:      users + user_roles, matricule + OTP/password, multi-role
+Applicant:  applicants, email + password
 ```
 
-## 🚫 Rules
+Both JWTs carry `kind: "staff" | "applicant"` and are never interchangeable.
 
-| ❌ Never                                                | ✅ Instead                                                              |
-| ------------------------------------------------------- | ----------------------------------------------------------------------- |
-| Run `drizzle-kit migrate` directly                      | Use `npm run db:migrate` (→ `scripts/migrate.ts`)                       |
-| Trust `applicantId` from an applicant's request body    | Take it from `req.applicant.applicantId`                                |
-| Check `error.code` on a Drizzle-thrown error            | Check `error.cause.code`                                                |
-| Add `ignoreDeprecations` for a `baseUrl` warning        | Remove `baseUrl`, use `"@/*": ["./*"]`                                  |
-| Run the shadcn CLI                                      | Hand-write components in `components/ui/` (Tailwind setup incompatible) |
-| Destructure `req.body` without a fallback               | Use `req.body ?? {}` - no body/Content-Type leaves it `undefined`       |
-| Give a router a blanket `router.use(authenticate, ...)` | Scope it per-route if anything else might mount underneath              |
+## Operational App Status
 
-## 📊 Sprint Status
+Implemented baseline:
 
+- Sprint 0: feasibility, conventions, stack, schema, scaffold.
+- Sprint 1: intake and DG signature circuit.
+- Sprint 2: M3 preliminary phase.
+- Sprint 3: M4 formal request.
+- Sprint 4: M5 deep evaluation.
+- Sprint 5: M6 site inspection / R3.
+- Sprint 6: M7 certificate issuance.
+
+Operational/transverse surfaces now present:
+
+- DN/SU dashboard and `Demandes` cockpit.
+- Reception/assistant DG dashboard and `Courriers officiels`.
+- S5 dashboard and `Paiements S5`.
+- R3 dashboard and `Mes inspections`.
+- `Reunions` cockpit.
+- `Gestion des utilisateurs` with Personnel ANAC activation.
+- `/analytique` analytics cockpit.
+- `/api/reports` PDF/Excel report generation and generated report history.
+
+## Key API Areas
+
+```text
+/api/bootstrap
+/api/auth
+/api/applicant-auth
+/api/users
+/api/personnel-anac
+/api/requests
+/api/courrier-tasks
+/api/phases
+/api/preliminary-evaluation
+/api/formal-request
+/api/deep-evaluation
+/api/site-inspection
+/api/certificates
+/api/meetings
+/api/uploads
+/api/document-templates
+/api/dashboard
+/api/analytics
+/api/reports
+/api/system-parameters
+/api/dev-tools
 ```
-✅ Sprint 0  - Feasibility, patterns, conventions, stack, schema, scaffold
-✅ Sprint 1  - Intake & Circuit DG (M1+M2), full API + UI (admin + portal)
-✅ Prereq    - Auth (staff + applicant), Bootstrap, Users management
-✅ Sprint 2  - Phase Préliminaire (M3), full API + UI, + document_templates module
-✅ Hardening - settings/system-parameters/dev-tools + meeting CR flow
-🛠️ Sprint 3  - Phase Demande formelle (M4) - kickoff committed, ongoing
-🛠️ Sprint 4  - Évaluation approfondie (M5) - kickoff started
-⏳ Sprint 5-12 - not started
-```
 
-## 🔴 Active Notes
+## Rules
 
-- M13 applicant self-registration not built - portal login needs a manually-seeded
-  applicant for now
-- No browser/visual verification possible from Claude's sandbox - Fred confirms
-  UI visually after each diff
-- `PORTAL_ORIGIN` env var (new in Sprint 2) isn't in `apps/api/.env.example` yet
-- Dev reset endpoint is intentionally gated by role + env flag (`ENABLE_DEV_RESET`)
+| Never | Instead |
+| --- | --- |
+| Run raw `drizzle-kit migrate` as the primary migration path | Use `npm run db:migrate` |
+| Trust applicant IDs from applicant request bodies | Use authenticated applicant context |
+| Treat staff and applicant tokens as interchangeable | Check JWT `kind` |
+| Destructure request bodies without fallback | Use `req.body ?? {}` |
+| Merge stale feature branches directly into `main` | Rebase/cherry-pick against current `main` |
+| Treat Notion backlog status as authoritative when it conflicts with code | Verify against repo tree and Git history |
+
+## Active Notes
+
+- Final role replay is the next product validation gate.
+- Notion backlog has known stale rows and is being reconciled.
+- M11 notifications are not implemented as a full notification center yet.
+- M12 analytics/reporting V1 exists; next work is performance, SLA definitions, monthly scheduling, and AI-assisted report review.
+- M13 applicant account/self-registration polish remains a later product area.
+- Admin/portal Vite large-chunk warnings remain non-blocking for now.
