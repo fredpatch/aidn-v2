@@ -1,4 +1,6 @@
 import { Eye } from 'lucide-react';
+import { SelectableTableRow } from '../../../components/common/SelectableTableRow';
+import { TableState } from '../../../components/common/TableState';
 import { Button } from '../../../components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
 import type { UserView } from '../../../lib/api/users.types';
@@ -19,27 +21,25 @@ export function UsersTable({
   onSelect: (user: UserView) => void;
 }) {
   if (loading) {
-    return (
-      <div className="p-8 text-center text-sm text-anac-muted">Chargement des utilisateurs...</div>
-    );
+    return <TableState state="loading" title="Chargement des utilisateurs..." />;
   }
 
   if (error) {
     return (
-      <div className="p-8 text-center text-sm text-anac-danger">
-        {apiErrorMessage(error, 'Impossible de charger les utilisateurs.')}
-      </div>
+      <TableState
+        state="error"
+        title={apiErrorMessage(error, 'Impossible de charger les utilisateurs.')}
+      />
     );
   }
 
   if (users.length === 0) {
     return (
-      <div className="p-10 text-center">
-        <p className="font-semibold text-anac-navy">Aucun utilisateur dans cette vue</p>
-        <p className="mt-1 text-sm text-anac-muted">
-          Modifiez les filtres ou activez un agent depuis Personnel ANAC.
-        </p>
-      </div>
+      <TableState
+        state="empty"
+        title="Aucun utilisateur dans cette vue"
+        description="Modifiez les filtres ou activez un agent depuis Personnel ANAC."
+      />
     );
   }
 
@@ -56,9 +56,14 @@ export function UsersTable({
       </TableHeader>
       <TableBody>
         {users.map((user) => (
-          <TableRow key={user.id} className={selectedId === user.id ? 'bg-anac-blue/5' : undefined}>
+          <SelectableTableRow
+            key={user.id}
+            selected={selectedId === user.id}
+            onSelect={() => onSelect(user)}
+            ariaLabel={`Selectionner l'utilisateur ${user.fullName}`}
+          >
             <TableCell>
-              <button type="button" onClick={() => onSelect(user)} className="flex items-center gap-3 text-left">
+              <div className="flex items-center gap-3 text-left">
                 <UserAvatar user={user} />
                 <span>
                   <span className="block max-w-[230px] truncate font-semibold text-anac-navy">
@@ -66,7 +71,7 @@ export function UsersTable({
                   </span>
                   <span className="block max-w-[230px] truncate text-xs text-anac-muted">{user.email}</span>
                 </span>
-              </button>
+              </div>
             </TableCell>
             <TableCell>
               <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
@@ -85,7 +90,7 @@ export function UsersTable({
                 Consulter
               </Button>
             </TableCell>
-          </TableRow>
+          </SelectableTableRow>
         ))}
       </TableBody>
     </Table>

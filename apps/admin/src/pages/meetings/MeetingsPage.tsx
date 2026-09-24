@@ -21,9 +21,12 @@ import {
 } from 'lucide-react';
 import { Button, buttonVariants } from '../../components/ui/button';
 import { EmptyState } from '../../components/common/EmptyState';
+import {
+  SelectableDataTable,
+  type SelectableDataTableColumn,
+} from '../../components/common/SelectableDataTable';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { apiErrorMessage } from '../../lib/axios';
 import {
   attachMeetingReport,
@@ -535,51 +538,70 @@ function MeetingsTable({
   selectedId: number | null;
   onSelect: (item: MeetingCockpitItem) => void;
 }) {
-  if (items.length === 0) {
-    return (
-      <EmptyState
-        title="Aucune reunion dans cette vue"
-        description="Modifiez les filtres ou revenez plus tard."
-        className="min-h-[360px]"
-      />
-    );
-  }
-
   return (
-    <Table className="min-w-[980px]">
-      <TableHeader>
-        <TableRow>
-          <TableHead>Dossier</TableHead>
-          <TableHead>Organisme</TableHead>
-          <TableHead>Type</TableHead>
-          <TableHead>Date</TableHead>
-          <TableHead>Responsable</TableHead>
-          <TableHead>Statut</TableHead>
-          <TableHead>Action</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {items.map((item) => (
-          <TableRow
-            key={item.id}
-            onClick={() => onSelect(item)}
-            className={cn('cursor-pointer', selectedId === item.id && 'bg-anac-blue/5')}
-          >
-            <TableCell className="font-semibold text-anac-navy">{item.requestReference}</TableCell>
-            <TableCell>{item.organisationName}</TableCell>
-            <TableCell>{item.meetingTypeLabel}</TableCell>
-            <TableCell>{formatDateTime(item.scheduledAt)}</TableCell>
-            <TableCell>{item.dnAgentName}</TableCell>
-            <TableCell>
-              <StatusBadge label={item.statusLabel} tone={STATUS_STYLES[item.status] ?? STATUS_STYLES.scheduled} />
-            </TableCell>
-            <TableCell className="text-xs font-semibold text-anac-blue">{item.actionLabel}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+    <SelectableDataTable
+      rows={items}
+      columns={meetingColumns}
+      getRowKey={(item) => item.id}
+      selectedKey={selectedId}
+      onSelect={(item) => onSelect(item)}
+      getAriaLabel={(item) =>
+        `Selectionner la reunion ${item.requestReference} de ${item.organisationName}`
+      }
+      emptyState={{
+        title: 'Aucune reunion dans cette vue',
+        description: 'Modifiez les filtres ou revenez plus tard.',
+        className: 'min-h-[360px]',
+      }}
+      className="min-w-[980px]"
+    />
   );
 }
+
+const meetingColumns: SelectableDataTableColumn<MeetingCockpitItem>[] = [
+  {
+    id: 'dossier',
+    header: 'Dossier',
+    className: 'font-semibold text-anac-navy',
+    cell: (item) => item.requestReference,
+  },
+  {
+    id: 'organisme',
+    header: 'Organisme',
+    cell: (item) => item.organisationName,
+  },
+  {
+    id: 'type',
+    header: 'Type',
+    cell: (item) => item.meetingTypeLabel,
+  },
+  {
+    id: 'date',
+    header: 'Date',
+    cell: (item) => formatDateTime(item.scheduledAt),
+  },
+  {
+    id: 'responsable',
+    header: 'Responsable',
+    cell: (item) => item.dnAgentName,
+  },
+  {
+    id: 'statut',
+    header: 'Statut',
+    cell: (item) => (
+      <StatusBadge
+        label={item.statusLabel}
+        tone={STATUS_STYLES[item.status] ?? STATUS_STYLES.scheduled}
+      />
+    ),
+  },
+  {
+    id: 'action',
+    header: 'Action',
+    className: 'text-xs font-semibold text-anac-blue',
+    cell: (item) => item.actionLabel,
+  },
+];
 
 function UpcomingRail({
   items,
