@@ -1,6 +1,7 @@
 import { api } from '../axios';
 import type {
   DevToolsResetResult,
+  DevToolsSessionResult,
   DevToolsStatus,
   ParameterView,
   UploadCleanupResult,
@@ -23,14 +24,33 @@ export async function fetchDevToolsStatus(): Promise<DevToolsStatus> {
   } catch {
     return {
       enabled: false,
+      environment: 'unknown',
+      accessRequired: 'Super admin',
+      mode: 'irreversible',
       scopes: [],
       labels: {},
+      scopeDetails: [],
+      session: {
+        active: false,
+        expiresAt: null,
+        durationMinutes: null,
+      },
     };
   }
 }
 
-export async function resetDevTools(scopes: string[]): Promise<DevToolsResetResult> {
-  const { data } = await api.post('/dev-tools/reset', { scopes });
+export async function startDevToolsSession(
+  durationMinutes: number
+): Promise<DevToolsSessionResult> {
+  const { data } = await api.post('/dev-tools/session', { durationMinutes });
+  return data;
+}
+
+export async function resetDevTools(
+  scopes: string[],
+  confirmation: string
+): Promise<DevToolsResetResult> {
+  const { data } = await api.post('/dev-tools/reset', { scopes, confirmation });
   return data;
 }
 

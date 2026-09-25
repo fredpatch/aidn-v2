@@ -8,6 +8,7 @@ interface TemplateView {
   key: string;
   label: string;
   fileUrl: string | null;
+  fileExists: boolean;
   mimeType: string | null;
   uploadedAt: string | null;
   active: boolean;
@@ -63,15 +64,19 @@ export default function DocumentTemplatesPage() {
             <div key={known.key} className="card flex items-center justify-between">
               <div>
                 <p className="font-medium text-sm">{existing?.label ?? known.defaultLabel}</p>
-                {existing?.fileUrl ? (
+                {existing?.fileUrl && existing.fileExists ? (
                   <a
-                    href={`http://localhost:4000${existing.fileUrl}`}
+                    href={existing.fileUrl}
                     target="_blank"
                     rel="noreferrer"
                     className="text-anac-blue underline text-xs"
                   >
                     Voir le fichier actuel
                   </a>
+                ) : existing?.fileUrl ? (
+                  <p className="text-anac-danger text-xs">
+                    Fichier introuvable sur le serveur - remplacez le modele.
+                  </p>
                 ) : (
                   <p className="text-anac-warning text-xs">Aucun fichier configure</p>
                 )}
@@ -131,6 +136,7 @@ function UploadTemplateForm({
     try {
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("moduleHint", "document-templates");
       const { data: uploaded } = await api.post("/uploads", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
@@ -140,6 +146,7 @@ function UploadTemplateForm({
         label,
         fileUrl: uploaded.fileUrl,
         mimeType: uploaded.mimeType,
+        uploadAssetId: uploaded.uploadAssetId,
       });
 
       onDone();

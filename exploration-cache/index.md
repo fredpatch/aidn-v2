@@ -56,6 +56,7 @@ This folder is the living technical memory for AIDN v2. Notion is the shared hig
 | [`sessions/2026-07-27-m6-m7.md`](sessions/2026-07-27-m6-m7.md) | M6 and M7 completed end-to-end |
 | [`sessions/2026-07-28.md`](sessions/2026-07-28.md) | Post-M7 workflow hardening, document viewer, Personnel ANAC users |
 | [`sessions/2026-09-24.md`](sessions/2026-09-24.md) | Documentation reconciliation across repo, Notion, cache, and unmerged frontend branch |
+| [`sessions/2026-09-25.md`](sessions/2026-09-25.md) | Settings Maintenance/dev reset implementation and UI scope correction |
 
 ## Other
 

@@ -23,3 +23,47 @@ export const SCOPE_LABELS: Record<ResettableScope, string> = {
   audit_logs: "Journal d'audit",
   reports: 'Rapports (dashboard/IA)',
 };
+
+export const SCOPE_DESCRIPTIONS: Record<ResettableScope, string> = {
+  requests_and_workflow:
+    'Supprime les demandes de test et tout le graphe workflow associe. Les modeles et utilisateurs restent conserves.',
+  organisations_and_applicants:
+    'Supprime les organisations, postulants et demandes de comptes creees pendant les essais.',
+  notifications:
+    "Vide le centre de notifications et l'historique fonctionnel lie aux essais.",
+  audit_logs:
+    'Vide le journal technique. Une nouvelle trace de nettoyage est recreree apres la suppression.',
+  reports:
+    'Supprime les rapports generes et les historiques de generation de test.',
+};
+
+export const SCOPE_WARNINGS: Partial<Record<ResettableScope, string>> = {
+  requests_and_workflow: 'Ce scope entraine la suppression de donnees liees par cascade.',
+  organisations_and_applicants: 'Ce scope peut entrainer la suppression de demandes liees.',
+  audit_logs: 'Le journal existant sera efface avant la creation de la trace de nettoyage.',
+};
+
+export interface DevToolsScopeMeta {
+  key: ResettableScope;
+  label: string;
+  description: string;
+  dangerous: boolean;
+  warning?: string;
+}
+
+export interface DevToolsSession {
+  active: boolean;
+  expiresAt: string | null;
+  durationMinutes: number | null;
+}
+
+export interface DevToolsStatus {
+  enabled: boolean;
+  environment: string;
+  accessRequired: string;
+  mode: 'irreversible';
+  scopes: ResettableScope[];
+  labels: Record<ResettableScope, string>;
+  scopeDetails: DevToolsScopeMeta[];
+  session: DevToolsSession;
+}

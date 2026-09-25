@@ -7,6 +7,7 @@ const router = Router();
 router.use(authenticate, requireRole('SU'));
 
 router.get('/status', devToolsController.status);
+router.post('/session', devToolsController.startSession);
 router.post('/reset', devToolsController.reset);
 
 export default router;

@@ -311,6 +311,25 @@ export const handlePreliminaryEvaluationError = createErrorHandler(
 export const handleDevToolsError = createErrorHandler(
   {
     STATUS_NOT_FOUND: { status: 404, message: 'Statut introuvable.' },
+    DEV_RESET_DISABLED: { status: 403, message: 'Les outils de developpement sont desactives.' },
+    DEV_RESET_PRODUCTION_GUARD: {
+      status: 403,
+      message:
+        'Le nettoyage developpement est bloque en production sans activation explicite serveur.',
+    },
+    INVALID_SESSION_DURATION: {
+      status: 400,
+      message: 'La duree de maintenance doit etre comprise entre 15 et 480 minutes.',
+    },
+    MAINTENANCE_SESSION_REQUIRED: {
+      status: 409,
+      message: 'Demarrez une session de maintenance avant de nettoyer les donnees.',
+    },
+    INVALID_CONFIRMATION: {
+      status: 400,
+      message: 'Confirmation invalide. Tapez NETTOYER pour continuer.',
+    },
+    INVALID_SCOPE: { status: 400, message: 'Categorie de nettoyage invalide.' },
     RESET_FAILED: { status: 500, message: 'La reinitialisation a echoue.' },
   },
   '[dev-tools]'

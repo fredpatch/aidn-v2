@@ -116,6 +116,14 @@ Operational/transverse surfaces now present:
 
 ## Active Notes
 
+- `/api/dev-tools/reset` is dev-only and now requires `SU`, `ENABLE_DEV_RESET=true`,
+  an actor-owned active `/api/dev-tools/session`, exact `NETTOYER` confirmation,
+  and `ALLOW_PRODUCTION_DEV_RESET=true` in production-like environments.
+- Resettable scopes clean their own physical files where safe (`reports`,
+  workflow `document_versions`); `document_template` uploads remain protected and
+  must be replaced through `Modeles de documents` if missing.
+- Admin `Parametres` currently exposes only code-backed tabs: `Securite`,
+  `Sauvegardes`, and `Maintenance`.
 - Final role replay is the next product validation gate.
 - Notion backlog has known stale rows and is being reconciled.
 - M11 notifications are not implemented as a full notification center yet.

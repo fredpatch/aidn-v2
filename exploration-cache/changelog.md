@@ -3,6 +3,31 @@
 Commit-level history. Covers `be9fce9` through the current uncommitted
 2026-07-28 workflow hardening, document viewer, and Personnel ANAC users pass.
 
+## (uncommitted) - 2026-09-25 settings maintenance/dev reset
+
+- Reworked admin `Parametres` into code-backed sections only: `Securite`,
+  `Sauvegardes`, and `Maintenance`.
+- Corrected the first Maintenance UI pass by removing screenshot-inspired
+  placeholder tabs that did not correspond to implemented settings functionality.
+- Extended existing `/api/dev-tools` support with richer status metadata,
+  per-scope descriptions/warnings, and a temporary maintenance session endpoint.
+- Hardened dev reset execution so reset now requires `SU`, `ENABLE_DEV_RESET=true`,
+  an actor-owned active maintenance session, production guard allowance when
+  applicable, and exact `NETTOYER` confirmation.
+- Documented disabled-by-default dev reset env flags in `apps/api/.env.example`:
+  `ENABLE_DEV_RESET=false` and `ALLOW_PRODUCTION_DEV_RESET=false`.
+- Preserved the existing reset boundaries: staff users, roles, system parameters,
+  and document templates remain non-resettable.
+- Smoke-test follow-up: resettable physical files are now cleaned too. The
+  `reports` scope removes generated report files, and `requests_and_workflow`
+  removes files referenced by resettable workflow `document_versions` before DB
+  truncation.
+- Document template files remain protected; the admin template page now flags
+  missing files instead of showing dead current-file links, and future template
+  uploads are linked to `document_template` upload assets.
+- Verified with admin/API typecheck and build. Admin still has the known Vite
+  large-chunk warning.
+
 ## (uncommitted) - 2026-08-04 shared cockpit visual-density polish
 
 - Normalized compact Lucide icon sizing across admin cockpit surfaces so table

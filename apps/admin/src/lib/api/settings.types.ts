@@ -9,12 +9,35 @@ export interface ParameterView {
 
 export interface DevToolsStatus {
   enabled: boolean;
+  environment: string;
+  accessRequired: string;
+  mode: 'irreversible';
   scopes: string[];
   labels: Record<string, string>;
+  scopeDetails: DevToolsScopeMeta[];
+  session: DevToolsSession;
+}
+
+export interface DevToolsScopeMeta {
+  key: string;
+  label: string;
+  description: string;
+  dangerous: boolean;
+  warning?: string;
+}
+
+export interface DevToolsSession {
+  active: boolean;
+  expiresAt: string | null;
+  durationMinutes: number | null;
 }
 
 export interface DevToolsResetResult {
   scopesCleared: string[];
+}
+
+export interface DevToolsSessionResult {
+  session: DevToolsSession;
 }
 
 export interface UploadDiagnostics {

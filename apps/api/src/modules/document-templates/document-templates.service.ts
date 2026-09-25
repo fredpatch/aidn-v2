@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { eq } from 'drizzle-orm';
 import { db } from '../../shared/db/index.js';
 import { documentTemplates, documentVersions } from '../../shared/db/schema.js';
@@ -10,9 +12,26 @@ export interface TemplateView {
   key: string;
   label: string;
   fileUrl: string | null;
+  fileExists: boolean;
   mimeType: string | null;
   uploadedAt: Date | null;
   active: boolean;
+}
+
+const uploadRootDir = path.resolve(process.cwd(), 'uploads');
+
+function fileExists(fileUrl: string | null): boolean {
+  if (!fileUrl?.startsWith('/uploads/')) return false;
+
+  const relativePath = fileUrl.replace(/^\/uploads\//, '').replaceAll('/', path.sep);
+  const fullPath = path.resolve(uploadRootDir, relativePath);
+  const relativeToRoot = path.relative(uploadRootDir, fullPath);
+
+  if (relativeToRoot.startsWith('..') || path.isAbsolute(relativeToRoot)) {
+    return false;
+  }
+
+  return fs.existsSync(fullPath);
 }
 
 function toTemplateView(row: typeof documentTemplates.$inferSelect): TemplateView {
@@ -21,6 +40,7 @@ function toTemplateView(row: typeof documentTemplates.$inferSelect): TemplateVie
     key: row.key,
     label: row.label,
     fileUrl: row.fileUrl,
+    fileExists: fileExists(row.fileUrl),
     mimeType: row.mimeType,
     uploadedAt: row.uploadedAt,
     active: row.active,

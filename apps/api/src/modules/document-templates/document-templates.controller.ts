@@ -27,7 +27,7 @@ export async function getByKey(req: Request, res: Response): Promise<void> {
 
   try {
     const template = await templatesService.getTemplateByKey(key);
-    if (!template || !template.active || !template.fileUrl) {
+    if (!template || !template.active || !template.fileUrl || !template.fileExists) {
       res.status(404).json({ message: 'Modele non disponible.' });
       return;
     }
