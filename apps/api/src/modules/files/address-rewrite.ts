@@ -51,6 +51,7 @@ export interface ExistingAsset {
   storageKey: string;
   linkedOwnerType: string | null;
   linkedOwnerId: number | null;
+  orphanedAt?: Date | null;
 }
 
 export type AssetRef = { existingId: number } | { registeredKey: string };
@@ -66,6 +67,11 @@ export interface AddressRewritePlan {
     ownerId: number;
   }>;
   links: Array<{ assetId: number; ownerType: string; ownerId: number }>;
+  /** STORAGE-0B - stable addresses whose asset was never linked (workflow
+   *  attachments that sent no upload id); applied exactly like links. */
+  repairs: Array<{ assetId: number; ownerType: string; ownerId: number; wasOrphaned: boolean }>;
+  /** Stable addresses pointing at no asset - reported, never changed. */
+  dangling: Array<{ table: string; column: string; rowId: number; value: string }>;
   rewrites: Array<{ table: string; column: string; rowId: number; from: string; asset: AssetRef }>;
   conflicts: Array<{
     table: string;
@@ -102,19 +108,65 @@ function legacyKey(value: string): string | null {
 
 const ownerLabel = (type: string | null, id: number | null) => `${type}:${id}`;
 
+type AssetState = { id: number; ownerType: string | null; ownerId: number | null; orphaned: boolean };
+
+/** A row already holding /api/files/<id>: make sure that asset is linked to
+ *  the owner the row implies. Never relinks - another owner is a conflict
+ *  and the asset is left as it is. */
+function planStableRepair(plan: AddressRewritePlan, row: AddressRow, assetId: number, byId: Map<number, AssetState>): void {
+  if (row.ownerType === null || row.ownerId === null) return; // the asset row itself
+  const state = byId.get(assetId);
+  if (!state) {
+    plan.dangling.push({ table: row.table, column: row.column, rowId: row.rowId, value: row.value });
+    return;
+  }
+  if (state.ownerType === null) {
+    plan.repairs.push({ assetId, ownerType: row.ownerType, ownerId: row.ownerId, wasOrphaned: state.orphaned });
+    state.ownerType = row.ownerType;
+    state.ownerId = row.ownerId;
+    return;
+  }
+  if (state.ownerType !== row.ownerType || state.ownerId !== row.ownerId) {
+    plan.conflicts.push({
+      table: row.table,
+      column: row.column,
+      rowId: row.rowId,
+      value: row.value,
+      assetId,
+      expectedOwner: ownerLabel(row.ownerType, row.ownerId),
+      actualOwner: ownerLabel(state.ownerType, state.ownerId),
+    });
+  }
+}
+
 export function planAddressRewrite(
   rows: AddressRow[],
   assets: ExistingAsset[],
   fileInfo: (storageKey: string) => { exists: boolean; sizeBytes: number }
 ): AddressRewritePlan {
-  const plan: AddressRewritePlan = { registrations: [], links: [], rewrites: [], conflicts: [], skipped: [] };
+  const plan: AddressRewritePlan = {
+    registrations: [],
+    links: [],
+    repairs: [],
+    rewrites: [],
+    conflicts: [],
+    skipped: [],
+    dangling: [],
+  };
 
-  // Lowest id wins for a storage key; link state evolves as the plan links.
-  const byKey = new Map<string, { id: number; ownerType: string | null; ownerId: number | null }>();
+  // Lowest id wins for a storage key; link state evolves as the plan links
+  // (one state object per asset, reachable by storage key and by id).
+  const byKey = new Map<string, AssetState>();
+  const byId = new Map<number, AssetState>();
   for (const asset of [...assets].sort((a, b) => a.id - b.id)) {
-    if (!byKey.has(asset.storageKey)) {
-      byKey.set(asset.storageKey, { id: asset.id, ownerType: asset.linkedOwnerType, ownerId: asset.linkedOwnerId });
-    }
+    const state: AssetState = {
+      id: asset.id,
+      ownerType: asset.linkedOwnerType,
+      ownerId: asset.linkedOwnerId,
+      orphaned: !!asset.orphanedAt,
+    };
+    byId.set(asset.id, state);
+    if (!byKey.has(asset.storageKey)) byKey.set(asset.storageKey, state);
   }
   const registered = new Map<string, { ownerType: string; ownerId: number }>();
 
@@ -125,7 +177,11 @@ export function planAddressRewrite(
   }
 
   for (const row of rows) {
-    if (parseFileAddress(row.value) !== null) continue; // already stable
+    const stableId = parseFileAddress(row.value);
+    if (stableId !== null) {
+      planStableRepair(plan, row, stableId, byId);
+      continue;
+    }
     const key = legacyKey(row.value);
     if (!key) {
       plan.skipped.push({ table: row.table, column: row.column, rowId: row.rowId, value: row.value });
@@ -231,6 +287,7 @@ export async function loadExistingAssets(executor: Executor): Promise<ExistingAs
       storageKey: schema.uploadAssets.storageKey,
       linkedOwnerType: schema.uploadAssets.linkedOwnerType,
       linkedOwnerId: schema.uploadAssets.linkedOwnerId,
+      orphanedAt: schema.uploadAssets.orphanedAt,
     })
     .from(schema.uploadAssets);
 }
@@ -264,7 +321,7 @@ export async function applyAddressRewrite(tx: Executor, plan: AddressRewritePlan
     registeredIds.set(registration.storageKey, id);
   }
 
-  for (const link of plan.links) {
+  for (const link of [...plan.links, ...plan.repairs]) {
     await tx
       .update(schema.uploadAssets)
       .set({

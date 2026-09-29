@@ -67,8 +67,3 @@ export interface PaymentQueueItem {
   nextAction: 'send_invoice' | 'validate_payment' | 'waiting_for_proof' | 'done' | 'rejected';
 }
 
-export interface UploadedFile {
-  fileUrl: string;
-  mimeType: string;
-  uploadAssetId?: number;
-}

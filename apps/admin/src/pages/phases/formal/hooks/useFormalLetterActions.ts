@@ -18,7 +18,7 @@ export function useFormalLetterActions(
   const submitMutation = useMutation({
     mutationFn: async (file: File) => {
       const uploaded = await uploadFile(file);
-      await submitFormalLetter(requestId!, uploaded.fileUrl, uploaded.mimeType);
+      await submitFormalLetter(requestId!, uploaded.uploadAssetId);
     },
     onSuccess: invalidate,
     onError: (err) => setActionError(apiErrorMessage(err, 'Impossible de soumettre la lettre.')),

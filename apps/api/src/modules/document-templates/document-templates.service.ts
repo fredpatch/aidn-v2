@@ -2,7 +2,14 @@ import { and, desc, eq } from 'drizzle-orm';
 import { db } from '../../shared/db/index.js';
 import { documentTemplates, documentVersions, users } from '../../shared/db/schema.js';
 import { logAudit } from '../auth/auth.service.js';
-import { linkUploadAssetToOwner } from '../uploads/uploads.service.js';
+import {
+  claimUploadAsset,
+  linkLockedAsset,
+  lockUploadAsset,
+  trashCurrentVersions,
+  versionValues,
+  type PreparedAttachment,
+} from '../uploads/upload-attachment.js';
 import { storedFilesExist } from '../files/stored-file.js';
 import type { DocumentTemplateKey } from '@aidn/shared';
 
@@ -91,77 +98,55 @@ export async function listTemplateVersions(key: DocumentTemplateKey): Promise<Te
 export async function upsertTemplate(params: {
   key: DocumentTemplateKey;
   label: string;
-  fileUrl: string;
-  mimeType: string;
-  uploadAssetId?: number;
+  /** STORAGE-0B - the checked upload; address and type come from it. */
+  attachment: PreparedAttachment;
   uploadedByUserId: number;
 }): Promise<TemplateView> {
-  const [existing] = await db
-    .select()
-    .from(documentTemplates)
-    .where(eq(documentTemplates.key, params.key));
+  const { attachment } = params;
+  const row = await db.transaction(async (tx) => {
+    // Target first: the template row for this key (when it exists).
+    const [existing] = await tx
+      .select()
+      .from(documentTemplates)
+      .where(eq(documentTemplates.key, params.key))
+      .for('update');
 
-  let row: typeof documentTemplates.$inferSelect;
+    if (existing) {
+      const target = { ownerType: 'document_template', ownerId: existing.id } as const;
+      if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') {
+        return existing;
+      }
+      // Trash the previous version before pointing at the new one.
+      await trashCurrentVersions(tx, 'document_template', existing.id);
+    } else if (await lockUploadAsset(tx, attachment)) {
+      throw new Error('UPLOAD_ASSET_ALREADY_LINKED');
+    }
 
-  if (existing) {
-    // Trash the previous version before pointing at the new one.
-    await db
-      .update(documentVersions)
-      .set({ isCurrent: false, trashedAt: new Date() })
-      .where(
-        and(
-          eq(documentVersions.ownerType, 'document_template'),
-          eq(documentVersions.ownerId, existing.id)
-        )
-      );
+    const values = {
+      label: params.label,
+      fileUrl: attachment.fileUrl,
+      mimeType: attachment.mimeType,
+      uploadedBy: params.uploadedByUserId,
+      uploadedAt: new Date(),
+    };
+    const [saved] = existing
+      ? await tx.update(documentTemplates).set(values).where(eq(documentTemplates.id, existing.id)).returning()
+      : await tx.insert(documentTemplates).values({ key: params.key, ...values }).returning();
 
-    [row] = await db
-      .update(documentTemplates)
-      .set({
-        label: params.label,
-        fileUrl: params.fileUrl,
-        mimeType: params.mimeType,
-        uploadedBy: params.uploadedByUserId,
-        uploadedAt: new Date(),
-      })
-      .where(eq(documentTemplates.id, existing.id))
-      .returning();
-  } else {
-    [row] = await db
-      .insert(documentTemplates)
-      .values({
-        key: params.key,
-        label: params.label,
-        fileUrl: params.fileUrl,
-        mimeType: params.mimeType,
-        uploadedBy: params.uploadedByUserId,
-        uploadedAt: new Date(),
-      })
-      .returning();
-  }
+    await tx.insert(documentVersions).values(versionValues(attachment, 'document_template', saved.id));
+    await linkLockedAsset(tx, attachment.assetId, { ownerType: 'document_template', ownerId: saved.id });
 
-  await db.insert(documentVersions).values({
-    ownerType: 'document_template',
-    ownerId: row.id,
-    fileUrl: params.fileUrl,
-    mimeType: params.mimeType,
-    uploadedBy: params.uploadedByUserId,
-    isCurrent: true,
-  });
-
-  await linkUploadAssetToOwner({
-    uploadAssetId: params.uploadAssetId,
-    ownerType: 'document_template',
-    ownerId: row.id,
-    expectedFileUrl: params.fileUrl,
-  });
-
-  await logAudit({
-    userId: params.uploadedByUserId,
-    action: existing ? 'DOCUMENT_TEMPLATE_REPLACED' : 'DOCUMENT_TEMPLATE_CREATED',
-    module: 'M13',
-    entityId: row.id,
-    details: { key: params.key },
+    await logAudit(
+      {
+        userId: params.uploadedByUserId,
+        action: existing ? 'DOCUMENT_TEMPLATE_REPLACED' : 'DOCUMENT_TEMPLATE_CREATED',
+        module: 'M13',
+        entityId: saved.id,
+        details: { key: params.key },
+      },
+      tx
+    );
+    return saved;
   });
 
   const [exists] = await storedFilesExist([row.fileUrl]);

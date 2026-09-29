@@ -4,7 +4,6 @@ export type {
   CertificateBundle,
   ScopeDetails,
   ScopeCategory,
-  UploadedFile,
 } from '../../../lib/api/certificates.types';
 export type { CertificateFieldsInput } from '../../../lib/api/certificates.api';
 

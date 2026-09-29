@@ -67,7 +67,8 @@ export const SYSTEM_PARAMETER_SEEDS: readonly SystemParameterSeedDefinition[] = 
   },
   {
     key: 'upload_orphan_retention_days',
-    defaultValue: '14',
+    // defaultValue: '14',
+    defaultValue: '3650',
     type: 'integer',
     module: 'M8',
     description:
@@ -145,7 +146,7 @@ export const SYSTEM_PARAMETER_SEEDS: readonly SystemParameterSeedDefinition[] = 
     type: 'text',
     module: 'M7',
     description:
-      "Nom complet du Directeur General affiche par defaut sur les certificats generes. DN peut le remplacer au cas par cas (dgFullNameOverride) sans changer ce defaut.",
+      'Nom complet du Directeur General affiche par defaut sur les certificats generes. DN peut le remplacer au cas par cas (dgFullNameOverride) sans changer ce defaut.',
   },
 ];
 

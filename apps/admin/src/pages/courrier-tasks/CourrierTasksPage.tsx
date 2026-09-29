@@ -47,7 +47,8 @@ import {
   type CourrierTask,
   type CourrierTaskBucket,
 } from '../../lib/api/courrier-tasks';
-import { api, apiErrorMessage } from '../../lib/axios';
+import { apiErrorMessage } from '../../lib/axios';
+import { uploadFile } from '../../lib/uploads';
 import { cn } from '../../lib/utils';
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -294,12 +295,8 @@ export default function CourrierTasksPage() {
     setActionError(null);
     setBusyId(returnTask.id);
     try {
-      const formData = new FormData();
-      formData.append('file', returnFile);
-      const { data: uploaded } = await api.post('/uploads', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      await returnSignedCourrier(returnTask.id, uploaded.fileUrl, uploaded.mimeType, uploaded.id);
+      const uploaded = await uploadFile(returnFile);
+      await returnSignedCourrier(returnTask.id, uploaded.uploadAssetId);
       setReturnTask(null);
       setReturnFile(null);
       await loadTasks();

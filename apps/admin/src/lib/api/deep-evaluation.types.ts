@@ -40,12 +40,6 @@ export interface DeepEvaluationBundle {
   };
 }
 
-export interface UploadedFile {
-  fileUrl: string;
-  mimeType: string;
-  uploadAssetId?: number;
-}
-
 export interface PaymentQueueItem {
   phaseId: number;
   requestId: number;

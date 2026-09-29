@@ -8,7 +8,12 @@ import {
   preliminaryEvaluationForms,
 } from '../../shared/db/schema.js';
 import { logAudit } from '../auth/auth.service.js';
-import { linkUploadAssetToOwner } from '../uploads/uploads.service.js';
+import {
+  claimUploadAsset,
+  linkLockedAsset,
+  versionValues,
+  type PreparedAttachment,
+} from '../uploads/upload-attachment.js';
 
 export interface PhaseView {
   id: number;
@@ -137,69 +142,59 @@ export async function closePhase(
   phaseId: number,
   actorUserId: number,
   params: {
-    closureDocumentUrl?: string;
-    closureDocumentMimeType?: string;
+    /** Optional closure document (STORAGE-0B: a checked upload). */
+    attachment?: PreparedAttachment;
     closureNote?: string;
-    closureDocumentUploadAssetId?: number;
   }
 ): Promise<PhaseView> {
-  const [phase] = await db.select().from(phases).where(eq(phases.id, phaseId));
-  if (!phase) throw new Error('PHASE_NOT_FOUND');
-  if (phase.status !== 'open') throw new Error('PHASE_ALREADY_CLOSED');
+  const { attachment } = params;
+  const updated = await db.transaction(async (tx) => {
+    const [phase] = await tx.select().from(phases).where(eq(phases.id, phaseId)).for('update');
+    if (!phase) throw new Error('PHASE_NOT_FOUND');
+    const target = { ownerType: 'phase_closure_document', ownerId: phaseId } as const;
+    if (attachment && (await claimUploadAsset(tx, attachment, target)) === 'attached_here') return phase;
+    if (phase.status !== 'open') throw new Error('PHASE_ALREADY_CLOSED');
 
-  const [currentMeeting] = await db
-    .select()
-    .from(meetings)
-    .where(and(eq(meetings.phaseId, phaseId), ne(meetings.status, 'rescheduled')))
-    .orderBy(desc(meetings.scheduledAt));
+    const [currentMeeting] = await tx
+      .select()
+      .from(meetings)
+      .where(and(eq(meetings.phaseId, phaseId), ne(meetings.status, 'rescheduled')))
+      .orderBy(desc(meetings.scheduledAt));
 
-  if (!currentMeeting || currentMeeting.status === 'scheduled') {
-    throw new Error('MEETING_NOT_RESOLVED');
-  }
+    if (!currentMeeting || currentMeeting.status === 'scheduled') {
+      throw new Error('MEETING_NOT_RESOLVED');
+    }
 
-  const [evaluation] = await db
-    .select()
-    .from(preliminaryEvaluationForms)
-    .where(eq(preliminaryEvaluationForms.phaseId, phaseId));
+    const [evaluation] = await tx
+      .select()
+      .from(preliminaryEvaluationForms)
+      .where(eq(preliminaryEvaluationForms.phaseId, phaseId));
 
-  if (!evaluation || !evaluation.submittedFileUrl) {
-    throw new Error('DECLARATION_NOT_SUBMITTED');
-  }
+    if (!evaluation || !evaluation.submittedFileUrl) {
+      throw new Error('DECLARATION_NOT_SUBMITTED');
+    }
 
-  if (params.closureDocumentUrl) {
-    await db.insert(documentVersions).values({
-      ownerType: 'phase_closure_document',
-      ownerId: phaseId,
-      fileUrl: params.closureDocumentUrl,
-      mimeType: params.closureDocumentMimeType ?? 'application/octet-stream',
-      uploadedBy: actorUserId,
-      isCurrent: true,
-    });
+    if (attachment) {
+      await tx.insert(documentVersions).values(versionValues(attachment, 'phase_closure_document', phaseId));
+      await linkLockedAsset(tx, attachment.assetId, target);
+    }
 
-    await linkUploadAssetToOwner({
-      uploadAssetId: params.closureDocumentUploadAssetId,
-      ownerType: 'phase_closure_document',
-      ownerId: phaseId,
-      expectedFileUrl: params.closureDocumentUrl,
-    });
-  }
+    const [closed] = await tx
+      .update(phases)
+      .set({
+        status: 'closed',
+        closedAt: new Date(),
+        closureDocumentUrl: attachment?.fileUrl,
+        closureNote: params.closureNote,
+      })
+      .where(eq(phases.id, phaseId))
+      .returning();
 
-  const [updated] = await db
-    .update(phases)
-    .set({
-      status: 'closed',
-      closedAt: new Date(),
-      closureDocumentUrl: params.closureDocumentUrl,
-      closureNote: params.closureNote,
-    })
-    .where(eq(phases.id, phaseId))
-    .returning();
-
-  await logAudit({
-    userId: actorUserId,
-    action: 'PHASE_CLOSED',
-    module: phase.phaseCode,
-    entityId: phaseId,
+    await logAudit(
+      { userId: actorUserId, action: 'PHASE_CLOSED', module: phase.phaseCode, entityId: phaseId },
+      tx
+    );
+    return closed;
   });
 
   return toPhaseView(updated);

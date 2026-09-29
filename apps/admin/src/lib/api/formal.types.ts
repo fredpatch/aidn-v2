@@ -45,7 +45,3 @@ export interface FormalPhaseBundle {
   completionRate: number;
 }
 
-export interface UploadedFile {
-  fileUrl: string;
-  mimeType: string;
-}

@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   authenticate,
   authenticateEither,
+  requireApplicant,
   requireApplicantOrRole,
   requireRole,
 } from "../../shared/guards/auth.middleware.js";
@@ -32,6 +33,7 @@ router.post(
   requireRole("dn_agent", "dn_supervisor", "SU"),
   evalController.makeAvailable
 );
-router.post("/:phaseId/submit", authenticateEither, evalController.submit);
+// The declaration is returned by the applicant only (STORAGE-0B / D7).
+router.post("/:phaseId/submit", authenticateEither, requireApplicant, evalController.submit);
 
 export default router;

@@ -2,7 +2,6 @@ export {
   fetchSiteInspectionBundle,
   startSiteInspection,
   uploadInvoice,
-  uploadPaymentProof,
   validatePayment,
   rejectPayment,
   scheduleSiteVisit,

@@ -45,7 +45,9 @@ import {
 import type { PaymentQueueItem as DeepPaymentQueueItem } from '../../lib/api/deep-evaluation.types';
 import type { PaymentQueueItem as SitePaymentQueueItem } from '../../lib/api/site-inspection.types';
 import type { PaymentQueueItem as CertificatePaymentQueueItem } from '../../lib/api/certificates.types';
-import { api, apiErrorMessage } from '../../lib/axios';
+import type { UploadedAsset } from '@aidn/shared';
+import { apiErrorMessage } from '../../lib/axios';
+import { uploadFile } from '../../lib/uploads';
 import { queryKeys } from '../../lib/react-query/queryKeys';
 import { cn } from '../../lib/utils';
 
@@ -108,13 +110,6 @@ const BUCKET_SEQUENCE: PaymentBucket[] = [
   'rejected',
   'all',
 ];
-
-interface UploadedFile {
-  fileUrl: string;
-  mimeType: string;
-  id?: number;
-  uploadAssetId?: number;
-}
 
 function formatDate(value: string | null | undefined): string {
   if (!value) return '-';
@@ -187,26 +182,16 @@ function phasePath(item: S5PaymentQueueItem): string {
   return `/demandes/${item.requestId}/delivrance`;
 }
 
-async function uploadFile(file: File): Promise<UploadedFile> {
-  const formData = new FormData();
-  formData.append('file', file);
-  const { data } = await api.post('/uploads', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-  return data;
-}
-
-async function uploadInvoiceForItem(item: S5PaymentQueueItem, uploaded: UploadedFile): Promise<void> {
-  const uploadAssetId = uploaded.uploadAssetId ?? uploaded.id;
+async function uploadInvoiceForItem(item: S5PaymentQueueItem, uploaded: UploadedAsset): Promise<void> {
   if (item.phaseCode === 'M5') {
-    await uploadDeepInvoice(item.phaseId, uploaded.fileUrl, uploaded.mimeType, uploadAssetId);
+    await uploadDeepInvoice(item.phaseId, uploaded.uploadAssetId);
     return;
   }
   if (item.phaseCode === 'M6') {
-    await uploadSiteInvoice(item.phaseId, uploaded.fileUrl, uploaded.mimeType, uploadAssetId);
+    await uploadSiteInvoice(item.phaseId, uploaded.uploadAssetId);
     return;
   }
-  await uploadCertificateInvoice(item.phaseId, uploaded.fileUrl, uploaded.mimeType, uploadAssetId);
+  await uploadCertificateInvoice(item.phaseId, uploaded.uploadAssetId);
 }
 
 async function validatePaymentForItem(item: S5PaymentQueueItem): Promise<void> {

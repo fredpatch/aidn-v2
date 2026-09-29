@@ -31,25 +31,7 @@ export async function rescheduleMeeting(
   await api.post(`/meetings/${meetingId}/reschedule`, { newScheduledAt });
 }
 
-export async function attachMeetingReport(
-  meetingId: number,
-  fileUrl: string,
-  mimeType: string,
-  uploadAssetId?: number
-): Promise<void> {
-  await api.post(`/meetings/${meetingId}/report`, { fileUrl, mimeType, uploadAssetId });
+export async function attachMeetingReport(meetingId: number, uploadAssetId: number): Promise<void> {
+  await api.post(`/meetings/${meetingId}/report`, { uploadAssetId });
 }
 
-export async function uploadMeetingFile(file: File): Promise<{
-  fileUrl: string;
-  mimeType: string;
-  id?: number;
-  uploadAssetId?: number;
-}> {
-  const formData = new FormData();
-  formData.append('file', file);
-  const { data } = await api.post('/uploads', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-  return data;
-}

@@ -3,6 +3,31 @@
 Commit-level history. Covers `be9fce9` through the current uncommitted
 2026-07-28 workflow hardening, document viewer, and Personnel ANAC users pass.
 
+## (uncommitted) - 2026-09-29 STORAGE-0B asset-only attachment
+
+- Business endpoints take only `uploadAssetId` (closures:
+  `closureDocumentUploadAssetId`); address, MIME and uploader come from
+  `upload_assets`. `POST /api/uploads` returns `UploadedAsset` (no fileUrl).
+- `modules/uploads/upload-attachment.ts`: prepare (actor = uploader, SU
+  included; not generated; not orphaned; file present), claim under lock
+  (target row first, then asset; same target = idempotent), conditional link,
+  `trashCurrentVersions` scoped by owner type. Every workflow attachment is one
+  transaction with its audit entry (`logAudit(params, tx)`).
+- `modules/payments/payment-documents.ts` replaces three copies of the
+  invoice/proof logic (M5/M6/M7).
+- Fixed: unlinked workflow uploads (deleted by orphan cleanup after 14 days),
+  meeting-report replacement trashing other owner types, applicant ids written
+  into `document_versions.uploaded_by` (users FK), IDOR on M5 resubmission and
+  M5/M6/M7 proofs, 500s on unmapped upload errors.
+- M3 declaration applicant-only; M4 letter applicant or DN/SU; dead admin
+  staff proof/resubmit/M4-document actions removed.
+- Upload intake: Multer fileFilter, 413 for oversized, empty files refused,
+  file deleted on any pre-commit failure. Orphan cleanup: per-row
+  `FOR UPDATE SKIP LOCKED`, mark committed before delete.
+- `storage:rewrite-addresses` repairs never-linked stable-address assets;
+  `scripts/storage-0b-risk-check.sql` for staging containment.
+- Shared `UploadedAsset` type and one `lib/uploads.ts` helper per app.
+
 ## (uncommitted) - 2026-09-25 STORAGE-0A secure file delivery
 
 - Stable address `/api/files/<uploadAssetId>` (`fileAddress`/`parseFileAddress`

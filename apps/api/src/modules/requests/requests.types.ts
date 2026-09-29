@@ -1,10 +1,11 @@
+import type { PreparedAttachment } from '../uploads/upload-attachment.js';
+
 export interface SubmitRequestParams {
   applicantId: number;
   requestType: 'recognition' | 'issuance' | 'modification' | 'renewal';
   message?: string;
-  fileUrl: string;
-  mimeType: string;
-  uploadAssetId?: number;
+  /** STORAGE-0B - the checked upload; address and type come from it. */
+  attachment: PreparedAttachment;
   submittedByUserId?: number; // set when reception/assistant_dg enters it manually
 }
 

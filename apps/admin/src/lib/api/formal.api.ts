@@ -1,5 +1,5 @@
 import { api } from '../axios';
-import type { FormalPhaseBundle, UploadedFile } from './formal.types';
+import type { FormalPhaseBundle } from './formal.types';
 
 export async function fetchFormalBundle(requestId: string): Promise<FormalPhaseBundle> {
   const { data } = await api.get(`/formal-request/by-request/${requestId}`);
@@ -10,12 +10,9 @@ export async function startFormalPhase(requestId: string): Promise<void> {
   await api.post(`/formal-request/requests/${requestId}/start-formal-phase`);
 }
 
-export async function submitFormalLetter(
-  requestId: string,
-  fileUrl: string,
-  mimeType: string
-): Promise<void> {
-  await api.post(`/formal-request/requests/${requestId}/letter`, { fileUrl, mimeType });
+/** DN/SU on the applicant's behalf (physical drop-off). */
+export async function submitFormalLetter(requestId: string, uploadAssetId: number): Promise<void> {
+  await api.post(`/formal-request/requests/${requestId}/letter`, { uploadAssetId });
 }
 
 export async function markLetterSigned(requestId: string): Promise<void> {
@@ -24,15 +21,6 @@ export async function markLetterSigned(requestId: string): Promise<void> {
 
 export async function markLetterPendingReview(requestId: string): Promise<void> {
   await api.post(`/formal-request/requests/${requestId}/letter/mark-pending-review`);
-}
-
-export async function submitFormalDocument(
-  requestId: string,
-  slot: string,
-  fileUrl: string,
-  mimeType: string
-): Promise<void> {
-  await api.post(`/formal-request/requests/${requestId}/documents`, { slot, fileUrl, mimeType });
 }
 
 export async function scheduleFormalMeeting(params: {
@@ -65,35 +53,20 @@ export async function markMeetingStatus(
   await api.patch(`/meetings/${meetingId}/status`, { status });
 }
 
-export async function attachMeetingReport(
-  meetingId: number,
-  reportFileUrl: string,
-  reportMimeType: string
-): Promise<void> {
-  await api.post(`/meetings/${meetingId}/report`, {
-    fileUrl: reportFileUrl,
-    mimeType: reportMimeType,
-  });
+export async function attachMeetingReport(meetingId: number, uploadAssetId: number): Promise<void> {
+  await api.post(`/meetings/${meetingId}/report`, { uploadAssetId });
 }
 
 export async function closeFormalPhase(params: {
   phaseId: number;
   closureNote?: string;
-  closureDocumentUrl?: string;
-  closureDocumentMimeType?: string;
+  closureDocumentUploadAssetId?: number;
 }): Promise<void> {
   await api.post(`/formal-request/phases/${params.phaseId}/close`, {
-    closureDocumentUrl: params.closureDocumentUrl,
-    closureDocumentMimeType: params.closureDocumentMimeType,
+    closureDocumentUploadAssetId: params.closureDocumentUploadAssetId,
     closureNote: params.closureNote || undefined,
   });
 }
 
-export async function uploadFile(file: File): Promise<UploadedFile> {
-  const formData = new FormData();
-  formData.append('file', file);
-  const { data } = await api.post('/uploads', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-  return data;
-}
+// STORAGE-0B - one shared upload helper (returns uploadAssetId).
+export { uploadFile } from '../uploads';

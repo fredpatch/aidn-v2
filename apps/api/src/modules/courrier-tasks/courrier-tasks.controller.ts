@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { handleFormalRequestError } from '../../shared/utils/error.js';
 import * as courrierTasksService from './courrier-tasks.service.js';
+import { actorFromRequest, parseUploadAssetId, prepareUploadAttachment } from '../uploads/upload-attachment.js';
 
 export async function list(req: Request, res: Response): Promise<void> {
   try {
@@ -28,25 +29,9 @@ export async function confirmPrintedForSignature(req: Request, res: Response): P
 
 export async function returnSigned(req: Request, res: Response): Promise<void> {
   try {
-    const { fileUrl, mimeType, uploadAssetId } = req.body ?? {};
-    if (!fileUrl || !mimeType) {
-      res.status(400).json({ message: 'fileUrl et mimeType sont requis.' });
-      return;
-    }
-    const parsedUploadAssetId =
-      uploadAssetId === undefined || uploadAssetId === null ? undefined : Number(uploadAssetId);
-    if (parsedUploadAssetId !== undefined && !Number.isInteger(parsedUploadAssetId)) {
-      res.status(400).json({ message: 'uploadAssetId invalide.' });
-      return;
-    }
-
-    const task = await courrierTasksService.returnSigned(
-      String(req.params.taskId),
-      fileUrl,
-      mimeType,
-      req.user!.userId,
-      parsedUploadAssetId
-    );
+    const { uploadAssetId } = req.body ?? {};
+    const attachment = await prepareUploadAttachment(parseUploadAssetId(uploadAssetId), actorFromRequest(req));
+    const task = await courrierTasksService.returnSigned(String(req.params.taskId), attachment, req.user!.userId);
     res.json(task);
   } catch (error) {
     handleFormalRequestError(res, error);

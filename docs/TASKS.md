@@ -128,18 +128,45 @@ admin → retour portail, pas seulement des tests API isolés) :
 - [x] **UPLOADS-ROOT** (2026-09-25, via STORAGE-0A) - dev-tools, rapports,
       certificats, uploads, modèles et santé utilisent `UPLOADS_ROOT` ; plus aucun
       chemin d'upload basé sur `process.cwd()`
-- [ ] **UPLOAD-REJECT-CLEANUP** - un fichier refusé par `POST /api/uploads`
-      (type non accepté) reste sur disque : le supprimer dans le contrôleur
-      (intégré à STORAGE-0B)
+- [x] **UPLOAD-REJECT-CLEANUP** (2026-09-29, via STORAGE-0B) - type refusé par
+      le `fileFilter` Multer (jamais écrit), fichier vide ou échec d'insertion :
+      fichier supprimé immédiatement
 - [x] **STORAGE-0A** (2026-09-25) - livraison sécurisée des fichiers : `/api/files/:id`,
       contrôle d'accès par type de document, liens signés 5 min, fichiers
       générés enregistrés comme assets, réécriture des adresses `/uploads/…`,
       fermeture du `/uploads` public. Spec :
       `docs/superpowers/specs/2026-09-25-storage-0a-design.md` (implémenté ;
       rewrite à exécuter en staging avec sauvegarde vérifiée)
-- [ ] **STORAGE-0B** - contrat de rattachement par `uploadAssetId` uniquement
-      (métadonnées côté serveur, contrôle de l'uploader, suppression immédiate
-      des uploads refusés, `UPLOADS_ROOT` partout)
+- [x] **STORAGE-0B** (2026-09-29) - rattachement par `uploadAssetId` uniquement :
+      adresse, MIME et uploader dérivés de `upload_assets` ; l'acteur doit être
+      l'uploader (SU compris) ; rattachement + écriture métier + version + audit
+      dans une transaction (cible verrouillée puis asset) ; rattachement
+      idempotent ; nettoyage des orphelins verrouillé (`SKIP LOCKED`) ; IDOR
+      corrigés (resoumission M5, preuves M5/M6/M7) ; bug de corbeille des
+      comptes-rendus corrigé ; réparation des liens manquants dans
+      `storage:rewrite-addresses`. Spec :
+      `docs/superpowers/specs/2026-09-29-storage-0b-design.md`
+- [ ] **STORAGE-0B-STAGING** (bloquant avant déploiement) - en staging :
+      `upload_orphan_retention_days=3650` + requêtes de
+      `scripts/storage-0b-risk-check.sql` AVANT déploiement ; déployer (la
+      réparation des liens passe par l'étape rewrite du script de déploiement) ;
+      relancer les requêtes ; remettre la rétention (14) seulement quand la
+      requête 2 renvoie 0 ligne
+- [ ] **FILE-CONTENT-VALIDATION** - vérifier le contenu réel (octets
+      magiques PDF/PNG/JPEG/OLE2/ZIP ; DOCX demande de lire l'archive) au lieu du
+      MIME déclaré par le navigateur (reporté de STORAGE-0B, D8)
+- [ ] **TEST-DB-HARNESS** - base de test d'intégration réutilisable (transactions,
+      verrous, rollbacks) ; STORAGE-0B est validé par un script local sur copie
+      jetable de la base (D12)
+- [ ] **VERSION-CURRENT-DISCIPLINE** - facture, preuve de paiement et
+      resoumission M5 ajoutent une version `is_current` sans mettre la
+      précédente à la corbeille (plusieurs versions courantes ; comportement
+      conservé par STORAGE-0B)
+- [ ] **INVOICE-REUPLOAD-STATUS** - remettre une facture repasse le paiement à
+      `awaiting_proof` quel que soit son statut (même validé) ; comportement
+      existant, à borner
+- [ ] **DEMO-SEED-LEGACY-ADDRESSES** - `seed-analytics-demo-data.ts` (dev)
+      écrit encore des adresses `/uploads/demo/...` sans asset
 - [ ] **STORAGE-1 → 4**, **FILE-REFS-1**, **INFRA-BACKUP-1** (prérequis de
       toute migration de données en staging/production) - voir la spec
       STORAGE-0A §1

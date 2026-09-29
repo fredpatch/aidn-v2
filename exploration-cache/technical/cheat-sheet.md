@@ -51,7 +51,10 @@ PATCH /api/users/:id
 PATCH /api/users/:id/activation
 POST /api/users/:id/reset-otp
 
-POST /api/uploads                 multipart, field 'file', either auth type
+POST /api/uploads                 multipart, field 'file', either auth type ->
+                                    { uploadAssetId, originalName, mimeType, sizeBytes }
+                                    business endpoints then take ONLY { uploadAssetId }
+                                    (STORAGE-0B; actor must be the uploader)
 
 POST /api/requests                 either auth type; applicant submits for self,
                                     staff must pass applicantId

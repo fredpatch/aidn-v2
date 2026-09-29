@@ -10,7 +10,13 @@ import {
   documentVersions,
 } from '../../shared/db/schema.js';
 import { logAudit } from '../auth/auth.service.js';
-import { linkUploadAssetToOwner } from '../uploads/uploads.service.js';
+import {
+  claimUploadAsset,
+  linkLockedAsset,
+  versionValues,
+  type PreparedAttachment,
+} from '../uploads/upload-attachment.js';
+import { attachPaymentInvoice, attachPaymentProof } from '../payments/payment-documents.js';
 import { SLOT_LABELS } from '../formal-request/formal-request.service.js';
 import type {
   PaymentView,
@@ -200,96 +206,20 @@ export async function getPaymentQueue(): Promise<PaymentQueueItem[]> {
 // ── Invoice ────────────────────────────────────────────────────────────────
 export async function uploadInvoice(
   phaseId: number,
-  fileUrl: string,
-  mimeType: string,
-  actorUserId: number,
-  uploadAssetId?: number
+  attachment: PreparedAttachment,
+  actorUserId: number
 ): Promise<PaymentView> {
-  const [payment] = await db.select().from(payments).where(eq(payments.phaseId, phaseId));
-  if (!payment) throw new Error('PAYMENT_NOT_FOUND');
-
-  await db.insert(documentVersions).values({
-    ownerType: 'payment_invoice',
-    ownerId: payment.id,
-    fileUrl,
-    mimeType,
-    uploadedBy: actorUserId,
-    isCurrent: true,
-  });
-
-  await linkUploadAssetToOwner({
-    uploadAssetId,
-    ownerType: 'payment_invoice',
-    ownerId: payment.id,
-    expectedFileUrl: fileUrl,
-  });
-
-  const [updated] = await db
-    .update(payments)
-    .set({
-      invoiceFileUrl: fileUrl,
-      invoiceUploadedAt: new Date(),
-      status: 'awaiting_proof',
-    })
-    .where(eq(payments.id, payment.id))
-    .returning();
-
-  await logAudit({
-    userId: actorUserId,
-    action: 'INVOICE_UPLOADED',
-    module: 'M5',
-    entityId: payment.id,
-  });
-
-  return toPaymentView(updated);
+  return toPaymentView(await attachPaymentInvoice(phaseId, 'M5', attachment, actorUserId));
 }
 
 // ── Proof of payment ───────────────────────────────────────────────────────
 export async function uploadPaymentProof(
   phaseId: number,
-  fileUrl: string,
-  mimeType: string,
-  actorUserId?: number,
-  uploadAssetId?: number
+  requestId: number,
+  applicantId: number,
+  attachment: PreparedAttachment
 ): Promise<PaymentView> {
-  const [payment] = await db.select().from(payments).where(eq(payments.phaseId, phaseId));
-  if (!payment) throw new Error('PAYMENT_NOT_FOUND');
-  if (!payment.invoiceFileUrl) throw new Error('INVOICE_NOT_UPLOADED');
-  if (payment.status === 'validated') throw new Error('PAYMENT_ALREADY_VALIDATED');
-
-  await db.insert(documentVersions).values({
-    ownerType: 'payment_proof',
-    ownerId: payment.id,
-    fileUrl,
-    mimeType,
-    uploadedBy: actorUserId,
-    isCurrent: true,
-  });
-
-  await linkUploadAssetToOwner({
-    uploadAssetId,
-    ownerType: 'payment_proof',
-    ownerId: payment.id,
-    expectedFileUrl: fileUrl,
-  });
-
-  const [updated] = await db
-    .update(payments)
-    .set({
-      proofFileUrl: fileUrl,
-      proofUploadedAt: new Date(),
-      status: 'pending_validation',
-    })
-    .where(eq(payments.id, payment.id))
-    .returning();
-
-  await logAudit({
-    action: 'PAYMENT_PROOF_UPLOADED',
-    module: 'M5',
-    entityId: payment.id,
-  });
-
-  return toPaymentView(updated);
+  return toPaymentView(await attachPaymentProof(phaseId, requestId, applicantId, 'M5', attachment));
 }
 
 // ── Validate / reject proof ────────────────────────────────────────────────
@@ -405,62 +335,63 @@ export async function setVerdict(
 }
 
 // ── Resubmit corrected document ────────────────────────────────────────────
+/** Applicant only (route: requireApplicant). The evaluation must belong to
+ *  this applicant's dossier (D6) - otherwise "not found". */
 export async function resubmitDocument(
   evaluationId: number,
-  fileUrl: string,
-  mimeType: string,
-  actorUserId?: number,
-  uploadAssetId?: number
+  applicantId: number,
+  attachment: PreparedAttachment
 ): Promise<DocumentEvaluationView> {
-  const [evalRow] = await db
-    .select()
-    .from(documentEvaluations)
-    .where(eq(documentEvaluations.id, evaluationId));
-  if (!evalRow) throw new Error('EVALUATION_NOT_FOUND');
+  const { updated, formalDoc } = await db.transaction(async (tx) => {
+    // Target first: the evaluation row, then the upload asset.
+    const [evalRow] = await tx
+      .select()
+      .from(documentEvaluations)
+      .where(eq(documentEvaluations.id, evaluationId))
+      .for('update');
+    if (!evalRow) throw new Error('EVALUATION_NOT_FOUND');
 
-  if (evalRow.verdict !== 'rejected' && evalRow.verdict !== 'needs_correction') {
-    throw new Error('RESUBMISSION_NOT_ALLOWED');
-  }
+    const [owner] = await tx
+      .select({ formalDoc: formalRequestDocuments, applicantId: requests.applicantId })
+      .from(formalRequestDocuments)
+      .innerJoin(phases, eq(phases.id, formalRequestDocuments.phaseId))
+      .innerJoin(requests, eq(requests.id, phases.requestId))
+      .where(eq(formalRequestDocuments.id, evalRow.formalRequestDocumentId));
+    if (!owner || owner.applicantId !== applicantId) throw new Error('EVALUATION_NOT_FOUND');
 
-  const [formalDoc] = await db
-    .select()
-    .from(formalRequestDocuments)
-    .where(eq(formalRequestDocuments.id, evalRow.formalRequestDocumentId));
-  if (!formalDoc) throw new Error('EVALUATION_NOT_FOUND');
+    const target = { ownerType: 'formal_request_document', ownerId: owner.formalDoc.id } as const;
+    if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') {
+      return { updated: evalRow, formalDoc: owner.formalDoc };
+    }
+    if (evalRow.verdict !== 'rejected' && evalRow.verdict !== 'needs_correction') {
+      throw new Error('RESUBMISSION_NOT_ALLOWED');
+    }
 
-  await db.insert(documentVersions).values({
-    ownerType: 'formal_request_document',
-    ownerId: formalDoc.id,
-    fileUrl,
-    mimeType,
-    uploadedBy: actorUserId,
-    isCurrent: true,
-  });
+    await tx.insert(documentVersions).values(versionValues(attachment, 'formal_request_document', owner.formalDoc.id));
+    await linkLockedAsset(tx, attachment.assetId, target);
 
-  await linkUploadAssetToOwner({
-    uploadAssetId,
-    ownerType: 'formal_request_document',
-    ownerId: formalDoc.id,
-    expectedFileUrl: fileUrl,
-  });
+    const [saved] = await tx
+      .update(documentEvaluations)
+      .set({
+        resubmittedFileUrl: attachment.fileUrl,
+        resubmittedAt: new Date(),
+        verdict: null,
+        evaluatedAt: null,
+        correctionDeadline: null,
+      })
+      .where(eq(documentEvaluations.id, evaluationId))
+      .returning();
 
-  const [updated] = await db
-    .update(documentEvaluations)
-    .set({
-      resubmittedFileUrl: fileUrl,
-      resubmittedAt: new Date(),
-      verdict: null,
-      evaluatedAt: null,
-      correctionDeadline: null,
-    })
-    .where(eq(documentEvaluations.id, evaluationId))
-    .returning();
-
-  await logAudit({
-    action: 'DOCUMENT_RESUBMITTED',
-    module: 'M5',
-    entityId: evaluationId,
-    details: { slot: formalDoc.slot },
+    await logAudit(
+      {
+        action: 'DOCUMENT_RESUBMITTED',
+        module: 'M5',
+        entityId: evaluationId,
+        details: { slot: owner.formalDoc.slot },
+      },
+      tx
+    );
+    return { updated: saved, formalDoc: owner.formalDoc };
   });
 
   return toEvalView(updated, formalDoc);
@@ -471,74 +402,60 @@ export async function closeDeepEvaluationPhase(
   phaseId: number,
   actorUserId: number,
   params: {
-    closureDocumentUrl?: string;
-    closureDocumentMimeType?: string;
-    closureDocumentUploadAssetId?: number;
+    /** Optional closure document (STORAGE-0B: a checked upload). */
+    attachment?: PreparedAttachment;
     closureNote?: string;
   }
 ): Promise<void> {
-  const [phase] = await db.select().from(phases).where(eq(phases.id, phaseId));
-  if (!phase) throw new Error('PHASE_NOT_FOUND');
-  if (phase.status !== 'open') throw new Error('PHASE_ALREADY_CLOSED');
+  const { attachment } = params;
+  await db.transaction(async (tx) => {
+    const [phase] = await tx.select().from(phases).where(eq(phases.id, phaseId)).for('update');
+    if (!phase) throw new Error('PHASE_NOT_FOUND');
+    const target = { ownerType: 'phase_closure_document', ownerId: phaseId } as const;
+    if (attachment && (await claimUploadAsset(tx, attachment, target)) === 'attached_here') return;
+    if (phase.status !== 'open') throw new Error('PHASE_ALREADY_CLOSED');
 
-  const [payment] = await db.select().from(payments).where(eq(payments.phaseId, phaseId));
-  if (!payment || payment.status !== 'validated') throw new Error('PAYMENT_NOT_VALIDATED');
+    const [payment] = await tx.select().from(payments).where(eq(payments.phaseId, phaseId));
+    if (!payment || payment.status !== 'validated') throw new Error('PAYMENT_NOT_VALIDATED');
 
-  const [m4] = await db
-    .select()
-    .from(phases)
-    .where(and(eq(phases.requestId, phase.requestId), eq(phases.phaseCode, 'M4')));
-
-  if (m4) {
-    const m4Docs = await db
+    const [m4] = await tx
       .select()
-      .from(formalRequestDocuments)
-      .where(eq(formalRequestDocuments.phaseId, m4.id));
+      .from(phases)
+      .where(and(eq(phases.requestId, phase.requestId), eq(phases.phaseCode, 'M4')));
 
-    if (m4Docs.length > 0) {
-      const docIds = m4Docs.map((d) => d.id);
-      const evalRows = await db
+    if (m4) {
+      const m4Docs = await tx
         .select()
-        .from(documentEvaluations)
-        .where(inArray(documentEvaluations.formalRequestDocumentId, docIds));
+        .from(formalRequestDocuments)
+        .where(eq(formalRequestDocuments.phaseId, m4.id));
 
-      const allValidated = evalRows.every((e) => e.verdict === 'validated');
-      if (!allValidated) throw new Error('DOCUMENTS_NOT_ALL_VALIDATED');
+      if (m4Docs.length > 0) {
+        const docIds = m4Docs.map((d) => d.id);
+        const evalRows = await tx
+          .select()
+          .from(documentEvaluations)
+          .where(inArray(documentEvaluations.formalRequestDocumentId, docIds));
+
+        const allValidated = evalRows.every((e) => e.verdict === 'validated');
+        if (!allValidated) throw new Error('DOCUMENTS_NOT_ALL_VALIDATED');
+      }
     }
-  }
 
-  if (params.closureDocumentUrl) {
-    await db.insert(documentVersions).values({
-      ownerType: 'phase_closure_document',
-      ownerId: phaseId,
-      fileUrl: params.closureDocumentUrl,
-      mimeType: params.closureDocumentMimeType ?? 'application/octet-stream',
-      uploadedBy: actorUserId,
-      isCurrent: true,
-    });
+    if (attachment) {
+      await tx.insert(documentVersions).values(versionValues(attachment, 'phase_closure_document', phaseId));
+      await linkLockedAsset(tx, attachment.assetId, target);
+    }
 
-    await linkUploadAssetToOwner({
-      uploadAssetId: params.closureDocumentUploadAssetId,
-      ownerType: 'phase_closure_document',
-      ownerId: phaseId,
-      expectedFileUrl: params.closureDocumentUrl,
-    });
-  }
+    await tx
+      .update(phases)
+      .set({
+        status: 'closed',
+        closedAt: new Date(),
+        closureDocumentUrl: attachment?.fileUrl,
+        closureNote: params.closureNote,
+      })
+      .where(eq(phases.id, phaseId));
 
-  await db
-    .update(phases)
-    .set({
-      status: 'closed',
-      closedAt: new Date(),
-      closureDocumentUrl: params.closureDocumentUrl,
-      closureNote: params.closureNote,
-    })
-    .where(eq(phases.id, phaseId));
-
-  await logAudit({
-    userId: actorUserId,
-    action: 'PHASE_CLOSED',
-    module: 'M5',
-    entityId: phaseId,
+    await logAudit({ userId: actorUserId, action: 'PHASE_CLOSED', module: 'M5', entityId: phaseId }, tx);
   });
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AlertCircle, CheckCircle2, CreditCard, FileSearch, UploadCloud } from 'lucide-react';
 import { api, apiErrorMessage } from '../../../lib/axios';
+import { uploadFile } from '../../../lib/uploads';
 import { notify } from '../../../lib/notify';
 import FileLink from '../../../components/files/FileLink';
 
@@ -106,15 +107,6 @@ export function DeepEvaluationSection({ requestId }: { requestId: number }) {
 
   if (!bundle?.phase) return null;
 
-  async function upload(file: File) {
-    const formData = new FormData();
-    formData.append('file', file);
-    const { data } = await api.post('/uploads', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    return data;
-  }
-
   async function handleProofUpload() {
     if (!proofFile) {
       notify.warning('Merci de joindre votre quittance de paiement.');
@@ -122,12 +114,8 @@ export function DeepEvaluationSection({ requestId }: { requestId: number }) {
     }
     setSubmitting(true);
     try {
-      const uploaded = await upload(proofFile);
-      await api.post(`/deep-evaluation/phases/${bundle?.phase!.id}/requests/${requestId}/proof`, {
-        fileUrl: uploaded.fileUrl,
-        mimeType: uploaded.mimeType,
-        uploadAssetId: uploaded.id,
-      });
+      const uploaded = await uploadFile(proofFile);
+      await api.post(`/deep-evaluation/phases/${bundle?.phase!.id}/requests/${requestId}/proof`, { uploadAssetId: uploaded.uploadAssetId });
       notify.success('Preuve de paiement soumise.');
       setProofFile(null);
       await load();
@@ -143,12 +131,8 @@ export function DeepEvaluationSection({ requestId }: { requestId: number }) {
     if (!file) return;
     setSubmitting(true);
     try {
-      const uploaded = await upload(file);
-      await api.post(`/deep-evaluation/evaluations/${evaluationId}/resubmit`, {
-        fileUrl: uploaded.fileUrl,
-        mimeType: uploaded.mimeType,
-        uploadAssetId: uploaded.id,
-      });
+      const uploaded = await uploadFile(file);
+      await api.post(`/deep-evaluation/evaluations/${evaluationId}/resubmit`, { uploadAssetId: uploaded.uploadAssetId });
       notify.success('Document corrige soumis.');
       setResubmitFiles((prev) => {
         const next = { ...prev };

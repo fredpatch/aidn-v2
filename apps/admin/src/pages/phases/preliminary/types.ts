@@ -4,7 +4,6 @@ export type {
   MeetingView,
   EvaluationView,
   PreliminaryBundle,
-  UploadedFile,
 } from '../../../lib/api/preliminary.types';
 
 export interface ChecklistItem {

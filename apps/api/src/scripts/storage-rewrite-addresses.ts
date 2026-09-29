@@ -1,5 +1,7 @@
 /** STORAGE-0A - rewrites stored /uploads/<key> addresses to stable
  *  /api/files/<id> addresses: `npm run storage:rewrite-addresses`.
+ *  STORAGE-0B - also links assets that a stable address references but that
+ *  were never linked (so orphan cleanup cannot delete them). Never relinks.
  *
  *    (no flag)            dry run: prints the plan, changes nothing
  *    --apply              applies the plan in one transaction
@@ -34,7 +36,7 @@ const apply = args.has('--apply');
 const acceptConflicts = args.has('--accept-conflicts');
 
 function report(plan: AddressRewritePlan, mode: string): number {
-  const changes = plan.registrations.length + plan.links.length + plan.rewrites.length;
+  const changes = plan.registrations.length + plan.links.length + plan.repairs.length + plan.rewrites.length;
   console.log(`[storage] Address rewrite - ${mode}`);
   const byColumn = new Map<string, number>();
   for (const rewrite of plan.rewrites) {
@@ -45,6 +47,13 @@ function report(plan: AddressRewritePlan, mode: string): number {
   const missing = plan.registrations.filter((r) => !r.fileExists).length;
   console.log(`  Assets to register: ${plan.registrations.length} (${missing} with a missing file, kept missing)`);
   console.log(`  Assets to link (referenced but unlinked): ${plan.links.length}`);
+  const wasOrphaned = plan.repairs.filter((r) => r.wasOrphaned);
+  console.log(`  Stable-address assets to link (never linked): ${plan.repairs.length} (${wasOrphaned.length} already orphan-marked)`);
+  for (const r of wasOrphaned) {
+    console.log(`    - asset ${r.assetId} -> ${r.ownerType}:${r.ownerId} was orphan-marked: its file may already be deleted`);
+  }
+  console.log(`  Stable addresses with no asset (left unchanged): ${plan.dangling.length}`);
+  for (const d of plan.dangling) console.log(`    - ${d.table}.${d.column}#${d.rowId}: ${d.value}`);
   console.log(`  Conflicts (blockers, rows left unchanged): ${plan.conflicts.length}`);
   for (const c of plan.conflicts) {
     console.log(`    - ${c.table}.${c.column}#${c.rowId}: asset ${c.assetId ?? '(new)'} belongs to ${c.actualOwner}, row implies ${c.expectedOwner}`);

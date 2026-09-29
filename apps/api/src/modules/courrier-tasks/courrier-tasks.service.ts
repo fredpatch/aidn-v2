@@ -9,7 +9,13 @@ import {
   requests,
 } from '../../shared/db/schema.js';
 import { logAudit } from '../auth/auth.service.js';
-import { linkUploadAssetToOwner } from '../uploads/uploads.service.js';
+import {
+  claimUploadAsset,
+  linkLockedAsset,
+  trashCurrentVersions,
+  versionValues,
+  type PreparedAttachment,
+} from '../uploads/upload-attachment.js';
 import type {
   CourrierTaskBucket,
   CourrierTaskListResponse,
@@ -188,61 +194,52 @@ export async function confirmPrintedForSignature(
 
 export async function returnSigned(
   taskId: string,
-  newFileUrl: string,
-  mimeType: string,
-  actorUserId: number,
-  uploadAssetId?: number
+  attachment: PreparedAttachment,
+  actorUserId: number
 ): Promise<CourrierTaskView> {
-  const circuit = await getCircuitForTask(taskId);
-  await ensureTaskCanMutate(circuit);
-  if (circuit.status !== 'in_signature_circuit') throw new Error('INVALID_CIRCUIT_TRANSITION');
+  const found = await getCircuitForTask(taskId);
+  await ensureTaskCanMutate(found);
 
-  await db
-    .update(documentVersions)
-    .set({ isCurrent: false, trashedAt: new Date() })
-    .where(
-      and(
-        eq(documentVersions.ownerType, 'dg_circuit_document'),
-        eq(documentVersions.ownerId, circuit.id)
-      )
+  const updated = await db.transaction(async (tx) => {
+    // STORAGE-0B - target row locked first, then the upload asset.
+    const [circuit] = await tx
+      .select()
+      .from(dgCircuitDocuments)
+      .where(eq(dgCircuitDocuments.id, found.id))
+      .for('update');
+    const target = { ownerType: 'dg_circuit_document', ownerId: circuit.id } as const;
+    if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') return circuit;
+    if (circuit.status !== 'in_signature_circuit') throw new Error('INVALID_CIRCUIT_TRANSITION');
+
+    await trashCurrentVersions(tx, 'dg_circuit_document', circuit.id);
+    await tx.insert(documentVersions).values(versionValues(attachment, 'dg_circuit_document', circuit.id));
+    await linkLockedAsset(tx, attachment.assetId, target);
+
+    const now = new Date();
+    const [signed] = await tx
+      .update(dgCircuitDocuments)
+      .set({ status: 'pending_review', signedAt: now, pendingReviewAt: now })
+      .where(eq(dgCircuitDocuments.id, circuit.id))
+      .returning();
+
+    if (signed.entityType === 'intake_request') {
+      await tx
+        .update(requests)
+        .set({ status: 'pending_review', updatedAt: now })
+        .where(eq(requests.id, signed.requestId));
+    }
+
+    await logAudit(
+      {
+        userId: actorUserId,
+        action: 'COURRIER_SIGNED_RETURNED',
+        module: signed.entityType === 'formal_request_letter' ? 'M4' : 'M1',
+        entityId: signed.id,
+        details: { requestId: signed.requestId, entityType: signed.entityType },
+      },
+      tx
     );
-
-  await db.insert(documentVersions).values({
-    ownerType: 'dg_circuit_document',
-    ownerId: circuit.id,
-    fileUrl: newFileUrl,
-    mimeType,
-    uploadedBy: actorUserId,
-    isCurrent: true,
-  });
-
-  await linkUploadAssetToOwner({
-    uploadAssetId,
-    ownerType: 'dg_circuit_document',
-    ownerId: circuit.id,
-    expectedFileUrl: newFileUrl,
-  });
-
-  const now = new Date();
-  const [updated] = await db
-    .update(dgCircuitDocuments)
-    .set({ status: 'pending_review', signedAt: now, pendingReviewAt: now })
-    .where(eq(dgCircuitDocuments.id, circuit.id))
-    .returning();
-
-  if (updated.entityType === 'intake_request') {
-    await db
-      .update(requests)
-      .set({ status: 'pending_review', updatedAt: now })
-      .where(eq(requests.id, updated.requestId));
-  }
-
-  await logAudit({
-    userId: actorUserId,
-    action: 'COURRIER_SIGNED_RETURNED',
-    module: updated.entityType === 'formal_request_letter' ? 'M4' : 'M1',
-    entityId: updated.id,
-    details: { requestId: updated.requestId, entityType: updated.entityType },
+    return signed;
   });
 
   const task = await buildTaskView(updated);

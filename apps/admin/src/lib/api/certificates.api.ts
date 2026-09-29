@@ -3,7 +3,6 @@ import type {
   CertificateBundle,
   PaymentQueueItem,
   ScopeDetails,
-  UploadedFile,
 } from './certificates.types';
 
 export async function fetchCertificateBundle(requestId: string): Promise<CertificateBundle> {
@@ -20,27 +19,8 @@ export async function startDelivery(requestId: string): Promise<void> {
   await api.post(`/certificates/requests/${requestId}/start-delivery`);
 }
 
-export async function uploadInvoice(
-  phaseId: number,
-  fileUrl: string,
-  mimeType: string,
-  uploadAssetId?: number
-): Promise<void> {
-  await api.post(`/certificates/phases/${phaseId}/invoice`, { fileUrl, mimeType, uploadAssetId });
-}
-
-export async function uploadPaymentProof(
-  phaseId: number,
-  requestId: string,
-  fileUrl: string,
-  mimeType: string,
-  uploadAssetId?: number
-): Promise<void> {
-  await api.post(`/certificates/phases/${phaseId}/requests/${requestId}/proof`, {
-    fileUrl,
-    mimeType,
-    uploadAssetId,
-  });
+export async function uploadInvoice(phaseId: number, uploadAssetId: number): Promise<void> {
+  await api.post(`/certificates/phases/${phaseId}/invoice`, { uploadAssetId });
 }
 
 export async function validatePayment(phaseId: number): Promise<void> {
@@ -91,13 +71,8 @@ export async function generateCertificateDocument(
 export async function markPrinted(certificateId: number): Promise<void> {
   await api.post(`/certificates/${certificateId}/printed`);
 }
-export async function markSigned(
-  certificateId: number,
-  fileUrl: string,
-  mimeType: string,
-  uploadAssetId?: number
-): Promise<void> {
-  await api.post(`/certificates/${certificateId}/signed`, { fileUrl, mimeType, uploadAssetId });
+export async function markSigned(certificateId: number, uploadAssetId: number): Promise<void> {
+  await api.post(`/certificates/${certificateId}/signed`, { uploadAssetId });
 }
 export async function markArchived(certificateId: number): Promise<void> {
   await api.post(`/certificates/${certificateId}/archived`);
@@ -109,11 +84,5 @@ export async function markCollected(certificateId: number): Promise<void> {
   await api.post(`/certificates/${certificateId}/collected`);
 }
 
-export async function uploadFile(file: File): Promise<UploadedFile> {
-  const formData = new FormData();
-  formData.append('file', file);
-  const { data } = await api.post('/uploads', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-  return data;
-}
+// STORAGE-0B - one shared upload helper (returns uploadAssetId).
+export { uploadFile } from '../uploads';

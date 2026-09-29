@@ -38,7 +38,7 @@ export function useCertificateLifecycle(
   const signedMutation = useMutation({
     mutationFn: async ({ certificateId, file }: { certificateId: number; file: File }) => {
       const uploaded = await uploadFile(file);
-      await markSigned(certificateId, uploaded.fileUrl, uploaded.mimeType, uploaded.uploadAssetId);
+      await markSigned(certificateId, uploaded.uploadAssetId);
     },
     onSuccess: invalidate,
     onError: (err) => setActionError(apiErrorMessage(err, 'Impossible de marquer comme signé.')),

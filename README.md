@@ -101,6 +101,10 @@ jamais un modèle existant et ne réinitialise aucune valeur.
 est `/api/files/<id>` (jamais le chemin physique). Il n'y a pas de `/uploads`
 public : l'application demande un lien signé de 5 minutes
 (`POST /api/files/:id/access`) après un contrôle d'accès par type de document.
+Pour joindre un fichier, l'application envoie `POST /api/uploads` puis ne
+transmet que l'`uploadAssetId` reçu : le serveur vérifie que l'utilisateur
+est bien l'auteur de l'upload et déduit lui-même l'adresse et le type du
+fichier (STORAGE-0B).
 Les anciennes adresses `/uploads/...` se convertissent API arrêtée :
 
 ```bash

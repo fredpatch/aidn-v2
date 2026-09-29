@@ -1,7 +1,8 @@
 import { FormEvent, useState } from 'react';
 import { apiErrorMessage } from '../../../lib/axios';
 import { notify } from '../../../lib/notify';
-import { submitMyRequest, uploadFile } from '../../../lib/api/requests.api';
+import { submitMyRequest } from '../../../lib/api/requests.api';
+import { uploadFile } from '../../../lib/uploads';
 
 export function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
   const [requestType, setRequestType] = useState('issuance');
@@ -26,8 +27,7 @@ export function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) 
       await submitMyRequest({
         requestType,
         message,
-        fileUrl: uploaded.fileUrl,
-        mimeType: uploaded.mimeType,
+        uploadAssetId: uploaded.uploadAssetId,
       });
       notify.success('Demande soumise avec succès.');
       onSubmitted();

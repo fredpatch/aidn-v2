@@ -17,3 +17,12 @@ export function parseFileAddress(value: string | null | undefined): number | nul
   const id = Number(match[1]);
   return Number.isSafeInteger(id) ? id : null;
 }
+
+/** STORAGE-0B - POST /api/uploads response. Business endpoints take only
+ *  uploadAssetId; name, type and size are for display, never sent back. */
+export interface UploadedAsset {
+  uploadAssetId: number;
+  originalName: string;
+  mimeType: string;
+  sizeBytes: number;
+}

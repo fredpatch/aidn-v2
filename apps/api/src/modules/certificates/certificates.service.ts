@@ -14,7 +14,13 @@ import {
   notifications,
 } from '../../shared/db/schema.js';
 import { logAudit } from '../auth/auth.service.js';
-import { linkUploadAssetToOwner } from '../uploads/uploads.service.js';
+import {
+  claimUploadAsset,
+  linkLockedAsset,
+  versionValues,
+  type PreparedAttachment,
+} from '../uploads/upload-attachment.js';
+import { attachPaymentInvoice, attachPaymentProof } from '../payments/payment-documents.js';
 import { registerGeneratedFile } from '../uploads/asset-registration.js';
 import { UPLOADS_ROOT } from '../../shared/uploads-root.js';
 import { getTextValue } from '../system-parameters/system-parameters.service.js';
@@ -179,84 +185,20 @@ export async function getPaymentQueue(): Promise<PaymentQueueItem[]> {
 // ── Invoice ───────────────────────────────────────────────────────────────
 export async function uploadInvoice(
   phaseId: number,
-  fileUrl: string,
-  mimeType: string,
-  actorUserId: number,
-  uploadAssetId?: number
+  attachment: PreparedAttachment,
+  actorUserId: number
 ): Promise<PaymentView> {
-  const [payment] = await db.select().from(payments).where(eq(payments.phaseId, phaseId));
-  if (!payment) throw new Error('PAYMENT_NOT_FOUND');
-
-  await db.insert(documentVersions).values({
-    ownerType: 'payment_invoice',
-    ownerId: payment.id,
-    fileUrl,
-    mimeType,
-    uploadedBy: actorUserId,
-    isCurrent: true,
-  });
-
-  await linkUploadAssetToOwner({
-    uploadAssetId,
-    ownerType: 'payment_invoice',
-    ownerId: payment.id,
-    expectedFileUrl: fileUrl,
-  });
-
-  const [updated] = await db
-    .update(payments)
-    .set({ invoiceFileUrl: fileUrl, invoiceUploadedAt: new Date(), status: 'awaiting_proof' })
-    .where(eq(payments.id, payment.id))
-    .returning();
-
-  await logAudit({
-    userId: actorUserId,
-    action: 'INVOICE_UPLOADED',
-    module: 'M7',
-    entityId: payment.id,
-  });
-
-  return toPaymentView(updated);
+  return toPaymentView(await attachPaymentInvoice(phaseId, 'M7', attachment, actorUserId));
 }
 
 // ── Proof of payment ─────────────────────────────────────────────────────
 export async function uploadPaymentProof(
   phaseId: number,
-  fileUrl: string,
-  mimeType: string,
-  actorUserId?: number,
-  uploadAssetId?: number
+  requestId: number,
+  applicantId: number,
+  attachment: PreparedAttachment
 ): Promise<PaymentView> {
-  const [payment] = await db.select().from(payments).where(eq(payments.phaseId, phaseId));
-  if (!payment) throw new Error('PAYMENT_NOT_FOUND');
-  if (!payment.invoiceFileUrl) throw new Error('INVOICE_NOT_UPLOADED');
-  if (payment.status === 'validated') throw new Error('PAYMENT_ALREADY_VALIDATED');
-
-  await db.insert(documentVersions).values({
-    ownerType: 'payment_proof',
-    ownerId: payment.id,
-    fileUrl,
-    mimeType,
-    uploadedBy: actorUserId,
-    isCurrent: true,
-  });
-
-  await linkUploadAssetToOwner({
-    uploadAssetId,
-    ownerType: 'payment_proof',
-    ownerId: payment.id,
-    expectedFileUrl: fileUrl,
-  });
-
-  const [updated] = await db
-    .update(payments)
-    .set({ proofFileUrl: fileUrl, proofUploadedAt: new Date(), status: 'pending_validation' })
-    .where(eq(payments.id, payment.id))
-    .returning();
-
-  await logAudit({ action: 'PAYMENT_PROOF_UPLOADED', module: 'M7', entityId: payment.id });
-
-  return toPaymentView(updated);
+  return toPaymentView(await attachPaymentProof(phaseId, requestId, applicantId, 'M7', attachment));
 }
 
 // ── Validate proof - this is where the certificate row is created ────────
@@ -597,42 +539,40 @@ export const markPrinted = (id: number, userId: number) =>
 export async function markSigned(
   certificateId: number,
   actorUserId: number,
-  fileUrl: string,
-  mimeType: string,
-  uploadAssetId?: number
+  attachment: PreparedAttachment
 ): Promise<CertificateView> {
-  const [existing] = await db.select().from(certificates).where(eq(certificates.id, certificateId));
-  if (!existing) throw new Error('CERTIFICATE_NOT_FOUND');
-  if (existing.status !== 'printed') throw new Error('INVALID_STATUS_TRANSITION');
+  const updated = await db.transaction(async (tx) => {
+    // Target first: the certificate row, then the upload asset.
+    const [existing] = await tx
+      .select()
+      .from(certificates)
+      .where(eq(certificates.id, certificateId))
+      .for('update');
+    if (!existing) throw new Error('CERTIFICATE_NOT_FOUND');
+    const target = { ownerType: 'certificate_document', ownerId: certificateId } as const;
+    if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') return existing;
+    if (existing.status !== 'printed') throw new Error('INVALID_STATUS_TRANSITION');
 
-  await db.insert(documentVersions).values({
-    ownerType: 'certificate_document',
-    ownerId: certificateId,
-    fileUrl,
-    mimeType,
-    uploadedBy: actorUserId,
-    isCurrent: true,
-  });
+    await tx.insert(documentVersions).values(versionValues(attachment, 'certificate_document', certificateId));
+    await linkLockedAsset(tx, attachment.assetId, target);
 
-  await linkUploadAssetToOwner({
-    uploadAssetId,
-    ownerType: 'certificate_document',
-    ownerId: certificateId,
-    expectedFileUrl: fileUrl,
-  });
+    const [signed] = await tx
+      .update(certificates)
+      .set({ status: 'signed', signedAt: new Date(), signedFileUrl: attachment.fileUrl })
+      .where(eq(certificates.id, certificateId))
+      .returning();
 
-  const [updated] = await db
-    .update(certificates)
-    .set({ status: 'signed', signedAt: new Date(), signedFileUrl: fileUrl })
-    .where(eq(certificates.id, certificateId))
-    .returning();
-
-  await logAudit({
-    userId: actorUserId,
-    action: 'CERTIFICATE_SIGNED_RETURN_REGISTERED',
-    module: 'M7',
-    entityId: certificateId,
-    details: { fileUrl },
+    await logAudit(
+      {
+        userId: actorUserId,
+        action: 'CERTIFICATE_SIGNED_RETURN_REGISTERED',
+        module: 'M7',
+        entityId: certificateId,
+        details: { fileUrl: attachment.fileUrl },
+      },
+      tx
+    );
+    return signed;
   });
 
   return toCertificateView(updated);

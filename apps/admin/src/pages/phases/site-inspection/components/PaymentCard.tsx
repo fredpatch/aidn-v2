@@ -43,12 +43,6 @@ export default function PaymentCard({
     if (ok) setInvoiceFile(null);
   }
 
-  // async function handleProofUpload() {
-  //   if (!proofFile) return;
-  //   const ok = await uploadProofFile(proofFile);
-  //   if (ok) setProofFile(null);
-  // }
-
   async function handleReject() {
     if (!rejectionReason.trim()) {
       setActionError('Un motif de rejet est requis.');

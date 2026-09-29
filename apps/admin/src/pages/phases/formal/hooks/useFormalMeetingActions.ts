@@ -54,7 +54,7 @@ export function useFormalMeetingActions(
   const sendReportMutation = useMutation({
     mutationFn: async ({ meetingId, file }: { meetingId: number; file: File }) => {
       const uploaded = await uploadFile(file);
-      await attachMeetingReport(meetingId, uploaded.fileUrl, uploaded.mimeType);
+      await attachMeetingReport(meetingId, uploaded.uploadAssetId);
     },
     onSuccess: invalidate,
     onError: (err) => setActionError(apiErrorMessage(err, "Impossible d'envoyer le compte-rendu.")),

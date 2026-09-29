@@ -157,3 +157,75 @@ describe('planAddressRewrite', () => {
     );
   });
 });
+
+describe('planAddressRewrite - STORAGE-0B link repair of stable addresses', () => {
+  const stable = (overrides: Partial<AddressRow>) => row({ value: '/api/files/183', ...overrides });
+
+  it('links a referenced but unlinked asset to the owner its column implies', () => {
+    const plan = planAddressRewrite(
+      [stable({ table: 'document_versions', rowId: 5 }), stable({ table: 'formal_request_documents', rowId: 11 })],
+      [asset({ linkedOwnerType: null, linkedOwnerId: null })],
+      fileInfo({})
+    );
+    assert.deepEqual(plan.repairs, [
+      { assetId: 183, ownerType: 'formal_request_document', ownerId: 11, wasOrphaned: false },
+    ]);
+    assert.deepEqual(plan.rewrites, []);
+    assert.deepEqual(plan.conflicts, []);
+  });
+
+  it('flags a repaired asset that cleanup had already marked orphaned', () => {
+    const plan = planAddressRewrite(
+      [stable({})],
+      [asset({ linkedOwnerType: null, linkedOwnerId: null, orphanedAt: new Date('2026-09-01') })],
+      fileInfo({})
+    );
+    assert.equal(plan.repairs[0].wasOrphaned, true);
+  });
+
+  it('changes nothing when the asset is already linked to that owner', () => {
+    const plan = planAddressRewrite([stable({})], [asset({})], fileInfo({}));
+    assert.deepEqual(plan.repairs, []);
+    assert.deepEqual(plan.conflicts, []);
+  });
+
+  it('reports a conflict and never relinks an asset owned by something else', () => {
+    const plan = planAddressRewrite(
+      [stable({})],
+      [asset({ linkedOwnerType: 'payment_proof', linkedOwnerId: 4 })],
+      fileInfo({})
+    );
+    assert.deepEqual(plan.repairs, []);
+    assert.equal(plan.conflicts.length, 1);
+    assert.equal(plan.conflicts[0].assetId, 183);
+    assert.equal(plan.conflicts[0].actualOwner, 'payment_proof:4');
+    assert.equal(plan.conflicts[0].expectedOwner, 'formal_request_document:11');
+  });
+
+  it('reports a conflict when two rows imply different owners for one unlinked asset', () => {
+    const plan = planAddressRewrite(
+      [stable({ rowId: 1 }), stable({ table: 'payments', column: 'proof_file_url', rowId: 4, ownerType: 'payment_proof', ownerId: 4 })],
+      [asset({ linkedOwnerType: null, linkedOwnerId: null })],
+      fileInfo({})
+    );
+    assert.equal(plan.repairs.length, 1);
+    assert.equal(plan.conflicts.length, 1);
+  });
+
+  it('reports an address whose asset does not exist, without blocking', () => {
+    const plan = planAddressRewrite([stable({ value: '/api/files/999' })], [asset({})], fileInfo({}));
+    assert.deepEqual(plan.dangling, [
+      { table: 'formal_request_documents', column: 'file_url', rowId: 1, value: '/api/files/999' },
+    ]);
+    assert.deepEqual(plan.conflicts, []);
+  });
+
+  it('ignores the upload_assets row itself', () => {
+    const plan = planAddressRewrite(
+      [stable({ table: 'upload_assets', rowId: 183, ownerType: null, ownerId: null })],
+      [asset({ linkedOwnerType: null, linkedOwnerId: null })],
+      fileInfo({})
+    );
+    assert.deepEqual(plan.repairs, []);
+  });
+});

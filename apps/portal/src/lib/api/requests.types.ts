@@ -11,11 +11,6 @@ export interface RequestView {
   createdAt: string;
 }
 
-export interface UploadedFile {
-  fileUrl: string;
-  mimeType: string;
-}
-
 export interface PreliminaryBundle {
   phase: { id: number; status: string } | null;
   meeting: {
@@ -61,6 +56,5 @@ export interface FormalBundle {
 export interface SubmitMyRequestInput {
   requestType: string;
   message: string;
-  fileUrl: string;
-  mimeType: string;
+  uploadAssetId: number;
 }

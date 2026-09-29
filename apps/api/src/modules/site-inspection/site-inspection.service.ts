@@ -10,7 +10,8 @@ import {
   documentVersions,
 } from '../../shared/db/schema.js';
 import { logAudit } from '../auth/auth.service.js';
-import { linkUploadAssetToOwner } from '../uploads/uploads.service.js';
+import type { PreparedAttachment } from '../uploads/upload-attachment.js';
+import { attachPaymentInvoice, attachPaymentProof } from '../payments/payment-documents.js';
 import { scheduleMeeting } from '../meetings/meetings.service.js';
 import type {
   PaymentView,
@@ -262,84 +263,20 @@ export async function getPaymentQueue(): Promise<PaymentQueueItem[]> {
 // ── Invoice ───────────────────────────────────────────────────────────────
 export async function uploadInvoice(
   phaseId: number,
-  fileUrl: string,
-  mimeType: string,
-  actorUserId: number,
-  uploadAssetId?: number
+  attachment: PreparedAttachment,
+  actorUserId: number
 ): Promise<PaymentView> {
-  const [payment] = await db.select().from(payments).where(eq(payments.phaseId, phaseId));
-  if (!payment) throw new Error('PAYMENT_NOT_FOUND');
-
-  await db.insert(documentVersions).values({
-    ownerType: 'payment_invoice',
-    ownerId: payment.id,
-    fileUrl,
-    mimeType,
-    uploadedBy: actorUserId,
-    isCurrent: true,
-  });
-
-  await linkUploadAssetToOwner({
-    uploadAssetId,
-    ownerType: 'payment_invoice',
-    ownerId: payment.id,
-    expectedFileUrl: fileUrl,
-  });
-
-  const [updated] = await db
-    .update(payments)
-    .set({ invoiceFileUrl: fileUrl, invoiceUploadedAt: new Date(), status: 'awaiting_proof' })
-    .where(eq(payments.id, payment.id))
-    .returning();
-
-  await logAudit({
-    userId: actorUserId,
-    action: 'INVOICE_UPLOADED',
-    module: 'M6',
-    entityId: payment.id,
-  });
-
-  return toPaymentView(updated);
+  return toPaymentView(await attachPaymentInvoice(phaseId, 'M6', attachment, actorUserId));
 }
 
 // ── Proof of payment ─────────────────────────────────────────────────────
 export async function uploadPaymentProof(
   phaseId: number,
-  fileUrl: string,
-  mimeType: string,
-  actorUserId?: number,
-  uploadAssetId?: number
+  requestId: number,
+  applicantId: number,
+  attachment: PreparedAttachment
 ): Promise<PaymentView> {
-  const [payment] = await db.select().from(payments).where(eq(payments.phaseId, phaseId));
-  if (!payment) throw new Error('PAYMENT_NOT_FOUND');
-  if (!payment.invoiceFileUrl) throw new Error('INVOICE_NOT_UPLOADED');
-  if (payment.status === 'validated') throw new Error('PAYMENT_ALREADY_VALIDATED');
-
-  await db.insert(documentVersions).values({
-    ownerType: 'payment_proof',
-    ownerId: payment.id,
-    fileUrl,
-    mimeType,
-    uploadedBy: actorUserId,
-    isCurrent: true,
-  });
-
-  await linkUploadAssetToOwner({
-    uploadAssetId,
-    ownerType: 'payment_proof',
-    ownerId: payment.id,
-    expectedFileUrl: fileUrl,
-  });
-
-  const [updated] = await db
-    .update(payments)
-    .set({ proofFileUrl: fileUrl, proofUploadedAt: new Date(), status: 'pending_validation' })
-    .where(eq(payments.id, payment.id))
-    .returning();
-
-  await logAudit({ action: 'PAYMENT_PROOF_UPLOADED', module: 'M6', entityId: payment.id });
-
-  return toPaymentView(updated);
+  return toPaymentView(await attachPaymentProof(phaseId, requestId, applicantId, 'M6', attachment));
 }
 
 // ── Validate / reject proof ──────────────────────────────────────────────

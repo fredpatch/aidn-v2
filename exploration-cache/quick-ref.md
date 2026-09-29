@@ -132,8 +132,12 @@ Operational/transverse surfaces now present:
   `FileLink`/`DocumentViewer` (5-min signed grants). Legacy addresses:
   `npm run storage:rewrite-addresses --workspace=apps/api` (API stopped).
 - Uploaded files live under `UPLOADS_ROOT` (`apps/api/src/shared/uploads-root.ts`
-  = `apps/api/uploads`); dev-tools, reports and certificates still compute it
-  from `process.cwd()` (follow-up UPLOADS-ROOT).
+  = `apps/api/uploads`), used everywhere.
+- Attaching a file (STORAGE-0B): upload, then send only `uploadAssetId`; the
+  server derives address/MIME from `upload_assets`, requires actor = uploader,
+  and links in the same transaction (`modules/uploads/upload-attachment.ts`).
+  Staging must run `scripts/storage-0b-risk-check.sql` with orphan retention
+  at 3650 before deploying (TASKS: STORAGE-0B-STAGING).
 - Final role replay is the next product validation gate.
 - Notion backlog has known stale rows and is being reconciled.
 - M11 notifications are not implemented as a full notification center yet.

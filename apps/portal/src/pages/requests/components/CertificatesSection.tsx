@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { CheckCircle2, CreditCard, FileBadge2, PackageCheck, UploadCloud } from 'lucide-react';
 import { api, apiErrorMessage } from '../../../lib/axios';
+import { uploadFile } from '../../../lib/uploads';
 import { notify } from '../../../lib/notify';
 import FileLink from '../../../components/files/FileLink';
 
@@ -98,16 +99,8 @@ export function CertificatesSection({ requestId }: { requestId: number }) {
     }
     setSubmitting(true);
     try {
-      const formData = new FormData();
-      formData.append('file', proofFile);
-      const { data: uploaded } = await api.post('/uploads', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      await api.post(`/certificates/phases/${bundle?.phase!.id}/requests/${requestId}/proof`, {
-        fileUrl: uploaded.fileUrl,
-        mimeType: uploaded.mimeType,
-        uploadAssetId: uploaded.id,
-      });
+      const uploaded = await uploadFile(proofFile);
+      await api.post(`/certificates/phases/${bundle?.phase!.id}/requests/${requestId}/proof`, { uploadAssetId: uploaded.uploadAssetId });
       notify.success('Preuve de paiement soumise.');
       setProofFile(null);
       await load();

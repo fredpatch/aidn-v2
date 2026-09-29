@@ -12,3 +12,8 @@ const pool = new Pool({
 export const db = drizzle(pool, { schema });
 
 export type DB = typeof db;
+
+/** A transaction handle (db.transaction callback argument). */
+export type DbTx = Parameters<Parameters<DB['transaction']>[0]>[0];
+/** Either the pool or an open transaction - for helpers that can join one. */
+export type DbExecutor = DB | DbTx;

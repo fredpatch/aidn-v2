@@ -75,6 +75,28 @@ STORAGE_BACKUP_CONFIRMED=backup-2026-09-25 ./scripts/deploy-staging.sh
 La conversion ne tourne jamais pendant que l'API est active (nettoyage des
 orphelins, uploads et écritures métier ne peuvent pas la concurrencer).
 
+## STORAGE-0B - confinement avant déploiement
+
+Avant STORAGE-0B, la plupart des écrans ne rattachaient pas leur fichier : le
+nettoyage quotidien des orphelins (03:30) peut supprimer ces documents après
+`upload_orphan_retention_days` jours. Avant de déployer :
+
+1. **Paramètres → Configuration** : `upload_orphan_retention_days` = `3650`.
+2. Mesurer (lecture seule) :
+
+   ```bash
+   docker compose -f docker-compose.staging.yml --env-file .env.staging \
+     exec -T postgres_staging sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f -' \
+     < scripts/storage-0b-risk-check.sql
+   ```
+
+   Requête 2 = documents exposés ; requête 3 = documents déjà marqués orphelins
+   (fichier probablement supprimé : restauration depuis sauvegarde uniquement).
+3. Déployer normalement : l'étape `storage:rewrite-addresses` rattache les
+   fichiers référencés jamais rattachés (« Stable-address assets to link »).
+4. Relancer les requêtes ; remettre la rétention à `14` seulement quand la
+   requête 2 ne renvoie plus rien.
+
 Ne jamais supprimer sans sauvegarde :
 
 - `aidn_postgres_staging_data`

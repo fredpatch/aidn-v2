@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import * as requestsService from './requests.service.js';
 import { handleRequestsError } from '../../shared/utils/error.js';
+import { actorFromRequest, parseUploadAssetId, prepareUploadAttachment } from '../uploads/upload-attachment.js';
 
 const INTAKE_STAFF_ROLES = new Set(['reception', 'assistant_dg', 'SU']);
 
@@ -13,8 +14,6 @@ export async function submit(req: Request, res: Response): Promise<void> {
     const {
       requestType,
       message,
-      fileUrl,
-      mimeType,
       uploadAssetId,
       applicantId: bodyApplicantId,
     } = req.body ?? {};
@@ -44,25 +43,20 @@ export async function submit(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    if (!requestType || !fileUrl || !mimeType) {
-      res.status(400).json({ message: 'requestType, fileUrl et mimeType sont requis.' });
+    if (!requestType) {
+      res.status(400).json({ message: 'requestType est requis.' });
       return;
     }
 
-    const parsedUploadAssetId =
-      uploadAssetId === undefined || uploadAssetId === null ? undefined : Number(uploadAssetId);
-    if (parsedUploadAssetId !== undefined && !Number.isInteger(parsedUploadAssetId)) {
-      res.status(400).json({ message: 'uploadAssetId invalide.' });
-      return;
-    }
+    // STORAGE-0B - only the upload id is read; address and type come from
+    // the asset, which must have been uploaded by this same actor.
+    const attachment = await prepareUploadAttachment(parseUploadAssetId(uploadAssetId), actorFromRequest(req));
 
     const result = await requestsService.submitRequest({
       applicantId,
       requestType,
       message,
-      fileUrl,
-      mimeType,
-      uploadAssetId: parsedUploadAssetId,
+      attachment,
       submittedByUserId,
     });
 
@@ -138,26 +132,9 @@ export async function markPendingReview(req: Request, res: Response): Promise<vo
 
 export async function returnSignedFromDg(req: Request, res: Response): Promise<void> {
   try {
-    const { fileUrl, mimeType, uploadAssetId } = req.body ?? {};
-    if (!fileUrl || !mimeType) {
-      res.status(400).json({ message: 'fileUrl et mimeType sont requis.' });
-      return;
-    }
-
-    const parsedUploadAssetId =
-      uploadAssetId === undefined || uploadAssetId === null ? undefined : Number(uploadAssetId);
-    if (parsedUploadAssetId !== undefined && !Number.isInteger(parsedUploadAssetId)) {
-      res.status(400).json({ message: 'uploadAssetId invalide.' });
-      return;
-    }
-
-    const result = await requestsService.returnSignedFromDg(
-      Number(req.params.id),
-      fileUrl,
-      mimeType,
-      req.user!.userId,
-      parsedUploadAssetId
-    );
+    const { uploadAssetId } = req.body ?? {};
+    const attachment = await prepareUploadAttachment(parseUploadAssetId(uploadAssetId), actorFromRequest(req));
+    const result = await requestsService.returnSignedFromDg(Number(req.params.id), attachment, req.user!.userId);
     res.json(result);
   } catch (error) {
     handleRequestsError(res, error);
@@ -192,26 +169,9 @@ export async function mine(req: Request, res: Response): Promise<void> {
 
 export async function replaceDocument(req: Request, res: Response): Promise<void> {
   try {
-    const { fileUrl, mimeType, uploadAssetId } = req.body ?? {};
-    if (!fileUrl || !mimeType) {
-      res.status(400).json({ message: 'fileUrl et mimeType sont requis.' });
-      return;
-    }
-
-    const parsedUploadAssetId =
-      uploadAssetId === undefined || uploadAssetId === null ? undefined : Number(uploadAssetId);
-    if (parsedUploadAssetId !== undefined && !Number.isInteger(parsedUploadAssetId)) {
-      res.status(400).json({ message: 'uploadAssetId invalide.' });
-      return;
-    }
-
-    await requestsService.replaceCircuitDocument(
-      Number(req.params.id),
-      fileUrl,
-      mimeType,
-      req.user!.userId,
-      parsedUploadAssetId
-    );
+    const { uploadAssetId } = req.body ?? {};
+    const attachment = await prepareUploadAttachment(parseUploadAssetId(uploadAssetId), actorFromRequest(req));
+    await requestsService.replaceCircuitDocument(Number(req.params.id), attachment, req.user!.userId);
     res.status(204).send();
   } catch (error) {
     handleRequestsError(res, error);

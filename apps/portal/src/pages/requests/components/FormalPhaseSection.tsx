@@ -164,7 +164,7 @@ export function FormalPhaseSection({ requestId }: { requestId: number }) {
     setSubmittingLetter(true);
     try {
       const uploaded = await uploadFile(letterFile);
-      await submitFormalLetter(requestId, uploaded.fileUrl, uploaded.mimeType);
+      await submitFormalLetter(requestId, uploaded.uploadAssetId);
       notify.success('Lettre de demande soumise.');
       setLetterFile(null);
       await load();
@@ -182,7 +182,7 @@ export function FormalPhaseSection({ requestId }: { requestId: number }) {
     setSubmittingDoc(true);
     try {
       const uploaded = await uploadFile(file);
-      await submitFormalDocument(requestId, slot, uploaded.fileUrl, uploaded.mimeType);
+      await submitFormalDocument(requestId, slot, uploaded.uploadAssetId);
       notify.success('Document soumis.');
       setUploadingSlot(null);
       setSlotFiles((prev) => {

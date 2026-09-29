@@ -1,7 +1,9 @@
 import { Response } from 'express';
 import { SeedingError } from '../../modules/seeding/seeding.types.js';
 
-type ErrorMap = Record<string, { status: number; message: string }>;
+/** `code` overrides the code sent to the client (several internal codes
+ *  can share one public response); the internal code is still logged. */
+type ErrorMap = Record<string, { status: number; message: string; code?: string }>;
 type PrefixHandler = { prefix: string; status: number; message: (id: string) => string };
 
 /** Factory: service-layer error code (a thrown Error's .message) -> HTTP response.
@@ -25,7 +27,8 @@ function createErrorHandler(
 
     const mapped = errorMap[message];
     if (mapped) {
-      res.status(mapped.status).json({ message: mapped.message, code: message });
+      if (mapped.code && mapped.code !== message) console.warn(logPrefix, 'refused:', message);
+      res.status(mapped.status).json({ message: mapped.message, code: mapped.code ?? message });
       return;
     }
 
@@ -33,6 +36,31 @@ function createErrorHandler(
     res.status(500).json({ message: 'Erreur interne du serveur.' });
   };
 }
+
+/** STORAGE-0B - attachment refusals, shared by every workflow handler.
+ *  Not found / not owned / invalid source are one public response, so an
+ *  applicant cannot probe whether someone else's upload exists. */
+const UNAVAILABLE_UPLOAD = {
+  status: 400,
+  message: 'Fichier introuvable. Merci de le téléverser à nouveau.',
+  code: 'UPLOAD_ASSET_UNAVAILABLE',
+};
+const EXPIRED_UPLOAD_MESSAGE = 'Ce fichier a expiré. Merci de le téléverser à nouveau.';
+
+const UPLOAD_ATTACH_ERRORS: ErrorMap = {
+  UPLOAD_ASSET_REQUIRED: { status: 400, message: 'Merci de joindre un fichier.' },
+  UPLOAD_ASSET_ID_INVALID: { status: 400, message: 'Fichier joint invalide. Merci de le téléverser à nouveau.' },
+  UPLOAD_ASSET_NOT_FOUND: UNAVAILABLE_UPLOAD,
+  UPLOAD_ASSET_NOT_OWNED: UNAVAILABLE_UPLOAD,
+  UPLOAD_ASSET_INVALID_SOURCE: UNAVAILABLE_UPLOAD,
+  UPLOAD_ASSET_INVALID_OWNER: { status: 400, message: 'Type de fichier non accepté pour ce document.' },
+  UPLOAD_ASSET_ALREADY_LINKED: {
+    status: 409,
+    message: 'Ce fichier est déjà joint à un autre document. Merci de le téléverser à nouveau.',
+  },
+  UPLOAD_ASSET_ORPHANED: { status: 409, message: EXPIRED_UPLOAD_MESSAGE },
+  UPLOAD_FILE_MISSING: { status: 409, message: EXPIRED_UPLOAD_MESSAGE },
+};
 
 export const handleAuthError = createErrorHandler(
   {
@@ -191,15 +219,7 @@ export const handleRequestsError = createErrorHandler(
     },
     COURRIER_TASK_INVALID: { status: 400, message: 'Identifiant de courrier invalide.' },
     COURRIER_TASK_NOT_FOUND: { status: 404, message: 'Courrier introuvable.' },
-    UPLOAD_ASSET_NOT_FOUND: { status: 400, message: 'Fichier upload introuvable.' },
-    UPLOAD_ASSET_FILE_MISMATCH: {
-      status: 400,
-      message: "Le fichier upload ne correspond pas à l'URL soumise.",
-    },
-    UPLOAD_ASSET_ALREADY_LINKED: {
-      status: 409,
-      message: 'Ce fichier upload est déjà lié à une autre pièce.',
-    },
+    ...UPLOAD_ATTACH_ERRORS,
   },
   '[requests]'
 );
@@ -227,15 +247,7 @@ export const handlePhasesError = createErrorHandler(
       message:
         "Le postulant doit d'abord retourner sa declaration de pre-evaluation remplie avant de cloturer la phase.",
     },
-    UPLOAD_ASSET_NOT_FOUND: { status: 400, message: 'Fichier upload introuvable.' },
-    UPLOAD_ASSET_FILE_MISMATCH: {
-      status: 400,
-      message: "Le fichier upload ne correspond pas à l'URL soumise.",
-    },
-    UPLOAD_ASSET_ALREADY_LINKED: {
-      status: 409,
-      message: 'Ce fichier upload est déjà lié à une autre pièce.',
-    },
+    ...UPLOAD_ATTACH_ERRORS,
   },
   '[phases]'
 );
@@ -265,15 +277,7 @@ export const handleMeetingsError = createErrorHandler(
       status: 409,
       message: "Le compte-rendu ne peut etre envoye qu'une fois la reunion tenue.",
     },
-    UPLOAD_ASSET_NOT_FOUND: { status: 400, message: 'Fichier upload introuvable.' },
-    UPLOAD_ASSET_FILE_MISMATCH: {
-      status: 400,
-      message: "Le fichier upload ne correspond pas à l'URL soumise.",
-    },
-    UPLOAD_ASSET_ALREADY_LINKED: {
-      status: 409,
-      message: 'Ce fichier upload est déjà lié à une autre pièce.',
-    },
+    ...UPLOAD_ATTACH_ERRORS,
   },
   '[meetings]'
 );
@@ -296,15 +300,7 @@ export const handlePreliminaryEvaluationError = createErrorHandler(
       status: 409,
       message: "La declaration n'a pas encore ete mise a disposition par la DN.",
     },
-    UPLOAD_ASSET_NOT_FOUND: { status: 400, message: 'Fichier upload introuvable.' },
-    UPLOAD_ASSET_FILE_MISMATCH: {
-      status: 400,
-      message: "Le fichier upload ne correspond pas à l'URL soumise.",
-    },
-    UPLOAD_ASSET_ALREADY_LINKED: {
-      status: 409,
-      message: 'Ce fichier upload est déjà lié à une autre pièce.',
-    },
+    ...UPLOAD_ATTACH_ERRORS,
   },
   '[preliminary-evaluation]'
 );
@@ -390,21 +386,14 @@ export const handleFormalRequestError = createErrorHandler(
       status: 409,
       message: 'Transition de statut invalide pour ce circuit.',
     },
-    UPLOAD_ASSET_NOT_FOUND: { status: 400, message: 'Fichier upload introuvable.' },
-    UPLOAD_ASSET_FILE_MISMATCH: {
-      status: 400,
-      message: "Le fichier upload ne correspond pas à l'URL soumise.",
-    },
-    UPLOAD_ASSET_ALREADY_LINKED: {
-      status: 409,
-      message: 'Ce fichier upload est déjà lié à une autre pièce.',
-    },
+    ...UPLOAD_ATTACH_ERRORS,
   },
   '[formal-request]'
 );
 
 export const handleDeepEvaluationError = createErrorHandler(
   {
+    ...UPLOAD_ATTACH_ERRORS,
     REQUEST_NOT_FOUND: { status: 404, message: 'Demande introuvable.' },
     M4_NOT_CLOSED: {
       status: 409,
@@ -453,6 +442,7 @@ export const handleDeepEvaluationError = createErrorHandler(
 
 export const handleSiteInspectionError = createErrorHandler(
   {
+    ...UPLOAD_ATTACH_ERRORS,
     REQUEST_NOT_FOUND: { status: 404, message: 'Demande introuvable.' },
     M5_NOT_CLOSED: {
       status: 409,
@@ -507,6 +497,7 @@ export const handleSiteInspectionError = createErrorHandler(
 
 export const handleCertificatesError = createErrorHandler(
   {
+    ...UPLOAD_ATTACH_ERRORS,
     REQUEST_NOT_FOUND: { status: 404, message: 'Demande introuvable.' },
     M6_NOT_CLOSED: {
       status: 409,
@@ -546,6 +537,13 @@ export const handleCertificatesError = createErrorHandler(
     },
   },
   '[certificates]'
+);
+
+export const handleDocumentTemplatesError = createErrorHandler(
+  {
+    ...UPLOAD_ATTACH_ERRORS,
+  },
+  '[document-templates]'
 );
 
 /** POST /api/seeding/run. A SeedingError carries a descriptive message (it

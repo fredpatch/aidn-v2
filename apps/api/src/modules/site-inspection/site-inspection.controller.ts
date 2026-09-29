@@ -4,17 +4,16 @@ import { db } from '../../shared/db/index.js';
 import { requests } from '../../shared/db/schema.js';
 import * as inspectionService from './site-inspection.service.js';
 import { handleSiteInspectionError } from '../../shared/utils/error.js';
+import {
+  actorFromRequest,
+  parseUploadAssetId,
+  prepareUploadAttachment,
+} from '../uploads/upload-attachment.js';
 
 async function checkApplicantOwnership(req: Request, requestId: number): Promise<boolean> {
   if (!req.applicant) return true;
   const [request] = await db.select().from(requests).where(eq(requests.id, requestId));
   return !!request && request.applicantId === req.applicant.applicantId;
-}
-
-function parseUploadAssetId(value: unknown): number | undefined {
-  if (value === undefined || value === null) return undefined;
-  const parsed = Number(value);
-  return isNaN(parsed) ? undefined : parsed;
 }
 
 export async function openPhase(req: Request, res: Response): Promise<void> {
@@ -67,18 +66,9 @@ export async function getPaymentQueue(_req: Request, res: Response): Promise<voi
 
 export async function uploadInvoice(req: Request, res: Response): Promise<void> {
   try {
-    const { fileUrl, mimeType, uploadAssetId } = req.body ?? {};
-    if (!fileUrl || !mimeType) {
-      res.status(400).json({ message: 'fileUrl et mimeType sont requis.' });
-      return;
-    }
-    const payment = await inspectionService.uploadInvoice(
-      Number(req.params.phaseId),
-      fileUrl,
-      mimeType,
-      req.user!.userId,
-      parseUploadAssetId(uploadAssetId)
-    );
+    const { uploadAssetId } = req.body ?? {};
+    const attachment = await prepareUploadAttachment(parseUploadAssetId(uploadAssetId), actorFromRequest(req));
+    const payment = await inspectionService.uploadInvoice(Number(req.params.phaseId), attachment, req.user!.userId);
     res.json(payment);
   } catch (error) {
     handleSiteInspectionError(res, error);
@@ -87,22 +77,18 @@ export async function uploadInvoice(req: Request, res: Response): Promise<void> 
 
 export async function uploadProof(req: Request, res: Response): Promise<void> {
   try {
-    const { fileUrl, mimeType, uploadAssetId } = req.body ?? {};
-    if (!fileUrl || !mimeType) {
-      res.status(400).json({ message: 'fileUrl et mimeType sont requis.' });
-      return;
-    }
     const requestId = Number(req.params.requestId);
     if (!(await checkApplicantOwnership(req, requestId))) {
       res.status(404).json({ message: 'Demande introuvable.' });
       return;
     }
+    const { uploadAssetId } = req.body ?? {};
+    const attachment = await prepareUploadAttachment(parseUploadAssetId(uploadAssetId), actorFromRequest(req));
     const payment = await inspectionService.uploadPaymentProof(
       Number(req.params.phaseId),
-      fileUrl,
-      mimeType,
-      req.user?.userId ?? req.applicant?.applicantId,
-      parseUploadAssetId(uploadAssetId)
+      requestId,
+      req.applicant!.applicantId,
+      attachment
     );
     res.json(payment);
   } catch (error) {

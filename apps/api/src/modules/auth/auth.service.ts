@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
-import { db } from "../../shared/db/index.js";
+import { db, type DbExecutor } from "../../shared/db/index.js";
 import { users, auditLogs } from "../../shared/db/schema.js";
 import { verifyRefreshToken, signAccessToken } from "../../shared/utils/jwt.js";
 import { verifyOTP, isOTPExpired, generateOTP, hashOTP, otpExpiresAt } from "../../shared/utils/otp.js";
@@ -13,7 +13,9 @@ import { getIntegerValue } from "../system-parameters/system-parameters.service.
 export type { AuthTokens, UserPublic, LoginResult } from "./auth.types.js";
 
 /** Audit utility - imported across many modules (requests, users,
- *  system-parameters, etc.). Do not relocate without a full import sweep. */
+ *  system-parameters, etc.). Do not relocate without a full import sweep.
+ *  Pass the open transaction so the entry commits (or rolls back) with the
+ *  change it records. */
 export async function logAudit(params: {
   userId?: number;
   action: string;
@@ -21,8 +23,8 @@ export async function logAudit(params: {
   entityId?: number;
   details?: Record<string, unknown>;
   ip?: string;
-}): Promise<void> {
-  await db.insert(auditLogs).values({
+}, executor: DbExecutor = db): Promise<void> {
+  await executor.insert(auditLogs).values({
     userId: params.userId,
     action: params.action,
     module: params.module,

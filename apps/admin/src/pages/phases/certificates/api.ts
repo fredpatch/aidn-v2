@@ -2,7 +2,6 @@ export {
   fetchCertificateBundle,
   startDelivery,
   uploadInvoice,
-  uploadPaymentProof,
   validatePayment,
   rejectPayment,
   updateCertificateFields,

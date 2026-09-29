@@ -9,7 +9,13 @@ import {
   meetings,
 } from '../../shared/db/schema.js';
 import { logAudit } from '../auth/auth.service.js';
-import { linkUploadAssetToOwner } from '../uploads/uploads.service.js';
+import {
+  claimUploadAsset,
+  linkLockedAsset,
+  lockUploadAsset,
+  versionValues,
+  type PreparedAttachment,
+} from '../uploads/upload-attachment.js';
 import type {
   FormalDocumentView,
   FormalLetterCircuitView,
@@ -102,62 +108,62 @@ export async function openFormalPhase(
  *  entityType). */
 export async function submitFormalLetter(
   requestId: number,
-  fileUrl: string,
-  mimeType: string,
-  submittedByApplicantId?: number,
-  uploadAssetId?: number
+  attachment: PreparedAttachment
 ): Promise<FormalLetterCircuitView> {
-  const [phase] = await db
-    .select()
-    .from(phases)
-    .where(and(eq(phases.requestId, requestId), eq(phases.phaseCode, 'M4')));
-  if (!phase) throw new Error('PHASE_NOT_FOUND');
-  if (phase.status !== 'open') throw new Error('PHASE_NOT_OPEN');
+  const circuit = await db.transaction(async (tx) => {
+    // Target first: the M4 phase row (the circuit document is created here).
+    const [phase] = await tx
+      .select()
+      .from(phases)
+      .where(and(eq(phases.requestId, requestId), eq(phases.phaseCode, 'M4')))
+      .for('update');
+    if (!phase) throw new Error('PHASE_NOT_FOUND');
 
-  const [existing] = await db
-    .select()
-    .from(dgCircuitDocuments)
-    .where(
-      and(
-        eq(dgCircuitDocuments.requestId, requestId),
-        eq(dgCircuitDocuments.entityType, 'formal_request_letter')
-      )
+    const [existing] = await tx
+      .select()
+      .from(dgCircuitDocuments)
+      .where(
+        and(
+          eq(dgCircuitDocuments.requestId, requestId),
+          eq(dgCircuitDocuments.entityType, 'formal_request_letter')
+        )
+      );
+
+    const linkedTo = await lockUploadAsset(tx, attachment);
+    if (linkedTo) {
+      // Retry with the same upload: the letter it already created.
+      const sameLetter =
+        existing && linkedTo.ownerType === 'dg_circuit_document' && linkedTo.ownerId === existing.id;
+      if (!sameLetter) throw new Error('UPLOAD_ASSET_ALREADY_LINKED');
+      return existing;
+    }
+    if (phase.status !== 'open') throw new Error('PHASE_NOT_OPEN');
+    if (existing) throw new Error('LETTER_ALREADY_SUBMITTED');
+
+    const [created] = await tx
+      .insert(dgCircuitDocuments)
+      .values({
+        requestId,
+        entityType: 'formal_request_letter',
+        status: 'submitted',
+      })
+      .returning();
+
+    await tx.insert(documentVersions).values(versionValues(attachment, 'dg_circuit_document', created.id));
+    await linkLockedAsset(tx, attachment.assetId, { ownerType: 'dg_circuit_document', ownerId: created.id });
+
+    await logAudit(
+      {
+        userId: attachment.actor.kind === 'staff' ? attachment.actor.userId : undefined,
+        action: 'FORMAL_LETTER_SUBMITTED',
+        module: 'M4',
+        entityId: created.id,
+        details: { requestId },
+      },
+      tx
     );
-  if (existing) throw new Error('LETTER_ALREADY_SUBMITTED');
-
-  const [circuit] = await db
-    .insert(dgCircuitDocuments)
-    .values({
-      requestId,
-      entityType: 'formal_request_letter',
-      status: 'submitted',
-    })
-    .returning();
-
-  await db.insert(documentVersions).values({
-    ownerType: 'dg_circuit_document',
-    ownerId: circuit.id,
-    fileUrl,
-    mimeType,
-    uploadedBy: submittedByApplicantId,
-    isCurrent: true,
+    return created;
   });
-
-  await linkUploadAssetToOwner({
-    uploadAssetId,
-    ownerType: 'dg_circuit_document',
-    ownerId: circuit.id,
-    expectedFileUrl: fileUrl,
-  });
-
-  if (submittedByApplicantId) {
-    await logAudit({
-      action: 'FORMAL_LETTER_SUBMITTED',
-      module: 'M4',
-      entityId: circuit.id,
-      details: { requestId },
-    });
-  }
 
   return toCircuitView(circuit);
 }
@@ -227,86 +233,58 @@ export async function markLetterPendingReview(
 }
 
 // ── Document slots ─────────────────────────────────────────────────────────
-/** Either postulant (portal) or DN on their behalf (admin, physical drop-off).
- *  Uploading the same slot again replaces the previous version via M8 pattern. */
+/** Postulant only (route: requireApplicant), one-shot per slot: once a slot
+ *  holds a document the applicant cannot replace it. Phase closed = nobody
+ *  can submit. */
 export async function submitDocument(
   requestId: number,
   slot: string,
-  fileUrl: string,
-  mimeType: string,
-  actorUserId?: number,
-  isApplicant = false,
-  uploadAssetId?: number
+  attachment: PreparedAttachment
 ): Promise<FormalDocumentView> {
-  if (!isApplicant) throw new Error('FORMAL_DOCUMENT_APPLICANT_ONLY');
+  const { doc, updated } = await db.transaction(async (tx) => {
+    const [phase] = await tx
+      .select()
+      .from(phases)
+      .where(and(eq(phases.requestId, requestId), eq(phases.phaseCode, 'M4')));
+    if (!phase) throw new Error('PHASE_NOT_FOUND');
 
-  const [phase] = await db
-    .select()
-    .from(phases)
-    .where(and(eq(phases.requestId, requestId), eq(phases.phaseCode, 'M4')));
-  if (!phase) throw new Error('PHASE_NOT_FOUND');
-  if (phase.status !== 'open') throw new Error('PHASE_NOT_OPEN');
-
-  const [doc] = await db
-    .select()
-    .from(formalRequestDocuments)
-    .where(
-      and(
-        eq(formalRequestDocuments.phaseId, phase.id),
-        eq(
-          formalRequestDocuments.slot,
-          slot as (typeof formalRequestDocuments.$inferInsert)['slot']
-        )
-      )
-    );
-  if (!doc) throw new Error('SLOT_NOT_FOUND');
-
-  // M8 - trash the previous version if replacing
-  // Applicants cannot replace a document once submitted - the rule is
-  // one-shot per slot for the postulant. DN can still replace on behalf
-  // (physical drop-off correction) since actorUserId comes from req.user
-  // in that case, not req.applicant. Phase closed = nobody can replace.
-  if (doc.fileUrl) {
-    if (isApplicant) throw new Error('DOCUMENT_ALREADY_SUBMITTED');
-    await db
-      .update(documentVersions)
-      .set({ isCurrent: false, trashedAt: new Date() })
+    // Target first: the slot row, then the upload asset.
+    const [slotRow] = await tx
+      .select()
+      .from(formalRequestDocuments)
       .where(
         and(
-          eq(documentVersions.ownerType, 'formal_request_document'),
-          eq(documentVersions.ownerId, doc.id)
+          eq(formalRequestDocuments.phaseId, phase.id),
+          eq(
+            formalRequestDocuments.slot,
+            slot as (typeof formalRequestDocuments.$inferInsert)['slot']
+          )
         )
-      );
-  }
+      )
+      .for('update');
+    if (!slotRow) throw new Error('SLOT_NOT_FOUND');
 
-  await db.insert(documentVersions).values({
-    ownerType: 'formal_request_document',
-    ownerId: doc.id,
-    fileUrl,
-    mimeType,
-    uploadedBy: actorUserId,
-    isCurrent: true,
-  });
+    const target = { ownerType: 'formal_request_document', ownerId: slotRow.id } as const;
+    if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') {
+      return { doc: { ...slotRow, fileUrl: null }, updated: slotRow };
+    }
+    if (phase.status !== 'open') throw new Error('PHASE_NOT_OPEN');
+    if (slotRow.fileUrl) throw new Error('DOCUMENT_ALREADY_SUBMITTED');
 
-  await linkUploadAssetToOwner({
-    uploadAssetId,
-    ownerType: 'formal_request_document',
-    ownerId: doc.id,
-    expectedFileUrl: fileUrl,
-  });
+    await tx.insert(documentVersions).values(versionValues(attachment, 'formal_request_document', slotRow.id));
+    await linkLockedAsset(tx, attachment.assetId, target);
 
-  const [updated] = await db
-    .update(formalRequestDocuments)
-    .set({ status: 'submitted', fileUrl, submittedAt: new Date() })
-    .where(eq(formalRequestDocuments.id, doc.id))
-    .returning();
+    const [saved] = await tx
+      .update(formalRequestDocuments)
+      .set({ status: 'submitted', fileUrl: attachment.fileUrl, submittedAt: new Date() })
+      .where(eq(formalRequestDocuments.id, slotRow.id))
+      .returning();
 
-  await logAudit({
-    userId: actorUserId,
-    action: 'FORMAL_DOCUMENT_SUBMITTED',
-    module: 'M4',
-    entityId: doc.id,
-    details: { slot },
+    await logAudit(
+      { action: 'FORMAL_DOCUMENT_SUBMITTED', module: 'M4', entityId: slotRow.id, details: { slot } },
+      tx
+    );
+    return { doc: slotRow, updated: saved };
   });
 
   return {
@@ -449,72 +427,63 @@ export async function closeFormalPhase(
   phaseId: number,
   actorUserId: number,
   params: {
-    closureDocumentUrl?: string;
-    closureDocumentMimeType?: string;
+    /** Optional closure document (STORAGE-0B: a checked upload). */
+    attachment?: PreparedAttachment;
     closureNote?: string;
-    closureDocumentUploadAssetId?: number;
   }
 ): Promise<void> {
-  const [phase] = await db.select().from(phases).where(eq(phases.id, phaseId));
-  if (!phase) throw new Error('PHASE_NOT_FOUND');
-  if (phase.status !== 'open') throw new Error('PHASE_ALREADY_CLOSED');
+  const { attachment } = params;
+  await db.transaction(async (tx) => {
+    const [phase] = await tx.select().from(phases).where(eq(phases.id, phaseId)).for('update');
+    if (!phase) throw new Error('PHASE_NOT_FOUND');
+    const target = { ownerType: 'phase_closure_document', ownerId: phaseId } as const;
+    if (attachment && (await claimUploadAsset(tx, attachment, target)) === 'attached_here') return;
+    if (phase.status !== 'open') throw new Error('PHASE_ALREADY_CLOSED');
 
-  // Gate 1 - formal letter must have gone through DG
-  const [circuit] = await db
-    .select()
-    .from(dgCircuitDocuments)
-    .where(
-      and(
-        eq(dgCircuitDocuments.requestId, phase.requestId),
-        eq(dgCircuitDocuments.entityType, 'formal_request_letter')
-      )
-    );
-  if (!circuit || circuit.status !== 'pending_review') throw new Error('LETTER_NOT_TRANSMITTED');
+    // Gate 1 - formal letter must have gone through DG
+    const [circuit] = await tx
+      .select()
+      .from(dgCircuitDocuments)
+      .where(
+        and(
+          eq(dgCircuitDocuments.requestId, phase.requestId),
+          eq(dgCircuitDocuments.entityType, 'formal_request_letter')
+        )
+      );
+    if (!circuit || circuit.status !== 'pending_review') throw new Error('LETTER_NOT_TRANSMITTED');
 
-  // Gate 2 - all 11 documents
-  const docs = await db
-    .select()
-    .from(formalRequestDocuments)
-    .where(eq(formalRequestDocuments.phaseId, phaseId));
-  const missing = docs.filter((d) => d.status === 'missing').length;
-  if (missing > 0) throw new Error('DOCUMENTS_INCOMPLETE');
+    // Gate 2 - all 11 documents
+    const docs = await tx
+      .select()
+      .from(formalRequestDocuments)
+      .where(eq(formalRequestDocuments.phaseId, phaseId));
+    const missing = docs.filter((d) => d.status === 'missing').length;
+    if (missing > 0) throw new Error('DOCUMENTS_INCOMPLETE');
 
-  // Gate 3 - formal meeting resolved
-  const [currentMeeting] = await db
-    .select()
-    .from(meetings)
-    .where(and(eq(meetings.phaseId, phaseId), ne(meetings.status, 'rescheduled')))
-    .orderBy(desc(meetings.scheduledAt));
-  if (!currentMeeting || currentMeeting.status === 'scheduled')
-    throw new Error('MEETING_NOT_RESOLVED');
+    // Gate 3 - formal meeting resolved
+    const [currentMeeting] = await tx
+      .select()
+      .from(meetings)
+      .where(and(eq(meetings.phaseId, phaseId), ne(meetings.status, 'rescheduled')))
+      .orderBy(desc(meetings.scheduledAt));
+    if (!currentMeeting || currentMeeting.status === 'scheduled')
+      throw new Error('MEETING_NOT_RESOLVED');
 
-  if (params.closureDocumentUrl) {
-    await db.insert(documentVersions).values({
-      ownerType: 'phase_closure_document',
-      ownerId: phaseId,
-      fileUrl: params.closureDocumentUrl,
-      mimeType: params.closureDocumentMimeType ?? 'application/octet-stream',
-      uploadedBy: actorUserId,
-      isCurrent: true,
-    });
+    if (attachment) {
+      await tx.insert(documentVersions).values(versionValues(attachment, 'phase_closure_document', phaseId));
+      await linkLockedAsset(tx, attachment.assetId, target);
+    }
 
-    await linkUploadAssetToOwner({
-      uploadAssetId: params.closureDocumentUploadAssetId,
-      ownerType: 'phase_closure_document',
-      ownerId: phaseId,
-      expectedFileUrl: params.closureDocumentUrl,
-    });
-  }
+    await tx
+      .update(phases)
+      .set({
+        status: 'closed',
+        closedAt: new Date(),
+        closureDocumentUrl: attachment?.fileUrl,
+        closureNote: params.closureNote,
+      })
+      .where(eq(phases.id, phaseId));
 
-  await db
-    .update(phases)
-    .set({
-      status: 'closed',
-      closedAt: new Date(),
-      closureDocumentUrl: params.closureDocumentUrl,
-      closureNote: params.closureNote,
-    })
-    .where(eq(phases.id, phaseId));
-
-  await logAudit({ userId: actorUserId, action: 'PHASE_CLOSED', module: 'M4', entityId: phaseId });
+    await logAudit({ userId: actorUserId, action: 'PHASE_CLOSED', module: 'M4', entityId: phaseId }, tx);
+  });
 }

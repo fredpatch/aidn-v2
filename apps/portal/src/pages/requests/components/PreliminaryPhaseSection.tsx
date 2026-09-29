@@ -156,7 +156,7 @@ export function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
     setSubmitting(true);
     try {
       const uploaded = await uploadFile(file);
-      await submitPreliminaryDeclaration(phaseId, uploaded.fileUrl, uploaded.mimeType);
+      await submitPreliminaryDeclaration(phaseId, uploaded.uploadAssetId);
       notify.success('Declaration soumise avec succes.');
       setFile(null);
       await load();

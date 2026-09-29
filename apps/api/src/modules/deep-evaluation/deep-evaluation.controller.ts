@@ -4,17 +4,17 @@ import { db } from '../../shared/db/index.js';
 import { requests } from '../../shared/db/schema.js';
 import * as evalService from './deep-evaluation.service.js';
 import { handleDeepEvaluationError } from '../../shared/utils/error.js';
+import {
+  actorFromRequest,
+  parseOptionalUploadAssetId,
+  parseUploadAssetId,
+  prepareUploadAttachment,
+} from '../uploads/upload-attachment.js';
 
 async function checkApplicantOwnership(req: Request, requestId: number): Promise<boolean> {
   if (!req.applicant) return true;
   const [request] = await db.select().from(requests).where(eq(requests.id, requestId));
   return !!request && request.applicantId === req.applicant.applicantId;
-}
-
-function parseUploadAssetId(value: unknown): number | undefined {
-  if (value === undefined || value === null) return undefined;
-  const parsed = Number(value);
-  return isNaN(parsed) ? undefined : parsed;
 }
 
 export async function openPhase(req: Request, res: Response): Promise<void> {
@@ -54,18 +54,9 @@ export async function getPaymentQueue(_req: Request, res: Response): Promise<voi
 
 export async function uploadInvoice(req: Request, res: Response): Promise<void> {
   try {
-    const { fileUrl, mimeType, uploadAssetId } = req.body ?? {};
-    if (!fileUrl || !mimeType) {
-      res.status(400).json({ message: 'fileUrl et mimeType sont requis.' });
-      return;
-    }
-    const payment = await evalService.uploadInvoice(
-      Number(req.params.phaseId),
-      fileUrl,
-      mimeType,
-      req.user!.userId,
-      parseUploadAssetId(uploadAssetId)
-    );
+    const { uploadAssetId } = req.body ?? {};
+    const attachment = await prepareUploadAttachment(parseUploadAssetId(uploadAssetId), actorFromRequest(req));
+    const payment = await evalService.uploadInvoice(Number(req.params.phaseId), attachment, req.user!.userId);
     res.json(payment);
   } catch (error) {
     handleDeepEvaluationError(res, error);
@@ -74,22 +65,18 @@ export async function uploadInvoice(req: Request, res: Response): Promise<void> 
 
 export async function uploadProof(req: Request, res: Response): Promise<void> {
   try {
-    const { fileUrl, mimeType, uploadAssetId } = req.body ?? {};
-    if (!fileUrl || !mimeType) {
-      res.status(400).json({ message: 'fileUrl et mimeType sont requis.' });
-      return;
-    }
     const requestId = Number(req.params.requestId);
     if (!(await checkApplicantOwnership(req, requestId))) {
       res.status(404).json({ message: 'Demande introuvable.' });
       return;
     }
+    const { uploadAssetId } = req.body ?? {};
+    const attachment = await prepareUploadAttachment(parseUploadAssetId(uploadAssetId), actorFromRequest(req));
     const payment = await evalService.uploadPaymentProof(
       Number(req.params.phaseId),
-      fileUrl,
-      mimeType,
-      req.user?.userId ?? req.applicant?.applicantId,
-      parseUploadAssetId(uploadAssetId)
+      requestId,
+      req.applicant!.applicantId,
+      attachment
     );
     res.json(payment);
   } catch (error) {
@@ -148,17 +135,12 @@ export async function setVerdict(req: Request, res: Response): Promise<void> {
 
 export async function resubmitDocument(req: Request, res: Response): Promise<void> {
   try {
-    const { fileUrl, mimeType, uploadAssetId } = req.body ?? {};
-    if (!fileUrl || !mimeType) {
-      res.status(400).json({ message: 'fileUrl et mimeType sont requis.' });
-      return;
-    }
+    const { uploadAssetId } = req.body ?? {};
+    const attachment = await prepareUploadAttachment(parseUploadAssetId(uploadAssetId), actorFromRequest(req));
     const evaluation = await evalService.resubmitDocument(
       Number(req.params.evaluationId),
-      fileUrl,
-      mimeType,
-      req.user?.userId ?? req.applicant?.applicantId,
-      parseUploadAssetId(uploadAssetId)
+      req.applicant!.applicantId,
+      attachment
     );
     res.json(evaluation);
   } catch (error) {
@@ -168,22 +150,13 @@ export async function resubmitDocument(req: Request, res: Response): Promise<voi
 
 export async function closePhase(req: Request, res: Response): Promise<void> {
   try {
-    const {
-      closureDocumentUrl,
-      closureDocumentMimeType,
-      closureDocumentUploadAssetId,
-      closureNote,
-    } = req.body ?? {};
-
-    const parsedClosureUploadAssetId =
-      closureDocumentUploadAssetId === undefined || closureDocumentUploadAssetId === null
-        ? undefined
-        : Number(closureDocumentUploadAssetId);
-
+    const { closureDocumentUploadAssetId, closureNote } = req.body ?? {};
+    const closureAssetId = parseOptionalUploadAssetId(closureDocumentUploadAssetId);
+    const attachment = closureAssetId
+      ? await prepareUploadAttachment(closureAssetId, actorFromRequest(req))
+      : undefined;
     await evalService.closeDeepEvaluationPhase(Number(req.params.phaseId), req.user!.userId, {
-      closureDocumentUrl,
-      closureDocumentMimeType,
-      closureDocumentUploadAssetId: parsedClosureUploadAssetId,
+      attachment,
       closureNote,
     });
     res.json({ message: 'Phase clôturée.' });

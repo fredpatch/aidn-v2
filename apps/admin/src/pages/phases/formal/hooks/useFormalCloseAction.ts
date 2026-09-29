@@ -11,17 +11,12 @@ export function useFormalCloseAction(
 
   const closeMutation = useMutation({
     mutationFn: async (params: { phaseId: number; note?: string; file?: File | null }) => {
-      let closureDocumentUrl: string | undefined;
-      let closureDocumentMimeType: string | undefined;
-      if (params.file) {
-        const uploaded = await uploadFile(params.file);
-        closureDocumentUrl = uploaded.fileUrl;
-        closureDocumentMimeType = uploaded.mimeType;
-      }
+      const closureDocumentUploadAssetId = params.file
+        ? (await uploadFile(params.file)).uploadAssetId
+        : undefined;
       await closeFormalPhase({
         phaseId: params.phaseId,
-        closureDocumentUrl,
-        closureDocumentMimeType,
+        closureDocumentUploadAssetId,
         closureNote: params.note || undefined,
       });
     },

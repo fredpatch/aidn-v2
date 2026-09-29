@@ -4,7 +4,6 @@ export {
   submitFormalLetter,
   markLetterSigned,
   markLetterPendingReview,
-  submitFormalDocument,
   scheduleFormalMeeting,
   rescheduleMeeting,
   markMeetingStatus,

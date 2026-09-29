@@ -11,19 +11,11 @@ export function useDeepEvaluationCloseAction(
 
   const closeMutation = useMutation({
     mutationFn: async (params: { phaseId: number; note?: string; file?: File | null }) => {
-      let closureDocumentUrl: string | undefined;
-      let closureDocumentMimeType: string | undefined;
-      let closureDocumentUploadAssetId: number | undefined;
-      if (params.file) {
-        const uploaded = await uploadFile(params.file);
-        closureDocumentUrl = uploaded.fileUrl;
-        closureDocumentMimeType = uploaded.mimeType;
-        closureDocumentUploadAssetId = uploaded.uploadAssetId;
-      }
+      const closureDocumentUploadAssetId = params.file
+        ? (await uploadFile(params.file)).uploadAssetId
+        : undefined;
       await closeDeepEvaluationPhase({
         phaseId: params.phaseId,
-        closureDocumentUrl,
-        closureDocumentMimeType,
         closureDocumentUploadAssetId,
         closureNote: params.note || undefined,
       });

@@ -3,7 +3,6 @@ export type {
   SiteVisitView,
   InspectionView,
   SiteInspectionBundle,
-  UploadedFile,
 } from '../../../lib/api/site-inspection.types';
 
 export interface ChecklistItem {

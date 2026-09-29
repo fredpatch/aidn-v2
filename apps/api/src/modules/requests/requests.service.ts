@@ -1,5 +1,5 @@
 import { and, eq, desc } from 'drizzle-orm';
-import { db } from '../../shared/db/index.js';
+import { db, type DbTx } from '../../shared/db/index.js';
 import {
   auditLogs,
   requests,
@@ -22,7 +22,15 @@ import type {
   SubmitRequestParams,
   RequestView,
 } from './requests.types.js';
-import { linkUploadAssetToOwner } from '../uploads/uploads.service.js';
+import {
+  claimUploadAsset,
+  linkLockedAsset,
+  lockUploadAsset,
+  trashCurrentVersions,
+  versionValues,
+  type AttachTarget,
+  type PreparedAttachment,
+} from '../uploads/upload-attachment.js';
 
 export type { SubmitRequestParams, RequestView } from './requests.types.js';
 
@@ -149,6 +157,22 @@ async function resolveRequestStatus(row: typeof requests.$inferSelect): Promise<
   return row.status;
 }
 
+/** The intake demande a circuit document belongs to, if it is this
+ *  applicant's - used to answer a retried submission idempotently. */
+async function findIntakeByCircuit(
+  tx: DbTx,
+  linkedTo: AttachTarget,
+  applicantId: number
+): Promise<{ request: typeof requests.$inferSelect; circuitDoc: typeof dgCircuitDocuments.$inferSelect } | null> {
+  if (linkedTo.ownerType !== 'dg_circuit_document') return null;
+  const [row] = await tx
+    .select({ request: requests, circuitDoc: dgCircuitDocuments })
+    .from(dgCircuitDocuments)
+    .innerJoin(requests, eq(requests.id, dgCircuitDocuments.requestId))
+    .where(and(eq(dgCircuitDocuments.id, linkedTo.ownerId), eq(dgCircuitDocuments.entityType, 'intake_request')));
+  return row && row.request.applicantId === applicantId ? row : null;
+}
+
 /** M1 - submits a new demande. Works identically whether it came through the
  *  portal or was entered manually by reception/assistant_dg for a physical
  *  drop-off - see cross-cutting pattern "Circuit DG". */
@@ -165,54 +189,59 @@ export async function submitRequest(params: SubmitRequestParams): Promise<Reques
     .where(eq(organisations.id, applicant.organisationId));
   if (!organisation) throw new Error('APPLICANT_NOT_FOUND');
 
-  const reference = await generateRequestReference(organisation.id, organisation.normalizedName);
+  const { attachment } = params;
 
   try {
-    const [request] = await db
-      .insert(requests)
-      .values({
-        reference,
-        applicantId: applicant.id,
-        organisationId: organisation.id,
-        requestType: params.requestType,
-        message: params.message,
-        status: 'submitted',
-      })
-      .returning();
+    // Views read through the pool, so they are built after the commit.
+    const { request, circuitDoc } = await db.transaction(async (tx) => {
+      // The circuit document is created here, so there is no target row to
+      // lock first. A retry with the same upload returns the demande it
+      // already created (STORAGE-0B, idempotent attach).
+      const linkedTo = await lockUploadAsset(tx, attachment);
+      if (linkedTo) {
+        const existing = await findIntakeByCircuit(tx, linkedTo, applicant.id);
+        if (!existing) throw new Error('UPLOAD_ASSET_ALREADY_LINKED');
+        return existing;
+      }
 
-    const [circuitDoc] = await db
-      .insert(dgCircuitDocuments)
-      .values({
-        entityType: 'intake_request',
-        requestId: request.id,
-        status: 'submitted',
-      })
-      .returning();
+      const reference = await generateRequestReference(organisation.id, organisation.normalizedName);
+      const [request] = await tx
+        .insert(requests)
+        .values({
+          reference,
+          applicantId: applicant.id,
+          organisationId: organisation.id,
+          requestType: params.requestType,
+          message: params.message,
+          status: 'submitted',
+        })
+        .returning();
 
-    await db.insert(documentVersions).values({
-      ownerType: 'dg_circuit_document',
-      ownerId: circuitDoc.id,
-      fileUrl: params.fileUrl,
-      mimeType: params.mimeType,
-      uploadedBy: params.submittedByUserId,
-      isCurrent: true,
+      const [circuitDoc] = await tx
+        .insert(dgCircuitDocuments)
+        .values({
+          entityType: 'intake_request',
+          requestId: request.id,
+          status: 'submitted',
+        })
+        .returning();
+
+      await tx.insert(documentVersions).values(versionValues(attachment, 'dg_circuit_document', circuitDoc.id));
+      await linkLockedAsset(tx, attachment.assetId, { ownerType: 'dg_circuit_document', ownerId: circuitDoc.id });
+
+      await logAudit(
+        {
+          userId: params.submittedByUserId,
+          action: 'REQUEST_SUBMITTED',
+          module: 'M1',
+          entityId: request.id,
+          details: { reference, requestType: params.requestType },
+        },
+        tx
+      );
+
+      return { request, circuitDoc };
     });
-
-    await linkUploadAssetToOwner({
-      uploadAssetId: params.uploadAssetId,
-      ownerType: 'dg_circuit_document',
-      ownerId: circuitDoc.id,
-      expectedFileUrl: params.fileUrl,
-    });
-
-    await logAudit({
-      userId: params.submittedByUserId,
-      action: 'REQUEST_SUBMITTED',
-      module: 'M1',
-      entityId: request.id,
-      details: { reference, requestType: params.requestType },
-    });
-
     return toRequestView(request, circuitDoc);
   } catch (error) {
     if (isUniqueViolation(error)) {
@@ -640,41 +669,38 @@ export async function markPendingReview(
 
 export async function returnSignedFromDg(
   requestId: number,
-  newFileUrl: string,
-  mimeType: string,
-  actorUserId: number,
-  uploadAssetId?: number
+  attachment: PreparedAttachment,
+  actorUserId: number
 ): Promise<RequestView> {
-  const [circuitDoc] = await db
-    .select()
-    .from(dgCircuitDocuments)
-    .where(eq(dgCircuitDocuments.requestId, requestId));
-  if (!circuitDoc) throw new Error('DG_CIRCUIT_NOT_FOUND');
-  if (circuitDoc.status !== 'in_signature_circuit') throw new Error('INVALID_CIRCUIT_TRANSITION');
+  const { request, circuitDoc } = await db.transaction(async (tx) => {
+    const circuit = await lockIntakeCircuit(tx, requestId);
+    const target = { ownerType: 'dg_circuit_document', ownerId: circuit.id } as const;
+    if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') {
+      const [current] = await tx.select().from(requests).where(eq(requests.id, requestId));
+      return { request: current, circuitDoc: circuit };
+    }
+    if (circuit.status !== 'in_signature_circuit') throw new Error('INVALID_CIRCUIT_TRANSITION');
 
-  await replaceCircuitDocument(requestId, newFileUrl, mimeType, actorUserId, uploadAssetId);
+    await replaceCircuitVersion(tx, requestId, circuit.id, attachment, actorUserId);
 
-  const now = new Date();
-  const [updatedCircuitDoc] = await db
-    .update(dgCircuitDocuments)
-    .set({ status: 'pending_review', signedAt: now, pendingReviewAt: now })
-    .where(eq(dgCircuitDocuments.id, circuitDoc.id))
-    .returning();
+    const now = new Date();
+    const [updatedCircuitDoc] = await tx
+      .update(dgCircuitDocuments)
+      .set({ status: 'pending_review', signedAt: now, pendingReviewAt: now })
+      .where(eq(dgCircuitDocuments.id, circuit.id))
+      .returning();
 
-  const [request] = await db
-    .update(requests)
-    .set({ status: 'pending_review', updatedAt: now })
-    .where(eq(requests.id, requestId))
-    .returning();
+    const [updatedRequest] = await tx
+      .update(requests)
+      .set({ status: 'pending_review', updatedAt: now })
+      .where(eq(requests.id, requestId))
+      .returning();
 
-  await logAudit({
-    userId: actorUserId,
-    action: 'DG_CIRCUIT_SIGNED_RETURNED',
-    module: 'M1',
-    entityId: requestId,
+    await logAudit({ userId: actorUserId, action: 'DG_CIRCUIT_SIGNED_RETURNED', module: 'M1', entityId: requestId }, tx);
+    return { request: updatedRequest, circuitDoc: updatedCircuitDoc };
   });
 
-  return toRequestView(request, updatedCircuitDoc);
+  return toRequestView(request, circuitDoc);
 }
 
 /** Cancellable only while still in Depose - locked the instant DG signs it.
@@ -740,52 +766,46 @@ export async function listRequestsByApplicant(applicantId: number): Promise<Requ
   );
 }
 
+/** The demande's intake circuit document, locked (STORAGE-0B: the target
+ *  row is locked before the upload asset). Filtered on entity type - the
+ *  M4 formal letter circuit shares the request id. */
+async function lockIntakeCircuit(tx: DbTx, requestId: number): Promise<typeof dgCircuitDocuments.$inferSelect> {
+  const [circuit] = await tx
+    .select()
+    .from(dgCircuitDocuments)
+    .where(and(eq(dgCircuitDocuments.requestId, requestId), eq(dgCircuitDocuments.entityType, 'intake_request')))
+    .for('update');
+  if (!circuit) throw new Error('DG_CIRCUIT_NOT_FOUND');
+  return circuit;
+}
+
+/** New current version + link, inside the caller's transaction (asset
+ *  already claimed). */
+async function replaceCircuitVersion(
+  tx: DbTx,
+  requestId: number,
+  circuitId: number,
+  attachment: PreparedAttachment,
+  actorUserId: number
+): Promise<void> {
+  await trashCurrentVersions(tx, 'dg_circuit_document', circuitId);
+  await tx.insert(documentVersions).values(versionValues(attachment, 'dg_circuit_document', circuitId));
+  await linkLockedAsset(tx, attachment.assetId, { ownerType: 'dg_circuit_document', ownerId: circuitId });
+  await logAudit({ userId: actorUserId, action: 'DG_CIRCUIT_DOCUMENT_REPLACED', module: 'M1', entityId: requestId }, tx);
+}
+
 /** M8 pattern - replace a mis-scanned document. The old version goes to
  *  trash (isCurrent=false, trashedAt set), never deleted outright. Both
  *  versions stay visible to applicant and DN per the M8 decision. */
 export async function replaceCircuitDocument(
   requestId: number,
-  newFileUrl: string,
-  mimeType: string,
-  actorUserId: number,
-  uploadAssetId?: number
+  attachment: PreparedAttachment,
+  actorUserId: number
 ): Promise<void> {
-  const [circuitDoc] = await db
-    .select()
-    .from(dgCircuitDocuments)
-    .where(eq(dgCircuitDocuments.requestId, requestId));
-  if (!circuitDoc) throw new Error('DG_CIRCUIT_NOT_FOUND');
-
-  await db
-    .update(documentVersions)
-    .set({ isCurrent: false, trashedAt: new Date() })
-      .where(
-        and(
-          eq(documentVersions.ownerType, 'dg_circuit_document'),
-          eq(documentVersions.ownerId, circuitDoc.id)
-        )
-      );
-
-  await db.insert(documentVersions).values({
-    ownerType: 'dg_circuit_document',
-    ownerId: circuitDoc.id,
-    fileUrl: newFileUrl,
-    mimeType,
-    uploadedBy: actorUserId,
-    isCurrent: true,
-  });
-
-  await linkUploadAssetToOwner({
-    uploadAssetId,
-    ownerType: 'dg_circuit_document',
-    ownerId: circuitDoc.id,
-    expectedFileUrl: newFileUrl,
-  });
-
-  await logAudit({
-    userId: actorUserId,
-    action: 'DG_CIRCUIT_DOCUMENT_REPLACED',
-    module: 'M1',
-    entityId: requestId,
+  await db.transaction(async (tx) => {
+    const circuit = await lockIntakeCircuit(tx, requestId);
+    const target = { ownerType: 'dg_circuit_document', ownerId: circuit.id } as const;
+    if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') return;
+    await replaceCircuitVersion(tx, requestId, circuit.id, attachment, actorUserId);
   });
 }

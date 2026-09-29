@@ -1,5 +1,5 @@
 import { api } from '../axios';
-import type { PreliminaryBundle, UploadedFile } from './preliminary.types';
+import type { PreliminaryBundle } from './preliminary.types';
 
 export async function fetchPreliminaryBundle(requestId: string): Promise<PreliminaryBundle> {
   const { data } = await api.get(`/preliminary-evaluation/by-request/${requestId}`);
@@ -40,15 +40,8 @@ export async function markMeetingStatus(
   await api.patch(`/meetings/${meetingId}/status`, { status });
 }
 
-export async function attachMeetingReport(
-  meetingId: number,
-  reportFileUrl: string,
-  reportMimeType: string
-): Promise<void> {
-  await api.post(`/meetings/${meetingId}/report`, {
-    fileUrl: reportFileUrl,
-    mimeType: reportMimeType,
-  });
+export async function attachMeetingReport(meetingId: number, uploadAssetId: number): Promise<void> {
+  await api.post(`/meetings/${meetingId}/report`, { uploadAssetId });
 }
 
 export async function makeDeclarationAvailable(
@@ -63,21 +56,13 @@ export async function makeDeclarationAvailable(
 export async function closePhase(params: {
   phaseId: number;
   closureNote?: string;
-  closureDocumentUrl?: string;
-  closureDocumentMimeType?: string;
+  closureDocumentUploadAssetId?: number;
 }): Promise<void> {
   await api.post(`/phases/${params.phaseId}/close`, {
-    closureDocumentUrl: params.closureDocumentUrl,
-    closureDocumentMimeType: params.closureDocumentMimeType,
+    closureDocumentUploadAssetId: params.closureDocumentUploadAssetId,
     closureNote: params.closureNote || undefined,
   });
 }
 
-export async function uploadFile(file: File): Promise<UploadedFile> {
-  const formData = new FormData();
-  formData.append('file', file);
-  const { data } = await api.post('/uploads', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-  return data;
-}
+// STORAGE-0B - one shared upload helper (returns uploadAssetId).
+export { uploadFile } from '../uploads';

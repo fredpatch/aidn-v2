@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { AlertTriangle, CheckCircle2, CircleDashed, ExternalLink, FileText, History, Info, RefreshCw, Search, UploadCloud } from "lucide-react";
 import { api, apiErrorMessage } from "../../lib/axios";
+import { uploadFile } from "../../lib/uploads";
 import { cn } from "../../lib/utils";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -491,18 +492,11 @@ function UploadTemplateModal({
 
     setSubmitting(true);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("moduleHint", "document-templates");
-      const { data: uploaded } = await api.post("/uploads", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const uploaded = await uploadFile(file, "document-templates");
 
       await api.post("/document-templates", {
         key: row.known.key,
         label,
-        fileUrl: uploaded.fileUrl,
-        mimeType: uploaded.mimeType,
         uploadAssetId: uploaded.uploadAssetId,
       });
 

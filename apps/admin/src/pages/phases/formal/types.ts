@@ -4,7 +4,6 @@ export type {
   FormalMeetingView,
   FormalPhaseView,
   FormalPhaseBundle,
-  UploadedFile,
 } from '../../../lib/api/formal.types';
 
 export interface ChecklistItem {

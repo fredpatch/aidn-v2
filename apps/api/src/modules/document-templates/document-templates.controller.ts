@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import * as templatesService from './document-templates.service.js';
+import { handleDocumentTemplatesError } from '../../shared/utils/error.js';
+import { actorFromRequest, parseUploadAssetId, prepareUploadAttachment } from '../uploads/upload-attachment.js';
 import { DOCUMENT_TEMPLATE_KEYS, type DocumentTemplateKey } from '@aidn/shared';
 
 function isValidKey(key: string): key is DocumentTemplateKey {
@@ -56,10 +58,10 @@ export async function listVersions(req: Request, res: Response): Promise<void> {
 }
 
 export async function upsert(req: Request, res: Response): Promise<void> {
-  const { key, label, fileUrl, mimeType, uploadAssetId } = req.body ?? {};
+  const { key, label, uploadAssetId } = req.body ?? {};
 
-  if (!key || !label || !fileUrl || !mimeType) {
-    res.status(400).json({ message: 'key, label, fileUrl et mimeType sont requis.' });
+  if (!key || !label) {
+    res.status(400).json({ message: 'key et label sont requis.' });
     return;
   }
   if (!isValidKey(key)) {
@@ -67,34 +69,16 @@ export async function upsert(req: Request, res: Response): Promise<void> {
     return;
   }
 
-  const parsedUploadAssetId =
-    uploadAssetId === undefined || uploadAssetId === null ? undefined : Number(uploadAssetId);
-  if (parsedUploadAssetId !== undefined && !Number.isInteger(parsedUploadAssetId)) {
-    res.status(400).json({ message: 'uploadAssetId invalide.' });
-    return;
-  }
-
   try {
+    const attachment = await prepareUploadAttachment(parseUploadAssetId(uploadAssetId), actorFromRequest(req));
     const template = await templatesService.upsertTemplate({
       key,
       label,
-      fileUrl,
-      mimeType,
-      uploadAssetId: parsedUploadAssetId,
+      attachment,
       uploadedByUserId: req.user!.userId,
     });
     res.status(201).json(template);
   } catch (error) {
-    const code = error instanceof Error ? error.message : 'UNKNOWN_ERROR';
-    if (code === 'UPLOAD_ASSET_NOT_FOUND' || code === 'UPLOAD_ASSET_FILE_MISMATCH') {
-      res.status(400).json({ message: 'Fichier upload invalide.', code });
-      return;
-    }
-    if (code === 'UPLOAD_ASSET_ALREADY_LINKED') {
-      res.status(409).json({ message: 'Ce fichier upload est déjà lié.', code });
-      return;
-    }
-    console.error('[document-templates/upsert]', error);
-    res.status(500).json({ message: 'Erreur interne.' });
+    handleDocumentTemplatesError(res, error);
   }
 }

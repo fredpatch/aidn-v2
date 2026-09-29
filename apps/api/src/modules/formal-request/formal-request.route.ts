@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   authenticate,
   authenticateEither,
+  requireApplicant,
   requireApplicantOrRole,
   requireRole,
 } from '../../shared/guards/auth.middleware.js';
@@ -13,6 +14,7 @@ const router = Router();
 router.get(
   '/by-request/:requestId',
   authenticateEither,
+  requireApplicant,
   requireApplicantOrRole('dn_agent', 'dn_supervisor', 'SU'),
   formalController.getBundle
 );
@@ -25,9 +27,15 @@ router.post(
   formalController.openPhase
 );
 
-// Formal letter Circuit DG - submit is either auth (portal self-submit or
-// admin on behalf), circuit actions are staff only
-router.post('/requests/:requestId/letter', authenticateEither, formalController.submitLetter);
+// Formal letter Circuit DG - submit by the applicant (portal) or by DN/SU on
+// their behalf (admin M4 page); circuit actions are staff only
+router.post(
+  '/requests/:requestId/letter',
+  authenticateEither,
+  requireApplicant,
+  requireApplicantOrRole('dn_agent', 'dn_supervisor', 'SU'),
+  formalController.submitLetter
+);
 router.post(
   '/requests/:requestId/letter/mark-signed',
   authenticate,
@@ -41,8 +49,8 @@ router.post(
   formalController.markPendingReview
 );
 
-// Document slot upload - either auth (applicant primary, staff fallback)
-router.post('/requests/:requestId/documents', authenticateEither, formalController.submitDocument);
+// Document slot upload - the applicant only (one-shot per slot)
+router.post('/requests/:requestId/documents', authenticateEither, requireApplicant, formalController.submitDocument);
 
 // Close M4 - DN/SU only
 router.post(

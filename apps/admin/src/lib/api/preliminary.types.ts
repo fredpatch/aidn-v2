@@ -31,7 +31,3 @@ export interface PreliminaryBundle {
   evaluation: EvaluationView | null;
 }
 
-export interface UploadedFile {
-  fileUrl: string;
-  mimeType: string;
-}

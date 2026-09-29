@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, type NextFunction, type Request, type Response } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -10,6 +10,7 @@ import {
 import * as uploadsController from './uploads.controller.js';
 import * as uploadsAdminController from './uploads.admin.controller.js';
 import { UPLOADS_ROOT } from '../../shared/uploads-root.js';
+import { acceptsUploadMime, uploadRejection, UploadRejectedError } from './upload-intake.js';
 
 
 function sourceAppFromOrigin(origin: string | undefined): 'admin' | 'portal' | 'api' | 'unknown' {
@@ -52,14 +53,36 @@ const storage = multer.diskStorage({
   },
 });
 
-const upload = multer({ storage, limits: { fileSize: 20 * 1024 * 1024 } }); // 20MB
+const upload = multer({
+  storage,
+  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB
+  // STORAGE-0B - a refused type is never written to disk.
+  fileFilter: (_req, file, cb) => {
+    if (acceptsUploadMime(file.mimetype)) cb(null, true);
+    else cb(new UploadRejectedError('UPLOAD_TYPE_NOT_ACCEPTED'));
+  },
+});
+
+/** Multer errors (refused type, too large) as clean 4xx responses. Multer
+ *  removes the partial file itself when it aborts. */
+function receiveSingleFile(req: Request, res: Response, next: NextFunction): void {
+  upload.single('file')(req, res, (error: unknown) => {
+    if (!error) return next();
+    const rejection = uploadRejection(error);
+    if (rejection) {
+      res.status(rejection.status).json({ message: rejection.message, code: rejection.code });
+      return;
+    }
+    next(error);
+  });
+}
 
 const router = Router();
 
 // Reachable by either an applicant (portal) or staff (admin manual entry) -
 // same dual-auth pattern as the requests submit endpoint, since uploads
 // happen from both sides of the same M1 flow.
-router.post('/', authenticateEither, upload.single('file'), uploadsController.upload);
+router.post('/', authenticateEither, receiveSingleFile, uploadsController.upload);
 
 // SU-only explicit upload-management APIs (linking discipline, diagnostics,
 // and stale orphan cleanup).

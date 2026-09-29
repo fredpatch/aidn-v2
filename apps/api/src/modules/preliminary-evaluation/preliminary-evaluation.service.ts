@@ -10,7 +10,13 @@ import {
 } from '../../shared/db/schema.js';
 import { getIntegerValue } from '../system-parameters/system-parameters.service.js';
 import { logAudit } from '../auth/auth.service.js';
-import { linkUploadAssetToOwner } from '../uploads/uploads.service.js';
+import {
+  claimUploadAsset,
+  linkLockedAsset,
+  trashCurrentVersions,
+  versionValues,
+  type PreparedAttachment,
+} from '../uploads/upload-attachment.js';
 
 export interface PreliminaryEvaluationView {
   id: number;
@@ -119,62 +125,48 @@ export async function makeAvailable(
   return toView(row);
 }
 
-/** Ownership is enforced by the controller (phase -> request -> applicantId
- *  check) before this is called. */
+/** Applicant only (route: requireApplicant); ownership is enforced by the
+ *  controller (phase -> request -> applicantId check) before this is called. */
 export async function submit(
   phaseId: number,
-  fileUrl: string,
-  mimeType: string,
-  uploadAssetId?: number
+  attachment: PreparedAttachment
 ): Promise<PreliminaryEvaluationView> {
-  const [row] = await db
-    .select()
-    .from(preliminaryEvaluationForms)
-    .where(eq(preliminaryEvaluationForms.phaseId, phaseId));
-  if (!row) throw new Error('NOT_YET_AVAILABLE');
-  if (!row.madeAvailableAt) throw new Error('NOT_YET_AVAILABLE');
+  const updated = await db.transaction(async (tx) => {
+    // Target first: the evaluation form row, then the upload asset.
+    const [row] = await tx
+      .select()
+      .from(preliminaryEvaluationForms)
+      .where(eq(preliminaryEvaluationForms.phaseId, phaseId))
+      .for('update');
+    if (!row || !row.madeAvailableAt) throw new Error('NOT_YET_AVAILABLE');
 
-  // M8 pattern - every upload goes through document_versions first, same
-  // as dg_circuit_documents and document_templates. A resubmission trashes
-  // the previous version rather than silently overwriting it.
-  if (row.submittedFileUrl) {
-    await db
-      .update(documentVersions)
-      .set({ isCurrent: false, trashedAt: new Date() })
-      .where(
-        and(
-          eq(documentVersions.ownerType, 'preliminary_evaluation_form'),
-          eq(documentVersions.ownerId, row.id)
-        )
-      );
-  }
+    const target = { ownerType: 'preliminary_evaluation_form', ownerId: row.id } as const;
+    if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') return row;
 
-  await db.insert(documentVersions).values({
-    ownerType: 'preliminary_evaluation_form',
-    ownerId: row.id,
-    fileUrl,
-    mimeType,
-    isCurrent: true,
-  });
+    // M8 pattern - every upload goes through document_versions first, same
+    // as dg_circuit_documents and document_templates. A resubmission trashes
+    // the previous version rather than silently overwriting it.
+    if (row.submittedFileUrl) await trashCurrentVersions(tx, 'preliminary_evaluation_form', row.id);
 
-  await linkUploadAssetToOwner({
-    uploadAssetId,
-    ownerType: 'preliminary_evaluation_form',
-    ownerId: row.id,
-    expectedFileUrl: fileUrl,
-  });
+    await tx.insert(documentVersions).values(versionValues(attachment, 'preliminary_evaluation_form', row.id));
+    await linkLockedAsset(tx, attachment.assetId, target);
 
-  const [updated] = await db
-    .update(preliminaryEvaluationForms)
-    .set({ submittedFileUrl: fileUrl, submittedAt: new Date() })
-    .where(eq(preliminaryEvaluationForms.id, row.id))
-    .returning();
+    const [saved] = await tx
+      .update(preliminaryEvaluationForms)
+      .set({ submittedFileUrl: attachment.fileUrl, submittedAt: new Date() })
+      .where(eq(preliminaryEvaluationForms.id, row.id))
+      .returning();
 
-  await logAudit({
-    action: 'PRELIMINARY_EVALUATION_SUBMITTED',
-    module: 'M3',
-    entityId: row.id,
-    details: { mimeType },
+    await logAudit(
+      {
+        action: 'PRELIMINARY_EVALUATION_SUBMITTED',
+        module: 'M3',
+        entityId: row.id,
+        details: { mimeType: attachment.mimeType },
+      },
+      tx
+    );
+    return saved;
   });
 
   return toView(updated);

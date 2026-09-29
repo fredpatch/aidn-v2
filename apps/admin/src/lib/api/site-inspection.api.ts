@@ -3,7 +3,6 @@ import type {
   SiteInspectionBundle,
   MyQueueItem,
   PaymentQueueItem,
-  UploadedFile,
 } from './site-inspection.types';
 
 export async function fetchSiteInspectionBundle(requestId: string): Promise<SiteInspectionBundle> {
@@ -15,31 +14,8 @@ export async function startSiteInspection(requestId: string): Promise<void> {
   await api.post(`/site-inspection/requests/${requestId}/start-site-inspection`);
 }
 
-export async function uploadInvoice(
-  phaseId: number,
-  fileUrl: string,
-  mimeType: string,
-  uploadAssetId?: number
-): Promise<void> {
-  await api.post(`/site-inspection/phases/${phaseId}/invoice`, {
-    fileUrl,
-    mimeType,
-    uploadAssetId,
-  });
-}
-
-export async function uploadPaymentProof(
-  phaseId: number,
-  requestId: string,
-  fileUrl: string,
-  mimeType: string,
-  uploadAssetId?: number
-): Promise<void> {
-  await api.post(`/site-inspection/phases/${phaseId}/requests/${requestId}/proof`, {
-    fileUrl,
-    mimeType,
-    uploadAssetId,
-  });
+export async function uploadInvoice(phaseId: number, uploadAssetId: number): Promise<void> {
+  await api.post(`/site-inspection/phases/${phaseId}/invoice`, { uploadAssetId });
 }
 
 export async function validatePayment(phaseId: number): Promise<void> {
@@ -102,11 +78,5 @@ export async function fetchUsersByRole(
   return data;
 }
 
-export async function uploadFile(file: File): Promise<UploadedFile> {
-  const formData = new FormData();
-  formData.append('file', file);
-  const { data } = await api.post('/uploads', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-  return data;
-}
+// STORAGE-0B - one shared upload helper (returns uploadAssetId).
+export { uploadFile } from '../uploads';

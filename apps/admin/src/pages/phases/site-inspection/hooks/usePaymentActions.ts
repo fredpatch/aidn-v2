@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiErrorMessage } from '../../../../lib/axios';
-import { rejectPayment, uploadFile, uploadInvoice, uploadPaymentProof, validatePayment } from '../api';
+import { rejectPayment, uploadFile, uploadInvoice, validatePayment } from '../api';
 import { queryKeys } from '../../../../lib/react-query/queryKeys';
 
 export function usePaymentActions(
@@ -21,27 +21,11 @@ export function usePaymentActions(
   const invoiceMutation = useMutation({
     mutationFn: async (file: File) => {
       const uploaded = await uploadFile(file);
-      await uploadInvoice(phaseId!, uploaded.fileUrl, uploaded.mimeType, uploaded.uploadAssetId);
+      await uploadInvoice(phaseId!, uploaded.uploadAssetId);
     },
     onSuccess: invalidate,
     onError: (err) =>
       setActionError(apiErrorMessage(err, 'Impossible de mettre en ligne la facture.')),
-  });
-
-  const proofMutation = useMutation({
-    mutationFn: async (file: File) => {
-      const uploaded = await uploadFile(file);
-      await uploadPaymentProof(
-        phaseId!,
-        requestId!,
-        uploaded.fileUrl,
-        uploaded.mimeType,
-        uploaded.uploadAssetId
-      );
-    },
-    onSuccess: invalidate,
-    onError: (err) =>
-      setActionError(apiErrorMessage(err, 'Impossible de soumettre la preuve de paiement.')),
   });
 
   const validateMutation = useMutation({
@@ -61,7 +45,6 @@ export function usePaymentActions(
 
   const busy =
     invoiceMutation.isPending ||
-    proofMutation.isPending ||
     validateMutation.isPending ||
     rejectMutation.isPending;
 
@@ -69,16 +52,6 @@ export function usePaymentActions(
     setActionError(null);
     try {
       await invoiceMutation.mutateAsync(file);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  async function uploadProofFile(file: File): Promise<boolean> {
-    setActionError(null);
-    try {
-      await proofMutation.mutateAsync(file);
       return true;
     } catch {
       return false;
@@ -108,5 +81,5 @@ export function usePaymentActions(
     }
   }
 
-  return { busy, uploadInvoiceFile, uploadProofFile, validate, reject };
+  return { busy, uploadInvoiceFile, validate, reject };
 }

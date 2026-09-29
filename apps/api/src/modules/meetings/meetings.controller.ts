@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import * as meetingsService from './meetings.service.js';
 import { handleMeetingsError } from '../../shared/utils/error.js';
+import { actorFromRequest, parseUploadAssetId, prepareUploadAttachment } from '../uploads/upload-attachment.js';
 
 export async function list(req: Request, res: Response): Promise<void> {
   try {
@@ -95,24 +96,9 @@ export async function reschedule(req: Request, res: Response): Promise<void> {
 
 export async function attachReport(req: Request, res: Response): Promise<void> {
   try {
-    const { fileUrl, mimeType, uploadAssetId } = req.body ?? {};
-    if (!fileUrl || !mimeType) {
-      res.status(400).json({ message: 'fileUrl et mimeType sont requis.' });
-      return;
-    }
-    const parsedUploadAssetId =
-      uploadAssetId === undefined || uploadAssetId === null ? undefined : Number(uploadAssetId);
-    if (parsedUploadAssetId !== undefined && !Number.isInteger(parsedUploadAssetId)) {
-      res.status(400).json({ message: 'uploadAssetId invalide.' });
-      return;
-    }
-    const meeting = await meetingsService.attachMeetingReport(
-      Number(req.params.id),
-      req.user!.userId,
-      fileUrl,
-      mimeType,
-      parsedUploadAssetId
-    );
+    const { uploadAssetId } = req.body ?? {};
+    const attachment = await prepareUploadAttachment(parseUploadAssetId(uploadAssetId), actorFromRequest(req));
+    const meeting = await meetingsService.attachMeetingReport(Number(req.params.id), req.user!.userId, attachment);
     res.json(meeting);
   } catch (error) {
     handleMeetingsError(res, error);

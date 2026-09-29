@@ -11,7 +11,13 @@ import {
   documentVersions,
 } from '../../shared/db/schema.js';
 import { logAudit } from '../auth/auth.service.js';
-import { linkUploadAssetToOwner } from '../uploads/uploads.service.js';
+import {
+  claimUploadAsset,
+  linkLockedAsset,
+  trashCurrentVersions,
+  versionValues,
+  type PreparedAttachment,
+} from '../uploads/upload-attachment.js';
 import type {
   MeetingCockpitItem,
   MeetingCockpitSummary,
@@ -447,48 +453,33 @@ export async function rescheduleMeeting(
 export async function attachMeetingReport(
   meetingId: number,
   actorUserId: number,
-  fileUrl: string,
-  mimeType: string,
-  uploadAssetId?: number
+  attachment: PreparedAttachment
 ): Promise<MeetingView> {
-  const [meeting] = await db.select().from(meetings).where(eq(meetings.id, meetingId));
-  if (!meeting) throw new Error('MEETING_NOT_FOUND');
-  if (meeting.status !== 'held') throw new Error('MEETING_NOT_HELD');
+  const updated = await db.transaction(async (tx) => {
+    const [meeting] = await tx.select().from(meetings).where(eq(meetings.id, meetingId)).for('update');
+    if (!meeting) throw new Error('MEETING_NOT_FOUND');
+    const target = { ownerType: 'meeting_report', ownerId: meetingId } as const;
+    if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') return meeting;
+    if (meeting.status !== 'held') throw new Error('MEETING_NOT_HELD');
 
-  if (meeting.crDocumentUrl) {
-    await db
-      .update(documentVersions)
-      .set({ isCurrent: false, trashedAt: new Date() })
-      .where(eq(documentVersions.ownerId, meetingId));
-  }
+    // Scoped to meeting_report: the old code trashed every document version
+    // whose owner id equalled the meeting id, whatever its owner type.
+    if (meeting.crDocumentUrl) await trashCurrentVersions(tx, 'meeting_report', meetingId);
 
-  await db.insert(documentVersions).values({
-    ownerType: 'meeting_report',
-    ownerId: meetingId,
-    fileUrl,
-    mimeType,
-    uploadedBy: actorUserId,
-    isCurrent: true,
-  });
+    await tx.insert(documentVersions).values(versionValues(attachment, 'meeting_report', meetingId));
+    await linkLockedAsset(tx, attachment.assetId, target);
 
-  await linkUploadAssetToOwner({
-    uploadAssetId,
-    ownerType: 'meeting_report',
-    ownerId: meetingId,
-    expectedFileUrl: fileUrl,
-  });
+    const [saved] = await tx
+      .update(meetings)
+      .set({ crDocumentUrl: attachment.fileUrl, crUploadedAt: new Date() })
+      .where(eq(meetings.id, meetingId))
+      .returning();
 
-  const [updated] = await db
-    .update(meetings)
-    .set({ crDocumentUrl: fileUrl, crUploadedAt: new Date() })
-    .where(eq(meetings.id, meetingId))
-    .returning();
-
-  await logAudit({
-    userId: actorUserId,
-    action: 'MEETING_REPORT_ATTACHED',
-    module: 'M3',
-    entityId: meetingId,
+    await logAudit(
+      { userId: actorUserId, action: 'MEETING_REPORT_ATTACHED', module: 'M3', entityId: meetingId },
+      tx
+    );
+    return saved;
   });
 
   return toMeetingView(updated);

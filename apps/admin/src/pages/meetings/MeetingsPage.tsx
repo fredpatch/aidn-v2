@@ -30,8 +30,8 @@ import {
   fetchMeetingCockpit,
   markMeetingStatus,
   rescheduleMeeting,
-  uploadMeetingFile,
 } from '../../lib/api/meetings.api';
+import { uploadFile } from '../../lib/uploads';
 import type {
   MeetingCockpitItem,
   MeetingCockpitMetric,
@@ -672,13 +672,8 @@ function SelectedMeetingPanel({
 
   const reportMutation = useMutation({
     mutationFn: async ({ id, file }: { id: number; file: File }) => {
-      const uploaded = await uploadMeetingFile(file);
-      await attachMeetingReport(
-        id,
-        uploaded.fileUrl,
-        uploaded.mimeType,
-        uploaded.uploadAssetId ?? uploaded.id
-      );
+      const uploaded = await uploadFile(file);
+      await attachMeetingReport(id, uploaded.uploadAssetId);
     },
     onSuccess: async () => {
       setReportFile(null);
