@@ -42,4 +42,3 @@ export const VERDICT_TONES: Record<string, string> = {
   compliant_with_reserves: 'bg-anac-warning/10 text-anac-warning',
 };
 
-export const API_ORIGIN = 'http://localhost:4000';

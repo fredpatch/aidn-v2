@@ -1,3 +1,5 @@
+import type { TemplateHealthStatus } from '@aidn/shared';
+
 export interface ParameterView {
   id: number;
   key: string;
@@ -52,4 +54,52 @@ export interface UploadCleanupResult {
   retentionDays: number;
   marked: number;
   deleted: number;
+}
+
+/** GET /seeding/status - « Paramètres → État du système ». */
+export type SectionStatus = 'healthy' | 'attention';
+export type ServiceStatus = 'available' | 'unavailable';
+export type { TemplateHealthStatus };
+
+export interface SystemStatus {
+  checkedAt: string;
+  overallStatus: SectionStatus;
+  /** Items « Créer les éléments manquants » can create. */
+  missingCount: number;
+  /** null when the database could not be queried. */
+  referenceData: {
+    systemParameters: {
+      status: SectionStatus;
+      expected: number;
+      present: number;
+      missing: number;
+      items: { key: string; status: 'healthy' | 'missing' }[];
+    };
+    documentTemplates: {
+      status: SectionStatus;
+      expected: number;
+      healthy: number;
+      missing: number;
+      fileMissing: number;
+      inactive: number;
+      unchecked: number;
+      items: { key: string; label: string; status: TemplateHealthStatus }[];
+    };
+  } | null;
+  infrastructure: {
+    api: { status: 'available' };
+    /** Space used by the AIDN database; null if not measurable. */
+    database: { status: ServiceStatus; sizeBytes: number | null };
+    /** Disk holding the uploads folder; lowSpace below 10% free. */
+    storage: { status: ServiceStatus; freeBytes: number | null; totalBytes: number | null; lowSpace: boolean };
+  };
+  /** Stored /uploads/... addresses not yet converted (unreachable files). */
+  files: { legacyAddresses: number | null };
+}
+
+/** POST /seeding/run */
+export interface ReferenceDataRunResult {
+  created: number;
+  skipped: number;
+  seeds: { name: string; label: string; created: number; skipped: number; createdKeys: string[] }[];
 }

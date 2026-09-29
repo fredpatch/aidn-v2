@@ -7,6 +7,7 @@ const router = Router();
 // Management view - staff only.
 router.get("/", authenticate, requireRole("dn_agent", "dn_supervisor", "SU"), templatesController.list);
 router.post("/", authenticate, requireRole("dn_agent", "dn_supervisor", "SU"), templatesController.upsert);
+router.get("/:key/versions", authenticate, requireRole("dn_agent", "dn_supervisor", "SU"), templatesController.listVersions);
 
 // Download by key - both staff and applicants need this (applicant to fill
 // out a blank form, staff to double-check what's currently published).

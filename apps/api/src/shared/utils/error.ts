@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import { SeedingError } from '../../modules/seeding/seeding.types.js';
 
 type ErrorMap = Record<string, { status: number; message: string }>;
 type PrefixHandler = { prefix: string; status: number; message: (id: string) => string };
@@ -546,3 +547,19 @@ export const handleCertificatesError = createErrorHandler(
   },
   '[certificates]'
 );
+
+/** POST /api/seeding/run. A SeedingError carries a descriptive message (it
+ *  names the seed and step for the server log), not an error code, so it
+ *  cannot go through createErrorHandler. Details stay in the log only. */
+export function handleSeedingError(res: Response, error: unknown): void {
+  if (error instanceof SeedingError && error.code === 'LOCK_TIMEOUT') {
+    res.status(409).json({
+      message: 'Une vérification des données de référence est déjà en cours. Réessayez dans un instant.',
+      code: 'LOCK_TIMEOUT',
+    });
+    return;
+  }
+
+  console.error('[seeding]', error instanceof Error ? error.message : error);
+  res.status(500).json({ message: 'Impossible de créer les éléments manquants.', code: 'SEED_FAILED' });
+}

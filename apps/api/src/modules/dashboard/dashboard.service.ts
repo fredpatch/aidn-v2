@@ -42,7 +42,8 @@ import type {
   DashboardStatusStat,
   DashboardSummary,
 } from './dashboard.types.js';
-import { getIntegerValue } from '../system-parameters/system-parameters.service.js';
+import { workingDaysBetween, type PublicHolidays } from '@aidn/shared';
+import { getIntegerValue, getPublicHolidays } from '../system-parameters/system-parameters.service.js';
 
 const PHASE_LABELS: Record<string, string> = {
   M3: 'Preliminaire',
@@ -118,7 +119,9 @@ type DashboardSlaStatus = DashboardActionItem['slaStatus'];
 interface DashboardSlaConfig {
   phaseTargets: Record<string, number>;
   signatureDepositDays: number;
+  /** Working days (jours ouvrés), same threshold and count as the Circuit DG alert. */
   signatureReturnDays: number;
+  publicHolidays: PublicHolidays;
   invoiceUploadDays: number;
   paymentValidationDays: number;
   documentEvaluationDays: number;
@@ -136,6 +139,7 @@ async function loadDashboardSlaConfig(): Promise<DashboardSlaConfig> {
     invoiceUploadDays,
     paymentValidationDays,
     documentEvaluationDays,
+    publicHolidays,
   ] = await Promise.all([
     getIntegerValue('dashboard_sla_phase_m3_days', DASHBOARD_SLA_DEFAULTS.phaseM3Days),
     getIntegerValue('dashboard_sla_phase_m4_days', DASHBOARD_SLA_DEFAULTS.phaseM4Days),
@@ -156,6 +160,7 @@ async function loadDashboardSlaConfig(): Promise<DashboardSlaConfig> {
       'dashboard_sla_document_evaluation_days',
       DASHBOARD_SLA_DEFAULTS.documentEvaluationDays
     ),
+    getPublicHolidays(),
   ]);
 
   return {
@@ -168,6 +173,7 @@ async function loadDashboardSlaConfig(): Promise<DashboardSlaConfig> {
     },
     signatureDepositDays,
     signatureReturnDays,
+    publicHolidays,
     invoiceUploadDays,
     paymentValidationDays,
     documentEvaluationDays,
@@ -212,6 +218,15 @@ function daysBetween(start: Date | string | null, end: Date | string | null): nu
   const diff = endDate.getTime() - startDate.getTime();
   if (Number.isNaN(diff) || diff < 0) return null;
   return Math.round((diff / 86_400_000) * 10) / 10;
+}
+
+/** Working days elapsed since `start` (1 decimal), for the signature-return
+ *  target only - every other dashboard target counts calendar days. */
+function workingDaysSince(start: Date | string | null, holidays: PublicHolidays): number | null {
+  if (!start) return null;
+  const startDate = new Date(start);
+  if (Number.isNaN(startDate.getTime())) return null;
+  return Math.round(workingDaysBetween(startDate, new Date(), holidays) * 10) / 10;
 }
 
 function average(values: Array<number | null>): number | null {
@@ -272,21 +287,26 @@ function slaStatusFromWaitingDays(
 function slaLabel(
   status: DashboardSlaStatus,
   targetDays: number,
-  overdueDays?: number | null
+  overdueDays?: number | null,
+  unit = 'j'
 ): string {
   if (status === 'unknown') return 'Delai non mesure';
-  if (status === 'overdue') return `Delai depasse${overdueDays ? ` de ${overdueDays} j` : ''}`;
-  if (status === 'warning') return `Echeance proche (${targetDays} j cible)`;
+  if (status === 'overdue') return `Delai depasse${overdueDays ? ` de ${overdueDays} ${unit}` : ''}`;
+  if (status === 'warning') return `Echeance proche (${targetDays} ${unit} cible)`;
   if (status === 'blocked') return 'Blocage operationnel';
-  return `Dans les temps (${targetDays} j cible)`;
+  return `Dans les temps (${targetDays} ${unit} cible)`;
 }
 
+/** `workingDaysWaiting`, when given, replaces the calendar waitingDays for the
+ *  target comparison (the signature return counts working days). */
 function enrichActionDelay<T extends DashboardActionItem>(
   action: T,
   targetDays: number,
-  blockingStatus: DashboardSlaStatus = 'overdue'
+  blockingStatus: DashboardSlaStatus = 'overdue',
+  workingDaysWaiting?: number | null
 ): T {
-  const waitingDays = action.waitingDays ?? null;
+  const countsWorkingDays = workingDaysWaiting !== undefined;
+  const waitingDays = countsWorkingDays ? workingDaysWaiting : (action.waitingDays ?? null);
   const computedStatus = slaStatusFromWaitingDays(waitingDays, targetDays);
   const status =
     computedStatus === 'overdue' && blockingStatus === 'blocked' ? 'blocked' : computedStatus;
@@ -298,7 +318,7 @@ function enrichActionDelay<T extends DashboardActionItem>(
     ...action,
     slaTargetDays: targetDays,
     slaStatus: status,
-    slaLabel: slaLabel(status, targetDays, overdueDays),
+    slaLabel: slaLabel(status, targetDays, overdueDays, countsWorkingDays ? 'j ouvrés' : 'j'),
     overdueDays,
     priority:
       status === 'blocked' || status === 'overdue'
@@ -775,7 +795,10 @@ export async function getDashboardSummary(
         circuit.status === 'submitted'
           ? slaConfig.signatureDepositDays
           : slaConfig.signatureReturnDays,
-        'blocked'
+        'blocked',
+        circuit.status === 'submitted'
+          ? undefined
+          : workingDaysSince(waitingFrom, slaConfig.publicHolidays)
       );
     });
 
@@ -1302,6 +1325,11 @@ export async function getReceptionDashboardSummary(
         : slaConfig.signatureReturnDays;
     const waitingFrom = receptionWaitingFrom(circuit);
     const waitingDays = daysBetween(waitingFrom, new Date());
+    // The displayed wait stays in calendar days; the return target counts working days.
+    const measuredDays =
+      circuit.status === 'submitted'
+        ? waitingDays
+        : workingDaysSince(waitingFrom, slaConfig.publicHolidays);
     return {
       id: `${circuit.entityType}:${row.requestId}`,
       circuitId: circuit.id,
@@ -1321,9 +1349,9 @@ export async function getReceptionDashboardSummary(
       waitingDays,
       waitingLabel: waitingLabel(waitingFrom),
       priority:
-        waitingDays !== null && waitingDays > targetDays
+        measuredDays !== null && measuredDays > targetDays
           ? 'haute'
-          : waitingDays !== null && waitingDays >= Math.max(targetDays - 1, 1)
+          : measuredDays !== null && measuredDays >= Math.max(targetDays - 1, 1)
             ? 'moyenne'
             : priorityFromAge(waitingFrom),
       href: '/courriers',
@@ -1355,7 +1383,9 @@ export async function getReceptionDashboardSummary(
   );
   const returnedDurations = circuitRows
     .filter((row) => row.circuit.signatureSentAt && row.circuit.signedAt)
-    .map((row) => daysBetween(row.circuit.signatureSentAt, row.circuit.signedAt));
+    .map((row) =>
+      Math.round(workingDaysBetween(row.circuit.signatureSentAt!, row.circuit.signedAt!, slaConfig.publicHolidays) * 10) / 10
+    );
   const averageSignatureReturn = average(returnedDurations);
 
   const priorityActions = items
@@ -1379,8 +1409,8 @@ export async function getReceptionDashboardSummary(
   ).length;
   const overdueSignatureReturn = waitingSignatureRows.filter(
     (row) =>
-      (daysBetween(row.circuit.signatureSentAt ?? row.circuit.depositedAt, new Date()) ?? 0) >
-      slaConfig.signatureReturnDays
+      (workingDaysSince(row.circuit.signatureSentAt ?? row.circuit.depositedAt, slaConfig.publicHolidays) ??
+        0) > slaConfig.signatureReturnDays
   ).length;
   const formalLettersWaiting = waitingSignatureRows.filter(
     (row) => row.circuit.entityType === 'formal_request_letter'
@@ -1426,8 +1456,8 @@ export async function getReceptionDashboardSummary(
     },
     {
       label: 'Delai moyen retour signature',
-      value: averageSignatureReturn === null ? '-' : `${averageSignatureReturn} j`,
-      helper: `Cible: ${slaConfig.signatureReturnDays} j apres mise en signature.`,
+      value: averageSignatureReturn === null ? '-' : `${averageSignatureReturn} j ouvrés`,
+      helper: `Cible: ${slaConfig.signatureReturnDays} j ouvrés apres mise en signature.`,
       percentage:
         averageSignatureReturn === null
           ? 0
@@ -1468,7 +1498,7 @@ export async function getReceptionDashboardSummary(
       {
         key: 'average_signature_return',
         label: 'Delai moyen signature',
-        value: averageSignatureReturn === null ? '-' : `${averageSignatureReturn} j`,
+        value: averageSignatureReturn === null ? '-' : `${averageSignatureReturn} j ouvrés`,
         helper: 'Mise en signature -> scan retour signe',
         tone:
           averageSignatureReturn === null || averageSignatureReturn <= slaConfig.signatureReturnDays
@@ -1522,7 +1552,7 @@ export async function getReceptionDashboardSummary(
         key: 'overdue_signature_return',
         title: 'Retour signature hors delai',
         value: overdueSignatureReturn,
-        helper: `Cible retour: ${slaConfig.signatureReturnDays} j apres mise en signature`,
+        helper: `Cible retour: ${slaConfig.signatureReturnDays} j ouvrés apres mise en signature`,
         tone: overdueSignatureReturn > 0 ? 'danger' : 'info',
         href: '/courriers',
       },

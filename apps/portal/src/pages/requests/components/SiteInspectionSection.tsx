@@ -3,6 +3,7 @@ import { CalendarClock, CheckCircle2, CreditCard, MapPinned, UploadCloud } from 
 import { api, apiErrorMessage } from '../../../lib/axios';
 import { notify } from '../../../lib/notify';
 import { MEETING_STATUS_LABELS } from '../constants';
+import FileLink from '../../../components/files/FileLink';
 
 interface SiteInspectionBundle {
   phase: { id: number; status: string } | null;
@@ -18,18 +19,6 @@ interface SiteInspectionBundle {
     location: string | null;
     status: string;
   } | null;
-}
-
-function fileHref(url: string): string {
-  try {
-    const parsed = new URL(url);
-    if (parsed.hostname === 'localhost' && parsed.port === '4000') {
-      return `${parsed.pathname}${parsed.search}${parsed.hash}`;
-    }
-  } catch {
-    // Relative URLs are already ideal for the portal dev proxy.
-  }
-  return url;
 }
 
 function formatDateTime(value: string | null | undefined): string {
@@ -178,14 +167,12 @@ export function SiteInspectionSection({ requestId }: { requestId: number }) {
             {!bundle.payment.invoiceFileUrl ? (
               <p className="text-anac-muted">En attente de la facture de la DN.</p>
             ) : (
-              <a
-                href={fileHref(bundle.payment.invoiceFileUrl)}
-                target="_blank"
-                rel="noreferrer"
+              <FileLink
+                address={bundle.payment.invoiceFileUrl}
                 className="btn-secondary inline-flex rounded px-3 py-1.5 text-xs"
               >
                 Consulter la facture
-              </a>
+              </FileLink>
             )}
             {bundle.payment.status === 'validated' ? (
               <p className="text-sm font-medium text-anac-success">Paiement valide.</p>

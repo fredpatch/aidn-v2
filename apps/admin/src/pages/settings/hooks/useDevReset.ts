@@ -38,7 +38,7 @@ export function useDevReset() {
       const data = await sessionMutation.mutateAsync(durationMinutes);
       return {
         result: data.session.expiresAt
-          ? `Session ouverte jusqu'a ${new Date(data.session.expiresAt).toLocaleTimeString('fr-FR', {
+          ? `Session ouverte jusqu'à ${new Date(data.session.expiresAt).toLocaleTimeString('fr-FR', {
               hour: '2-digit',
               minute: '2-digit',
             })}.`
@@ -48,7 +48,7 @@ export function useDevReset() {
     } catch (err) {
       return {
         result: null,
-        error: apiErrorMessage(err, 'Impossible de demarrer la session de maintenance.'),
+        error: apiErrorMessage(err, 'Impossible de démarrer la session de maintenance.'),
       };
     }
   }
@@ -60,13 +60,13 @@ export function useDevReset() {
     try {
       const data = await resetMutation.mutateAsync({ scopes, confirmation });
       return {
-        result: `Reinitialise : ${data.scopesCleared.join(', ')}`,
+        result: `Réinitialisé : ${data.scopesCleared.join(', ')}`,
         error: null,
       };
     } catch (err) {
       return {
         result: null,
-        error: apiErrorMessage(err, 'Impossible de reinitialiser.'),
+        error: apiErrorMessage(err, 'Impossible de réinitialiser.'),
       };
     }
   }

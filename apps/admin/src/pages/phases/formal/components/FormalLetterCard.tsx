@@ -1,7 +1,7 @@
 import { FileText } from 'lucide-react';
 import DocumentPreviewLink from '../../../../components/documents/DocumentPreviewLink';
 import CollapsibleCard from '../../../../components/ui/collapsible-card';
-import { API_ORIGIN, CIRCUIT_STATUS_LABELS, CIRCUIT_STATUS_TONES } from '../constants';
+import { CIRCUIT_STATUS_LABELS, CIRCUIT_STATUS_TONES } from '../constants';
 import { formatDate } from '../helpers';
 import type { FormalLetterCircuitView } from '../types';
 import PhaseStatusBadge from '../../preliminary/components/PhaseStatusBadge';
@@ -43,7 +43,7 @@ export default function FormalLetterCard({ circuit }: FormalLetterCardProps) {
                 Document courant le {formatDate(circuit.currentVersionUploadedAt)} -{' '}
                 <DocumentPreviewLink
                   title="Lettre de demande officielle"
-                  url={`${API_ORIGIN}${circuit.fileUrl}`}
+                  url={circuit.fileUrl}
                   label="ouvrir la lettre"
                 />
                 {circuit.hasPreviousVersions &&

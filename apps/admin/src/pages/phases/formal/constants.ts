@@ -43,4 +43,3 @@ export const MEETING_STATUS_TONES: Record<string, string> = {
   file_cancelled: 'bg-anac-danger/10 text-anac-danger',
 };
 
-export const API_ORIGIN = 'http://localhost:4000';

@@ -4,6 +4,8 @@ import { inArray, sql } from 'drizzle-orm';
 import { db } from '../../shared/db/index.js';
 import { documentVersions } from '../../shared/db/schema.js';
 import { logAudit } from '../auth/auth.service.js';
+import { UPLOADS_ROOT } from '../../shared/uploads-root.js';
+import { resolveStoredFilePath } from '../files/stored-file.js';
 import {
   RESETTABLE_SCOPES,
   SCOPE_DESCRIPTIONS,
@@ -21,7 +23,7 @@ export { RESETTABLE_SCOPES, SCOPE_LABELS } from './dev-tools.types.js';
 const MIN_SESSION_MINUTES = 15;
 const MAX_SESSION_MINUTES = 480;
 const RESET_CONFIRMATION = 'NETTOYER';
-const uploadRootDir = path.resolve(process.cwd(), 'uploads');
+const uploadRootDir = UPLOADS_ROOT;
 const WORKFLOW_DOCUMENT_OWNER_TYPES = [
   'dg_circuit_document',
   'formal_request_document',
@@ -96,22 +98,10 @@ function buildScopeDetails(): DevToolsScopeMeta[] {
   }));
 }
 
-function fileUrlToUploadPath(fileUrl: string | null): string | null {
-  if (!fileUrl?.startsWith('/uploads/')) return null;
-
-  const relativePath = fileUrl.replace(/^\/uploads\//, '').replaceAll('/', path.sep);
-  const fullPath = path.resolve(uploadRootDir, relativePath);
-  const relativeToRoot = path.relative(uploadRootDir, fullPath);
-
-  if (relativeToRoot.startsWith('..') || path.isAbsolute(relativeToRoot)) {
-    return null;
-  }
-
-  return fullPath;
-}
-
-function deleteUploadFile(fileUrl: string | null): number {
-  const fullPath = fileUrlToUploadPath(fileUrl);
+/** Stored addresses are stable /api/files/<id> (or legacy /uploads/...);
+ *  the file is found through its asset, never guessed from the address. */
+async function deleteUploadFile(fileUrl: string | null): Promise<number> {
+  const fullPath = await resolveStoredFilePath(fileUrl);
   if (!fullPath || !fs.existsSync(fullPath)) return 0;
 
   fs.unlinkSync(fullPath);
@@ -195,7 +185,7 @@ async function runScope(scope: ResettableScope): Promise<void> {
           .where(inArray(documentVersions.ownerType, [...WORKFLOW_DOCUMENT_OWNER_TYPES]));
 
         for (const file of files) {
-          deleteUploadFile(file.fileUrl);
+          await deleteUploadFile(file.fileUrl);
         }
       }
       await db.execute(sql`TRUNCATE TABLE requests, dg_circuit_documents RESTART IDENTITY CASCADE`);
@@ -228,6 +218,7 @@ async function runScope(scope: ResettableScope): Promise<void> {
     case 'reports':
       deleteFilesInUploadFolder('reports');
       await db.execute(sql`TRUNCATE TABLE reports RESTART IDENTITY`);
+      await db.execute(sql`DELETE FROM upload_assets WHERE linked_owner_type = 'report'`);
       break;
   }
 }

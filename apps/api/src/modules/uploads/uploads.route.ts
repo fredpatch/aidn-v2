@@ -2,7 +2,6 @@ import { Router } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { fileURLToPath } from 'url';
 import {
   authenticate,
   authenticateEither,
@@ -10,9 +9,8 @@ import {
 } from '../../shared/guards/auth.middleware.js';
 import * as uploadsController from './uploads.controller.js';
 import * as uploadsAdminController from './uploads.admin.controller.js';
+import { UPLOADS_ROOT } from '../../shared/uploads-root.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const uploadRootDir = path.resolve(__dirname, '../../../uploads');
 
 function sourceAppFromOrigin(origin: string | undefined): 'admin' | 'portal' | 'api' | 'unknown' {
   if (!origin) return 'unknown';
@@ -43,7 +41,7 @@ const storage = multer.diskStorage({
     const moduleHint = sanitizeSegment(moduleHintRaw) || 'misc';
 
     const relativeDir = path.posix.join(year, month, day, sourceApp, moduleHint);
-    const absoluteDir = path.join(uploadRootDir, relativeDir);
+    const absoluteDir = path.join(UPLOADS_ROOT, relativeDir);
     fs.mkdirSync(absoluteDir, { recursive: true });
     (req as UploadRequest).uploadRelativeDir = relativeDir;
     cb(null, absoluteDir);

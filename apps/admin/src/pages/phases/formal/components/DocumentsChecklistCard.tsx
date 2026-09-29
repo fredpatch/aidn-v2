@@ -3,7 +3,6 @@ import { CheckCircle2, Circle } from 'lucide-react';
 import DocumentFileIcon from '../../../../components/documents/DocumentFileIcon';
 import DocumentPreviewLink from '../../../../components/documents/DocumentPreviewLink';
 import CollapsibleCard from '../../../../components/ui/collapsible-card';
-import { API_ORIGIN } from '../constants';
 import { formatDate } from '../helpers';
 import type { FormalDocumentView } from '../types';
 
@@ -80,7 +79,7 @@ export default function DocumentsChecklistCard({
                     {formatDate(doc.currentVersionUploadedAt ?? doc.submittedAt)} -{' '}
                     <DocumentPreviewLink
                       title={doc.label}
-                      url={`${API_ORIGIN}${doc.fileUrl}`}
+                      url={doc.fileUrl}
                       label="ouvrir ce document"
                     />
                   </p>

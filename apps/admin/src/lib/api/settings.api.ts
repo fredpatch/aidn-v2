@@ -4,6 +4,8 @@ import type {
   DevToolsSessionResult,
   DevToolsStatus,
   ParameterView,
+  ReferenceDataRunResult,
+  SystemStatus,
   UploadCleanupResult,
   UploadDiagnostics,
 } from './settings.types';
@@ -62,5 +64,16 @@ export async function fetchUploadDiagnostics(): Promise<UploadDiagnostics> {
 export async function cleanupOrphanUploads(retentionDays?: number): Promise<UploadCleanupResult> {
   const payload = retentionDays === undefined ? {} : { retentionDays };
   const { data } = await api.post('/uploads/cleanup-orphans', payload);
+  return data;
+}
+
+export async function fetchSystemStatus(): Promise<SystemStatus> {
+  const { data } = await api.get('/seeding/status');
+  return data;
+}
+
+/** Creates missing reference data only - existing items are never modified. */
+export async function runReferenceDataSeed(): Promise<ReferenceDataRunResult> {
+  const { data } = await api.post('/seeding/run');
   return data;
 }

@@ -6,8 +6,8 @@ import { uploadAssets } from '../../shared/db/schema.js';
 import { getIntegerValue } from '../system-parameters/system-parameters.service.js';
 import { logAudit } from '../auth/auth.service.js';
 import type { UploadOwnerType } from './uploads.types.js';
+import { UPLOADS_ROOT } from '../../shared/uploads-root.js';
 
-const uploadRootDir = path.resolve(process.cwd(), 'uploads');
 
 export async function linkUploadAssetToOwner(params: {
   uploadAssetId?: number;
@@ -167,7 +167,7 @@ export async function cleanupStaleOrphanUploads(params: {
     }
 
     const relativePath = asset.storageKey.replace(/^\/+/, '');
-    const fullPath = path.join(uploadRootDir, relativePath);
+    const fullPath = path.join(UPLOADS_ROOT, relativePath);
     if (fs.existsSync(fullPath)) {
       fs.unlinkSync(fullPath);
       deleted += 1;

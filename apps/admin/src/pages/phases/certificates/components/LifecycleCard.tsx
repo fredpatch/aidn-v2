@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Printer } from 'lucide-react';
 import DocumentPreviewLink from '../../../../components/documents/DocumentPreviewLink';
 import { Button } from '../../../../components/ui/button';
-import { API_ORIGIN, CERTIFICATE_STATUS_LABELS, CERTIFICATE_STATUS_TONES } from '../constants';
+import { CERTIFICATE_STATUS_LABELS, CERTIFICATE_STATUS_TONES } from '../constants';
 import { formatDateTime } from '../helpers';
 import { useCertificateLifecycle } from '../hooks/useCertificateLifecycle';
 import type { CertificateView } from '../types';
@@ -78,7 +78,7 @@ export default function LifecycleCard({
             <p className="text-xs">
               <DocumentPreviewLink
                 title="Certificat genere"
-                url={`${API_ORIGIN}${lastGeneratedUrl}`}
+                url={lastGeneratedUrl}
                 label="Consulter le document genere"
               />
             </p>
@@ -121,7 +121,7 @@ export default function LifecycleCard({
             <p className="text-xs">
               <DocumentPreviewLink
                 title="Certificat signe retourne"
-                url={`${API_ORIGIN}${certificate.signedFileUrl}`}
+                url={certificate.signedFileUrl}
                 label="Consulter le certificat signe retourne"
               />
             </p>

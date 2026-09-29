@@ -26,7 +26,7 @@ export function useUploadMaintenance() {
     try {
       const data = await cleanupMutation.mutateAsync(retentionDays);
       return {
-        result: `Nettoyage termine: ${data.marked} marque(s), ${data.deleted} fichier(s) supprime(s), retention ${data.retentionDays} jour(s).`,
+        result: `Nettoyage terminé : ${data.marked} marqué(s), ${data.deleted} fichier(s) supprimé(s), rétention ${data.retentionDays} jour(s).`,
         error: null,
       };
     } catch (err) {

@@ -91,6 +91,11 @@ COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/packages/shared ./packages/shared
 COPY --from=build /app/apps/api ./apps/api
 
+# Official DN document templates seeded at startup (SEED-1B) ship inside
+# apps/api/seed-assets/ via the COPY above - docs/ is never copied. Fail the
+# build here if an asset is missing instead of failing at first startup.
+RUN test "$(find /app/apps/api/seed-assets/document-templates -name '*.docx' | wc -l)" -eq 4
+
 RUN mkdir -p /app/apps/api/uploads \
     && chown -R node:node /app/apps/api/uploads
 

@@ -15,6 +15,8 @@ import {
 } from '../../shared/db/schema.js';
 import { logAudit } from '../auth/auth.service.js';
 import { linkUploadAssetToOwner } from '../uploads/uploads.service.js';
+import { registerGeneratedFile } from '../uploads/asset-registration.js';
+import { UPLOADS_ROOT } from '../../shared/uploads-root.js';
 import { getTextValue } from '../system-parameters/system-parameters.service.js';
 import { generateCertificateReference } from './certificates.helpers.js';
 import {
@@ -519,14 +521,24 @@ export async function generateCertificateDocument(
     await browser.close();
   }
 
-  // Storage: reuse whatever the app's existing upload storage layer is
-  // (same as every other document_versions entry) - placeholder path shape
-  // matches the pattern used elsewhere in this codebase.
+  // Stored under uploads/certificates/ (moved to generated/ in STORAGE-3) and
+  // registered as an asset of the certificate: the stored address is the
+  // asset's stable address, and access follows the M7 dossier rules.
   const fileName = `certificate-${certificate.reference}-${Date.now()}.pdf`;
-  const fileUrl = `/uploads/certificates/${fileName}`;
-  const storagePath = path.join(process.cwd(), 'uploads', 'certificates', fileName);
+  const storageKey = `certificates/${fileName}`;
+  const storagePath = path.join(UPLOADS_ROOT, 'certificates', fileName);
   await mkdir(path.dirname(storagePath), { recursive: true });
   await writeFile(storagePath, pdfBuffer);
+  const { address: fileUrl } = await registerGeneratedFile({
+    storageKey,
+    originalName: fileName,
+    mimeType: 'application/pdf',
+    sizeBytes: pdfBuffer.length,
+    moduleHint: 'certificates',
+    ownerType: 'certificate_document',
+    ownerId: certificate.id,
+    userId: actorUserId,
+  });
 
   await db.insert(documentVersions).values({
     ownerType: 'certificate_document',

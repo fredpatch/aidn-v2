@@ -4,6 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { cn } from '../../../lib/utils';
 import type { GeneratedReport } from '../../../lib/api/reports.types';
 import { formatDisplayDate } from '../analytics.helpers';
+import FileLink from '../../../components/files/FileLink';
 
 function formatPeriod(report: GeneratedReport): string {
   return `${formatDisplayDate(report.periodStart)} - ${formatDisplayDate(report.periodEnd)}`;
@@ -57,15 +58,14 @@ export function GeneratedReportsHistory({
                     <TableCell className="text-anac-muted">{formatDisplayDate(report.createdAt)}</TableCell>
                     <TableCell>
                       {report.fileUrl ? (
-                        <a
-                          href={`/api/reports/${report.id}/download`}
-                          target="_blank"
-                          rel="noreferrer"
+                        <FileLink
+                          address={report.fileUrl}
+                          download
                           className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'h-8 gap-1.5')}
                         >
                           <Download size={14} aria-hidden="true" />
                           Télécharger
-                        </a>
+                        </FileLink>
                       ) : (
                         <span
                           className={cn(

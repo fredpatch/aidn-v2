@@ -3,6 +3,118 @@
 Commit-level history. Covers `be9fce9` through the current uncommitted
 2026-07-28 workflow hardening, document viewer, and Personnel ANAC users pass.
 
+## (uncommitted) - 2026-09-25 STORAGE-0A secure file delivery
+
+- Stable address `/api/files/<uploadAssetId>` (`fileAddress`/`parseFileAddress`
+  in `@aidn/shared`); `upload_assets.storage_key` stays the only physical path.
+- `modules/files`: `canAccessFile` (approved matrix), `resolveAssetContext`,
+  `resolveFileActor` (two valid sessions resolved only by trusted Origin, else
+  401 AMBIGUOUS_SESSION), signed grants (HMAC, FILE_GRANT_SECRET, 5 min, bound
+  to asset + disposition), `GET /:id`, `POST /:id/access`, `GET /:id/content`.
+- Public `/uploads` removed (Express, nginx, Vite proxies); morgan and nginx
+  logs never contain grants.
+- Uploads, generated certificates and reports, and seeded templates store
+  stable addresses; reports get owner type `report` (migration 0001; drizzle
+  snapshot realigned). Report download streams (no redirect).
+- `storage:rewrite-addresses` (dry-run default, --apply, conflicts block,
+  backup required outside local dev, local JSON safeguard).
+- État du système: « Adresses de fichiers héritées ».
+- Front end: `FileLink`, `lib/files.ts` + `lib/file-access.ts` in admin and
+  portal; `DocumentViewer` previews from `grant.mimeType`; portal `fileHref`
+  helpers and hard-coded `http://localhost:4000` origins removed.
+- Deploy script follows the approved rollout order.
+
+## (uncommitted) - 2026-09-25 État du système: capacity
+
+- Status contract: `infrastructure.database.sizeBytes` (`pg_database_size`),
+  `infrastructure.storage.{freeBytes,totalBytes,lowSpace}` (`fs.statfs` on
+  `UPLOADS_ROOT`, `bavail` = space usable by the API process). Low space (< 10%
+  free) -> overall attention. Measurement failures -> null, never an error.
+- Admin Infrastructure card: « Espace utilisé », « X libres sur Y (Z %) »,
+  « Espace faible » pill; `formatBytes` (1024-based, French units).
+
+## (uncommitted) - 2026-09-25 DG working days + parameter validation
+
+- `@aidn/shared/workingDays`: `parsePublicHolidays` (YYYY-MM-DD dated, MM-DD
+  every year), `isWorkingDay`, `workingDaysBetween`, `subtractWorkingDays` on
+  Libreville time (fixed UTC+1). Cutoff and elapsed count are consistent by
+  construction (property-tested).
+- New seeded parameter `public_holidays` (text, M1, empty default).
+- `dg-circuit-alert.job.ts`: cutoff = `subtractWorkingDays`; message says
+  « jour(s) ouvré(s) ». Dashboard signature-return target (DN actions,
+  reception priority, overdue count, average return) in working days, labelled
+  « j ouvrés »; displayed waiting times stay calendar.
+- `@aidn/shared/systemParameters`: `validateParameterValue` /
+  `normalizeParameterValue`, used by admin and by `updateParameter` (400
+  `INVALID_PARAMETER_VALUE`). Admin: unit « jours ouvrés », « Jours fériés »
+  field (optional, placeholder), TODO removed.
+
+## (uncommitted) - 2026-09-25 SEED-2 État du système
+
+- `GET /api/seeding/status` / `POST /api/seeding/run` (SU, `modules/seeding`
+  route + controller). Status observes only; expected state = seed definitions.
+  DB unreachable -> 200 with `referenceData: null`; storage unreachable -> active
+  templates `unchecked`. Run = `runSeeds({ trigger: 'manual', actorUserId })`,
+  audit `REFERENCE_DATA_SEED_RUN` on success only; lock timeout -> 409.
+- `classifyTemplateHealth` in `@aidn/shared` (missing > inactive > unchecked >
+  file_missing > healthy), used by the API and by the Modèles de documents page.
+- `SeedingError.code` (`LOCK_TIMEOUT` | `SEED_FAILED`), `handleSeedingError`.
+  Template seed audit: `source: 'manual-run'` + SU for manual runs.
+- `UPLOADS_ROOT` (`shared/uploads-root.ts`) for static serving, upload storage,
+  orphan cleanup, template file checks, seeding and health.
+- Admin: `État du système` tab (`components/SystemHealthSection.tsx`,
+  `hooks/useSystemHealth.ts`, `system-health-ui.ts`); `known-templates.ts`
+  extracted from `DocumentTemplatesPage`.
+
+## (uncommitted) - 2026-09-25 SEED-1B official document-template seeding
+
+- DN-approved forms copied byte-identical from `docs/models/` to
+  `apps/api/seed-assets/document-templates/`; runtime never reads `docs/`.
+- `seeds/document-templates.seed.ts`: explicit key -> asset mapping (F-E-015 =
+  `preliminary_evaluation_declaration`). A key with any existing row is skipped
+  (no repair of broken files, no replacement, no new version).
+- Missing key: asset copied into `uploads/YYYY/MM/DD/api/document-templates/
+  seed-<key>-<ts>-<rand>.docx` (`COPYFILE_EXCL`), then in the seeding
+  transaction: `document_templates` (ON CONFLICT DO NOTHING), current
+  `document_versions`, linked `upload_assets` (`uploaded_from_app='api'`), and
+  a `DOCUMENT_TEMPLATE_CREATED` audit row with null user (system convention).
+- Copied files are removed best-effort if record creation fails, and every file
+  of the run is removed if the whole transaction rolls back
+  (`withSeededFileRollback`).
+- `runSeeds()` = parameters then templates; new `npm run seed`;
+  `npm run seed:params` now parameters-only via `runSystemParameterSeed()`.
+- `infra/api.Dockerfile` runtime stage asserts the 4 assets are present.
+- `npm test`: 30 pass.
+
+- New `apps/api/src/modules/seeding/` (`seeding.service.ts`, `seeding.types.ts`,
+  `seeds/system-parameters.seed.ts`). The 16 parameter definitions moved there
+  unchanged (verified field-by-field); it is now the only copy.
+- `runSeeds()` runs inside one transaction holding `pg_advisory_xact_lock`
+  (fixed AIDN id, `lock_timeout` 30s): auto-released on commit/rollback, so it
+  cannot leak; a second instance waits, then skips everything.
+- Per-item idempotency: missing key -> insert (`ON CONFLICT DO NOTHING`),
+  existing key -> skipped, never updated. No "seed completed" flag, so
+  parameters added in later versions are created on the next startup.
+- `server.ts` now awaits `runSeeds()` before starting jobs and `app.listen()`;
+  a seed failure logs `[startup] Fatal ...` and exits 1 without listening.
+- `npm run seed:params` is a thin CLI wrapper over `runSeeds()`; staging deploy
+  script unchanged (seeds twice per deploy - harmless, idempotent).
+- Added `npm test` in `apps/api` (`tsx --test`, Node built-in `node:test`, no new
+  dependency): 12 seeding tests.
+
+## (uncommitted) - 2026-09-25 admin templates/settings UX pass
+
+- `/modeles-documents` redesigned (library table, derived statuses, upload
+  modal), per-template read-only version history drawer backed by new
+  `GET /api/document-templates/:key/versions` (staff roles).
+- Fixed `upsertTemplate` trashing `document_versions` of other owner types that
+  shared the template id (missing `ownerType` filter).
+- Shared admin `Sheet` now animates in/out and keeps its content during exit.
+- `Parametres`: `Securite` tab renamed `Configuration` (now the default tab),
+  parameters grouped by business section via `pages/settings/system-parameter-ui.ts`
+  with units, client validation and an `Autres parametres` fallback; accent
+  clean-up across the settings page.
+
 ## (uncommitted) - 2026-09-25 settings maintenance/dev reset
 
 - Reworked admin `Parametres` into code-backed sections only: `Securite`,

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { CreditCard } from 'lucide-react';
 import DocumentPreviewLink from '../../../../components/documents/DocumentPreviewLink';
 import { Button } from '../../../../components/ui/button';
-import { API_ORIGIN, PAYMENT_STATUS_LABELS, PAYMENT_STATUS_TONES } from '../constants';
+import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_TONES } from '../constants';
 import { formatDate } from '../helpers';
 import { usePaymentActions } from '../hooks/usePaymentActions';
 import type { PaymentView } from '../types';
@@ -99,7 +99,7 @@ export default function PaymentCard({
             Envoyée le {formatDate(payment.invoiceUploadedAt)} -{' '}
             <DocumentPreviewLink
               title="Facture demonstration/inspection"
-              url={`${API_ORIGIN}${payment.invoiceFileUrl}`}
+              url={payment.invoiceFileUrl}
             />
           </p>
         )}
@@ -118,7 +118,7 @@ export default function PaymentCard({
                 Soumise le {formatDate(payment.proofUploadedAt)} -{' '}
                 <DocumentPreviewLink
                   title="Preuve de paiement demonstration/inspection"
-                  url={`${API_ORIGIN}${payment.proofFileUrl}`}
+                  url={payment.proofFileUrl}
                 />
               </p>
 

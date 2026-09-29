@@ -17,20 +17,9 @@ import {
 } from '../../../lib/api/requests.api';
 import type { PreliminaryBundle } from '../../../lib/api/requests.types';
 import { MEETING_STATUS_LABELS } from '../constants';
+import FileLink from '../../../components/files/FileLink';
 
 type StepState = 'done' | 'current' | 'waiting';
-
-function fileHref(url: string): string {
-  try {
-    const parsed = new URL(url);
-    if (parsed.hostname === 'localhost' && parsed.port === '4000') {
-      return `${parsed.pathname}${parsed.search}${parsed.hash}`;
-    }
-  } catch {
-    // Relative URLs are already ideal for the portal dev proxy.
-  }
-  return url;
-}
 
 function formatDate(value: string | null | undefined): string {
   if (!value) return '-';
@@ -265,14 +254,12 @@ export function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
                 </a>
               )}
               {meeting.crDocumentUrl && (
-                <a
-                  href={fileHref(meeting.crDocumentUrl)}
-                  target="_blank"
-                  rel="noreferrer"
+                <FileLink
+                  address={meeting.crDocumentUrl}
                   className="inline-flex text-xs text-anac-blue underline"
                 >
                   Consulter le compte-rendu
-                </a>
+                </FileLink>
               )}
             </div>
           )}
@@ -307,14 +294,13 @@ export function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
                 Retour attendu avant le {formatDate(evaluation?.returnDeadline)}.
               </p>
               {evaluation?.templateFileUrl && (
-                <a
-                  href={fileHref(evaluation.templateFileUrl)}
-                  target="_blank"
-                  rel="noreferrer"
+                <FileLink
+                  address={evaluation.templateFileUrl}
+                  download
                   className="btn-secondary inline-flex rounded px-3 py-1.5 text-xs"
                 >
                   Telecharger le formulaire vierge
-                </a>
+                </FileLink>
               )}
               <div className="rounded border border-dashed border-anac-border p-3">
                 <label className="flex cursor-pointer flex-col gap-1 text-sm">

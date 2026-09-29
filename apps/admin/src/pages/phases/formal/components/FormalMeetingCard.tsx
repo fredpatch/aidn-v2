@@ -6,7 +6,7 @@ import { CalendarClock, CheckCircle2, FileUp, RotateCcw, XCircle } from 'lucide-
 import DocumentPreviewLink from '../../../../components/documents/DocumentPreviewLink';
 import { Button } from '../../../../components/ui/button';
 import CollapsibleCard from '../../../../components/ui/collapsible-card';
-import { API_ORIGIN, MEETING_STATUS_LABELS, MEETING_STATUS_TONES } from '../constants';
+import { MEETING_STATUS_LABELS, MEETING_STATUS_TONES } from '../constants';
 import { formatDate, formatDateTime } from '../helpers';
 import { useFormalMeetingActions } from '../hooks/useFormalMeetingActions';
 import type { FormalMeetingView } from '../types';
@@ -203,12 +203,16 @@ export default function FormalMeetingCard({
 
           {meeting.status === 'scheduled' && (
             <div className="flex flex-wrap gap-2 pt-1">
-              <DocumentPreviewLink
+              {/* Generated HTML page (not a stored file): opened as before, relative to the API proxy. */}
+              <a
+                href={`/api/meetings/${meeting.id}/ticket`}
+                target="_blank"
+                rel="noreferrer"
                 title="Ticket de reunion formelle"
-                url={`${API_ORIGIN}/api/meetings/${meeting.id}/ticket`}
-                label="Voir le ticket"
                 className="btn-secondary text-xs inline-flex items-center gap-1 px-2 py-1 rounded"
-              />
+              >
+                Voir le ticket
+              </a>
               <Button
                 size="sm"
                 variant="secondary"
@@ -254,7 +258,7 @@ export default function FormalMeetingCard({
                   Compte-rendu envoye le {formatDate(meeting.crUploadedAt)} -{' '}
                   <DocumentPreviewLink
                     title="Compte-rendu de reunion formelle"
-                    url={`${API_ORIGIN}${meeting.crDocumentUrl}`}
+                    url={meeting.crDocumentUrl}
                   />
                   {' - '}
                   <button

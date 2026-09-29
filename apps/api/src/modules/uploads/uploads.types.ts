@@ -8,6 +8,7 @@ export const UPLOAD_OWNER_TYPES = [
   'meeting_report',
   'phase_closure_document',
   'certificate_document',
+  'report',
 ] as const;
 
 export type UploadOwnerType = (typeof UPLOAD_OWNER_TYPES)[number];

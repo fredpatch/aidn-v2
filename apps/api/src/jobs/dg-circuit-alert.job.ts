@@ -2,18 +2,23 @@ import cron from "node-cron";
 import { and, eq, isNull, lt } from "drizzle-orm";
 import { db } from "../shared/db/index.js";
 import { dgCircuitDocuments, requests, userRoles, notifications } from "../shared/db/schema.js";
-import { getIntegerValue } from "../modules/system-parameters/system-parameters.service.js";
+import { subtractWorkingDays } from "@aidn/shared";
+import { getIntegerValue, getPublicHolidays } from "../modules/system-parameters/system-parameters.service.js";
 import { logAudit } from "../modules/auth/auth.service.js";
 
 /** Pattern "Circuit DG" - alerts DN + reception/assistant_dg when a document
  *  has sat in signature circuit longer than the configured
- *  threshold (default 3 business days). Writes to the notifications table
- *  only for now - actual email sending is wired in Sprint 10 (Notifications
- *  module), per the decision to lay out the skeleton first. */
+ *  threshold (default 3 working days: Monday to Friday, minus the public
+ *  holidays DN lists in the `public_holidays` parameter, Libreville time).
+ *  Writes to the notifications table only for now - actual email sending is
+ *  wired in Sprint 10 (Notifications module), per the decision to lay out the
+ *  skeleton first. */
 export async function runDgCircuitAlertCheck(): Promise<void> {
-  const thresholdDays = await getIntegerValue("dg_circuit_alert_days", 3);
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - thresholdDays);
+  const [thresholdDays, holidays] = await Promise.all([
+    getIntegerValue("dg_circuit_alert_days", 3),
+    getPublicHolidays(),
+  ]);
+  const cutoff = subtractWorkingDays(new Date(), thresholdDays, holidays);
 
   const stuckDocs = await db
     .select()
@@ -47,7 +52,7 @@ export async function runDgCircuitAlertCheck(): Promise<void> {
         userId,
         channel: "in_app",
         eventType: "DG_CIRCUIT_STUCK",
-        message: `La demande ${request.reference} est en signature depuis plus de ${thresholdDays} jour(s).`,
+        message: `La demande ${request.reference} est en signature depuis plus de ${thresholdDays} jour(s) ouvré(s).`,
         requestId: request.id,
       });
     }

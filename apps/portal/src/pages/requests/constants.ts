@@ -1,5 +1,3 @@
-export const API_ORIGIN = 'http://localhost:4000';
-
 export const REQUEST_TYPE_LABELS: Record<string, string> = {
   recognition: "Reconnaissance d'agrement",
   issuance: "Delivrance d'agrement",

@@ -1,10 +1,9 @@
-import fs from 'fs';
-import path from 'path';
-import { eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { db } from '../../shared/db/index.js';
-import { documentTemplates, documentVersions } from '../../shared/db/schema.js';
+import { documentTemplates, documentVersions, users } from '../../shared/db/schema.js';
 import { logAudit } from '../auth/auth.service.js';
 import { linkUploadAssetToOwner } from '../uploads/uploads.service.js';
+import { storedFilesExist } from '../files/stored-file.js';
 import type { DocumentTemplateKey } from '@aidn/shared';
 
 export interface TemplateView {
@@ -18,29 +17,13 @@ export interface TemplateView {
   active: boolean;
 }
 
-const uploadRootDir = path.resolve(process.cwd(), 'uploads');
-
-function fileExists(fileUrl: string | null): boolean {
-  if (!fileUrl?.startsWith('/uploads/')) return false;
-
-  const relativePath = fileUrl.replace(/^\/uploads\//, '').replaceAll('/', path.sep);
-  const fullPath = path.resolve(uploadRootDir, relativePath);
-  const relativeToRoot = path.relative(uploadRootDir, fullPath);
-
-  if (relativeToRoot.startsWith('..') || path.isAbsolute(relativeToRoot)) {
-    return false;
-  }
-
-  return fs.existsSync(fullPath);
-}
-
-function toTemplateView(row: typeof documentTemplates.$inferSelect): TemplateView {
+function toTemplateView(row: typeof documentTemplates.$inferSelect, fileExists: boolean): TemplateView {
   return {
     id: row.id,
     key: row.key,
     label: row.label,
     fileUrl: row.fileUrl,
-    fileExists: fileExists(row.fileUrl),
+    fileExists,
     mimeType: row.mimeType,
     uploadedAt: row.uploadedAt,
     active: row.active,
@@ -49,12 +32,57 @@ function toTemplateView(row: typeof documentTemplates.$inferSelect): TemplateVie
 
 export async function listTemplates(): Promise<TemplateView[]> {
   const rows = await db.select().from(documentTemplates);
-  return rows.map(toTemplateView);
+  const exists = await storedFilesExist(rows.map((row) => row.fileUrl));
+  return rows.map((row, index) => toTemplateView(row, exists[index]));
 }
 
 export async function getTemplateByKey(key: DocumentTemplateKey): Promise<TemplateView | null> {
   const [row] = await db.select().from(documentTemplates).where(eq(documentTemplates.key, key));
-  return row ? toTemplateView(row) : null;
+  if (!row) return null;
+  const [exists] = await storedFilesExist([row.fileUrl]);
+  return toTemplateView(row, exists);
+}
+
+export interface TemplateVersionView {
+  id: number;
+  fileUrl: string;
+  fileExists: boolean;
+  mimeType: string;
+  uploadedAt: Date;
+  uploadedByName: string | null;
+  isCurrent: boolean;
+}
+
+/** Read-only history of every file published for a template key, newest
+ *  first. Trashed versions are included - they are kept for traceability. */
+export async function listTemplateVersions(key: DocumentTemplateKey): Promise<TemplateVersionView[]> {
+  const [template] = await db
+    .select({ id: documentTemplates.id })
+    .from(documentTemplates)
+    .where(eq(documentTemplates.key, key));
+  if (!template) return [];
+
+  const rows = await db
+    .select({
+      id: documentVersions.id,
+      fileUrl: documentVersions.fileUrl,
+      mimeType: documentVersions.mimeType,
+      uploadedAt: documentVersions.uploadedAt,
+      uploadedByName: users.fullName,
+      isCurrent: documentVersions.isCurrent,
+    })
+    .from(documentVersions)
+    .leftJoin(users, eq(documentVersions.uploadedBy, users.id))
+    .where(
+      and(
+        eq(documentVersions.ownerType, 'document_template'),
+        eq(documentVersions.ownerId, template.id)
+      )
+    )
+    .orderBy(desc(documentVersions.uploadedAt), desc(documentVersions.id));
+
+  const exists = await storedFilesExist(rows.map((row) => row.fileUrl));
+  return rows.map((row, index) => ({ ...row, fileExists: exists[index] }));
 }
 
 /** Upload or replace the active file for a template key. The previous file
@@ -80,7 +108,12 @@ export async function upsertTemplate(params: {
     await db
       .update(documentVersions)
       .set({ isCurrent: false, trashedAt: new Date() })
-      .where(eq(documentVersions.ownerId, existing.id));
+      .where(
+        and(
+          eq(documentVersions.ownerType, 'document_template'),
+          eq(documentVersions.ownerId, existing.id)
+        )
+      );
 
     [row] = await db
       .update(documentTemplates)
@@ -131,5 +164,6 @@ export async function upsertTemplate(params: {
     details: { key: params.key },
   });
 
-  return toTemplateView(row);
+  const [exists] = await storedFilesExist([row.fileUrl]);
+  return toTemplateView(row, exists);
 }

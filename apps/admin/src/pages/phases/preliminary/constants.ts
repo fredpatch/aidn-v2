@@ -6,7 +6,6 @@ export const PHASE_ROADMAP = [
   { code: 'M7', label: 'Delivrance', path: 'delivrance' },
 ] as const;
 
-export const API_ORIGIN = 'http://localhost:4000';
 
 export const MEETING_STATUS_LABELS: Record<string, string> = {
   scheduled: 'Planifiee',

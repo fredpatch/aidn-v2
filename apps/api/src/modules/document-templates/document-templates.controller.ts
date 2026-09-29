@@ -38,6 +38,23 @@ export async function getByKey(req: Request, res: Response): Promise<void> {
   }
 }
 
+/** Staff-only, read-only version history for one template key. */
+export async function listVersions(req: Request, res: Response): Promise<void> {
+  const key = req.params.key as string;
+  if (!isValidKey(key)) {
+    res.status(400).json({ message: 'Cle de modele inconnue.' });
+    return;
+  }
+
+  try {
+    const versions = await templatesService.listTemplateVersions(key);
+    res.json(versions);
+  } catch (error) {
+    console.error('[document-templates/listVersions]', error);
+    res.status(500).json({ message: 'Erreur interne.' });
+  }
+}
+
 export async function upsert(req: Request, res: Response): Promise<void> {
   const { key, label, fileUrl, mimeType, uploadAssetId } = req.body ?? {};
 

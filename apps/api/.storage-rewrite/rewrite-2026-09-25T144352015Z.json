@@ -1,0 +1,294 @@
+{
+  "registrations": [
+    {
+      "storageKey": "2026/07/28/unknown/misc/1785223655373-416326661.pdf",
+      "originalName": "1785223655373-416326661.pdf",
+      "mimeType": "application/pdf",
+      "sizeBytes": 0,
+      "fileExists": false,
+      "ownerType": "document_template",
+      "ownerId": 1
+    },
+    {
+      "storageKey": "2026/09/25/fixture-s0a/certificate.pdf",
+      "originalName": "certificate.pdf",
+      "mimeType": "application/pdf",
+      "sizeBytes": 69,
+      "fileExists": true,
+      "ownerType": "certificate_document",
+      "ownerId": 1
+    },
+    {
+      "storageKey": "2026/09/25/fixture-s0a/missing.pdf",
+      "originalName": "missing.pdf",
+      "mimeType": "application/pdf",
+      "sizeBytes": 0,
+      "fileExists": false,
+      "ownerType": "formal_request_document",
+      "ownerId": 2
+    },
+    {
+      "storageKey": "2026/09/25/fixture-s0a/closure.pdf",
+      "originalName": "closure.pdf",
+      "mimeType": "application/pdf",
+      "sizeBytes": 61,
+      "fileExists": true,
+      "ownerType": "phase_closure_document",
+      "ownerId": 1
+    },
+    {
+      "storageKey": "2026/09/25/fixture-s0a/report.xlsx",
+      "originalName": "report.xlsx",
+      "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "sizeBytes": 9,
+      "fileExists": true,
+      "ownerType": "report",
+      "ownerId": 1
+    }
+  ],
+  "links": [
+    {
+      "assetId": 9,
+      "ownerType": "formal_request_document",
+      "ownerId": 1
+    }
+  ],
+  "rewrites": [
+    {
+      "table": "document_versions",
+      "column": "file_url",
+      "rowId": 1,
+      "from": "/uploads/2026/07/28/unknown/misc/1785223655373-416326661.pdf",
+      "asset": {
+        "registeredKey": "2026/07/28/unknown/misc/1785223655373-416326661.pdf"
+      }
+    },
+    {
+      "table": "document_versions",
+      "column": "file_url",
+      "rowId": 33,
+      "from": "/uploads/2026/09/25/unknown/misc/1790333057237-785341001.docx",
+      "asset": {
+        "existingId": 1
+      }
+    },
+    {
+      "table": "document_versions",
+      "column": "file_url",
+      "rowId": 38,
+      "from": "/uploads/2026/09/25/api/document-templates/seed-dn_air_r2_3_f_e_010-1790337681984-255630944.docx",
+      "asset": {
+        "existingId": 5
+      }
+    },
+    {
+      "table": "document_versions",
+      "column": "file_url",
+      "rowId": 39,
+      "from": "/uploads/2026/09/25/api/document-templates/seed-dn_air_r2_3_f_e_011-1790337681992-743669204.docx",
+      "asset": {
+        "existingId": 6
+      }
+    },
+    {
+      "table": "document_versions",
+      "column": "file_url",
+      "rowId": 40,
+      "from": "/uploads/2026/09/25/api/document-templates/seed-dn_air_r2_3_f_e_012-1790339885806-836063909.docx",
+      "asset": {
+        "existingId": 7
+      }
+    },
+    {
+      "table": "document_versions",
+      "column": "file_url",
+      "rowId": 41,
+      "from": "/uploads/2026/09/25/fixture-s0a/letter.pdf",
+      "asset": {
+        "existingId": 8
+      }
+    },
+    {
+      "table": "document_versions",
+      "column": "file_url",
+      "rowId": 42,
+      "from": "/uploads/2026/09/25/fixture-s0a/certificate.pdf",
+      "asset": {
+        "registeredKey": "2026/09/25/fixture-s0a/certificate.pdf"
+      }
+    },
+    {
+      "table": "upload_assets",
+      "column": "file_url",
+      "rowId": 1,
+      "from": "/uploads/2026/09/25/unknown/misc/1790333057237-785341001.docx",
+      "asset": {
+        "existingId": 1
+      }
+    },
+    {
+      "table": "upload_assets",
+      "column": "file_url",
+      "rowId": 2,
+      "from": "/uploads/2026/09/25/api/document-templates/seed-dn_air_r2_3_f_e_012-1790337536460-217589344.docx",
+      "asset": {
+        "existingId": 2
+      }
+    },
+    {
+      "table": "upload_assets",
+      "column": "file_url",
+      "rowId": 5,
+      "from": "/uploads/2026/09/25/api/document-templates/seed-dn_air_r2_3_f_e_010-1790337681984-255630944.docx",
+      "asset": {
+        "existingId": 5
+      }
+    },
+    {
+      "table": "upload_assets",
+      "column": "file_url",
+      "rowId": 6,
+      "from": "/uploads/2026/09/25/api/document-templates/seed-dn_air_r2_3_f_e_011-1790337681992-743669204.docx",
+      "asset": {
+        "existingId": 6
+      }
+    },
+    {
+      "table": "upload_assets",
+      "column": "file_url",
+      "rowId": 7,
+      "from": "/uploads/2026/09/25/api/document-templates/seed-dn_air_r2_3_f_e_012-1790339885806-836063909.docx",
+      "asset": {
+        "existingId": 7
+      }
+    },
+    {
+      "table": "upload_assets",
+      "column": "file_url",
+      "rowId": 8,
+      "from": "/uploads/2026/09/25/fixture-s0a/letter.pdf",
+      "asset": {
+        "existingId": 8
+      }
+    },
+    {
+      "table": "upload_assets",
+      "column": "file_url",
+      "rowId": 9,
+      "from": "/uploads/2026/09/25/fixture-s0a/formal.pdf",
+      "asset": {
+        "existingId": 9
+      }
+    },
+    {
+      "table": "upload_assets",
+      "column": "file_url",
+      "rowId": 10,
+      "from": "/uploads/2026/09/25/fixture-s0a/proof.png",
+      "asset": {
+        "existingId": 10
+      }
+    },
+    {
+      "table": "upload_assets",
+      "column": "file_url",
+      "rowId": 11,
+      "from": "/uploads/2026/09/25/fixture-s0a/staff-unlinked.pdf",
+      "asset": {
+        "existingId": 11
+      }
+    },
+    {
+      "table": "upload_assets",
+      "column": "file_url",
+      "rowId": 12,
+      "from": "/uploads/2026/09/25/fixture-s0a/applicant-unlinked.pdf",
+      "asset": {
+        "existingId": 12
+      }
+    },
+    {
+      "table": "document_templates",
+      "column": "file_url",
+      "rowId": 1,
+      "from": "/uploads/2026/09/25/unknown/misc/1790333057237-785341001.docx",
+      "asset": {
+        "existingId": 1
+      }
+    },
+    {
+      "table": "document_templates",
+      "column": "file_url",
+      "rowId": 8,
+      "from": "/uploads/2026/09/25/api/document-templates/seed-dn_air_r2_3_f_e_010-1790337681984-255630944.docx",
+      "asset": {
+        "existingId": 5
+      }
+    },
+    {
+      "table": "document_templates",
+      "column": "file_url",
+      "rowId": 9,
+      "from": "/uploads/2026/09/25/api/document-templates/seed-dn_air_r2_3_f_e_011-1790337681992-743669204.docx",
+      "asset": {
+        "existingId": 6
+      }
+    },
+    {
+      "table": "document_templates",
+      "column": "file_url",
+      "rowId": 10,
+      "from": "/uploads/2026/09/25/api/document-templates/seed-dn_air_r2_3_f_e_012-1790339885806-836063909.docx",
+      "asset": {
+        "existingId": 7
+      }
+    },
+    {
+      "table": "formal_request_documents",
+      "column": "file_url",
+      "rowId": 1,
+      "from": "/uploads/2026/09/25/fixture-s0a/formal.pdf",
+      "asset": {
+        "existingId": 9
+      }
+    },
+    {
+      "table": "formal_request_documents",
+      "column": "file_url",
+      "rowId": 2,
+      "from": "/uploads/2026/09/25/fixture-s0a/missing.pdf",
+      "asset": {
+        "registeredKey": "2026/09/25/fixture-s0a/missing.pdf"
+      }
+    },
+    {
+      "table": "payments",
+      "column": "proof_file_url",
+      "rowId": 1,
+      "from": "/uploads/2026/09/25/fixture-s0a/proof.png",
+      "asset": {
+        "existingId": 10
+      }
+    },
+    {
+      "table": "phases",
+      "column": "closure_document_url",
+      "rowId": 1,
+      "from": "/uploads/2026/09/25/fixture-s0a/closure.pdf",
+      "asset": {
+        "registeredKey": "2026/09/25/fixture-s0a/closure.pdf"
+      }
+    },
+    {
+      "table": "reports",
+      "column": "file_url",
+      "rowId": 1,
+      "from": "/uploads/2026/09/25/fixture-s0a/report.xlsx",
+      "asset": {
+        "registeredKey": "2026/09/25/fixture-s0a/report.xlsx"
+      }
+    }
+  ],
+  "conflicts": [],
+  "skipped": []
+}

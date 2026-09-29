@@ -3,6 +3,8 @@ import path from 'path';
 import { desc, eq } from 'drizzle-orm';
 import { db } from '../../shared/db/index.js';
 import { reports } from '../../shared/db/schema.js';
+import { UPLOADS_ROOT } from '../../shared/uploads-root.js';
+import { insertAssetWithAddress } from '../uploads/asset-registration.js';
 import {
   ANALYTICS_REPORTS,
   defaultAnalyticsFilters,
@@ -109,17 +111,15 @@ function buildSummary(snapshot: ReportSnapshot): Record<string, unknown> {
   };
 }
 
-function publicReportUrl(fileName: string): string {
-  return `/uploads/reports/${fileName}`;
-}
-
-async function writeReportFile(buffer: Buffer, params: GenerateReportInput): Promise<string> {
-  const folder = path.resolve(process.cwd(), 'uploads', 'reports');
+/** Written under uploads/reports/ (moved to generated/ in STORAGE-3); the
+ *  returned storage key is registered as an asset owned by the report. */
+async function writeReportFile(buffer: Buffer, params: GenerateReportInput): Promise<{ storageKey: string; fileName: string }> {
+  const folder = path.join(UPLOADS_ROOT, 'reports');
   await fs.mkdir(folder, { recursive: true });
   const stamp = new Date().toISOString().replaceAll(':', '').replaceAll('.', '');
   const fileName = `${params.reportKey}-${params.format}-${stamp}.${fileExtension(params.format)}`;
   await fs.writeFile(path.join(folder, fileName), buffer);
-  return publicReportUrl(fileName);
+  return { storageKey: `reports/${fileName}`, fileName };
 }
 
 function toGeneratedReport(row: typeof reports.$inferSelect): GeneratedReport {
@@ -143,25 +143,40 @@ export async function generateReport(input: GenerateReportInput): Promise<Genera
     input.format === 'pdf'
       ? await renderAnalyticsReportPdf(snapshot)
       : await renderAnalyticsReportExcel(snapshot);
-  const fileUrl = await writeReportFile(buffer, input);
+  const file = await writeReportFile(buffer, input);
 
-  const inserted = await db
-    .insert(reports)
-    .values({
-      reportKey: input.reportKey,
-      periodStart: input.filters.periodStart,
-      periodEnd: input.filters.periodEnd,
-      format: input.format,
-      trigger: 'on_demand',
-      fileUrl,
-      filters: overview.filters,
-      summary: buildSummary(snapshot),
-      generatedBy: input.generatedBy,
-      aiAnalysisStatus: 'not_applicable',
-    })
-    .returning();
+  const row = await db.transaction(async (tx) => {
+    const [report] = await tx
+      .insert(reports)
+      .values({
+        reportKey: input.reportKey,
+        periodStart: input.filters.periodStart,
+        periodEnd: input.filters.periodEnd,
+        format: input.format,
+        trigger: 'on_demand',
+        filters: overview.filters,
+        summary: buildSummary(snapshot),
+        generatedBy: input.generatedBy,
+        aiAnalysisStatus: 'not_applicable',
+      })
+      .returning();
+    const { address } = await insertAssetWithAddress(tx, {
+      storageKey: file.storageKey,
+      originalName: file.fileName,
+      mimeType: contentType(input.format),
+      sizeBytes: buffer.length,
+      uploadedByUserId: input.generatedBy,
+      uploadedFromApp: 'api',
+      moduleHint: 'reports',
+      linkedOwnerType: 'report',
+      linkedOwnerId: report.id,
+      linkedAt: new Date(),
+    });
+    const [updated] = await tx.update(reports).set({ fileUrl: address }).where(eq(reports.id, report.id)).returning();
+    return updated;
+  });
 
-  return toGeneratedReport(inserted[0]);
+  return toGeneratedReport(row);
 }
 
 export async function listReports(): Promise<GeneratedReport[]> {

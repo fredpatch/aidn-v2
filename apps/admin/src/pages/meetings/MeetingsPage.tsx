@@ -41,10 +41,10 @@ import type {
 } from '../../lib/api/meetings.types';
 import { queryKeys } from '../../lib/react-query/queryKeys';
 import { cn } from '../../lib/utils';
+import FileLink from '../../components/files/FileLink';
 
 type ViewMode = 'calendar' | 'list';
 
-const API_ORIGIN = 'http://localhost:4000';
 const WORK_HOURS = Array.from({ length: 10 }, (_, index) => index + 8);
 
 const TYPE_OPTIONS: Array<{ value: MeetingTypeFilter; label: string }> = [
@@ -762,7 +762,7 @@ function SelectedMeetingPanel({
           <h3 className="text-sm font-semibold text-anac-navy">Actions</h3>
           <div className="mt-3 space-y-2.5">
             <a
-              href={`${API_ORIGIN}${item.ticketUrl}`}
+              href={item.ticketUrl}
               target="_blank"
               rel="noreferrer"
               className={cn(
@@ -828,14 +828,12 @@ function SelectedMeetingPanel({
                   Compte-rendu
                 </label>
                 {item.crDocumentUrl ? (
-                  <a
-                    href={`${API_ORIGIN}${item.crDocumentUrl}`}
-                    target="_blank"
-                    rel="noreferrer"
+                  <FileLink
+                    address={item.crDocumentUrl}
                     className="mt-2 block text-xs font-semibold text-anac-blue underline"
                   >
                     Consulter le compte-rendu actuel
-                  </a>
+                  </FileLink>
                 ) : null}
                 <input
                   id="meeting-report"

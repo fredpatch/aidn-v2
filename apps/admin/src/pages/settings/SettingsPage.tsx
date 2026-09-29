@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle,
   CheckCircle2,
   Database,
   KeyRound,
   Loader2,
+  RefreshCw,
   Save,
   Settings2,
   ShieldCheck,
@@ -19,15 +20,18 @@ import { cn } from '../../lib/utils';
 import { useSystemParameters } from './hooks/useSystemParameters';
 import { useDevReset } from './hooks/useDevReset';
 import { useUploadMaintenance } from './hooks/useUploadMaintenance';
-
-const MODULE_LABELS: Record<string, string> = {
-  AUTH: 'Authentification',
-  M1: 'Intake & Circuit signature',
-  M3: 'Phase Preliminaire',
-};
+import { SystemHealthSection } from './components/SystemHealthSection';
+import {
+  formatUnit,
+  groupParameters,
+  PARAMETER_UI_META,
+  validateParameterValue,
+  type ParameterUiMeta,
+} from './system-parameter-ui';
 
 const SETTINGS_TABS = [
-  { id: 'security', label: 'Securite' },
+  { id: 'configuration', label: 'Configuration' },
+  { id: 'system-status', label: 'État du système' },
   { id: 'backups', label: 'Sauvegardes' },
   { id: 'maintenance', label: 'Maintenance' },
 ] as const;
@@ -35,17 +39,17 @@ const SETTINGS_TABS = [
 type SettingsTabId = (typeof SETTINGS_TABS)[number]['id'];
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<SettingsTabId>('maintenance');
+  const [activeTab, setActiveTab] = useState<SettingsTabId>('configuration');
 
   return (
     <div className="mx-auto max-w-7xl space-y-4">
       <div>
         <h1 className="flex items-center gap-2 text-xl font-semibold text-anac-navy">
           <Settings2 size={20} />
-          Parametres
+          Paramètres
         </h1>
         <p className="text-sm text-anac-muted">
-          Configuration systeme, sauvegardes et outils de maintenance.
+          Configuration système, état du système, sauvegardes et outils de maintenance.
         </p>
       </div>
 
@@ -67,7 +71,8 @@ export default function SettingsPage() {
         ))}
       </nav>
 
-      {activeTab === 'security' && <SystemParametersSection />}
+      {activeTab === 'configuration' && <SystemParametersSection />}
+      {activeTab === 'system-status' && <SystemHealthSection />}
       {activeTab === 'backups' && <UploadsMaintenanceSection />}
       {activeTab === 'maintenance' && <MaintenanceSection />}
     </div>
@@ -75,55 +80,135 @@ export default function SettingsPage() {
 }
 
 function SystemParametersSection() {
-  const { parameters, loading, error, saveParameter } = useSystemParameters();
+  const { parameters, loading, error, refetch, refetching, saveParameter } = useSystemParameters();
+  const sections = useMemo(() => groupParameters(parameters), [parameters]);
 
-  const grouped = parameters.reduce<Record<string, ParameterView[]>>((acc, param) => {
-    (acc[param.module] ??= []).push(param);
-    return acc;
-  }, {});
-
-  return (
-    <section className="space-y-4">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-anac-navy">
-        Parametres systeme
-      </h2>
-
-      {loading && <p className="text-sm text-anac-muted">Chargement...</p>}
-      {error && <p className="text-sm text-anac-danger">{error}</p>}
-
-      {Object.entries(grouped).map(([module, params]) => (
-        <div key={module} className="card space-y-3">
-          <p className="text-sm font-medium text-anac-navy">{MODULE_LABELS[module] ?? module}</p>
-          <div className="space-y-3">
-            {params.map((param) => (
-              <ParameterRow key={param.id} parameter={param} onSaved={saveParameter} />
+  if (loading) {
+    return (
+      <div className="max-w-4xl space-y-4" aria-busy="true" aria-label="Chargement de la configuration">
+        {[3, 2].map((rows, index) => (
+          <div key={index} className="rounded-lg border border-anac-border bg-white shadow-sm">
+            <div className="space-y-2 border-b border-anac-border px-5 py-4">
+              <div className="h-4 w-56 animate-pulse rounded bg-anac-gray" />
+              <div className="h-3 w-80 max-w-full animate-pulse rounded bg-anac-gray" />
+            </div>
+            {Array.from({ length: rows }, (_, row) => (
+              <div key={row} className="flex items-center gap-6 border-b border-anac-border px-5 py-4 last:border-0">
+                <div className="flex-1 space-y-2">
+                  <div className="h-3.5 w-64 max-w-full animate-pulse rounded bg-anac-gray" />
+                  <div className="h-3 w-40 animate-pulse rounded bg-anac-gray" />
+                </div>
+                <div className="h-8 w-40 animate-pulse rounded bg-anac-gray" />
+              </div>
             ))}
           </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex max-w-4xl flex-col items-center gap-3 rounded-lg border border-anac-border bg-white px-5 py-10 text-center shadow-sm">
+        <AlertTriangle size={20} className="text-anac-danger" aria-hidden="true" />
+        <div>
+          <p className="text-sm font-medium text-anac-text">Impossible de charger la configuration.</p>
+          <p className="mt-1 text-xs text-anac-muted">{error}</p>
         </div>
+        <Button variant="secondary" size="sm" onClick={() => refetch()} disabled={refetching}>
+          <RefreshCw size={14} className={cn(refetching && 'animate-spin')} aria-hidden="true" />
+          Réessayer
+        </Button>
+      </div>
+    );
+  }
+
+  if (sections.length === 0) {
+    return (
+      <p className="max-w-4xl rounded-lg border border-anac-border bg-white px-5 py-10 text-center text-sm text-anac-muted">
+        Aucun paramètre système n’est enregistré.
+      </p>
+    );
+  }
+
+  return (
+    <div className="max-w-4xl space-y-4">
+      {sections.map((section) => (
+        <section
+          key={section.id}
+          aria-labelledby={`param-section-${section.id}`}
+          className="overflow-hidden rounded-lg border border-anac-border bg-white shadow-sm"
+        >
+          <header className="border-b border-anac-border px-5 py-3.5">
+            <h2 id={`param-section-${section.id}`} className="text-sm font-semibold text-anac-navy">
+              {section.title}
+            </h2>
+            {section.description && <p className="mt-0.5 text-xs text-anac-muted">{section.description}</p>}
+          </header>
+
+          {section.groups.map((group) => (
+            <div key={group.id}>
+              {group.title && (
+                <div className="border-b border-anac-border bg-anac-gray/60 px-5 py-2">
+                  <h3 className="text-xs font-semibold text-anac-navy">{group.title}</h3>
+                  {group.description && <p className="text-[11px] text-anac-muted">{group.description}</p>}
+                </div>
+              )}
+              <div className="divide-y divide-anac-border border-b border-anac-border last:border-b-0">
+                {group.parameters.map((param) => (
+                  <ParameterRow
+                    key={param.id}
+                    parameter={param}
+                    meta={PARAMETER_UI_META[param.key]}
+                    onSaved={saveParameter}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+        </section>
       ))}
-    </section>
+    </div>
   );
 }
 
 function ParameterRow({
   parameter,
+  meta,
   onSaved,
 }: {
   parameter: ParameterView;
+  meta: ParameterUiMeta | undefined;
   onSaved: (key: string, value: string) => Promise<string | null>;
 }) {
   const [value, setValue] = useState(parameter.value);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const savedTimer = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     setValue(parameter.value);
   }, [parameter.value]);
 
+  useEffect(() => () => window.clearTimeout(savedTimer.current), []);
+
   const modified = value !== parameter.value;
+  const validationError = modified ? validateParameterValue(parameter.type, value, parameter.key) : null;
+  const label = meta?.label ?? parameter.description ?? parameter.key;
+  const description = meta ? meta.description : undefined;
+  const inputId = `param-${parameter.key}`;
+  const hintId = `${inputId}-hint`;
+  const message = validationError ?? error;
+  const unitId = `${inputId}-unit`;
+  const messageId = `${inputId}-message`;
+  const describedBy =
+    [description && hintId, meta?.unit && parameter.type === 'integer' && unitId, message && messageId]
+      .filter(Boolean)
+      .join(' ') || undefined;
 
   async function handleSave() {
+    if (validationError) return;
     setError(null);
     setSaving(true);
     try {
@@ -134,51 +219,111 @@ function ParameterRow({
         return;
       }
       setSaved(true);
-      notify.success('Parametre enregistre.');
-      setTimeout(() => setSaved(false), 2000);
+      notify.success('Paramètre enregistré.');
+      window.clearTimeout(savedTimer.current);
+      savedTimer.current = window.setTimeout(() => setSaved(false), 2500);
     } finally {
       setSaving(false);
     }
   }
 
+  function handleChange(next: string) {
+    setValue(next);
+    setError(null);
+    setSaved(false);
+  }
+
   return (
-    <div className="border-t border-anac-border pt-3 first:border-0 first:pt-0">
-      <div className="flex items-center gap-2">
-        <div className="flex-1">
-          <p className="text-sm">{parameter.description ?? parameter.key}</p>
-          <p className="font-mono text-[10px] text-anac-muted">{parameter.key}</p>
+    <div className="flex flex-col gap-2 px-5 py-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+      <div className="min-w-0 flex-1">
+        <label htmlFor={inputId} className="text-sm font-medium text-anac-text">
+          {label}
+        </label>
+        {description && (
+          <p id={hintId} className="mt-0.5 text-xs text-anac-muted">
+            {description}
+          </p>
+        )}
+        <p className="mt-1 font-mono text-[10px] text-anac-muted/80">{parameter.key}</p>
+      </div>
+
+      <div className="flex shrink-0 flex-col items-start gap-1 sm:items-end">
+        <div className="flex items-center gap-2">
+          {parameter.type === 'boolean' ? (
+            <select
+              id={inputId}
+              className="input h-8 w-32 text-sm"
+              value={value}
+              onChange={(e) => handleChange(e.target.value)}
+              aria-describedby={describedBy}
+            >
+              <option value="true">Activé</option>
+              <option value="false">Désactivé</option>
+            </select>
+          ) : parameter.type === 'integer' ? (
+            <>
+              <Input
+                id={inputId}
+                type="number"
+                inputMode="numeric"
+                min={1}
+                step={1}
+                required
+                className="h-8 w-20 text-right text-sm"
+                value={value}
+                onChange={(e) => handleChange(e.target.value)}
+                aria-invalid={validationError ? true : undefined}
+                aria-describedby={describedBy}
+              />
+              {meta?.unit && (
+                <span id={unitId} className="w-28 text-xs text-anac-muted">
+                  {formatUnit(meta.unit, value)}
+                </span>
+              )}
+            </>
+          ) : (
+            <Input
+              id={inputId}
+              type="text"
+              required={!meta?.optional}
+              placeholder={meta?.placeholder}
+              className="h-8 w-full text-sm sm:w-[21.5rem]"
+              value={value}
+              onChange={(e) => handleChange(e.target.value)}
+              aria-invalid={validationError ? true : undefined}
+              aria-describedby={describedBy}
+            />
+          )}
+
+          <Button
+            size="sm"
+            onClick={handleSave}
+            disabled={!modified || saving || validationError !== null}
+            className="h-8 w-8 px-0"
+            aria-label={`Enregistrer : ${label}`}
+            title="Enregistrer"
+          >
+            {saving ? (
+              <Loader2 size={13} className="animate-spin" aria-hidden="true" />
+            ) : (
+              <Save size={13} aria-hidden="true" />
+            )}
+          </Button>
         </div>
 
-        {parameter.type === 'boolean' ? (
-          <select
-            className="input h-8 w-32 text-sm"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-          >
-            <option value="true">Active</option>
-            <option value="false">Desactive</option>
-          </select>
-        ) : (
-          <Input
-            type={parameter.type === 'integer' ? 'number' : 'text'}
-            className="h-8 w-32 text-right text-sm"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-          />
-        )}
-
-        <Button
-          size="sm"
-          onClick={handleSave}
-          disabled={!modified || saving}
-          className="h-8 px-2.5"
-        >
-          {saving ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
-        </Button>
-
-        {saved && <CheckCircle2 size={14} className="text-anac-success" />}
+        <div aria-live="polite" className="min-h-0">
+          {message ? (
+            <p id={messageId} className="max-w-[21.5rem] text-xs text-anac-danger sm:text-right">
+              {message}
+            </p>
+          ) : saved ? (
+            <p className="inline-flex items-center gap-1 text-xs font-medium text-anac-success">
+              <CheckCircle2 size={13} aria-hidden="true" />
+              Enregistré
+            </p>
+          ) : null}
+        </div>
       </div>
-      {error && <p className="mt-1 text-xs text-anac-danger">{error}</p>}
     </div>
   );
 }
@@ -209,7 +354,7 @@ function MaintenanceSection() {
     return scopes.map((scope) => ({
       key: scope,
       label: labels[scope] ?? scope,
-      description: 'Categorie de donnees nettoyable en environnement de developpement.',
+      description: 'Catégorie de données nettoyable en environnement de développement.',
       dangerous: true,
     }));
   }, [labels, scopeDetails, scopes]);
@@ -276,14 +421,14 @@ function MaintenanceSection() {
       <div className="grid gap-2 md:grid-cols-3">
         <MaintenanceMetric
           icon={Database}
-          label="Sections selectionnees"
+          label="Sections sélectionnées"
           value={selected.length.toString()}
         />
-        <MaintenanceMetric icon={ShieldCheck} label="Acces requis" value={accessRequired} />
+        <MaintenanceMetric icon={ShieldCheck} label="Accès requis" value={accessRequired} />
         <MaintenanceMetric
           icon={Trash2}
           label="Mode"
-          value={mode === 'irreversible' ? 'Irreversible' : mode}
+          value={mode === 'irreversible' ? 'Irréversible' : mode}
           danger
         />
       </div>
@@ -295,14 +440,14 @@ function MaintenanceSection() {
             Mode Maintenance
           </h2>
           <p className="mt-1 text-xs text-anac-muted">
-            Ouvre une fenetre temporaire pour le compte dev/supervision. Les donnees reelles ne
-            doivent jamais etre nettoyees par cet outil.
+            Ouvre une fenêtre temporaire pour le compte dev/supervision. Les données réelles ne
+            doivent jamais être nettoyées par cet outil.
           </p>
         </div>
 
         <div className="flex flex-wrap items-end gap-3 p-4">
           <label className="space-y-1 text-xs font-medium text-anac-navy">
-            Duree (15 a 480 minutes)
+            Durée (15 à 480 minutes)
             <Input
               type="number"
               min={15}
@@ -319,17 +464,17 @@ function MaintenanceSection() {
             disabled={!enabled || busy}
           >
             <Timer size={14} />
-            Demarrer la session
+            Démarrer la session
           </Button>
           <p className="text-xs text-anac-muted">
             {session.active && session.expiresAt
-              ? `Session active jusqu'a ${new Date(session.expiresAt).toLocaleTimeString('fr-FR', {
+              ? `Session active jusqu'à ${new Date(session.expiresAt).toLocaleTimeString('fr-FR', {
                   hour: '2-digit',
                   minute: '2-digit',
                 })}`
               : enabled
                 ? 'Aucune session active.'
-                : `Maintenance desactivee pour ${environment}.`}
+                : `Maintenance désactivée pour ${environment}.`}
           </p>
         </div>
       </div>
@@ -345,11 +490,11 @@ function MaintenanceSection() {
           <div>
             <h2 className="flex items-center gap-2 text-sm font-semibold text-anac-danger">
               <AlertTriangle size={15} />
-              Nettoyage des donnees de developpement
+              Nettoyage des données de développement
             </h2>
             <p className="mt-1 max-w-3xl text-xs text-anac-danger">
-              Efface les donnees de test creees pendant le developpement. Les utilisateurs, roles,
-              parametres systeme et modeles de documents sont conserves.
+              Efface les données de test créées pendant le développement. Les utilisateurs, rôles,
+              paramètres système et modèles de documents sont conservés.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -363,7 +508,7 @@ function MaintenanceSection() {
             </Button>
             <Button variant="destructive" size="sm" onClick={handleReset} disabled={!canReset || busy}>
               {busy ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-              Nettoyer les donnees
+              Nettoyer les données
             </Button>
           </div>
         </div>
@@ -417,7 +562,7 @@ function MaintenanceSection() {
                 disabled={!canReset || busy}
               >
                 {busy ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                Nettoyer les donnees
+                Nettoyer les données
               </Button>
             </div>
           </label>
@@ -476,7 +621,7 @@ function UploadsMaintenanceSection() {
 
     const retention = retentionDays.trim();
     if (retention && !Number.isInteger(Number(retention))) {
-      const msg = 'Le delai de retention doit etre un entier.';
+      const msg = 'Le délai de rétention doit être un nombre entier.';
       setRunError(msg);
       notify.error(msg);
       return;
@@ -491,7 +636,7 @@ function UploadsMaintenanceSection() {
 
     if (response.result) {
       setResult(response.result);
-      notify.success('Nettoyage des uploads termine.');
+      notify.success('Nettoyage des uploads terminé.');
       setRetentionDays('');
     }
   }
@@ -499,7 +644,7 @@ function UploadsMaintenanceSection() {
   return (
     <section className="space-y-3">
       <h2 className="text-sm font-semibold uppercase tracking-wide text-anac-navy">
-        Uploads et tracabilite
+        Uploads et traçabilité
       </h2>
 
       <div className="card space-y-4">
@@ -513,15 +658,15 @@ function UploadsMaintenanceSection() {
               <p className="text-lg font-semibold text-anac-navy">{diagnostics.total}</p>
             </div>
             <div className="rounded border border-anac-border p-3">
-              <p className="text-xs text-anac-muted">Lies a une piece</p>
+              <p className="text-xs text-anac-muted">Liés à une pièce</p>
               <p className="text-lg font-semibold text-anac-success">{diagnostics.linked}</p>
             </div>
             <div className="rounded border border-anac-border p-3">
-              <p className="text-xs text-anac-muted">Non lies</p>
+              <p className="text-xs text-anac-muted">Non liés</p>
               <p className="text-lg font-semibold text-anac-warning">{diagnostics.unlinked}</p>
             </div>
             <div className="rounded border border-anac-border p-3">
-              <p className="text-xs text-anac-muted">Orphelins marques</p>
+              <p className="text-xs text-anac-muted">Orphelins marqués</p>
               <p className="text-lg font-semibold text-anac-danger">{diagnostics.orphanMarked}</p>
             </div>
           </div>
@@ -530,7 +675,7 @@ function UploadsMaintenanceSection() {
         {diagnostics && diagnostics.bySource.length > 0 && (
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-wide text-anac-muted">
-              Repartition par source
+              Répartition par source
             </p>
             <div className="space-y-1.5">
               {diagnostics.bySource.map((row) => (
@@ -545,15 +690,15 @@ function UploadsMaintenanceSection() {
 
         <div className="space-y-2 border-t border-anac-border pt-3">
           <p className="text-xs text-anac-muted">
-            Lance un nettoyage manuel des uploads non lies. Laisser vide pour utiliser le delai
-            configure dans les parametres systeme.
+            Lance un nettoyage manuel des uploads non liés. Laisser vide pour utiliser le délai
+            configuré dans les paramètres système.
           </p>
 
           <div className="flex items-center gap-2">
             <Input
               type="number"
               className="h-8 w-44 text-sm"
-              placeholder="Retention (jours)"
+              placeholder="Rétention (jours)"
               value={retentionDays}
               onChange={(e) => setRetentionDays(e.target.value)}
             />

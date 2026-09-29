@@ -1,4 +1,7 @@
 import { Request, Response } from 'express';
+import { parseFileAddress } from '@aidn/shared';
+import { sendAssetFile } from '../files/files.controller.js';
+import { findAsset } from '../files/files.service.js';
 import {
   generateReport,
   getReport,
@@ -42,5 +45,13 @@ export async function download(req: Request, res: Response): Promise<void> {
     return;
   }
 
-  res.redirect(report.fileUrl);
+  // Streamed through the files layer (no public /uploads redirect); the
+  // route already limits downloads to dn_supervisor and SU.
+  const assetId = parseFileAddress(report.fileUrl);
+  const asset = assetId === null ? null : await findAsset(assetId);
+  if (!asset) {
+    res.status(404).json({ message: 'Rapport introuvable.' });
+    return;
+  }
+  await sendAssetFile(res, asset, 'attachment');
 }

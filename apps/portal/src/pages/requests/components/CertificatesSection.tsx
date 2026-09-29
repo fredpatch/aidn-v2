@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { CheckCircle2, CreditCard, FileBadge2, PackageCheck, UploadCloud } from 'lucide-react';
 import { api, apiErrorMessage } from '../../../lib/axios';
 import { notify } from '../../../lib/notify';
+import FileLink from '../../../components/files/FileLink';
 
 interface CertificatesBundle {
   phase: { id: number; status: string } | null;
@@ -17,18 +18,6 @@ interface CertificatesBundle {
     notifiedAt: string | null;
     collectedAt: string | null;
   } | null;
-}
-
-function fileHref(url: string): string {
-  try {
-    const parsed = new URL(url);
-    if (parsed.hostname === 'localhost' && parsed.port === '4000') {
-      return `${parsed.pathname}${parsed.search}${parsed.hash}`;
-    }
-  } catch {
-    // Relative URLs are already ideal for the portal dev proxy.
-  }
-  return url;
 }
 
 function formatDate(value: string | null | undefined): string {
@@ -192,14 +181,12 @@ export function CertificatesSection({ requestId }: { requestId: number }) {
             {!bundle.payment.invoiceFileUrl ? (
               <p className="text-anac-muted">En attente de la facture du service S5.</p>
             ) : (
-              <a
-                href={fileHref(bundle.payment.invoiceFileUrl)}
-                target="_blank"
-                rel="noreferrer"
+              <FileLink
+                address={bundle.payment.invoiceFileUrl}
                 className="btn-secondary inline-flex rounded px-3 py-1.5 text-xs"
               >
                 Consulter la facture
-              </a>
+              </FileLink>
             )}
             {bundle.payment.proofFileUrl && bundle.payment.status === 'pending_validation' ? (
               <p className="text-anac-muted">Quittance soumise, en attente de validation.</p>

@@ -3,7 +3,7 @@ import { CreditCard } from 'lucide-react';
 import DocumentPreviewLink from '../../../../components/documents/DocumentPreviewLink';
 import { Button } from '../../../../components/ui/button';
 import CollapsibleCard from '../../../../components/ui/collapsible-card';
-import { API_ORIGIN, PAYMENT_STATUS_LABELS, PAYMENT_STATUS_TONES } from '../constants';
+import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_TONES } from '../constants';
 import { formatDate } from '../helpers';
 import { usePaymentActions } from '../hooks/usePaymentActions';
 import type { PaymentView } from '../types';
@@ -95,7 +95,7 @@ export default function PaymentCard({
             Envoyee le {formatDate(payment.invoiceUploadedAt)} -{' '}
             <DocumentPreviewLink
               title="Facture evaluation approfondie"
-              url={`${API_ORIGIN}${payment.invoiceFileUrl}`}
+              url={payment.invoiceFileUrl}
             />
           </p>
         )}
@@ -114,7 +114,7 @@ export default function PaymentCard({
                 Soumise le {formatDate(payment.proofUploadedAt)} -{' '}
                 <DocumentPreviewLink
                   title="Preuve de paiement evaluation approfondie"
-                  url={`${API_ORIGIN}${payment.proofFileUrl}`}
+                  url={payment.proofFileUrl}
                 />
               </p>
 

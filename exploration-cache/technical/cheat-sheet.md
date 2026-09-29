@@ -7,8 +7,10 @@ npm install                 # postinstall auto-builds packages/shared
 cp apps/api/.env.example apps/api/.env   # then fill in real values
 npm run db:generate
 npm run db:migrate          # calls scripts/migrate.ts, NOT drizzle-kit CLI directly
-npm run seed:params --workspace apps/api   # wraps seed-system-parameters.ts (added this session)
-npm run dev                 # API :4000, admin :5173, portal :5174
+npm run dev                 # API :4000, admin :5173, portal :5174 - API seeds missing parameters + templates on startup
+npm run seed --workspace apps/api          # optional: all reference data (modules/seeding) run manually
+npm run seed:params --workspace apps/api   # optional: system parameters only
+npm test --workspace apps/api              # node:test via tsx (currently: seeding module)
 ```
 
 ## Where is…
@@ -77,6 +79,12 @@ PATCH /api/meetings/:id/status         dn_agent/dn_supervisor/SU - held/no_show/
 POST  /api/meetings/:id/reschedule     dn_agent/dn_supervisor/SU
 GET   /api/meetings/:id                either auth type
 GET   /api/meetings/:id/ticket         either auth type - HTML ticket, not a stored PDF
+
+GET  /api/files/:id                    session + access check - stable file address
+POST /api/files/:id/access             session + access check -> 5-min signed link
+GET  /api/files/:id/content?grant=     grant only (never logged)
+GET  /api/seeding/status               SU - État du système (observe only; 200 even if DB down)
+POST /api/seeding/run                  SU - create missing reference data (409 if lock busy)
 
 GET  /api/document-templates           dn_agent/dn_supervisor/SU - management list
 POST /api/document-templates           dn_agent/dn_supervisor/SU - upsert by key

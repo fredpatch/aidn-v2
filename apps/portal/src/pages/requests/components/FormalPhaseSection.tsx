@@ -18,20 +18,9 @@ import {
 } from '../../../lib/api/requests.api';
 import type { FormalBundle, FormalDoc } from '../../../lib/api/requests.types';
 import { MEETING_STATUS_LABELS } from '../constants';
+import FileLink from '../../../components/files/FileLink';
 
 type StepState = 'done' | 'current' | 'waiting';
-
-function fileHref(url: string): string {
-  try {
-    const parsed = new URL(url);
-    if (parsed.hostname === 'localhost' && parsed.port === '4000') {
-      return `${parsed.pathname}${parsed.search}${parsed.hash}`;
-    }
-  } catch {
-    // Relative URLs are already ideal for the portal dev proxy.
-  }
-  return url;
-}
 
 function formatDateTime(value: string | null | undefined): string {
   if (!value) return '-';
@@ -286,14 +275,12 @@ export function FormalPhaseSection({ requestId }: { requestId: number }) {
                     {letterLabel(bundle.letterCircuit.status)}
                   </p>
                   {bundle.letterCircuit.fileUrl && (
-                    <a
-                      href={fileHref(bundle.letterCircuit.fileUrl)}
-                      target="_blank"
-                      rel="noreferrer"
+                    <FileLink
+                      address={bundle.letterCircuit.fileUrl}
                       className="text-xs text-anac-blue underline"
                     >
                       Voir le fichier
-                    </a>
+                    </FileLink>
                   )}
                 </div>
               </div>
@@ -344,14 +331,12 @@ export function FormalPhaseSection({ requestId }: { requestId: number }) {
                 </a>
               )}
               {bundle.meeting.crDocumentUrl && (
-                <a
-                  href={fileHref(bundle.meeting.crDocumentUrl)}
-                  target="_blank"
-                  rel="noreferrer"
+                <FileLink
+                  address={bundle.meeting.crDocumentUrl}
                   className="inline-flex text-xs text-anac-blue underline"
                 >
                   Consulter le compte-rendu
-                </a>
+                </FileLink>
               )}
             </div>
           )}
@@ -419,14 +404,12 @@ export function FormalPhaseSection({ requestId }: { requestId: number }) {
                   <div className="min-w-0">
                     <p className="text-xs leading-tight text-anac-navy">{doc.label}</p>
                     {doc.fileUrl && (
-                      <a
-                        href={fileHref(doc.fileUrl)}
-                        target="_blank"
-                        rel="noreferrer"
+                      <FileLink
+                        address={doc.fileUrl}
                         className="text-[10px] text-anac-blue underline"
                       >
                         Voir le fichier
-                      </a>
+                      </FileLink>
                     )}
                   </div>
                 </div>

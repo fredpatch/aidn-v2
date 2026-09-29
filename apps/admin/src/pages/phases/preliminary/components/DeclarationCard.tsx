@@ -72,7 +72,7 @@ export default function DeclarationCard({
               Recue le {formatDate(evaluation.submittedAt)} -{' '}
               <DocumentPreviewLink
                 title="Declaration de pre-evaluation retournee"
-                url={`http://localhost:4000${evaluation.submittedFileUrl}`}
+                url={evaluation.submittedFileUrl}
                 className="underline text-anac-blue"
               />
             </p>

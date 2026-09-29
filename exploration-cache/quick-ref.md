@@ -8,9 +8,12 @@ One-page orientation. For deeper detail see `technical/cheat-sheet.md`, `active-
 npm install
 cp apps/api/.env.example apps/api/.env
 npm run db:migrate
-npm run seed:params --workspace=apps/api
-npm run dev
+npm run dev        # API startup seeds missing parameters + official templates
 ```
+
+Manual seeding: `npm run seed --workspace=apps/api` (parameters + document
+templates) or `npm run seed:params --workspace=apps/api` (parameters only, still
+called by `scripts/deploy-staging.sh`). Existing templates are never replaced.
 
 Default local services:
 
@@ -122,8 +125,15 @@ Operational/transverse surfaces now present:
 - Resettable scopes clean their own physical files where safe (`reports`,
   workflow `document_versions`); `document_template` uploads remain protected and
   must be replaced through `Modeles de documents` if missing.
-- Admin `Parametres` currently exposes only code-backed tabs: `Securite`,
-  `Sauvegardes`, and `Maintenance`.
+- Admin `Paramètres` (SU) tabs: `Configuration` (default), `État du système`
+  (`GET /api/seeding/status`, `POST /api/seeding/run` - create-missing only),
+  `Sauvegardes`, `Maintenance`.
+- Files: no public `/uploads`; stable address `/api/files/<id>`, opened via
+  `FileLink`/`DocumentViewer` (5-min signed grants). Legacy addresses:
+  `npm run storage:rewrite-addresses --workspace=apps/api` (API stopped).
+- Uploaded files live under `UPLOADS_ROOT` (`apps/api/src/shared/uploads-root.ts`
+  = `apps/api/uploads`); dev-tools, reports and certificates still compute it
+  from `process.cwd()` (follow-up UPLOADS-ROOT).
 - Final role replay is the next product validation gate.
 - Notion backlog has known stale rows and is being reconciled.
 - M11 notifications are not implemented as a full notification center yet.

@@ -39,4 +39,3 @@ export const SCOPE_CATEGORY_LABELS: Record<string, string> = {
   specialisee: 'Maintenance spécialisée',
 };
 
-export const API_ORIGIN = 'http://localhost:4000';

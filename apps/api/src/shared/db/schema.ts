@@ -150,6 +150,7 @@ export const documentOwnerTypeEnum = pgEnum('document_owner_type', [
   'meeting_report',
   'phase_closure_document',
   'certificate_document', // M7 - generated filled certificate (HTML-rendered PDF)
+  'report', // M12 - generated analytics report (STORAGE-0A asset registration)
 ]);
 
 /** M3/M4 - blank template forms DN makes available for applicants to download

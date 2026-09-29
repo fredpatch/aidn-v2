@@ -1,6 +1,13 @@
 import { eq } from "drizzle-orm";
 import { db } from "../../shared/db/index.js";
 import { systemParameters } from "../../shared/db/schema.js";
+import {
+  normalizeParameterValue,
+  parsePublicHolidays,
+  PUBLIC_HOLIDAYS_PARAMETER_KEY,
+  validateParameterValue,
+  type PublicHolidays,
+} from "@aidn/shared";
 import { logAudit } from "../auth/auth.service.js";
 
 export interface ParameterView {
@@ -52,9 +59,16 @@ export async function getTextValue(key: string, fallback: string): Promise<strin
   return param ? param.value : fallback;
 }
 
+/** DN's public holidays for working-day counts (Circuit DG). Read leniently:
+ *  invalid entries (only possible through a direct database edit, since
+ *  updates are validated) are ignored rather than breaking the caller. */
+export async function getPublicHolidays(): Promise<PublicHolidays> {
+  return parsePublicHolidays(await getTextValue(PUBLIC_HOLIDAYS_PARAMETER_KEY, "")).holidays;
+}
+
 export async function updateParameter(
   key: string,
-  value: string,
+  rawValue: string,
   updatedByUserId: number
 ): Promise<ParameterView> {
   const [existing] = await db
@@ -62,6 +76,12 @@ export async function updateParameter(
     .from(systemParameters)
     .where(eq(systemParameters.key, key));
   if (!existing) throw new Error("PARAMETER_NOT_FOUND");
+
+  // Same rules as the admin Configuration tab (shared), stored in canonical form.
+  if (validateParameterValue(existing.type, rawValue, key) !== null) {
+    throw new Error("INVALID_PARAMETER_VALUE");
+  }
+  const value = normalizeParameterValue(existing.type, rawValue, key);
 
   const [updated] = await db
     .update(systemParameters)

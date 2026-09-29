@@ -97,6 +97,83 @@ admin → retour portail, pas seulement des tests API isolés) :
       conservés au format canonique à 4 chiffres (`0041`, jamais `41`).
 - [x] `system_parameters` (équivalent des `parametres` SICOT) : seuils OTP,
       verrouillage, alerte parapheur - configurables sans redéploiement
+- [x] **SEED-1A** (2026-09-25) - paramètres système garantis à chaque démarrage
+      de l'API (`modules/seeding`) : création des clés manquantes uniquement,
+      valeurs existantes jamais écrasées, idempotence par élément (pas de drapeau
+      « seed terminé »), verrou advisory PostgreSQL entre instances, échec du
+      seed = échec du démarrage. `npm run seed:params` réutilise la même
+      implémentation (définitions uniques dans `seeds/system-parameters.seed.ts`).
+- [x] **SEED-1B** (2026-09-25) - modèles de documents officiels installés au
+      démarrage si la clé n'existe pas (copies DN approuvées dans
+      `apps/api/seed-assets/document-templates/`, correspondance clé -> fichier
+      explicite, F-E-015 = `preliminary_evaluation_declaration`). Un modèle
+      existant n'est jamais remplacé ni réparé, même cassé. Création atomique
+      (modèle + version courante + upload asset + audit sans acteur), fichier
+      copié supprimé si la transaction échoue. `npm run seed` = tout,
+      `npm run seed:params` = paramètres uniquement.
+- [x] **SEED-2** (2026-09-25) - Paramètres → État du système (SU) :
+      `GET /api/seeding/status` (observe : paramètres, modèles officiels
+      conforme/manquant/fichier introuvable/inactif/non vérifié, base de données,
+      stockage ; 200 même base inaccessible) et `POST /api/seeding/run` (même
+      `runSeeds()` que le démarrage, crée seulement les manquants, audit
+      `REFERENCE_DATA_SEED_RUN`, 409 si verrou occupé). Précédence d'état
+      partagée (`classifyTemplateHealth`, `@aidn/shared`) avec Modèles de
+      documents. `UPLOADS_ROOT` canonique pour service statique, uploads,
+      modèles et santé.
+- [x] **SEED-2b** (2026-09-25) - État du système : espace utilisé par la base
+      (`pg_database_size`) et espace libre/total du disque des uploads
+      (`fs.statfs` sur `UPLOADS_ROOT`) ; « Espace faible » (attention) sous 10 %
+      libres (`LOW_STORAGE_FREE_RATIO`). L'espace libre du serveur de base de
+      données n'est pas mesurable en SQL et n'est pas affiché.
+- [x] **UPLOADS-ROOT** (2026-09-25, via STORAGE-0A) - dev-tools, rapports,
+      certificats, uploads, modèles et santé utilisent `UPLOADS_ROOT` ; plus aucun
+      chemin d'upload basé sur `process.cwd()`
+- [ ] **UPLOAD-REJECT-CLEANUP** - un fichier refusé par `POST /api/uploads`
+      (type non accepté) reste sur disque : le supprimer dans le contrôleur
+      (intégré à STORAGE-0B)
+- [x] **STORAGE-0A** (2026-09-25) - livraison sécurisée des fichiers : `/api/files/:id`,
+      contrôle d'accès par type de document, liens signés 5 min, fichiers
+      générés enregistrés comme assets, réécriture des adresses `/uploads/…`,
+      fermeture du `/uploads` public. Spec :
+      `docs/superpowers/specs/2026-09-25-storage-0a-design.md` (implémenté ;
+      rewrite à exécuter en staging avec sauvegarde vérifiée)
+- [ ] **STORAGE-0B** - contrat de rattachement par `uploadAssetId` uniquement
+      (métadonnées côté serveur, contrôle de l'uploader, suppression immédiate
+      des uploads refusés, `UPLOADS_ROOT` partout)
+- [ ] **STORAGE-1 → 4**, **FILE-REFS-1**, **INFRA-BACKUP-1** (prérequis de
+      toute migration de données en staging/production) - voir la spec
+      STORAGE-0A §1
+- [ ] **REPORT-FILE-ROLLBACK** - un rapport dont l'insertion échoue laisse son
+      fichier dans `uploads/reports/` (écrit avant la transaction ; existant)
+- [ ] **FILE-TYPE-ICONS** - `DocumentFileIcon` déduit l'icône de l'extension de
+      l'URL ; avec les adresses stables l'icône est générique (exposer le MIME
+      dans les bundles)
+- [ ] **DEV-DB-MIGRATION-BASELINE** - la base locale de dev a un historique
+      drizzle antérieur à la baseline `0000_deep_satana` : `db:migrate` y rejouerait
+      la baseline (réinitialiser la base locale). Snapshot drizzle réaligné en 0001.
+- [ ] **DROP-MEETING-TICKET-URL** - supprimer `meetings.ticket_document_url`
+      (non utilisée, écrite seulement par le seed de démo analytique)
+- [ ] **MEETINGS-IDOR** (dette sécurité) - `GET /api/meetings/:id` et
+      `/:id/ticket` ne vérifient que l'authentification : tout postulant
+      connecté peut lire n'importe quelle réunion (métadonnées, adresse du
+      compte-rendu). Ajouter le contrôle d'appartenance au dossier.
+- [ ] **TEMPLATE-ACTIVATION** - flux dédié d'activation/désactivation des
+      modèles (aujourd'hui un modèle inactif ne se corrige qu'en base)
+- [x] **DG-WORKING-DAYS** (2026-09-25) - le circuit DG compte les jours ouvrés
+      (lundi-vendredi, heure de Libreville, hors jours fériés du nouveau
+      paramètre `public_holidays` : AAAA-MM-JJ ou MM-JJ). Alerte
+      (`subtractWorkingDays`) et cible « retour signature » du tableau de bord
+      (DN, réception, délai moyen, compteur hors délai) utilisent le même calcul
+      (`@aidn/shared/workingDays`). `public_holidays` est vide par défaut : DN
+      doit saisir la liste officielle.
+- [x] **PARAM-VALIDATION** (2026-09-25) - `PATCH /api/system-parameters/:key`
+      valide avec les mêmes règles que l'admin (`validateParameterValue`,
+      `@aidn/shared`) : entier 1-3650, booléen, texte non vide ≤ 500 caractères,
+      dates valides pour `public_holidays` ; valeur stockée normalisée ;
+      400 `INVALID_PARAMETER_VALUE` sinon.
+- [ ] **SEED-1C** - consolider les valeurs de repli (`getIntegerValue` fallbacks,
+      `DEFAULT_*` de `@aidn/shared`, `DASHBOARD_SLA_DEFAULTS`) sur les définitions
+      de seed
 - [x] Emails réels via Nodemailer (mêmes noms de variables d'env que SICOT :
       SMTP_HOST/PORT/USER/PASS/FROM, pour réutiliser les identifiants
       existants tel quel)

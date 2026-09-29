@@ -70,6 +70,44 @@ npm run db:generate
 npm run db:migrate
 ```
 
+Les données de référence sont vérifiées et créées automatiquement au
+démarrage de l'API, avant d'accepter la moindre requête :
+
+- **paramètres système** : les clés manquantes sont ajoutées avec leur valeur
+  par défaut ; les valeurs existantes ne sont jamais modifiées ;
+- **modèles de documents officiels** (4 formulaires DN) : un modèle dont la clé
+  n'existe pas encore est installé à partir des copies approuvées par DN dans
+  `apps/api/seed-assets/document-templates/`. Un modèle déjà présent n'est
+  **jamais** remplacé, réparé ni réactivé, même si son fichier est introuvable.
+
+Si ce contrôle échoue (base inaccessible, fichier source manquant pour un
+modèle à créer...), l'API ne démarre pas. Commandes manuelles (maintenance,
+déploiement) :
+
+```bash
+npm run seed --workspace=apps/api          # paramètres + modèles de documents
+npm run seed:params --workspace=apps/api   # paramètres système uniquement
+```
+
+Un Super Utilisateur peut aussi consulter **Paramètres → État du système** :
+présence des paramètres système, état de chaque modèle officiel (conforme,
+manquant, fichier introuvable, inactif, non vérifié), accès à la base de données
+et au stockage des fichiers. Le bouton « Créer les éléments manquants »
+(`POST /api/seeding/run`, SU uniquement, audité) crée seulement les éléments
+absents, sans redémarrer l'API ; il ne remplace, ne répare ni ne réactive
+jamais un modèle existant et ne réinitialise aucune valeur.
+
+**Fichiers stockés.** Chaque fichier est un `upload_asset` ; son adresse stable
+est `/api/files/<id>` (jamais le chemin physique). Il n'y a pas de `/uploads`
+public : l'application demande un lien signé de 5 minutes
+(`POST /api/files/:id/access`) après un contrôle d'accès par type de document.
+Les anciennes adresses `/uploads/...` se convertissent API arrêtée :
+
+```bash
+npm run storage:rewrite-addresses --workspace=apps/api            # à blanc
+npm run storage:rewrite-addresses --workspace=apps/api -- --apply # applique
+```
+
 ### 3. Lancer en developpement
 
 ```bash

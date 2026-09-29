@@ -1,6 +1,6 @@
 {
-  "id": "06870c0f-dd81-4477-a2d2-d80e66fcdb3b",
-  "prevId": "91aaedec-6718-4b2a-a30a-560f11316459",
+  "id": "514f9640-1198-44a3-aabc-d3e5a17efc79",
+  "prevId": "f871a86b-5a63-4bbd-8bc3-08f0a46ab34d",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -459,6 +459,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "signed_file_url": {
+          "name": "signed_file_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "archived_at": {
           "name": "archived_at",
           "type": "timestamp",
@@ -474,6 +480,42 @@
         "collected_at": {
           "name": "collected_at",
           "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "approval_reference_number": {
+          "name": "approval_reference_number",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "initial_issue_date": {
+          "name": "initial_issue_date",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "current_issue_date": {
+          "name": "current_issue_date",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dg_full_name_override": {
+          "name": "dg_full_name_override",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "scope_details": {
+          "name": "scope_details",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": false
         }
@@ -558,6 +600,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "signature_sent_at": {
+          "name": "signature_sent_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
         },
         "signed_at": {
           "name": "signed_at",
@@ -1098,6 +1146,18 @@
           "primaryKey": false,
           "notNull": false
         },
+        "cr_document_url": {
+          "name": "cr_document_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cr_uploaded_at": {
+          "name": "cr_uploaded_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -1124,6 +1184,7 @@
             }
           ],
           "isUnique": true,
+          "where": "\"meetings\".\"status\" = 'scheduled'",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -1771,6 +1832,13 @@
           "primaryKey": true,
           "notNull": true
         },
+        "report_key": {
+          "name": "report_key",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'processing_delay'"
+        },
         "period_start": {
           "name": "period_start",
           "type": "timestamp",
@@ -1800,6 +1868,19 @@
         "file_url": {
           "name": "file_url",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "filters": {
+          "name": "filters",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        },
+        "summary": {
+          "name": "summary",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": false
         },
@@ -2218,6 +2299,225 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.upload_assets": {
+      "name": "upload_assets",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "file_url": {
+          "name": "file_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "storage_key": {
+          "name": "storage_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "original_name": {
+          "name": "original_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mime_type": {
+          "name": "mime_type",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "size_bytes": {
+          "name": "size_bytes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "uploaded_by_user_id": {
+          "name": "uploaded_by_user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "uploaded_by_applicant_id": {
+          "name": "uploaded_by_applicant_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "uploaded_from_app": {
+          "name": "uploaded_from_app",
+          "type": "upload_source_app",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'unknown'"
+        },
+        "uploaded_from_origin": {
+          "name": "uploaded_from_origin",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "uploaded_from_ip": {
+          "name": "uploaded_from_ip",
+          "type": "varchar(45)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "uploaded_user_agent": {
+          "name": "uploaded_user_agent",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "module_hint": {
+          "name": "module_hint",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "linked_owner_type": {
+          "name": "linked_owner_type",
+          "type": "document_owner_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "linked_owner_id": {
+          "name": "linked_owner_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "linked_at": {
+          "name": "linked_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "orphaned_at": {
+          "name": "orphaned_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "upload_assets_created_idx": {
+          "name": "upload_assets_created_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "upload_assets_linked_idx": {
+          "name": "upload_assets_linked_idx",
+          "columns": [
+            {
+              "expression": "linked_owner_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "linked_owner_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "upload_assets_user_idx": {
+          "name": "upload_assets_user_idx",
+          "columns": [
+            {
+              "expression": "uploaded_by_user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "upload_assets_applicant_idx": {
+          "name": "upload_assets_applicant_idx",
+          "columns": [
+            {
+              "expression": "uploaded_by_applicant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "upload_assets_uploaded_by_user_id_users_id_fk": {
+          "name": "upload_assets_uploaded_by_user_id_users_id_fk",
+          "tableFrom": "upload_assets",
+          "tableTo": "users",
+          "columnsFrom": [
+            "uploaded_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "upload_assets_uploaded_by_applicant_id_applicants_id_fk": {
+          "name": "upload_assets_uploaded_by_applicant_id_applicants_id_fk",
+          "tableFrom": "upload_assets",
+          "tableTo": "applicants",
+          "columnsFrom": [
+            "uploaded_by_applicant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.user_roles": {
       "name": "user_roles",
       "schema": "",
@@ -2467,6 +2767,7 @@
       "schema": "public",
       "values": [
         "submitted",
+        "in_signature_circuit",
         "signed",
         "pending_review"
       ]
@@ -2480,7 +2781,11 @@
         "preliminary_evaluation_form",
         "payment_invoice",
         "payment_proof",
-        "document_template"
+        "document_template",
+        "meeting_report",
+        "phase_closure_document",
+        "certificate_document",
+        "report"
       ]
     },
     "public.document_submission_status": {
@@ -2669,6 +2974,16 @@
         "issuance",
         "modification",
         "renewal"
+      ]
+    },
+    "public.upload_source_app": {
+      "name": "upload_source_app",
+      "schema": "public",
+      "values": [
+        "admin",
+        "portal",
+        "api",
+        "unknown"
       ]
     }
   },

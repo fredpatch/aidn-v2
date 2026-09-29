@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { AlertCircle, CheckCircle2, CreditCard, FileSearch, UploadCloud } from 'lucide-react';
 import { api, apiErrorMessage } from '../../../lib/axios';
 import { notify } from '../../../lib/notify';
+import FileLink from '../../../components/files/FileLink';
 
 type EvaluationVerdict = 'validated' | 'rejected' | 'needs_correction' | null;
 
@@ -23,18 +24,6 @@ interface DeepEvaluationBundle {
     correctionDeadline: string | null;
   }>;
   completionRate: { total: number; validated: number };
-}
-
-function fileHref(url: string): string {
-  try {
-    const parsed = new URL(url);
-    if (parsed.hostname === 'localhost' && parsed.port === '4000') {
-      return `${parsed.pathname}${parsed.search}${parsed.hash}`;
-    }
-  } catch {
-    // Relative URLs are already ideal for the portal dev proxy.
-  }
-  return url;
 }
 
 function paymentLabel(status: string | undefined): string {
@@ -235,14 +224,12 @@ export function DeepEvaluationSection({ requestId }: { requestId: number }) {
             {!bundle.payment.invoiceFileUrl ? (
               <p className="text-anac-muted">En attente de la facture de la DN.</p>
             ) : (
-              <a
-                href={fileHref(bundle.payment.invoiceFileUrl)}
-                target="_blank"
-                rel="noreferrer"
+              <FileLink
+                address={bundle.payment.invoiceFileUrl}
                 className="btn-secondary inline-flex rounded px-3 py-1.5 text-xs"
               >
                 Consulter la facture
-              </a>
+              </FileLink>
             )}
 
             {bundle.payment.status === 'validated' ? (

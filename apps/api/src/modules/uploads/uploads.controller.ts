@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import { ACCEPTED_DOCUMENT_MIME_TYPES } from '@aidn/shared';
 import { db } from '../../shared/db/index.js';
-import { uploadAssets } from '../../shared/db/schema.js';
+import { insertAssetWithAddress } from './asset-registration.js';
 
 type UploadRequest = Request & { uploadRelativeDir?: string };
 
@@ -15,8 +15,8 @@ function sourceAppFromOrigin(origin: string | undefined): 'admin' | 'portal' | '
 
 /** Generic upload endpoint, reused by every module that needs a file
  *  (M1 demande, M4 formal documents, M5 payment proof, etc.). Storage is
- *  local disk for now (see server.ts static serving) - swappable for
- *  object storage later without changing this contract. */
+ *  local disk for now; files are read back only through /api/files
+ *  (STORAGE-0A), so storage can change without changing this contract. */
 export async function upload(req: Request, res: Response): Promise<void> {
   if (!req.file) {
     res.status(400).json({ message: 'Aucun fichier recu.' });
@@ -38,15 +38,13 @@ export async function upload(req: Request, res: Response): Promise<void> {
   const storageKey = relativeDir
     ? `${relativeDir}/${req.file.filename}`.replace(/\\/g, '/')
     : req.file.filename;
-  const fileUrl = `/uploads/${storageKey}`;
-  const [asset] = await db
-    .insert(uploadAssets)
-    .values({
-      fileUrl,
+  // The response carries the asset's stable address, never the physical path.
+  const asset = await db.transaction((tx) =>
+    insertAssetWithAddress(tx, {
       storageKey,
-      originalName: req.file.originalname,
-      mimeType: req.file.mimetype,
-      sizeBytes: req.file.size,
+      originalName: req.file!.originalname,
+      mimeType: req.file!.mimetype,
+      sizeBytes: req.file!.size,
       uploadedByUserId: req.user?.userId,
       uploadedByApplicantId: req.applicant?.applicantId,
       uploadedFromApp: sourceAppFromOrigin(req.get('origin')),
@@ -55,7 +53,8 @@ export async function upload(req: Request, res: Response): Promise<void> {
       uploadedUserAgent: req.get('user-agent'),
       moduleHint: typeof req.body?.moduleHint === 'string' ? req.body.moduleHint : null,
     })
-    .returning({ id: uploadAssets.id });
+  );
+  const fileUrl = asset.address;
 
   res.status(201).json({
     uploadAssetId: asset.id,

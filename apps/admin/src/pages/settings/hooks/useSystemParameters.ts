@@ -32,8 +32,10 @@ export function useSystemParameters() {
     parameters: paramsQuery.data ?? [],
     loading: paramsQuery.isLoading,
     error: paramsQuery.error
-      ? apiErrorMessage(paramsQuery.error, 'Impossible de charger les parametres.')
+      ? apiErrorMessage(paramsQuery.error, 'Impossible de charger les paramètres.')
       : null,
+    refetch: paramsQuery.refetch,
+    refetching: paramsQuery.isFetching,
     saveParameter,
   };
 }

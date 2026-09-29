@@ -4,7 +4,7 @@ import { Button } from '../../../../components/ui/button';
 import CollapsibleCard from '../../../../components/ui/collapsible-card';
 import DocumentFileIcon from '../../../../components/documents/DocumentFileIcon';
 import DocumentViewer from '../../../../components/documents/DocumentViewer';
-import { API_ORIGIN, VERDICT_LABELS, VERDICT_TONES } from '../constants';
+import { VERDICT_LABELS, VERDICT_TONES } from '../constants';
 import { formatDate } from '../helpers';
 import { useEvaluationActions } from '../hooks/useEvaluationActions';
 import type { DocumentEvaluationView } from '../types';
@@ -124,7 +124,7 @@ export default function DocumentEvaluationsCard({
                         title: `${evaluation.label}${
                           evaluation.resubmittedFileUrl ? ' - version corrigee' : ''
                         }`,
-                        url: `${API_ORIGIN}${evaluation.currentFileUrl}`,
+                        url: evaluation.currentFileUrl ?? '',
                       })
                     }
                   >
