@@ -13,6 +13,7 @@ import { logAudit } from '../auth/auth.service.js';
 import {
   claimUploadAsset,
   linkLockedAsset,
+  trashCurrentVersions,
   versionValues,
   type PreparedAttachment,
 } from '../uploads/upload-attachment.js';
@@ -370,6 +371,9 @@ export async function resubmitDocument(
       throw new Error('RESUBMISSION_NOT_ALLOWED');
     }
 
+    // VERSION-CURRENT-DISCIPLINE - the corrected document supersedes the
+    // original submission for this slot, never coexists as a second current row.
+    await trashCurrentVersions(tx, 'formal_request_document', owner.formalDoc.id);
     await tx.insert(documentVersions).values(versionValues(attachment, 'formal_request_document', owner.formalDoc.id));
     await linkLockedAsset(tx, attachment.assetId, target);
 

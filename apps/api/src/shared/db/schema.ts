@@ -596,6 +596,15 @@ export const documentVersions = pgTable(
   (t) => [
     index('document_versions_owner_idx').on(t.ownerType, t.ownerId),
     index('document_versions_trashed_idx').on(t.trashedAt),
+    // VERSION-CURRENT-DISCIPLINE - authoritative DB guarantee: at most one
+    // current row per (owner_type, owner_id), for every owner type, no
+    // exceptions. Application code (trashCurrentVersions) is expected to
+    // already maintain this; this index is the backstop that makes it a
+    // fact reads can rely on instead of a convention that can silently
+    // regress.
+    uniqueIndex('document_versions_one_current_per_owner')
+      .on(t.ownerType, t.ownerId)
+      .where(sql`${t.isCurrent} = true`),
   ]
 );
 

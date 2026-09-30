@@ -15,6 +15,13 @@
       "when": 1790345966465,
       "tag": "0001_storage_0a_report_owner",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790772857414,
+      "tag": "0002_version_current_discipline",
+      "breakpoints": true
     }
   ]
 }

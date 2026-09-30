@@ -158,10 +158,17 @@ admin → retour portail, pas seulement des tests API isolés) :
 - [ ] **TEST-DB-HARNESS** - base de test d'intégration réutilisable (transactions,
       verrous, rollbacks) ; STORAGE-0B est validé par un script local sur copie
       jetable de la base (D12)
-- [ ] **VERSION-CURRENT-DISCIPLINE** - facture, preuve de paiement et
-      resoumission M5 ajoutent une version `is_current` sans mettre la
-      précédente à la corbeille (plusieurs versions courantes ; comportement
-      conservé par STORAGE-0B)
+- [x] **VERSION-CURRENT-DISCIPLINE** (2026-10-01) - facture, preuve de paiement,
+      resoumission M5 et le cycle certificat (généré/régénéré/signé) mettent
+      désormais la version précédente à la corbeille avant d'insérer la
+      nouvelle version courante ; clôture de phase et compte-rendu de réunion
+      durcis au même mécanisme inconditionnel ; index unique partiel
+      `document_versions_one_current_per_owner` (owner_type, owner_id) WHERE
+      is_current = true en garde-fou base de données ; génération de
+      certificat verrouille la ligne `certificates` (FOR UPDATE) pour empêcher
+      une double génération concurrente. Historique complet préservé
+      (`trashed_at`), rien n'est jamais supprimé. `INVOICE-REUPLOAD-STATUS`
+      reste hors périmètre.
 - [ ] **INVOICE-REUPLOAD-STATUS** - remettre une facture repasse le paiement à
       `awaiting_proof` quel que soit son statut (même validé) ; comportement
       existant, à borner

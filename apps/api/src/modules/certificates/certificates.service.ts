@@ -18,6 +18,7 @@ import { logAudit } from '../auth/auth.service.js';
 import {
   claimUploadAsset,
   linkLockedAsset,
+  trashCurrentVersions,
   versionValues,
   type PreparedAttachment,
 } from '../uploads/upload-attachment.js';
@@ -486,7 +487,15 @@ export async function generateCertificateDocument(
     // STORAGE-3C - asset registration and the current-version row commit
     // together: no window where the asset is linked but no current version
     // points at it.
+    // VERSION-CURRENT-DISCIPLINE - the certificate row is locked FOR UPDATE
+    // before trashing/inserting so two concurrent generate calls can never
+    // both insert a current row (STORAGE-0B lock convention); trashing the
+    // prior generated version first means a regenerate-before-signing
+    // replaces it instead of accumulating a second current row.
     fileUrl = await db.transaction(async (tx) => {
+      await tx.select({ id: certificates.id }).from(certificates).where(eq(certificates.id, certificateId)).for('update');
+      await trashCurrentVersions(tx, 'certificate_document', certificateId);
+
       const { address } = await insertAssetWithAddress(tx, {
         storageKey,
         originalName: `certificate-${certificate.reference}.pdf`,
@@ -583,6 +592,10 @@ export async function markSigned(
     if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') return existing;
     if (existing.status !== 'printed') throw new Error('INVALID_STATUS_TRANSITION');
 
+    // VERSION-CURRENT-DISCIPLINE - the signed return supersedes the
+    // generated PDF as the certificate's current document; both remain
+    // preserved as history (trashed, never deleted).
+    await trashCurrentVersions(tx, 'certificate_document', certificateId);
     await tx.insert(documentVersions).values(versionValues(attachment, 'certificate_document', certificateId));
     await linkLockedAsset(tx, attachment.assetId, target);
 

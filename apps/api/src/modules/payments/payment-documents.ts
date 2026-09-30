@@ -9,6 +9,7 @@ import { logAudit } from '../auth/auth.service.js';
 import {
   claimUploadAsset,
   linkLockedAsset,
+  trashCurrentVersions,
   versionValues,
   type PreparedAttachment,
 } from '../uploads/upload-attachment.js';
@@ -43,6 +44,9 @@ export async function attachPaymentInvoice(
     target = { ownerType: 'payment_invoice', ownerId: payment.id };
     if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') return payment;
 
+    // VERSION-CURRENT-DISCIPLINE - a re-uploaded invoice must supersede the
+    // previous one, never coexist as a second current row.
+    await trashCurrentVersions(tx, 'payment_invoice', payment.id);
     await tx.insert(documentVersions).values(versionValues(attachment, 'payment_invoice', payment.id));
     await linkLockedAsset(tx, attachment.assetId, target);
 
@@ -82,6 +86,9 @@ export async function attachPaymentProof(
     if (!payment.invoiceFileUrl) throw new Error('INVOICE_NOT_UPLOADED');
     if (payment.status === 'validated') throw new Error('PAYMENT_ALREADY_VALIDATED');
 
+    // VERSION-CURRENT-DISCIPLINE - a re-uploaded proof must supersede the
+    // previous one, never coexist as a second current row.
+    await trashCurrentVersions(tx, 'payment_proof', payment.id);
     await tx.insert(documentVersions).values(versionValues(attachment, 'payment_proof', payment.id));
     await linkLockedAsset(tx, attachment.assetId, target);
 

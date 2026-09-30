@@ -11,6 +11,7 @@ import { logAudit } from '../auth/auth.service.js';
 import {
   claimUploadAsset,
   linkLockedAsset,
+  trashCurrentVersions,
   versionValues,
   type PreparedAttachment,
 } from '../uploads/upload-attachment.js';
@@ -176,6 +177,10 @@ export async function closePhase(
     }
 
     if (attachment) {
+      // VERSION-CURRENT-DISCIPLINE - defensive: a phase closes once today,
+      // so this is unreachable in practice, but follows the same
+      // unconditional invariant pattern as every other owner type.
+      await trashCurrentVersions(tx, 'phase_closure_document', phaseId);
       await tx.insert(documentVersions).values(versionValues(attachment, 'phase_closure_document', phaseId));
       await linkLockedAsset(tx, attachment.assetId, target);
     }

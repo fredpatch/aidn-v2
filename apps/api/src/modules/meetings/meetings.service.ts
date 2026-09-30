@@ -463,9 +463,11 @@ export async function attachMeetingReport(
     if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') return meeting;
     if (meeting.status !== 'held') throw new Error('MEETING_NOT_HELD');
 
-    // Scoped to meeting_report: the old code trashed every document version
-    // whose owner id equalled the meeting id, whatever its owner type.
-    if (meeting.crDocumentUrl) await trashCurrentVersions(tx, 'meeting_report', meetingId);
+    // VERSION-CURRENT-DISCIPLINE - unconditional, like every other owner
+    // type's reference pattern: trashCurrentVersions is itself a no-op when
+    // there is nothing current yet, so gating it on crDocumentUrl was
+    // redundant and less defensive.
+    await trashCurrentVersions(tx, 'meeting_report', meetingId);
 
     await tx.insert(documentVersions).values(versionValues(attachment, 'meeting_report', meetingId));
     await linkLockedAsset(tx, attachment.assetId, target);

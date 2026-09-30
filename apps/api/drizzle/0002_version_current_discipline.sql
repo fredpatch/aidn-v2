@@ -1,0 +1,13 @@
+-- VERSION-CURRENT-DISCIPLINE: at most one is_current=true row per
+-- (owner_type, owner_id) in document_versions, for every owner type.
+--
+-- Only this statement is new. drizzle-kit also re-emitted several
+-- statements for changes already applied to every real database (reports
+-- report_key/filters/summary, certificates.signed_file_url,
+-- dg_circuit_documents.signature_sent_at, the dg_circuit_status enum value,
+-- and meetings_dn_agent_slot_idx) because the 0001 snapshot it diffed
+-- against was stale, not because those changes are pending - see the same
+-- note in 0001_storage_0a_report_owner.sql. They were removed here; the
+-- 0002 snapshot was generated directly from schema.ts and already reflects
+-- the true current state, so future `db:generate` runs diff correctly.
+CREATE UNIQUE INDEX "document_versions_one_current_per_owner" ON "document_versions" USING btree ("owner_type","owner_id") WHERE "document_versions"."is_current" = true;
