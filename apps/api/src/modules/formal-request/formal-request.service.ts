@@ -16,6 +16,7 @@ import {
   versionValues,
   type PreparedAttachment,
 } from '../uploads/upload-attachment.js';
+import { relocateAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
 import type {
   FormalDocumentView,
   FormalLetterCircuitView,
@@ -110,6 +111,7 @@ export async function submitFormalLetter(
   requestId: number,
   attachment: PreparedAttachment
 ): Promise<FormalLetterCircuitView> {
+  let target: RelocationTarget | undefined;
   const circuit = await db.transaction(async (tx) => {
     // Target first: the M4 phase row (the circuit document is created here).
     const [phase] = await tx
@@ -135,6 +137,7 @@ export async function submitFormalLetter(
       const sameLetter =
         existing && linkedTo.ownerType === 'dg_circuit_document' && linkedTo.ownerId === existing.id;
       if (!sameLetter) throw new Error('UPLOAD_ASSET_ALREADY_LINKED');
+      target = { ownerType: 'dg_circuit_document', ownerId: existing.id };
       return existing;
     }
     if (phase.status !== 'open') throw new Error('PHASE_NOT_OPEN');
@@ -149,8 +152,9 @@ export async function submitFormalLetter(
       })
       .returning();
 
+    target = { ownerType: 'dg_circuit_document', ownerId: created.id };
     await tx.insert(documentVersions).values(versionValues(attachment, 'dg_circuit_document', created.id));
-    await linkLockedAsset(tx, attachment.assetId, { ownerType: 'dg_circuit_document', ownerId: created.id });
+    await linkLockedAsset(tx, attachment.assetId, target);
 
     await logAudit(
       {
@@ -165,6 +169,7 @@ export async function submitFormalLetter(
     return created;
   });
 
+  if (target) await relocateAfterCommit(attachment.assetId, target);
   return toCircuitView(circuit);
 }
 
@@ -241,6 +246,7 @@ export async function submitDocument(
   slot: string,
   attachment: PreparedAttachment
 ): Promise<FormalDocumentView> {
+  let target: RelocationTarget | undefined;
   const { doc, updated } = await db.transaction(async (tx) => {
     const [phase] = await tx
       .select()
@@ -264,7 +270,7 @@ export async function submitDocument(
       .for('update');
     if (!slotRow) throw new Error('SLOT_NOT_FOUND');
 
-    const target = { ownerType: 'formal_request_document', ownerId: slotRow.id } as const;
+    target = { ownerType: 'formal_request_document', ownerId: slotRow.id };
     if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') {
       return { doc: { ...slotRow, fileUrl: null }, updated: slotRow };
     }
@@ -287,6 +293,7 @@ export async function submitDocument(
     return { doc: slotRow, updated: saved };
   });
 
+  if (target) await relocateAfterCommit(attachment.assetId, target);
   return {
     id: updated.id,
     slot: updated.slot,
@@ -433,10 +440,10 @@ export async function closeFormalPhase(
   }
 ): Promise<void> {
   const { attachment } = params;
+  const target: RelocationTarget = { ownerType: 'phase_closure_document', ownerId: phaseId };
   await db.transaction(async (tx) => {
     const [phase] = await tx.select().from(phases).where(eq(phases.id, phaseId)).for('update');
     if (!phase) throw new Error('PHASE_NOT_FOUND');
-    const target = { ownerType: 'phase_closure_document', ownerId: phaseId } as const;
     if (attachment && (await claimUploadAsset(tx, attachment, target)) === 'attached_here') return;
     if (phase.status !== 'open') throw new Error('PHASE_ALREADY_CLOSED');
 
@@ -486,4 +493,6 @@ export async function closeFormalPhase(
 
     await logAudit({ userId: actorUserId, action: 'PHASE_CLOSED', module: 'M4', entityId: phaseId }, tx);
   });
+
+  if (attachment) await relocateAfterCommit(attachment.assetId, target);
 }

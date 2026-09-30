@@ -2,6 +2,7 @@ import { Router, type NextFunction, type Request, type Response } from 'express'
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { randomUUID } from 'crypto';
 import {
   authenticate,
   authenticateEither,
@@ -21,35 +22,30 @@ function sourceAppFromOrigin(origin: string | undefined): 'admin' | 'portal' | '
   return 'unknown';
 }
 
-function sanitizeSegment(value: string): string {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9-_]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 24);
-}
-
 type UploadRequest = Express.Request & { uploadRelativeDir?: string };
 
+/** STORAGE-1A - every browser upload lands in a dated staging area under a
+ *  server-generated UUID filename. `moduleHint` and the source app no longer
+ *  influence the physical path (they remain DB metadata only, see
+ *  uploads.controller.ts) - the path is entirely server-controlled, and
+ *  eligibility for relocation is later inferred purely from the `staging/`
+ *  prefix (STORAGE-2A). The extension is the only thing kept from the
+ *  original filename. */
 const storage = multer.diskStorage({
-  destination: (req, _file, cb) => {
+  destination: (_req, _file, cb) => {
     const now = new Date();
     const year = String(now.getFullYear());
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
-    const sourceApp = sourceAppFromOrigin(req.get('origin'));
-    const moduleHintRaw = typeof req.body?.moduleHint === 'string' ? req.body.moduleHint : 'misc';
-    const moduleHint = sanitizeSegment(moduleHintRaw) || 'misc';
 
-    const relativeDir = path.posix.join(year, month, day, sourceApp, moduleHint);
+    const relativeDir = path.posix.join('staging', year, month, day);
     const absoluteDir = path.join(UPLOADS_ROOT, relativeDir);
     fs.mkdirSync(absoluteDir, { recursive: true });
-    (req as UploadRequest).uploadRelativeDir = relativeDir;
+    (_req as UploadRequest).uploadRelativeDir = relativeDir;
     cb(null, absoluteDir);
   },
   filename: (_req, file, cb) => {
-    const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    cb(null, `${unique}${path.extname(file.originalname)}`);
+    cb(null, `${randomUUID()}${path.extname(file.originalname)}`);
   },
 });
 

@@ -14,6 +14,7 @@ import {
   versionValues,
   type PreparedAttachment,
 } from '../uploads/upload-attachment.js';
+import { relocateAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
 
 export interface PhaseView {
   id: number;
@@ -148,10 +149,10 @@ export async function closePhase(
   }
 ): Promise<PhaseView> {
   const { attachment } = params;
+  const target: RelocationTarget = { ownerType: 'phase_closure_document', ownerId: phaseId };
   const updated = await db.transaction(async (tx) => {
     const [phase] = await tx.select().from(phases).where(eq(phases.id, phaseId)).for('update');
     if (!phase) throw new Error('PHASE_NOT_FOUND');
-    const target = { ownerType: 'phase_closure_document', ownerId: phaseId } as const;
     if (attachment && (await claimUploadAsset(tx, attachment, target)) === 'attached_here') return phase;
     if (phase.status !== 'open') throw new Error('PHASE_ALREADY_CLOSED');
 
@@ -197,5 +198,6 @@ export async function closePhase(
     return closed;
   });
 
+  if (attachment) await relocateAfterCommit(attachment.assetId, target);
   return toPhaseView(updated);
 }

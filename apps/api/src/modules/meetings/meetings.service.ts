@@ -11,6 +11,7 @@ import {
   documentVersions,
 } from '../../shared/db/schema.js';
 import { logAudit } from '../auth/auth.service.js';
+import { relocateAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
 import {
   claimUploadAsset,
   linkLockedAsset,
@@ -455,10 +456,10 @@ export async function attachMeetingReport(
   actorUserId: number,
   attachment: PreparedAttachment
 ): Promise<MeetingView> {
+  const target: RelocationTarget = { ownerType: 'meeting_report', ownerId: meetingId };
   const updated = await db.transaction(async (tx) => {
     const [meeting] = await tx.select().from(meetings).where(eq(meetings.id, meetingId)).for('update');
     if (!meeting) throw new Error('MEETING_NOT_FOUND');
-    const target = { ownerType: 'meeting_report', ownerId: meetingId } as const;
     if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') return meeting;
     if (meeting.status !== 'held') throw new Error('MEETING_NOT_HELD');
 
@@ -482,5 +483,6 @@ export async function attachMeetingReport(
     return saved;
   });
 
+  await relocateAfterCommit(attachment.assetId, target);
   return toMeetingView(updated);
 }

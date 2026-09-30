@@ -12,6 +12,7 @@ import {
   versionValues,
   type PreparedAttachment,
 } from '../uploads/upload-attachment.js';
+import { relocateAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
 
 export type PaymentPhaseCode = 'M5' | 'M6' | 'M7';
 type PaymentRow = typeof payments.$inferSelect;
@@ -36,9 +37,10 @@ export async function attachPaymentInvoice(
   attachment: PreparedAttachment,
   actorUserId: number
 ): Promise<PaymentRow> {
-  return db.transaction(async (tx) => {
+  let target: RelocationTarget | undefined;
+  const result = await db.transaction(async (tx) => {
     const { payment } = await lockPhasePayment(tx, phaseId, phaseCode);
-    const target = { ownerType: 'payment_invoice', ownerId: payment.id } as const;
+    target = { ownerType: 'payment_invoice', ownerId: payment.id };
     if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') return payment;
 
     await tx.insert(documentVersions).values(versionValues(attachment, 'payment_invoice', payment.id));
@@ -53,6 +55,9 @@ export async function attachPaymentInvoice(
     await logAudit({ userId: actorUserId, action: 'INVOICE_UPLOADED', module: phaseCode, entityId: payment.id }, tx);
     return updated;
   });
+
+  if (target) await relocateAfterCommit(attachment.assetId, target);
+  return result;
 }
 
 /** The phase must belong to the request in the URL, and that request to the
@@ -64,14 +69,15 @@ export async function attachPaymentProof(
   phaseCode: PaymentPhaseCode,
   attachment: PreparedAttachment
 ): Promise<PaymentRow> {
-  return db.transaction(async (tx) => {
+  let target: RelocationTarget | undefined;
+  const result = await db.transaction(async (tx) => {
     const { payment, requestId: phaseRequestId } = await lockPhasePayment(tx, phaseId, phaseCode);
     const [request] = await tx.select().from(requests).where(eq(requests.id, phaseRequestId));
     if (phaseRequestId !== requestId || !request || request.applicantId !== applicantId) {
       throw new Error('PAYMENT_NOT_FOUND');
     }
 
-    const target = { ownerType: 'payment_proof', ownerId: payment.id } as const;
+    target = { ownerType: 'payment_proof', ownerId: payment.id };
     if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') return payment;
     if (!payment.invoiceFileUrl) throw new Error('INVOICE_NOT_UPLOADED');
     if (payment.status === 'validated') throw new Error('PAYMENT_ALREADY_VALIDATED');
@@ -88,4 +94,7 @@ export async function attachPaymentProof(
     await logAudit({ action: 'PAYMENT_PROOF_UPLOADED', module: phaseCode, entityId: payment.id }, tx);
     return updated;
   });
+
+  if (target) await relocateAfterCommit(attachment.assetId, target);
+  return result;
 }

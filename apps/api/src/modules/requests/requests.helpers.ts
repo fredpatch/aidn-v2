@@ -14,7 +14,17 @@ function organisationCode(normalizedName: string): string {
  *  per-organisation counter is simpler and never needs a reset policy).
  *  NN disambiguates the rare case of the same organisation submitting more
  *  than one request on the same calendar day (e.g. an earlier one was
- *  rejected, releasing the "one active request" rule the same day). */
+ *  rejected, releasing the "one active request" rule the same day).
+ *
+ *  INVARIANT (STORAGE-1B) - generated exactly once, here, at request
+ *  creation, and never mutated afterwards. It is used verbatim as the
+ *  dossier folder name for every document relocated under a request
+ *  (relocate-asset.ts / storage-context.ts), so a later rename would orphan
+ *  every already-relocated file's canonical path. No code path anywhere in
+ *  the codebase issues an UPDATE against requests.reference - grep for
+ *  `.set({` on the `requests` table confirms `reference` is never one of the
+ *  updated columns (only status/rejectionReason/updatedAt are). This is
+ *  enforced by convention + this test, not a DB trigger, for this slice. */
 export async function generateRequestReference(
   organisationId: number,
   organisationNormalizedName: string

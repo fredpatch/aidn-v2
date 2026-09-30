@@ -17,6 +17,7 @@ import {
   versionValues,
   type PreparedAttachment,
 } from '../uploads/upload-attachment.js';
+import { relocateAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
 
 export interface PreliminaryEvaluationView {
   id: number;
@@ -131,6 +132,7 @@ export async function submit(
   phaseId: number,
   attachment: PreparedAttachment
 ): Promise<PreliminaryEvaluationView> {
+  let target: RelocationTarget | undefined;
   const updated = await db.transaction(async (tx) => {
     // Target first: the evaluation form row, then the upload asset.
     const [row] = await tx
@@ -140,7 +142,7 @@ export async function submit(
       .for('update');
     if (!row || !row.madeAvailableAt) throw new Error('NOT_YET_AVAILABLE');
 
-    const target = { ownerType: 'preliminary_evaluation_form', ownerId: row.id } as const;
+    target = { ownerType: 'preliminary_evaluation_form', ownerId: row.id };
     if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') return row;
 
     // M8 pattern - every upload goes through document_versions first, same
@@ -169,6 +171,7 @@ export async function submit(
     return saved;
   });
 
+  if (target) await relocateAfterCommit(attachment.assetId, target);
   return toView(updated);
 }
 

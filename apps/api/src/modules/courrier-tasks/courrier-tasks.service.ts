@@ -16,6 +16,7 @@ import {
   versionValues,
   type PreparedAttachment,
 } from '../uploads/upload-attachment.js';
+import { relocateAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
 import type {
   CourrierTaskBucket,
   CourrierTaskListResponse,
@@ -200,6 +201,7 @@ export async function returnSigned(
   const found = await getCircuitForTask(taskId);
   await ensureTaskCanMutate(found);
 
+  const target: RelocationTarget = { ownerType: 'dg_circuit_document', ownerId: found.id };
   const updated = await db.transaction(async (tx) => {
     // STORAGE-0B - target row locked first, then the upload asset.
     const [circuit] = await tx
@@ -207,7 +209,6 @@ export async function returnSigned(
       .from(dgCircuitDocuments)
       .where(eq(dgCircuitDocuments.id, found.id))
       .for('update');
-    const target = { ownerType: 'dg_circuit_document', ownerId: circuit.id } as const;
     if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') return circuit;
     if (circuit.status !== 'in_signature_circuit') throw new Error('INVALID_CIRCUIT_TRANSITION');
 
@@ -241,6 +242,8 @@ export async function returnSigned(
     );
     return signed;
   });
+
+  await relocateAfterCommit(attachment.assetId, target);
 
   const task = await buildTaskView(updated);
   if (!task) throw new Error('COURRIER_TASK_NOT_FOUND');

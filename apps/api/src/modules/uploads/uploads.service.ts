@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { and, count, eq, isNull, lt, sql } from 'drizzle-orm';
+import { and, count, eq, inArray, isNull, like, lt, notInArray, sql } from 'drizzle-orm';
 import { db } from '../../shared/db/index.js';
 import { uploadAssets } from '../../shared/db/schema.js';
 import { getIntegerValue } from '../system-parameters/system-parameters.service.js';
@@ -7,6 +7,7 @@ import { logAudit } from '../auth/auth.service.js';
 import type { UploadOwnerType } from './uploads.types.js';
 import { UPLOADS_ROOT } from '../../shared/uploads-root.js';
 import { resolveStoragePath } from '../files/file-delivery.js';
+import { RELOCATABLE_OWNER_TYPES_LIST } from './storage-context.js';
 
 /** SU-only maintenance (POST /api/uploads/link): links, or with allowRelink
  *  relinks, an asset - audited. Ordinary workflow code never calls this;
@@ -67,14 +68,38 @@ export interface UploadDiagnostics {
   unlinked: number;
   orphanMarked: number;
   bySource: Array<{ source: string; total: number }>;
+  /** STORAGE-2B - linked assets of a relocatable owner type whose relocation
+   *  has not yet moved them out of staging/. A synchronous
+   *  relocateAfterCommit() failure (fs error, crash) is the only way an
+   *  asset ends up here; the repair CLI (STORAGE-2B) finalizes these.
+   *  Read-only counts - no automatic repair from diagnostics.
+   *
+   *  Scoped to RELOCATABLE_OWNER_TYPES_LIST only: document_template/report
+   *  are never relocated by design (storage-context.ts), so a linked asset
+   *  of one of those types sitting in staging/ forever is expected, correct
+   *  steady state - it must never count toward these "something needs
+   *  attention" numbers or make system health look unhealthy. */
+  linkedButStaging: number;
+  linkedButStagingOver24h: number;
+  /** Linked assets of a NON-relocatable owner type (document_template,
+   *  report) that happen to still be under staging/ - informational only,
+   *  reported separately, and expected to be non-zero/stable rather than a
+   *  symptom of anything broken. */
+  linkedStagingExcludedFromRelocation: number;
 }
 
 export async function getUploadDiagnostics(): Promise<UploadDiagnostics> {
+  const relocatable = inArray(uploadAssets.linkedOwnerType, RELOCATABLE_OWNER_TYPES_LIST as UploadOwnerType[]);
+  const nonRelocatable = notInArray(uploadAssets.linkedOwnerType, RELOCATABLE_OWNER_TYPES_LIST as UploadOwnerType[]);
+
   const [totals] = await db
     .select({
       total: count(),
       linked: sql<number>`count(*) filter (where ${uploadAssets.linkedOwnerType} is not null)::int`,
       orphanMarked: sql<number>`count(*) filter (where ${uploadAssets.orphanedAt} is not null)::int`,
+      linkedButStaging: sql<number>`count(*) filter (where ${uploadAssets.linkedOwnerType} is not null and ${uploadAssets.storageKey} like 'staging/%' and ${relocatable})::int`,
+      linkedButStagingOver24h: sql<number>`count(*) filter (where ${uploadAssets.linkedOwnerType} is not null and ${uploadAssets.storageKey} like 'staging/%' and ${relocatable} and ${uploadAssets.linkedAt} < now() - interval '24 hours')::int`,
+      linkedStagingExcludedFromRelocation: sql<number>`count(*) filter (where ${uploadAssets.linkedOwnerType} is not null and ${uploadAssets.storageKey} like 'staging/%' and ${nonRelocatable})::int`,
     })
     .from(uploadAssets);
 
@@ -96,6 +121,9 @@ export async function getUploadDiagnostics(): Promise<UploadDiagnostics> {
     unlinked: Math.max(0, total - linked),
     orphanMarked,
     bySource: bySourceRows.map((r) => ({ source: r.source, total: r.total })),
+    linkedButStaging: totals?.linkedButStaging ?? 0,
+    linkedButStagingOver24h: totals?.linkedButStagingOver24h ?? 0,
+    linkedStagingExcludedFromRelocation: totals?.linkedStagingExcludedFromRelocation ?? 0,
   };
 }
 
@@ -109,9 +137,17 @@ export async function cleanupStaleOrphanUploads(params: {
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - retentionDays);
 
+  // STORAGE-1A/STORAGE-2A amendment - automatic physical deletion is scoped
+  // to the staging area only. Files under dossiers/, reference/ or generated/
+  // are never candidates here even if their DB linkage looks inconsistent -
+  // that is a diagnostics/repair-CLI concern (STORAGE-2B), not an
+  // automatic-deletion one. Today this LIKE clause is a no-op filter (an
+  // unlinked row is never dossier-pathed in practice), but it guards the
+  // future case where relocation ran without the link surviving.
   const stale = and(
     isNull(uploadAssets.linkedOwnerType),
     isNull(uploadAssets.linkedOwnerId),
+    like(uploadAssets.storageKey, 'staging/%'),
     lt(uploadAssets.createdAt, cutoff)
   );
   const candidates = await db.select({ id: uploadAssets.id }).from(uploadAssets).where(stale);

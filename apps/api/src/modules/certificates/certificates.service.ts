@@ -20,6 +20,7 @@ import {
   versionValues,
   type PreparedAttachment,
 } from '../uploads/upload-attachment.js';
+import { relocateAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
 import { attachPaymentInvoice, attachPaymentProof } from '../payments/payment-documents.js';
 import { registerGeneratedFile } from '../uploads/asset-registration.js';
 import { UPLOADS_ROOT } from '../../shared/uploads-root.js';
@@ -541,6 +542,7 @@ export async function markSigned(
   actorUserId: number,
   attachment: PreparedAttachment
 ): Promise<CertificateView> {
+  const target: RelocationTarget = { ownerType: 'certificate_document', ownerId: certificateId };
   const updated = await db.transaction(async (tx) => {
     // Target first: the certificate row, then the upload asset.
     const [existing] = await tx
@@ -549,7 +551,6 @@ export async function markSigned(
       .where(eq(certificates.id, certificateId))
       .for('update');
     if (!existing) throw new Error('CERTIFICATE_NOT_FOUND');
-    const target = { ownerType: 'certificate_document', ownerId: certificateId } as const;
     if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') return existing;
     if (existing.status !== 'printed') throw new Error('INVALID_STATUS_TRANSITION');
 
@@ -575,6 +576,7 @@ export async function markSigned(
     return signed;
   });
 
+  await relocateAfterCommit(attachment.assetId, target);
   return toCertificateView(updated);
 }
 

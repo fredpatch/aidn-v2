@@ -669,7 +669,24 @@ function UploadsMaintenanceSection() {
               <p className="text-xs text-anac-muted">Orphelins marqués</p>
               <p className="text-lg font-semibold text-anac-danger">{diagnostics.orphanMarked}</p>
             </div>
+            <div className="rounded border border-anac-border p-3">
+              <p className="text-xs text-anac-muted">Liés en zone de dépôt (relocalisation en attente)</p>
+              <p className="text-lg font-semibold text-anac-warning">{diagnostics.linkedButStaging}</p>
+            </div>
+            <div className="rounded border border-anac-border p-3">
+              <p className="text-xs text-anac-muted">
+                dont depuis plus de 24h
+              </p>
+              <p className="text-lg font-semibold text-anac-danger">{diagnostics.linkedButStagingOver24h}</p>
+            </div>
           </div>
+        )}
+
+        {diagnostics && diagnostics.linkedStagingExcludedFromRelocation > 0 && (
+          <p className="text-xs text-anac-muted">
+            Dont {diagnostics.linkedStagingExcludedFromRelocation} document(s) modèle/rapport en zone de dépôt de
+            façon normale (jamais relocalisés) - ne comptent pas comme une anomalie.
+          </p>
         )}
 
         {diagnostics && diagnostics.bySource.length > 0 && (

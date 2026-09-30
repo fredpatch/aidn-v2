@@ -48,6 +48,16 @@ export interface UploadDiagnostics {
   unlinked: number;
   orphanMarked: number;
   bySource: Array<{ source: string; total: number }>;
+  /** STORAGE-2B - linked assets of a relocatable owner type whose storage_key
+   *  is still under staging/, and the subset older than 24h. Excludes
+   *  document_template/report, which never relocate by design. Read-only:
+   *  no repair action in the UI. */
+  linkedButStaging: number;
+  linkedButStagingOver24h: number;
+  /** Linked assets of a non-relocatable owner type (document_template,
+   *  report) still under staging/ - expected steady state, informational
+   *  only, never a health signal. */
+  linkedStagingExcludedFromRelocation: number;
 }
 
 export interface UploadCleanupResult {

@@ -16,6 +16,8 @@ import {
   versionValues,
   type PreparedAttachment,
 } from '../uploads/upload-attachment.js';
+import { relocateAfterCommit } from '../files/relocate-asset.js';
+import type { RelocationTarget } from '../files/relocate-asset.js';
 import { attachPaymentInvoice, attachPaymentProof } from '../payments/payment-documents.js';
 import { SLOT_LABELS } from '../formal-request/formal-request.service.js';
 import type {
@@ -342,6 +344,7 @@ export async function resubmitDocument(
   applicantId: number,
   attachment: PreparedAttachment
 ): Promise<DocumentEvaluationView> {
+  let target: RelocationTarget | undefined;
   const { updated, formalDoc } = await db.transaction(async (tx) => {
     // Target first: the evaluation row, then the upload asset.
     const [evalRow] = await tx
@@ -359,7 +362,7 @@ export async function resubmitDocument(
       .where(eq(formalRequestDocuments.id, evalRow.formalRequestDocumentId));
     if (!owner || owner.applicantId !== applicantId) throw new Error('EVALUATION_NOT_FOUND');
 
-    const target = { ownerType: 'formal_request_document', ownerId: owner.formalDoc.id } as const;
+    target = { ownerType: 'formal_request_document', ownerId: owner.formalDoc.id };
     if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') {
       return { updated: evalRow, formalDoc: owner.formalDoc };
     }
@@ -394,6 +397,10 @@ export async function resubmitDocument(
     return { updated: saved, formalDoc: owner.formalDoc };
   });
 
+  // STORAGE-2A - synchronous, post-commit, best-effort: never affects the
+  // response above (fresh link and 'attached_here' retry both relocate).
+  if (target) await relocateAfterCommit(attachment.assetId, target);
+
   return toEvalView(updated, formalDoc);
 }
 
@@ -408,10 +415,10 @@ export async function closeDeepEvaluationPhase(
   }
 ): Promise<void> {
   const { attachment } = params;
+  const target: RelocationTarget = { ownerType: 'phase_closure_document', ownerId: phaseId };
   await db.transaction(async (tx) => {
     const [phase] = await tx.select().from(phases).where(eq(phases.id, phaseId)).for('update');
     if (!phase) throw new Error('PHASE_NOT_FOUND');
-    const target = { ownerType: 'phase_closure_document', ownerId: phaseId } as const;
     if (attachment && (await claimUploadAsset(tx, attachment, target)) === 'attached_here') return;
     if (phase.status !== 'open') throw new Error('PHASE_ALREADY_CLOSED');
 
@@ -458,4 +465,6 @@ export async function closeDeepEvaluationPhase(
 
     await logAudit({ userId: actorUserId, action: 'PHASE_CLOSED', module: 'M5', entityId: phaseId }, tx);
   });
+
+  if (attachment) await relocateAfterCommit(attachment.assetId, target);
 }

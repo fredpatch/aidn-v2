@@ -31,6 +31,7 @@ import {
   type AttachTarget,
   type PreparedAttachment,
 } from '../uploads/upload-attachment.js';
+import { relocateAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
 
 export type { SubmitRequestParams, RequestView } from './requests.types.js';
 
@@ -191,6 +192,7 @@ export async function submitRequest(params: SubmitRequestParams): Promise<Reques
 
   const { attachment } = params;
 
+  let target: RelocationTarget | undefined;
   try {
     // Views read through the pool, so they are built after the commit.
     const { request, circuitDoc } = await db.transaction(async (tx) => {
@@ -201,6 +203,7 @@ export async function submitRequest(params: SubmitRequestParams): Promise<Reques
       if (linkedTo) {
         const existing = await findIntakeByCircuit(tx, linkedTo, applicant.id);
         if (!existing) throw new Error('UPLOAD_ASSET_ALREADY_LINKED');
+        target = { ownerType: linkedTo.ownerType, ownerId: linkedTo.ownerId };
         return existing;
       }
 
@@ -226,8 +229,9 @@ export async function submitRequest(params: SubmitRequestParams): Promise<Reques
         })
         .returning();
 
+      target = { ownerType: 'dg_circuit_document', ownerId: circuitDoc.id };
       await tx.insert(documentVersions).values(versionValues(attachment, 'dg_circuit_document', circuitDoc.id));
-      await linkLockedAsset(tx, attachment.assetId, { ownerType: 'dg_circuit_document', ownerId: circuitDoc.id });
+      await linkLockedAsset(tx, attachment.assetId, target);
 
       await logAudit(
         {
@@ -242,6 +246,7 @@ export async function submitRequest(params: SubmitRequestParams): Promise<Reques
 
       return { request, circuitDoc };
     });
+    if (target) await relocateAfterCommit(attachment.assetId, target);
     return toRequestView(request, circuitDoc);
   } catch (error) {
     if (isUniqueViolation(error)) {
@@ -672,9 +677,10 @@ export async function returnSignedFromDg(
   attachment: PreparedAttachment,
   actorUserId: number
 ): Promise<RequestView> {
+  let target: RelocationTarget | undefined;
   const { request, circuitDoc } = await db.transaction(async (tx) => {
     const circuit = await lockIntakeCircuit(tx, requestId);
-    const target = { ownerType: 'dg_circuit_document', ownerId: circuit.id } as const;
+    target = { ownerType: 'dg_circuit_document', ownerId: circuit.id };
     if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') {
       const [current] = await tx.select().from(requests).where(eq(requests.id, requestId));
       return { request: current, circuitDoc: circuit };
@@ -700,6 +706,7 @@ export async function returnSignedFromDg(
     return { request: updatedRequest, circuitDoc: updatedCircuitDoc };
   });
 
+  if (target) await relocateAfterCommit(attachment.assetId, target);
   return toRequestView(request, circuitDoc);
 }
 
@@ -802,10 +809,13 @@ export async function replaceCircuitDocument(
   attachment: PreparedAttachment,
   actorUserId: number
 ): Promise<void> {
+  let target: RelocationTarget | undefined;
   await db.transaction(async (tx) => {
     const circuit = await lockIntakeCircuit(tx, requestId);
-    const target = { ownerType: 'dg_circuit_document', ownerId: circuit.id } as const;
+    target = { ownerType: 'dg_circuit_document', ownerId: circuit.id };
     if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') return;
     await replaceCircuitVersion(tx, requestId, circuit.id, attachment, actorUserId);
   });
+
+  if (target) await relocateAfterCommit(attachment.assetId, target);
 }
