@@ -170,8 +170,10 @@ admin → retour portail, pas seulement des tests API isolés) :
 - [ ] **STORAGE-1 → 4**, **FILE-REFS-1**, **INFRA-BACKUP-1** (prérequis de
       toute migration de données en staging/production) - voir la spec
       STORAGE-0A §1
-- [ ] **REPORT-FILE-ROLLBACK** - un rapport dont l'insertion échoue laisse son
-      fichier dans `uploads/reports/` (écrit avant la transaction ; existant)
+- [x] **REPORT-FILE-ROLLBACK** (2026-09-30, STORAGE-3B) - le fichier généré
+      avant la transaction est supprimé (best-effort, échec journalisé) si
+      l'insertion échoue ; voir `cleanupGeneratedFileOnFailure` dans
+      `apps/api/src/modules/files/generated-file-cleanup.ts`
 - [ ] **FILE-TYPE-ICONS** - `DocumentFileIcon` déduit l'icône de l'extension de
       l'URL ; avec les adresses stables l'icône est générique (exposer le MIME
       dans les bundles)

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { relocateAfterCommit, relocateFile, realFsOps, type FsOps, type RelocateAfterCommitDeps } from './relocate-asset.js';
+import { relocateDossierAssetAfterCommit, relocateFile, realFsOps, type FsOps, type RelocateDossierAssetAfterCommitDeps } from './relocate-asset.js';
 import type { StorageContext } from '../uploads/storage-context.js';
 
 let root: string;
@@ -124,20 +124,23 @@ describe('relocateFile', () => {
   });
 });
 
-describe('relocateAfterCommit', () => {
+describe('relocateDossierAssetAfterCommit', () => {
   const certificateContext: StorageContext = {
     requestReference: 'DEM-REF',
     phaseFolder: 'M7-delivrance',
     categorySlug: 'certificates',
   };
 
-  function deps(overrides: Partial<RelocateAfterCommitDeps> & { initialKey?: string } = {}): {
-    deps: RelocateAfterCommitDeps;
+  function deps(
+    overrides: Partial<RelocateDossierAssetAfterCommitDeps> & { initialKey?: string; uploadedFromApp?: string } = {}
+  ): {
+    deps: RelocateDossierAssetAfterCommitDeps;
     getKey: () => string | undefined;
   } {
     let key: string | undefined = overrides.initialKey ?? 'staging/2026/09/29/uuid-1.pdf';
-    const d: RelocateAfterCommitDeps = {
-      loadStorageKey: overrides.loadStorageKey ?? (async () => key),
+    const uploadedFromApp = overrides.uploadedFromApp ?? 'portal';
+    const d: RelocateDossierAssetAfterCommitDeps = {
+      loadAsset: overrides.loadAsset ?? (async () => (key === undefined ? undefined : { storageKey: key, uploadedFromApp })),
       casStorageKey:
         overrides.casStorageKey ??
         (async (_id, expectedOld, newKey) => {
@@ -162,7 +165,7 @@ describe('relocateAfterCommit', () => {
   it('moves a staging asset to its canonical dossier location and updates storage_key', async () => {
     write(root, 'staging/2026/09/29/uuid-1.pdf', 'hello');
     const { deps: d, getKey } = deps();
-    const outcome = await relocateAfterCommit(41, { ownerType: 'certificate_document', ownerId: 9 }, d);
+    const outcome = await relocateDossierAssetAfterCommit(41, { ownerType: 'certificate_document', ownerId: 9 }, d);
     assert.equal(outcome.status, 'moved');
     assert.equal(getKey(), 'dossiers/DEM-REF/M7-delivrance/certificates/uuid-1.pdf');
     assert.equal(exists(root, 'dossiers/DEM-REF/M7-delivrance/certificates/uuid-1.pdf'), true);
@@ -171,7 +174,7 @@ describe('relocateAfterCommit', () => {
   it('is a no-op for a legacy, non-staging-prefixed storage_key', async () => {
     write(root, '2026/09/25/portal/misc/legacy.pdf', 'legacy');
     const { deps: d, getKey } = deps({ initialKey: '2026/09/25/portal/misc/legacy.pdf' });
-    const outcome = await relocateAfterCommit(41, { ownerType: 'certificate_document', ownerId: 9 }, d);
+    const outcome = await relocateDossierAssetAfterCommit(41, { ownerType: 'certificate_document', ownerId: 9 }, d);
     assert.equal(outcome.status, 'skipped_not_staging');
     assert.equal(getKey(), '2026/09/25/portal/misc/legacy.pdf');
     assert.equal(exists(root, '2026/09/25/portal/misc/legacy.pdf'), true);
@@ -180,7 +183,7 @@ describe('relocateAfterCommit', () => {
   it('same-target attach retry is a no-op: already-relocated asset is untouched', async () => {
     write(root, 'dossiers/DEM-REF/M7-delivrance/certificates/uuid-1.pdf', 'already');
     const { deps: d, getKey } = deps({ initialKey: 'dossiers/DEM-REF/M7-delivrance/certificates/uuid-1.pdf' });
-    const outcome = await relocateAfterCommit(41, { ownerType: 'certificate_document', ownerId: 9 }, d);
+    const outcome = await relocateDossierAssetAfterCommit(41, { ownerType: 'certificate_document', ownerId: 9 }, d);
     assert.equal(outcome.status, 'skipped_not_staging');
     assert.equal(getKey(), 'dossiers/DEM-REF/M7-delivrance/certificates/uuid-1.pdf');
   });
@@ -188,7 +191,7 @@ describe('relocateAfterCommit', () => {
   it('linked-but-staging repair via retry relocates the file (self-healing)', async () => {
     write(root, 'staging/2026/09/29/uuid-2.pdf', 'repair-me');
     const { deps: d, getKey } = deps({ initialKey: 'staging/2026/09/29/uuid-2.pdf' });
-    const outcome = await relocateAfterCommit(55, { ownerType: 'certificate_document', ownerId: 9 }, d);
+    const outcome = await relocateDossierAssetAfterCommit(55, { ownerType: 'certificate_document', ownerId: 9 }, d);
     assert.equal(outcome.status, 'moved');
     assert.equal(getKey(), 'dossiers/DEM-REF/M7-delivrance/certificates/uuid-2.pdf');
   });
@@ -198,7 +201,7 @@ describe('relocateAfterCommit', () => {
     // the crash); storage_key still says staging/...
     write(root, 'dossiers/DEM-REF/M7-delivrance/certificates/uuid-3.pdf', 'moved-before-crash');
     const { deps: d, getKey } = deps({ initialKey: 'staging/2026/09/29/uuid-3.pdf' });
-    const outcome = await relocateAfterCommit(77, { ownerType: 'certificate_document', ownerId: 9 }, d);
+    const outcome = await relocateDossierAssetAfterCommit(77, { ownerType: 'certificate_document', ownerId: 9 }, d);
     assert.equal(outcome.status, 'reconciled');
     assert.equal(outcome.error, undefined);
     assert.equal(getKey(), 'dossiers/DEM-REF/M7-delivrance/certificates/uuid-3.pdf');
@@ -207,7 +210,7 @@ describe('relocateAfterCommit', () => {
   it('a genuine move failure is caught, logged, and leaves storage_key untouched', async () => {
     // Neither target nor source exists - relocateFile throws STORAGE_SOURCE_MISSING.
     const { deps: d, getKey } = deps({ initialKey: 'staging/2026/09/29/uuid-gone.pdf' });
-    const outcome = await relocateAfterCommit(88, { ownerType: 'certificate_document', ownerId: 9 }, d);
+    const outcome = await relocateDossierAssetAfterCommit(88, { ownerType: 'certificate_document', ownerId: 9 }, d);
     assert.equal(outcome.status, 'error');
     assert.equal(outcome.error, 'STORAGE_SOURCE_MISSING');
     assert.equal(getKey(), 'staging/2026/09/29/uuid-gone.pdf');
@@ -216,17 +219,25 @@ describe('relocateAfterCommit', () => {
   it('excluded owner types (document_template, report) are never relocated', async () => {
     write(root, 'staging/2026/09/29/uuid-4.pdf', 'template');
     const { deps: d, getKey } = deps({ initialKey: 'staging/2026/09/29/uuid-4.pdf' });
-    const outcome = await relocateAfterCommit(99, { ownerType: 'document_template', ownerId: 1 }, d);
+    const outcome = await relocateDossierAssetAfterCommit(99, { ownerType: 'document_template', ownerId: 1 }, d);
     assert.equal(outcome.status, 'skipped_not_relocatable');
     assert.equal(getKey(), 'staging/2026/09/29/uuid-4.pdf');
   });
 
-  it('certificate dual producer: a generated draft never reaches relocation (not exercised by relocateAfterCommit at all - it is never called for uploadedFromApp "api" assets); signing/uploading one is relocated normally', async () => {
+  it('certificate dual producer: a signed-return browser upload is relocated normally', async () => {
     write(root, 'staging/2026/09/29/uuid-5.pdf', 'signed-scan');
     const { deps: d, getKey } = deps({ initialKey: 'staging/2026/09/29/uuid-5.pdf' });
-    const outcome = await relocateAfterCommit(100, { ownerType: 'certificate_document', ownerId: 9 }, d);
+    const outcome = await relocateDossierAssetAfterCommit(100, { ownerType: 'certificate_document', ownerId: 9 }, d);
     assert.equal(outcome.status, 'moved');
     assert.equal(getKey(), 'dossiers/DEM-REF/M7-delivrance/certificates/uuid-5.pdf');
+  });
+
+  it('STORAGE-3 defense-in-depth: a server-generated asset (uploadedFromApp "api") is never relocated, even if mistakenly called', async () => {
+    write(root, 'generated/certificates/uuid-6.pdf', 'generated-original');
+    const { deps: d, getKey } = deps({ initialKey: 'staging/2026/09/29/uuid-6.pdf', uploadedFromApp: 'api' });
+    const outcome = await relocateDossierAssetAfterCommit(103, { ownerType: 'certificate_document', ownerId: 9 }, d);
+    assert.equal(outcome.status, 'skipped_server_generated');
+    assert.equal(getKey(), 'staging/2026/09/29/uuid-6.pdf');
   });
 
   it('a concurrent relocation losing the optimistic update reports skipped_stale, not an error', async () => {
@@ -235,13 +246,13 @@ describe('relocateAfterCommit', () => {
       initialKey: 'staging/2026/09/29/uuid-6.pdf',
       casStorageKey: async () => false,
     });
-    const outcome = await relocateAfterCommit(101, { ownerType: 'certificate_document', ownerId: 9 }, d);
+    const outcome = await relocateDossierAssetAfterCommit(101, { ownerType: 'certificate_document', ownerId: 9 }, d);
     assert.equal(outcome.status, 'skipped_stale');
   });
 
-  it('never throws, even when loadStorageKey itself rejects', async () => {
-    const { deps: d } = deps({ loadStorageKey: async () => { throw new Error('DB_DOWN'); } });
-    const outcome = await relocateAfterCommit(102, { ownerType: 'certificate_document', ownerId: 9 }, d);
+  it('never throws, even when loadAsset itself rejects', async () => {
+    const { deps: d } = deps({ loadAsset: async () => { throw new Error('DB_DOWN'); } });
+    const outcome = await relocateDossierAssetAfterCommit(102, { ownerType: 'certificate_document', ownerId: 9 }, d);
     assert.equal(outcome.status, 'error');
     assert.equal(outcome.error, 'DB_DOWN');
   });

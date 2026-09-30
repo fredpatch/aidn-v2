@@ -125,7 +125,8 @@ describe('seedDocumentTemplates', () => {
     assert.equal(files.length, 4);
     for (const definition of DOCUMENT_TEMPLATE_SEEDS) {
       const record = rows.get(definition.key)!;
-      assert.match(record.storageKey!, /^\d{4}\/\d{2}\/\d{2}\/api\/document-templates\/.+\.docx$/);
+      assert.match(record.storageKey!, /^reference\/document-templates\/[^/]+\/[0-9a-f-]+\.docx$/);
+      assert.ok(record.storageKey!.startsWith(`reference/document-templates/${definition.key}/`));
       const stored = path.join(paths.uploadsDir, record.storageKey!);
       assert.equal(fs.readFileSync(stored, 'utf8'), `content of ${definition.key}`);
     }

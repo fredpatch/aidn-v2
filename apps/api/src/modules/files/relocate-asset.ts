@@ -36,6 +36,7 @@ export type RelocationStatus =
   | 'reconciled' // canonical target already existed (crash case) - storage_key updated only
   | 'skipped_not_staging' // storage_key does not start with staging/ - legacy or already relocated
   | 'skipped_not_relocatable' // owner type excluded (document_template, report, ...)
+  | 'skipped_server_generated' // STORAGE-3 defense-in-depth: uploadedFromApp === 'api' (certificates, reports, seeded templates) never enters relocation, even if mistakenly called
   | 'skipped_no_context' // owner row could not be resolved (deleted, bad id)
   | 'skipped_stale' // storage_key changed under us between read and update (concurrent relocation)
   | 'error'; // caught and logged; storage_key left untouched
@@ -121,16 +122,44 @@ export async function relocateFile(
       await fsOps.unlink(srcPath);
     } catch {
       // Best effort - the destination copy is already the source of truth,
-      // and relocateAfterCommit's target-existence check makes a leftover
-      // source harmless on any future retry.
+      // and the target-existence check in every orchestrator built on this
+      // primitive makes a leftover source harmless on any future retry.
     }
     return 'moved';
   }
 }
 
-export interface RelocateAfterCommitDeps {
-  /** Reads storage_key fresh - never trusts anything computed earlier. */
-  loadStorageKey: (assetId: number) => Promise<string | undefined>;
+/** Minimal asset facts every relocation orchestrator needs: the source key
+ *  to move from, and the source app - the STORAGE-3 defense-in-depth guard
+ *  that keeps server-generated files (certificates, reports, seeded
+ *  templates, all `uploadedFromApp: 'api'`) out of relocation entirely, even
+ *  if a caller mistakenly wired one in. */
+export interface RelocatableAsset {
+  storageKey: string;
+  uploadedFromApp: string;
+}
+
+async function loadRelocatableAsset(assetId: number): Promise<RelocatableAsset | undefined> {
+  const [row] = await db
+    .select({ storageKey: uploadAssets.storageKey, uploadedFromApp: uploadAssets.uploadedFromApp })
+    .from(uploadAssets)
+    .where(eq(uploadAssets.id, assetId));
+  return row;
+}
+
+async function casStorageKeyDefault(assetId: number, expectedOldKey: string, newKey: string): Promise<boolean> {
+  const updated = await db
+    .update(uploadAssets)
+    .set({ storageKey: newKey })
+    .where(and(eq(uploadAssets.id, assetId), eq(uploadAssets.storageKey, expectedOldKey)))
+    .returning({ id: uploadAssets.id });
+  return updated.length === 1;
+}
+
+export interface RelocateDossierAssetAfterCommitDeps {
+  /** Reads storage_key + uploadedFromApp fresh - never trusts anything
+   *  computed earlier. */
+  loadAsset: (assetId: number) => Promise<RelocatableAsset | undefined>;
   /** Conditional update (id + expected old key); false = someone else moved
    *  it first (lost the race harmlessly). */
   casStorageKey: (assetId: number, expectedOldKey: string, newKey: string) => Promise<boolean>;
@@ -138,35 +167,34 @@ export interface RelocateAfterCommitDeps {
   contextDeps?: StorageContextDeps;
 }
 
-const defaultDeps: RelocateAfterCommitDeps = {
-  loadStorageKey: async (assetId) => {
-    const [row] = await db.select({ storageKey: uploadAssets.storageKey }).from(uploadAssets).where(eq(uploadAssets.id, assetId));
-    return row?.storageKey;
-  },
-  casStorageKey: async (assetId, expectedOldKey, newKey) => {
-    const updated = await db
-      .update(uploadAssets)
-      .set({ storageKey: newKey })
-      .where(and(eq(uploadAssets.id, assetId), eq(uploadAssets.storageKey, expectedOldKey)))
-      .returning({ id: uploadAssets.id });
-    return updated.length === 1;
-  },
+const defaultDeps: RelocateDossierAssetAfterCommitDeps = {
+  loadAsset: loadRelocatableAsset,
+  casStorageKey: casStorageKeyDefault,
   root: UPLOADS_ROOT,
 };
 
-/** The orchestrator every call site invokes, unconditionally, right after
- *  its business transaction commits (both the fresh-link and the
- *  'attached_here' retry outcomes). Re-reads storage_key fresh rather than
+/** The orchestrator every dossier call site invokes, unconditionally, right
+ *  after its business transaction commits (both the fresh-link and the
+ *  'attached_here' retry outcomes). Re-reads the asset fresh rather than
  *  trusting anything computed before/during the transaction, since time may
  *  have passed. Never throws. */
-export async function relocateAfterCommit(
+export async function relocateDossierAssetAfterCommit(
   assetId: number,
   target: RelocationTarget,
-  deps: RelocateAfterCommitDeps = defaultDeps
+  deps: RelocateDossierAssetAfterCommitDeps = defaultDeps
 ): Promise<RelocationOutcome> {
   try {
-    const storageKey = await deps.loadStorageKey(assetId);
-    if (storageKey === undefined) return { status: 'error', assetId, error: 'ASSET_NOT_FOUND' };
+    const asset = await deps.loadAsset(assetId);
+    if (!asset) return { status: 'error', assetId, error: 'ASSET_NOT_FOUND' };
+    const { storageKey } = asset;
+
+    // Defense-in-depth (STORAGE-3): a server-generated asset must never be
+    // routed through dossier relocation, even by a caller's mistake -
+    // generated files write directly to their final location and never pass
+    // through staging in the first place.
+    if (asset.uploadedFromApp === 'api') {
+      return { status: 'skipped_server_generated', assetId, fromKey: storageKey };
+    }
 
     // Sole eligibility gate (approved decision: no legacy backfill). This is
     // also what protects legacy pre-slice files on any retry.

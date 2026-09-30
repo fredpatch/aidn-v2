@@ -11,6 +11,7 @@ import {
   type PreparedAttachment,
 } from '../uploads/upload-attachment.js';
 import { storedFilesExist } from '../files/stored-file.js';
+import { relocateReferenceAssetAfterCommit } from '../files/relocate-reference-asset.js';
 import type { DocumentTemplateKey } from '@aidn/shared';
 
 export interface TemplateView {
@@ -148,6 +149,13 @@ export async function upsertTemplate(params: {
     );
     return saved;
   });
+
+  // STORAGE-3A - relocate off staging to the canonical reference location,
+  // right after commit, unconditionally (both the fresh-attach and the
+  // 'attached_here' retry outcomes). Failure never invalidates the just-
+  // committed template; it stays valid and reachable from staging, repaired
+  // by the next retry or the repair CLI.
+  await relocateReferenceAssetAfterCommit(attachment.assetId, params.key);
 
   const [exists] = await storedFilesExist([row.fileUrl]);
   return toTemplateView(row, exists);

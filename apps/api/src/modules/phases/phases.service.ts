@@ -14,7 +14,7 @@ import {
   versionValues,
   type PreparedAttachment,
 } from '../uploads/upload-attachment.js';
-import { relocateAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
+import { relocateDossierAssetAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
 
 export interface PhaseView {
   id: number;
@@ -198,6 +198,6 @@ export async function closePhase(
     return closed;
   });
 
-  if (attachment) await relocateAfterCommit(attachment.assetId, target);
+  if (attachment) await relocateDossierAssetAfterCommit(attachment.assetId, target);
   return toPhaseView(updated);
 }

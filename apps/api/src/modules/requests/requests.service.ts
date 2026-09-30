@@ -31,7 +31,7 @@ import {
   type AttachTarget,
   type PreparedAttachment,
 } from '../uploads/upload-attachment.js';
-import { relocateAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
+import { relocateDossierAssetAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
 
 export type { SubmitRequestParams, RequestView } from './requests.types.js';
 
@@ -246,7 +246,7 @@ export async function submitRequest(params: SubmitRequestParams): Promise<Reques
 
       return { request, circuitDoc };
     });
-    if (target) await relocateAfterCommit(attachment.assetId, target);
+    if (target) await relocateDossierAssetAfterCommit(attachment.assetId, target);
     return toRequestView(request, circuitDoc);
   } catch (error) {
     if (isUniqueViolation(error)) {
@@ -706,7 +706,7 @@ export async function returnSignedFromDg(
     return { request: updatedRequest, circuitDoc: updatedCircuitDoc };
   });
 
-  if (target) await relocateAfterCommit(attachment.assetId, target);
+  if (target) await relocateDossierAssetAfterCommit(attachment.assetId, target);
   return toRequestView(request, circuitDoc);
 }
 
@@ -817,5 +817,5 @@ export async function replaceCircuitDocument(
     await replaceCircuitVersion(tx, requestId, circuit.id, attachment, actorUserId);
   });
 
-  if (target) await relocateAfterCommit(attachment.assetId, target);
+  if (target) await relocateDossierAssetAfterCommit(attachment.assetId, target);
 }

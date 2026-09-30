@@ -11,7 +11,7 @@ import {
   documentVersions,
 } from '../../shared/db/schema.js';
 import { logAudit } from '../auth/auth.service.js';
-import { relocateAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
+import { relocateDossierAssetAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
 import {
   claimUploadAsset,
   linkLockedAsset,
@@ -483,6 +483,6 @@ export async function attachMeetingReport(
     return saved;
   });
 
-  await relocateAfterCommit(attachment.assetId, target);
+  await relocateDossierAssetAfterCommit(attachment.assetId, target);
   return toMeetingView(updated);
 }

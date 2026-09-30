@@ -16,7 +16,7 @@ import {
   versionValues,
   type PreparedAttachment,
 } from '../uploads/upload-attachment.js';
-import { relocateAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
+import { relocateDossierAssetAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
 import type {
   FormalDocumentView,
   FormalLetterCircuitView,
@@ -169,7 +169,7 @@ export async function submitFormalLetter(
     return created;
   });
 
-  if (target) await relocateAfterCommit(attachment.assetId, target);
+  if (target) await relocateDossierAssetAfterCommit(attachment.assetId, target);
   return toCircuitView(circuit);
 }
 
@@ -293,7 +293,7 @@ export async function submitDocument(
     return { doc: slotRow, updated: saved };
   });
 
-  if (target) await relocateAfterCommit(attachment.assetId, target);
+  if (target) await relocateDossierAssetAfterCommit(attachment.assetId, target);
   return {
     id: updated.id,
     slot: updated.slot,
@@ -494,5 +494,5 @@ export async function closeFormalPhase(
     await logAudit({ userId: actorUserId, action: 'PHASE_CLOSED', module: 'M4', entityId: phaseId }, tx);
   });
 
-  if (attachment) await relocateAfterCommit(attachment.assetId, target);
+  if (attachment) await relocateDossierAssetAfterCommit(attachment.assetId, target);
 }

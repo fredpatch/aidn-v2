@@ -679,13 +679,23 @@ function UploadsMaintenanceSection() {
               </p>
               <p className="text-lg font-semibold text-anac-danger">{diagnostics.linkedButStagingOver24h}</p>
             </div>
+            <div className="rounded border border-anac-border p-3">
+              <p className="text-xs text-anac-muted">Modèles liés en zone de dépôt (relocalisation en attente)</p>
+              <p className="text-lg font-semibold text-anac-warning">{diagnostics.linkedTemplateButStaging}</p>
+            </div>
+            <div className="rounded border border-anac-border p-3">
+              <p className="text-xs text-anac-muted">
+                dont depuis plus de 24h
+              </p>
+              <p className="text-lg font-semibold text-anac-danger">{diagnostics.linkedTemplateButStagingOver24h}</p>
+            </div>
           </div>
         )}
 
         {diagnostics && diagnostics.linkedStagingExcludedFromRelocation > 0 && (
           <p className="text-xs text-anac-muted">
-            Dont {diagnostics.linkedStagingExcludedFromRelocation} document(s) modèle/rapport en zone de dépôt de
-            façon normale (jamais relocalisés) - ne comptent pas comme une anomalie.
+            Dont {diagnostics.linkedStagingExcludedFromRelocation} rapport(s) en zone de dépôt de façon normale
+            (jamais relocalisés) - ne comptent pas comme une anomalie.
           </p>
         )}
 

@@ -12,7 +12,7 @@ import {
   versionValues,
   type PreparedAttachment,
 } from '../uploads/upload-attachment.js';
-import { relocateAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
+import { relocateDossierAssetAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
 
 export type PaymentPhaseCode = 'M5' | 'M6' | 'M7';
 type PaymentRow = typeof payments.$inferSelect;
@@ -56,7 +56,7 @@ export async function attachPaymentInvoice(
     return updated;
   });
 
-  if (target) await relocateAfterCommit(attachment.assetId, target);
+  if (target) await relocateDossierAssetAfterCommit(attachment.assetId, target);
   return result;
 }
 
@@ -95,6 +95,6 @@ export async function attachPaymentProof(
     return updated;
   });
 
-  if (target) await relocateAfterCommit(attachment.assetId, target);
+  if (target) await relocateDossierAssetAfterCommit(attachment.assetId, target);
   return result;
 }

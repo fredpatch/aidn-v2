@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { and, count, eq, inArray, isNull, like, lt, notInArray, sql } from 'drizzle-orm';
+import { and, count, eq, inArray, isNull, like, lt, sql } from 'drizzle-orm';
 import { db } from '../../shared/db/index.js';
 import { uploadAssets } from '../../shared/db/schema.js';
 import { getIntegerValue } from '../system-parameters/system-parameters.service.js';
@@ -70,7 +70,7 @@ export interface UploadDiagnostics {
   bySource: Array<{ source: string; total: number }>;
   /** STORAGE-2B - linked assets of a relocatable owner type whose relocation
    *  has not yet moved them out of staging/. A synchronous
-   *  relocateAfterCommit() failure (fs error, crash) is the only way an
+   *  relocateDossierAssetAfterCommit() failure (fs error, crash) is the only way an
    *  asset ends up here; the repair CLI (STORAGE-2B) finalizes these.
    *  Read-only counts - no automatic repair from diagnostics.
    *
@@ -81,16 +81,26 @@ export interface UploadDiagnostics {
    *  attention" numbers or make system health look unhealthy. */
   linkedButStaging: number;
   linkedButStagingOver24h: number;
-  /** Linked assets of a NON-relocatable owner type (document_template,
-   *  report) that happen to still be under staging/ - informational only,
-   *  reported separately, and expected to be non-zero/stable rather than a
-   *  symptom of anything broken. */
+  /** STORAGE-3A - document_template now has a real relocation path
+   *  (relocateReferenceAssetAfterCommit), so it moved out of the neutral
+   *  "excluded from relocation" bucket below into its own attention-worthy
+   *  counts, exactly like the dossier-relocatable owner types above. */
+  linkedTemplateButStaging: number;
+  linkedTemplateButStagingOver24h: number;
+  /** Linked assets of a NON-relocatable owner type (report only, since
+   *  STORAGE-3A) that happen to still be under staging/ - informational
+   *  only, reported separately, and expected to be non-zero/stable rather
+   *  than a symptom of anything broken. Generated certificates never appear
+   *  here either: they write directly to generated/ and are never staged. */
   linkedStagingExcludedFromRelocation: number;
 }
 
 export async function getUploadDiagnostics(): Promise<UploadDiagnostics> {
   const relocatable = inArray(uploadAssets.linkedOwnerType, RELOCATABLE_OWNER_TYPES_LIST as UploadOwnerType[]);
-  const nonRelocatable = notInArray(uploadAssets.linkedOwnerType, RELOCATABLE_OWNER_TYPES_LIST as UploadOwnerType[]);
+  const isTemplate = eq(uploadAssets.linkedOwnerType, 'document_template');
+  // STORAGE-3A - document_template now relocates too; report is the only
+  // owner type left that is never staged-then-relocated by design.
+  const excludedFromRelocation = eq(uploadAssets.linkedOwnerType, 'report');
 
   const [totals] = await db
     .select({
@@ -99,7 +109,9 @@ export async function getUploadDiagnostics(): Promise<UploadDiagnostics> {
       orphanMarked: sql<number>`count(*) filter (where ${uploadAssets.orphanedAt} is not null)::int`,
       linkedButStaging: sql<number>`count(*) filter (where ${uploadAssets.linkedOwnerType} is not null and ${uploadAssets.storageKey} like 'staging/%' and ${relocatable})::int`,
       linkedButStagingOver24h: sql<number>`count(*) filter (where ${uploadAssets.linkedOwnerType} is not null and ${uploadAssets.storageKey} like 'staging/%' and ${relocatable} and ${uploadAssets.linkedAt} < now() - interval '24 hours')::int`,
-      linkedStagingExcludedFromRelocation: sql<number>`count(*) filter (where ${uploadAssets.linkedOwnerType} is not null and ${uploadAssets.storageKey} like 'staging/%' and ${nonRelocatable})::int`,
+      linkedTemplateButStaging: sql<number>`count(*) filter (where ${uploadAssets.storageKey} like 'staging/%' and ${isTemplate})::int`,
+      linkedTemplateButStagingOver24h: sql<number>`count(*) filter (where ${uploadAssets.storageKey} like 'staging/%' and ${isTemplate} and ${uploadAssets.linkedAt} < now() - interval '24 hours')::int`,
+      linkedStagingExcludedFromRelocation: sql<number>`count(*) filter (where ${uploadAssets.linkedOwnerType} is not null and ${uploadAssets.storageKey} like 'staging/%' and ${excludedFromRelocation})::int`,
     })
     .from(uploadAssets);
 
@@ -123,6 +135,8 @@ export async function getUploadDiagnostics(): Promise<UploadDiagnostics> {
     bySource: bySourceRows.map((r) => ({ source: r.source, total: r.total })),
     linkedButStaging: totals?.linkedButStaging ?? 0,
     linkedButStagingOver24h: totals?.linkedButStagingOver24h ?? 0,
+    linkedTemplateButStaging: totals?.linkedTemplateButStaging ?? 0,
+    linkedTemplateButStagingOver24h: totals?.linkedTemplateButStagingOver24h ?? 0,
     linkedStagingExcludedFromRelocation: totals?.linkedStagingExcludedFromRelocation ?? 0,
   };
 }

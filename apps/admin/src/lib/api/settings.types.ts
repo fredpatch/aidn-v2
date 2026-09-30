@@ -54,8 +54,13 @@ export interface UploadDiagnostics {
    *  no repair action in the UI. */
   linkedButStaging: number;
   linkedButStagingOver24h: number;
-  /** Linked assets of a non-relocatable owner type (document_template,
-   *  report) still under staging/ - expected steady state, informational
+  /** STORAGE-3A - document_template linked assets whose storage_key is still
+   *  under staging/ (relocation to reference/document-templates/<key>/ not
+   *  yet finished), and the subset older than 24h. */
+  linkedTemplateButStaging: number;
+  linkedTemplateButStagingOver24h: number;
+  /** Linked assets of a non-relocatable owner type (report only, since
+   *  STORAGE-3A) still under staging/ - expected steady state, informational
    *  only, never a health signal. */
   linkedStagingExcludedFromRelocation: number;
 }

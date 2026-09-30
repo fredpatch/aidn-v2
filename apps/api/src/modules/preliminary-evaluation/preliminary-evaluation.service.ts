@@ -17,7 +17,7 @@ import {
   versionValues,
   type PreparedAttachment,
 } from '../uploads/upload-attachment.js';
-import { relocateAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
+import { relocateDossierAssetAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
 
 export interface PreliminaryEvaluationView {
   id: number;
@@ -171,7 +171,7 @@ export async function submit(
     return saved;
   });
 
-  if (target) await relocateAfterCommit(attachment.assetId, target);
+  if (target) await relocateDossierAssetAfterCommit(attachment.assetId, target);
   return toView(updated);
 }
 

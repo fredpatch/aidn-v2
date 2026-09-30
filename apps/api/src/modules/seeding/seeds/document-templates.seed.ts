@@ -8,12 +8,15 @@
  *
  *  Source files are DN-approved copies bundled under
  *  apps/api/seed-assets/document-templates/ (never read from docs/ at runtime).
- *  A seeded template follows the normal upload conventions: the file is copied
- *  into the persistent uploads area, and document_templates, a current
- *  document_versions row and a linked upload_assets row are created. */
+ *  A seeded template is copied directly into its canonical reference location
+ *  (reference/document-templates/<key>/<uuid>.<ext> - STORAGE-3A), bypassing
+ *  staging entirely since there is no browser upload involved, and
+ *  document_templates, a current document_versions row and a linked
+ *  upload_assets row are created. */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { randomUUID } from 'node:crypto';
 import type { DocumentTemplateKey } from '@aidn/shared';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as schema from '../../../shared/db/schema.js';
@@ -149,23 +152,19 @@ export async function seedDocumentTemplates(
   return { name: SEED_NAME, label: 'Document templates', created, skipped: items.length - created, items };
 }
 
-/** Same layout as the upload endpoint: YYYY/MM/DD/<source>/<moduleHint>/<name>.
- *  The "seed-<key>" prefix keeps seeded files traceable; COPYFILE_EXCL
- *  guarantees an existing file is never overwritten. */
+/** STORAGE-3A - writes directly to the canonical reference location
+ *  (reference/document-templates/<key>/<uuid>.<ext>); there is no browser/
+ *  staging lifecycle for a seeded file, so there is nothing to relocate
+ *  later. The physical filename is opaque - the approved original filename
+ *  remains DB metadata (originalName). COPYFILE_EXCL guarantees an existing
+ *  file is never overwritten. */
 function copyAssetToUploads(
   definition: DocumentTemplateSeedDefinition,
   assetPath: string,
   uploadsDir: string
 ): { file: SeededTemplateFile; storedPath: string } {
-  const now = new Date();
-  const relativeDir = path.posix.join(
-    String(now.getFullYear()),
-    String(now.getMonth() + 1).padStart(2, '0'),
-    String(now.getDate()).padStart(2, '0'),
-    'api',
-    'document-templates'
-  );
-  const fileName = `seed-${definition.key}-${now.getTime()}-${Math.round(Math.random() * 1e9)}${path.extname(definition.assetFileName)}`;
+  const relativeDir = path.posix.join('reference', 'document-templates', definition.key);
+  const fileName = `${randomUUID()}${path.extname(definition.assetFileName)}`;
   const storageKey = `${relativeDir}/${fileName}`;
   const storedPath = path.join(uploadsDir, relativeDir, fileName);
 

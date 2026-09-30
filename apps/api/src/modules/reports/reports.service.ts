@@ -1,10 +1,12 @@
 import fs from 'fs/promises';
 import path from 'path';
+import { randomUUID } from 'crypto';
 import { desc, eq } from 'drizzle-orm';
 import { db } from '../../shared/db/index.js';
 import { reports } from '../../shared/db/schema.js';
 import { UPLOADS_ROOT } from '../../shared/uploads-root.js';
 import { insertAssetWithAddress } from '../uploads/asset-registration.js';
+import { cleanupGeneratedFileOnFailure } from '../files/generated-file-cleanup.js';
 import {
   ANALYTICS_REPORTS,
   defaultAnalyticsFilters,
@@ -111,15 +113,17 @@ function buildSummary(snapshot: ReportSnapshot): Record<string, unknown> {
   };
 }
 
-/** Written under uploads/reports/ (moved to generated/ in STORAGE-3); the
- *  returned storage key is registered as an asset owned by the report. */
-async function writeReportFile(buffer: Buffer, params: GenerateReportInput): Promise<{ storageKey: string; fileName: string }> {
-  const folder = path.join(UPLOADS_ROOT, 'reports');
+/** STORAGE-3B - written directly under generated/reports/<report-key>/;
+ *  server-generated, so no staging lifecycle applies. The physical filename
+ *  is opaque (UUID); the human-readable report title/key stays in the DB
+ *  (reports.report_key) and in originalName. */
+async function writeReportFile(buffer: Buffer, params: GenerateReportInput): Promise<{ storageKey: string; fileName: string; absolutePath: string }> {
+  const folder = path.join(UPLOADS_ROOT, 'generated', 'reports', params.reportKey);
   await fs.mkdir(folder, { recursive: true });
-  const stamp = new Date().toISOString().replaceAll(':', '').replaceAll('.', '');
-  const fileName = `${params.reportKey}-${params.format}-${stamp}.${fileExtension(params.format)}`;
-  await fs.writeFile(path.join(folder, fileName), buffer);
-  return { storageKey: `reports/${fileName}`, fileName };
+  const fileName = `${randomUUID()}.${fileExtension(params.format)}`;
+  const absolutePath = path.join(folder, fileName);
+  await fs.writeFile(absolutePath, buffer);
+  return { storageKey: `generated/reports/${params.reportKey}/${fileName}`, fileName, absolutePath };
 }
 
 function toGeneratedReport(row: typeof reports.$inferSelect): GeneratedReport {
@@ -145,36 +149,45 @@ export async function generateReport(input: GenerateReportInput): Promise<Genera
       : await renderAnalyticsReportExcel(snapshot);
   const file = await writeReportFile(buffer, input);
 
-  const row = await db.transaction(async (tx) => {
-    const [report] = await tx
-      .insert(reports)
-      .values({
-        reportKey: input.reportKey,
-        periodStart: input.filters.periodStart,
-        periodEnd: input.filters.periodEnd,
-        format: input.format,
-        trigger: 'on_demand',
-        filters: overview.filters,
-        summary: buildSummary(snapshot),
-        generatedBy: input.generatedBy,
-        aiAnalysisStatus: 'not_applicable',
-      })
-      .returning();
-    const { address } = await insertAssetWithAddress(tx, {
-      storageKey: file.storageKey,
-      originalName: file.fileName,
-      mimeType: contentType(input.format),
-      sizeBytes: buffer.length,
-      uploadedByUserId: input.generatedBy,
-      uploadedFromApp: 'api',
-      moduleHint: 'reports',
-      linkedOwnerType: 'report',
-      linkedOwnerId: report.id,
-      linkedAt: new Date(),
+  let row: typeof reports.$inferSelect;
+  try {
+    row = await db.transaction(async (tx) => {
+      const [report] = await tx
+        .insert(reports)
+        .values({
+          reportKey: input.reportKey,
+          periodStart: input.filters.periodStart,
+          periodEnd: input.filters.periodEnd,
+          format: input.format,
+          trigger: 'on_demand',
+          filters: overview.filters,
+          summary: buildSummary(snapshot),
+          generatedBy: input.generatedBy,
+          aiAnalysisStatus: 'not_applicable',
+        })
+        .returning();
+      const { address } = await insertAssetWithAddress(tx, {
+        storageKey: file.storageKey,
+        originalName: file.fileName,
+        mimeType: contentType(input.format),
+        sizeBytes: buffer.length,
+        uploadedByUserId: input.generatedBy,
+        uploadedFromApp: 'api',
+        moduleHint: 'reports',
+        linkedOwnerType: 'report',
+        linkedOwnerId: report.id,
+        linkedAt: new Date(),
+      });
+      const [updated] = await tx.update(reports).set({ fileUrl: address }).where(eq(reports.id, report.id)).returning();
+      return updated;
     });
-    const [updated] = await tx.update(reports).set({ fileUrl: address }).where(eq(reports.id, report.id)).returning();
-    return updated;
-  });
+  } catch (error) {
+    // STORAGE-3B (closes REPORT-FILE-ROLLBACK) - the file was written before
+    // this transaction; a failure here must not leave it behind with nothing
+    // pointing at it.
+    await cleanupGeneratedFileOnFailure(file.absolutePath, 'reports');
+    throw error;
+  }
 
   return toGeneratedReport(row);
 }

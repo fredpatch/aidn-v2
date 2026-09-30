@@ -16,7 +16,7 @@ import {
   versionValues,
   type PreparedAttachment,
 } from '../uploads/upload-attachment.js';
-import { relocateAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
+import { relocateDossierAssetAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
 import type {
   CourrierTaskBucket,
   CourrierTaskListResponse,
@@ -243,7 +243,7 @@ export async function returnSigned(
     return signed;
   });
 
-  await relocateAfterCommit(attachment.assetId, target);
+  await relocateDossierAssetAfterCommit(attachment.assetId, target);
 
   const task = await buildTaskView(updated);
   if (!task) throw new Error('COURRIER_TASK_NOT_FOUND');

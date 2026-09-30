@@ -16,7 +16,7 @@ import {
   versionValues,
   type PreparedAttachment,
 } from '../uploads/upload-attachment.js';
-import { relocateAfterCommit } from '../files/relocate-asset.js';
+import { relocateDossierAssetAfterCommit } from '../files/relocate-asset.js';
 import type { RelocationTarget } from '../files/relocate-asset.js';
 import { attachPaymentInvoice, attachPaymentProof } from '../payments/payment-documents.js';
 import { SLOT_LABELS } from '../formal-request/formal-request.service.js';
@@ -399,7 +399,7 @@ export async function resubmitDocument(
 
   // STORAGE-2A - synchronous, post-commit, best-effort: never affects the
   // response above (fresh link and 'attached_here' retry both relocate).
-  if (target) await relocateAfterCommit(attachment.assetId, target);
+  if (target) await relocateDossierAssetAfterCommit(attachment.assetId, target);
 
   return toEvalView(updated, formalDoc);
 }
@@ -466,5 +466,5 @@ export async function closeDeepEvaluationPhase(
     await logAudit({ userId: actorUserId, action: 'PHASE_CLOSED', module: 'M5', entityId: phaseId }, tx);
   });
 
-  if (attachment) await relocateAfterCommit(attachment.assetId, target);
+  if (attachment) await relocateDossierAssetAfterCommit(attachment.assetId, target);
 }

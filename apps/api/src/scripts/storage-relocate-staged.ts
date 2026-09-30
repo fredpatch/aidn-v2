@@ -1,33 +1,49 @@
-/** STORAGE-2B - finds every linked-but-staging upload_assets row (storage_key
- *  still starts with staging/ despite being linked to an owner) and finishes
- *  its relocation to the canonical dossier location. Mirrors the dry-run /
- *  --apply pattern of storage-rewrite-addresses.ts.
+/** STORAGE-2B/STORAGE-3A - finds every linked-but-staging upload_assets row
+ *  (storage_key still starts with staging/ despite being linked to an owner)
+ *  and finishes its relocation to the canonical dossier or reference
+ *  location. Mirrors the dry-run / --apply pattern of
+ *  storage-rewrite-addresses.ts.
+ *
+ *  Routes by owner type rather than duplicating tooling: document_template
+ *  candidates go through relocateReferenceAssetAfterCommit (reference/), and
+ *  every other relocatable owner type goes through
+ *  relocateDossierAssetAfterCommit (dossiers/), both built on the same
+ *  relocateFile primitive. report and generated certificate PDFs never
+ *  appear here - they write directly to their final storage and are never
+ *  staged (STORAGE-3), so there is nothing for this sweep to find for them.
  *
  *  Correctly handles the critical crash case (STORAGE-2A): if the canonical
  *  target already exists on disk (a prior fs.rename succeeded but the
  *  storage_key DB update never committed), this reconciles the row without
- *  attempting to re-move anything and without reporting the file lost -
- *  relocateAfterCommit's "idempotent by target" check does this for free,
+ *  attempting to re-move anything and without reporting the file lost - the
+ *  "idempotent by target" check in both orchestrators does this for free,
  *  the same code path a self-healing retry through the app would take.
  *
  *    (no flag)   dry run: reports what each candidate would do, changes nothing
  *    --apply     actually relocates every candidate
  *
  *  Safe to run repeatedly and safe to run while the API is up: each asset is
- *  handled independently through the same relocateAfterCommit() every
- *  ordinary attach retry uses, so a concurrent request racing this script
- *  loses the optimistic storage_key update gracefully (skipped_stale) rather
- *  than corrupting anything. */
+ *  handled independently through the same orchestrator every ordinary attach
+ *  retry uses, so a concurrent request racing this script loses the
+ *  optimistic storage_key update gracefully (skipped_stale) rather than
+ *  corrupting anything. */
 import 'dotenv/config';
 import fs from 'node:fs';
 import { isNotNull, and, like, eq } from 'drizzle-orm';
+import type { DocumentTemplateKey } from '@aidn/shared';
 import { db } from '../shared/db/index.js';
-import { uploadAssets } from '../shared/db/schema.js';
+import { documentTemplates, uploadAssets } from '../shared/db/schema.js';
 import { UPLOADS_ROOT } from '../shared/uploads-root.js';
 import { resolveStoragePath } from '../modules/files/file-delivery.js';
-import { relocateAfterCommit, type RelocationStatus } from '../modules/files/relocate-asset.js';
+import { relocateDossierAssetAfterCommit, type RelocationOutcome, type RelocationStatus } from '../modules/files/relocate-asset.js';
+import { computeReferenceTemplateStorageKey, relocateReferenceAssetAfterCommit } from '../modules/files/relocate-reference-asset.js';
 import { computeDossierStorageKey, isRelocatableOwnerType, resolveStorageContext } from '../modules/uploads/storage-context.js';
 import type { UploadOwnerType } from '../modules/uploads/uploads.types.js';
+
+async function loadTemplateKey(templateId: number): Promise<DocumentTemplateKey | undefined> {
+  const [row] = await db.select({ key: documentTemplates.key }).from(documentTemplates).where(eq(documentTemplates.id, templateId));
+  return row?.key as DocumentTemplateKey | undefined;
+}
 
 const args = new Set(process.argv.slice(2));
 const apply = args.has('--apply');
@@ -68,10 +84,17 @@ type DryRunOutcome =
   | { status: 'would_fail_source_missing'; toKey: string };
 
 async function planOne(candidate: Candidate): Promise<DryRunOutcome> {
-  if (!isRelocatableOwnerType(candidate.linkedOwnerType)) return { status: 'would_skip_not_relocatable' };
-  const context = await resolveStorageContext(candidate.linkedOwnerType, candidate.linkedOwnerId);
-  if (!context) return { status: 'would_skip_no_context' };
-  const toKey = computeDossierStorageKey(context, candidate.storageKey);
+  let toKey: string;
+  if (candidate.linkedOwnerType === 'document_template') {
+    const key = await loadTemplateKey(candidate.linkedOwnerId);
+    if (!key) return { status: 'would_skip_no_context' };
+    toKey = computeReferenceTemplateStorageKey(key, candidate.storageKey);
+  } else {
+    if (!isRelocatableOwnerType(candidate.linkedOwnerType)) return { status: 'would_skip_not_relocatable' };
+    const context = await resolveStorageContext(candidate.linkedOwnerType, candidate.linkedOwnerId);
+    if (!context) return { status: 'would_skip_no_context' };
+    toKey = computeDossierStorageKey(context, candidate.storageKey);
+  }
   const destPath = resolveStoragePath(UPLOADS_ROOT, toKey);
   const srcPath = resolveStoragePath(UPLOADS_ROOT, candidate.storageKey);
   if (destPath && fs.existsSync(destPath)) return { status: 'would_reconcile', toKey };
@@ -96,10 +119,18 @@ async function apply_(candidates: Candidate[]): Promise<number> {
   console.log(`[storage-relocate-staged] APPLY - ${candidates.length} linked-but-staging candidate(s)`);
   const counts = new Map<RelocationStatus, number>();
   for (const candidate of candidates) {
-    const outcome = await relocateAfterCommit(candidate.id, {
-      ownerType: candidate.linkedOwnerType,
-      ownerId: candidate.linkedOwnerId,
-    });
+    let outcome: RelocationOutcome;
+    if (candidate.linkedOwnerType === 'document_template') {
+      const key = await loadTemplateKey(candidate.linkedOwnerId);
+      outcome = key
+        ? await relocateReferenceAssetAfterCommit(candidate.id, key)
+        : { status: 'skipped_no_context' as const, assetId: candidate.id, fromKey: candidate.storageKey };
+    } else {
+      outcome = await relocateDossierAssetAfterCommit(candidate.id, {
+        ownerType: candidate.linkedOwnerType,
+        ownerId: candidate.linkedOwnerId,
+      });
+    }
     counts.set(outcome.status, (counts.get(outcome.status) ?? 0) + 1);
     console.log(
       `  asset ${candidate.id} (${candidate.linkedOwnerType}#${candidate.linkedOwnerId}): ${outcome.status}` +

@@ -2,6 +2,7 @@ import { eq, and, desc } from 'drizzle-orm';
 import { readFile, mkdir, writeFile } from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { randomUUID } from 'crypto';
 import puppeteer from 'puppeteer';
 import { db } from '../../shared/db/index.js';
 import {
@@ -20,9 +21,10 @@ import {
   versionValues,
   type PreparedAttachment,
 } from '../uploads/upload-attachment.js';
-import { relocateAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
+import { relocateDossierAssetAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
+import { cleanupGeneratedFileOnFailure } from '../files/generated-file-cleanup.js';
 import { attachPaymentInvoice, attachPaymentProof } from '../payments/payment-documents.js';
-import { registerGeneratedFile } from '../uploads/asset-registration.js';
+import { insertAssetWithAddress } from '../uploads/asset-registration.js';
 import { UPLOADS_ROOT } from '../../shared/uploads-root.js';
 import { getTextValue } from '../system-parameters/system-parameters.service.js';
 import { generateCertificateReference } from './certificates.helpers.js';
@@ -464,40 +466,67 @@ export async function generateCertificateDocument(
     await browser.close();
   }
 
-  // Stored under uploads/certificates/ (moved to generated/ in STORAGE-3) and
-  // registered as an asset of the certificate: the stored address is the
-  // asset's stable address, and access follows the M7 dossier rules.
-  const fileName = `certificate-${certificate.reference}-${Date.now()}.pdf`;
-  const storageKey = `certificates/${fileName}`;
-  const storagePath = path.join(UPLOADS_ROOT, 'certificates', fileName);
+  // STORAGE-3C - written directly under generated/certificates/ with an
+  // opaque UUID filename, deliberately flat (no request-reference segment):
+  // this is a server-produced artifact, not a dossier document, and keeping
+  // it out of the reference-keyed dossier tree avoids it ever being mistaken
+  // for one. The human-readable reference stays in originalName and on the
+  // certificate row itself. This never goes through staging or dossier
+  // relocation - it shares the certificate_document owner type with the
+  // signed-return scan (markSigned) only in the DB, never in physical
+  // storage; markSigned's own asset is always a distinct upload_assets row.
+  const fileName = `${randomUUID()}.pdf`;
+  const storageKey = `generated/certificates/${fileName}`;
+  const storagePath = path.join(UPLOADS_ROOT, 'generated', 'certificates', fileName);
   await mkdir(path.dirname(storagePath), { recursive: true });
   await writeFile(storagePath, pdfBuffer);
-  const { address: fileUrl } = await registerGeneratedFile({
-    storageKey,
-    originalName: fileName,
-    mimeType: 'application/pdf',
-    sizeBytes: pdfBuffer.length,
-    moduleHint: 'certificates',
-    ownerType: 'certificate_document',
-    ownerId: certificate.id,
-    userId: actorUserId,
-  });
 
-  await db.insert(documentVersions).values({
-    ownerType: 'certificate_document',
-    ownerId: certificate.id,
-    fileUrl,
-    mimeType: 'application/pdf',
-    uploadedBy: actorUserId,
-    isCurrent: true,
-  });
+  let fileUrl: string;
+  try {
+    // STORAGE-3C - asset registration and the current-version row commit
+    // together: no window where the asset is linked but no current version
+    // points at it.
+    fileUrl = await db.transaction(async (tx) => {
+      const { address } = await insertAssetWithAddress(tx, {
+        storageKey,
+        originalName: `certificate-${certificate.reference}.pdf`,
+        mimeType: 'application/pdf',
+        sizeBytes: pdfBuffer.length,
+        uploadedByUserId: actorUserId,
+        uploadedFromApp: 'api',
+        moduleHint: 'certificates',
+        linkedOwnerType: 'certificate_document',
+        linkedOwnerId: certificate.id,
+        linkedAt: new Date(),
+      });
 
-  await logAudit({
-    userId: actorUserId,
-    action: 'CERTIFICATE_DOCUMENT_GENERATED',
-    module: 'M7',
-    entityId: certificate.id,
-  });
+      await tx.insert(documentVersions).values({
+        ownerType: 'certificate_document',
+        ownerId: certificate.id,
+        fileUrl: address,
+        mimeType: 'application/pdf',
+        uploadedBy: actorUserId,
+        isCurrent: true,
+      });
+
+      await logAudit(
+        {
+          userId: actorUserId,
+          action: 'CERTIFICATE_DOCUMENT_GENERATED',
+          module: 'M7',
+          entityId: certificate.id,
+        },
+        tx
+      );
+
+      return address;
+    });
+  } catch (error) {
+    // STORAGE-3C - the PDF was written before this transaction; a failure
+    // here must not leave it behind with nothing pointing at it.
+    await cleanupGeneratedFileOnFailure(storagePath, 'certificates');
+    throw error;
+  }
 
   return { fileUrl };
 }
@@ -576,7 +605,7 @@ export async function markSigned(
     return signed;
   });
 
-  await relocateAfterCommit(attachment.assetId, target);
+  await relocateDossierAssetAfterCommit(attachment.assetId, target);
   return toCertificateView(updated);
 }
 
