@@ -15,6 +15,37 @@ COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.staging.yml}"
 ENV_FILE="${ENV_FILE:-.env.staging}"
 COMPOSE=(docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE")
 
+# Two places used to be able to hang forever with zero output: the image
+# build (an `apt-get` fetch stalling on a slow/flaky mirror - reproduced
+# while testing this script: one ~30MB package sat at 0 bytes for minutes
+# while everything around it downloaded fine) and `--wait`, which has no
+# timeout by default and just sits there if a healthcheck never passes
+# (bad secret, app crash-looping, ...). Bound both and dump diagnostics
+# instead of leaving the operator staring at a stuck terminal.
+BUILD_TIMEOUT="${BUILD_TIMEOUT:-900}"
+WAIT_TIMEOUT_POSTGRES="${WAIT_TIMEOUT_POSTGRES:-120}"
+WAIT_TIMEOUT_STACK="${WAIT_TIMEOUT_STACK:-300}"
+
+build_or_diagnose() {
+  if ! timeout "$BUILD_TIMEOUT" "${COMPOSE[@]}" build; then
+    echo "ERROR: build did not finish within ${BUILD_TIMEOUT}s (often a stalled package"
+    echo "       download on a slow mirror - re-running usually picks up from the layer"
+    echo "       cache). Increase with BUILD_TIMEOUT=<seconds> if this box is just slow."
+    exit 1
+  fi
+}
+
+wait_or_diagnose() {
+  local wait_seconds="$1"
+  shift
+  if ! "${COMPOSE[@]}" up -d --wait --wait-timeout "$wait_seconds" "$@"; then
+    echo "ERROR: services did not become healthy within ${wait_seconds}s. Status and recent logs:"
+    "${COMPOSE[@]}" ps
+    "${COMPOSE[@]}" logs --no-color --tail=100
+    exit 1
+  fi
+}
+
 [ -f "$COMPOSE_FILE" ] || { echo "ERROR: Missing $COMPOSE_FILE"; exit 1; }
 [ -f "$ENV_FILE" ] || { echo "ERROR: Missing $ENV_FILE"; exit 1; }
 grep -q '^FILE_GRANT_SECRET=..*' "$ENV_FILE" || { echo "ERROR: FILE_GRANT_SECRET must be set in $ENV_FILE"; exit 1; }
@@ -28,10 +59,10 @@ echo "==> Validating Compose configuration"
 "${COMPOSE[@]}" config >/dev/null
 
 echo "==> Building images"
-"${COMPOSE[@]}" build
+build_or_diagnose
 
 echo "==> Starting PostgreSQL"
-"${COMPOSE[@]}" up -d --wait postgres_staging
+wait_or_diagnose "$WAIT_TIMEOUT_POSTGRES" postgres_staging
 
 echo "==> Stopping the running API (jobs included) before data changes"
 "${COMPOSE[@]}" stop api_staging || true
@@ -73,7 +104,7 @@ else
 fi
 
 echo "==> Starting complete stack"
-"${COMPOSE[@]}" up -d --remove-orphans --wait
+wait_or_diagnose "$WAIT_TIMEOUT_STACK" --remove-orphans
 
 echo "==> Reloading nginx configuration (no public /uploads)"
 "${COMPOSE[@]}" exec -T nginx_staging nginx -t
