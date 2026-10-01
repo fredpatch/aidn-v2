@@ -28,7 +28,12 @@ export default function LifecycleCard({
   const [lastGeneratedUrl, setLastGeneratedUrl] = useState<string | null>(null);
   const [signedReturnFile, setSignedReturnFile] = useState<File | null>(null);
 
-  const hasBeenGenerated = certificate.status !== 'in_preparation' || lastGeneratedUrl !== null;
+  // FILE-REFS-1A - currentDocumentUrl is the persisted source of truth (the
+  // certificate_document owner type's current document_versions row); the
+  // local state only makes the link appear immediately after generating,
+  // before the parent has refetched.
+  const generatedDocumentUrl = certificate.currentDocumentUrl ?? lastGeneratedUrl;
+  const hasBeenGenerated = certificate.status !== 'in_preparation' || generatedDocumentUrl !== null;
   const scopeFilled =
     !!certificate.scopeDetails &&
     Object.values(certificate.scopeDetails).every((category) => category.qualification.trim() !== '');
@@ -74,11 +79,11 @@ export default function LifecycleCard({
               {busy ? 'Generation...' : 'Generer le certificat'}
             </Button>
           )}
-          {lastGeneratedUrl && (
+          {generatedDocumentUrl && (
             <p className="text-xs">
               <DocumentPreviewLink
                 title="Certificat genere"
-                url={lastGeneratedUrl}
+                url={generatedDocumentUrl}
                 label="Consulter le document genere"
               />
             </p>

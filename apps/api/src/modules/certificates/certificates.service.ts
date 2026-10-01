@@ -61,7 +61,25 @@ function daysBetween(a: Date | null, b: Date | null): number | null {
   return Math.round((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-function toCertificateView(row: typeof certificates.$inferSelect): CertificateView {
+/** FILE-REFS-1A - the certificate_document owner type's current
+ *  document_versions row, read-only. Resolves the generated-but-unsigned
+ *  PDF's address once it exists and before a business-row column ever
+ *  points at it (signedFileUrl only starts existing at markSigned). */
+async function currentCertificateDocumentUrl(certificateId: number): Promise<string | null> {
+  const [version] = await db
+    .select({ fileUrl: documentVersions.fileUrl })
+    .from(documentVersions)
+    .where(
+      and(
+        eq(documentVersions.ownerType, 'certificate_document'),
+        eq(documentVersions.ownerId, certificateId),
+        eq(documentVersions.isCurrent, true)
+      )
+    );
+  return version?.fileUrl ?? null;
+}
+
+async function toCertificateView(row: typeof certificates.$inferSelect): Promise<CertificateView> {
   return {
     id: row.id,
     reference: row.reference,
@@ -72,6 +90,7 @@ function toCertificateView(row: typeof certificates.$inferSelect): CertificateVi
     printedAt: row.printedAt,
     signedAt: row.signedAt,
     signedFileUrl: row.signedFileUrl,
+    currentDocumentUrl: await currentCertificateDocumentUrl(row.id),
     archivedAt: row.archivedAt,
     notifiedAt: row.notifiedAt,
     collectedAt: row.collectedAt,
@@ -154,7 +173,7 @@ export async function getBundleForRequest(requestId: number): Promise<Certificat
       closedAt: phase.closedAt,
     },
     payment: payment ? toPaymentView(payment) : null,
-    certificate: certificate ? toCertificateView(certificate) : null,
+    certificate: certificate ? await toCertificateView(certificate) : null,
   };
 }
 
@@ -263,7 +282,7 @@ export async function validatePayment(
     details: { reference, certificateType },
   });
 
-  return { payment: toPaymentView(updatedPayment), certificate: toCertificateView(certificate) };
+  return { payment: toPaymentView(updatedPayment), certificate: await toCertificateView(certificate) };
 }
 
 export async function rejectPayment(

@@ -33,6 +33,7 @@ export interface CertificateView {
   printedAt: string | null;
   signedAt: string | null;
   signedFileUrl: string | null;
+  currentDocumentUrl: string | null;
   archivedAt: string | null;
   notifiedAt: string | null;
   collectedAt: string | null;

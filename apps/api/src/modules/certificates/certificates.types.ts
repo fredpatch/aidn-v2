@@ -46,6 +46,10 @@ export interface CertificateView {
   printedAt: Date | null;
   signedAt: Date | null;
   signedFileUrl: string | null;
+  // FILE-REFS-1A - the certificate_document owner type's current
+  // document_versions row: the generated PDF before signing, the signed
+  // scan after (VERSION-CURRENT-DISCIPLINE), null before generation.
+  currentDocumentUrl: string | null;
   archivedAt: Date | null;
   notifiedAt: Date | null;
   collectedAt: Date | null;
