@@ -419,6 +419,10 @@ export const handleDeepEvaluationError = createErrorHandler(
       status: 409,
       message: 'Ce paiement a déjà été validé.',
     },
+    PAYMENT_REJECTED_IMMUTABLE: {
+      status: 409,
+      message: 'Ce dossier a été rejeté ; la facture ne peut plus être modifiée.',
+    },
     PAYMENT_NOT_PENDING: {
       status: 409,
       message: "La preuve de paiement doit être au statut 'en attente de validation'.",
@@ -466,6 +470,10 @@ export const handleSiteInspectionError = createErrorHandler(
     PAYMENT_ALREADY_VALIDATED: {
       status: 409,
       message: 'Ce paiement a déjà été validé.',
+    },
+    PAYMENT_REJECTED_IMMUTABLE: {
+      status: 409,
+      message: 'Ce dossier a été rejeté ; la facture ne peut plus être modifiée.',
     },
     PAYMENT_NOT_PENDING: {
       status: 409,
@@ -516,6 +524,10 @@ export const handleCertificatesError = createErrorHandler(
     PAYMENT_ALREADY_VALIDATED: {
       status: 409,
       message: 'Ce paiement a déjà été validé.',
+    },
+    PAYMENT_REJECTED_IMMUTABLE: {
+      status: 409,
+      message: 'Ce dossier a été rejeté ; la facture ne peut plus être modifiée.',
     },
     PAYMENT_NOT_PENDING: {
       status: 409,

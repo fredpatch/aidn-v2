@@ -32,6 +32,14 @@ async function lockPhasePayment(
   return { payment, requestId: phase.requestId };
 }
 
+/** INVOICE-REUPLOAD-STATUS - a validated or rejected payment's invoice is
+ *  immutable: rejected before any asset/version/business mutation (not even
+ *  the upload-asset lock), so a 409 here leaves the DB, upload_assets link
+ *  and audit log completely untouched. Every other status allows
+ *  replacement; the only status-sensitive behavior left is whether a
+ *  not-yet-validated proof survives the replacement (it never does, since
+ *  the system has no way to tell a cosmetic PDF fix from a materially
+ *  different invoice - see payment-documents.ts's design note). */
 export async function attachPaymentInvoice(
   phaseId: number,
   phaseCode: PaymentPhaseCode,
@@ -41,8 +49,15 @@ export async function attachPaymentInvoice(
   let target: RelocationTarget | undefined;
   const result = await db.transaction(async (tx) => {
     const { payment } = await lockPhasePayment(tx, phaseId, phaseCode);
+    if (payment.status === 'validated') throw new Error('PAYMENT_ALREADY_VALIDATED');
+    if (payment.status === 'rejected') throw new Error('PAYMENT_REJECTED_IMMUTABLE');
+
     target = { ownerType: 'payment_invoice', ownerId: payment.id };
     if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') return payment;
+
+    const previousStatus = payment.status;
+    const replacedExistingInvoice = previousStatus !== 'awaiting_invoice';
+    const invalidatedExistingProof = previousStatus === 'pending_validation';
 
     // VERSION-CURRENT-DISCIPLINE - a re-uploaded invoice must supersede the
     // previous one, never coexist as a second current row.
@@ -50,13 +65,35 @@ export async function attachPaymentInvoice(
     await tx.insert(documentVersions).values(versionValues(attachment, 'payment_invoice', payment.id));
     await linkLockedAsset(tx, attachment.assetId, target);
 
+    // A proof submitted against the invoice being replaced can no longer be
+    // trusted to match it (the system has no structured way to tell a
+    // cosmetic correction from a materially different invoice) - it is
+    // trashed, never deleted, and the applicant must resubmit.
+    if (invalidatedExistingProof) {
+      await trashCurrentVersions(tx, 'payment_proof', payment.id);
+    }
+
     const [updated] = await tx
       .update(payments)
-      .set({ invoiceFileUrl: attachment.fileUrl, invoiceUploadedAt: new Date(), status: 'awaiting_proof' })
+      .set({
+        invoiceFileUrl: attachment.fileUrl,
+        invoiceUploadedAt: new Date(),
+        status: 'awaiting_proof',
+        ...(invalidatedExistingProof ? { proofFileUrl: null, proofUploadedAt: null } : {}),
+      })
       .where(eq(payments.id, payment.id))
       .returning();
 
-    await logAudit({ userId: actorUserId, action: 'INVOICE_UPLOADED', module: phaseCode, entityId: payment.id }, tx);
+    await logAudit(
+      {
+        userId: actorUserId,
+        action: 'INVOICE_UPLOADED',
+        module: phaseCode,
+        entityId: payment.id,
+        details: { replacedExistingInvoice, previousStatus, invalidatedExistingProof },
+      },
+      tx
+    );
     return updated;
   });
 
