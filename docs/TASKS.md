@@ -152,9 +152,13 @@ admin → retour portail, pas seulement des tests API isolés) :
       réparation des liens passe par l'étape rewrite du script de déploiement) ;
       relancer les requêtes ; remettre la rétention (14) seulement quand la
       requête 2 renvoie 0 ligne
-- [ ] **FILE-CONTENT-VALIDATION** - vérifier le contenu réel (octets
-      magiques PDF/PNG/JPEG/OLE2/ZIP ; DOCX demande de lire l'archive) au lieu du
-      MIME déclaré par le navigateur (reporté de STORAGE-0B, D8)
+- [x] **FILE-CONTENT-VALIDATION** (2026-10-01) - le contenu réel est vérifié à
+      l'intake (octets magiques PDF/PNG/JPEG ; OLE2 identifié par le flux
+      `WordDocument`, pas la seule signature générique ; DOCX par la structure
+      de l'archive ZIP, `.docm`/macro rejetés) au lieu du seul MIME déclaré par
+      le navigateur ; extension/MIME déclaré/contenu doivent tous concorder ;
+      MIME canonique persisté. Dépendances `adm-zip`/`cfb` (reporté de
+      STORAGE-0B, D8)
 - [ ] **TEST-DB-HARNESS** - base de test d'intégration réutilisable (transactions,
       verrous, rollbacks) ; STORAGE-0B est validé par un script local sur copie
       jetable de la base (D12)
@@ -169,14 +173,26 @@ admin → retour portail, pas seulement des tests API isolés) :
       une double génération concurrente. Historique complet préservé
       (`trashed_at`), rien n'est jamais supprimé. `INVOICE-REUPLOAD-STATUS`
       reste hors périmètre.
-- [ ] **INVOICE-REUPLOAD-STATUS** - remettre une facture repasse le paiement à
-      `awaiting_proof` quel que soit son statut (même validé) ; comportement
-      existant, à borner
+- [x] **INVOICE-REUPLOAD-STATUS** (2026-10-01) - remplacement de facture
+      autorisé avant validation ; preuve courante invalidée si le remplacement
+      intervient en attente de validation ; statut remis à `awaiting_proof`
+      après remplacement ; bloqué pour un paiement déjà validé ou un dossier
+      rejeté ; historique (facture et preuve) préservé ; même comportement
+      partagé M5/M6/M7
 - [ ] **DEMO-SEED-LEGACY-ADDRESSES** - `seed-analytics-demo-data.ts` (dev)
       écrit encore des adresses `/uploads/demo/...` sans asset
-- [ ] **STORAGE-1 → 4**, **FILE-REFS-1**, **INFRA-BACKUP-1** (prérequis de
-      toute migration de données en staging/production) - voir la spec
-      STORAGE-0A §1
+- [ ] **STORAGE-1 → 4**, **INFRA-BACKUP-1** (prérequis de toute migration de
+      données en staging/production) - voir la spec STORAGE-0A §1
+- [x] **FILE-REFS-1** (2026-10-01) - audit du modèle de référence fichier :
+      les champs `*FileUrl` dénormalisés restent (aucune incohérence trouvée,
+      toujours écrits dans la même transaction que la version `document_versions`
+      correspondante) ; pas de FK `document_versions.upload_asset_id` (aucun
+      bénéfice concret - adresse stable garantie par construction, suppression
+      impossible tant qu'un asset reste lié) ; vérification lecture seule sans
+      référence invalide/orpheline. **FILE-REFS-1A** : `currentDocumentUrl`
+      exposé dans `CertificateView` (résolu depuis `document_versions`) pour
+      retrouver le certificat généré après rechargement, sans nouvelle colonne
+      ni FK
 - [x] **REPORT-FILE-ROLLBACK** (2026-09-30, STORAGE-3B) - le fichier généré
       avant la transaction est supprimé (best-effort, échec journalisé) si
       l'insertion échoue ; voir `cleanupGeneratedFileOnFailure` dans
@@ -184,15 +200,25 @@ admin → retour portail, pas seulement des tests API isolés) :
 - [ ] **FILE-TYPE-ICONS** - `DocumentFileIcon` déduit l'icône de l'extension de
       l'URL ; avec les adresses stables l'icône est générique (exposer le MIME
       dans les bundles)
-- [ ] **DEV-DB-MIGRATION-BASELINE** - la base locale de dev a un historique
-      drizzle antérieur à la baseline `0000_deep_satana` : `db:migrate` y rejouerait
-      la baseline (réinitialiser la base locale). Snapshot drizzle réaligné en 0001.
+- [x] **DEV-DB-MIGRATION-BASELINE** (2026-10-01) - 5 fichiers SQL orphelins
+      (jamais référencés par `_journal.json`, déjà absorbés dans
+      `0000_deep_satana`) supprimés ; chaîne de snapshots `meta/` réparée en
+      linéaire 0000→0001→0002 (`db:generate` ne collisionnait plus et ne
+      générait aucune migration, `schema.ts` inchangé) ; rejeu validé sur base
+      vide (idempotent) ; base de dev locale réinitialisée (`db:migrate` +
+      seeds) - table `drizzle.__drizzle_migrations` ne contient plus que les 3
+      hash authentiques, dans l'ordre. Nouveaux scripts `db:status` (lecture
+      seule, réutilise `readMigrationFiles` de drizzle-orm) et `db:reset:dev`
+      (refuse tout hôte non loopback ou nom production/staging)
 - [ ] **DROP-MEETING-TICKET-URL** - supprimer `meetings.ticket_document_url`
       (non utilisée, écrite seulement par le seed de démo analytique)
-- [ ] **MEETINGS-IDOR** (dette sécurité) - `GET /api/meetings/:id` et
-      `/:id/ticket` ne vérifient que l'authentification : tout postulant
-      connecté peut lire n'importe quelle réunion (métadonnées, adresse du
-      compte-rendu). Ajouter le contrôle d'appartenance au dossier.
+- [x] **MEETINGS-IDOR** (2026-10-01, dette sécurité) - `GET /api/meetings/:id`
+      et `/:id/ticket` vérifient maintenant l'appartenance au dossier
+      (postulant : phase→demande→`applicantId`, sinon 404 `MEETING_NOT_FOUND` -
+      jamais 403, pour ne pas révéler l'existence d'une réunion d'un autre
+      dossier) ; accès personnel restreint à `dn_agent`/`dn_supervisor`/`SU`
+      (`requireApplicantOrRole`) ; génération du ticket réutilise le même
+      contexte autorisé au lieu de requêter à nouveau.
 - [ ] **TEMPLATE-ACTIVATION** - flux dédié d'activation/désactivation des
       modèles (aujourd'hui un modèle inactif ne se corrige qu'en base)
 - [x] **DG-WORKING-DAYS** (2026-09-25) - le circuit DG compte les jours ouvrés

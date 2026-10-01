@@ -112,6 +112,38 @@ npm run storage:rewrite-addresses --workspace=apps/api            # à blanc
 npm run storage:rewrite-addresses --workspace=apps/api -- --apply # applique
 ```
 
+**Migrations de base de données.** Workflow a suivre pour tout changement de
+`apps/api/src/shared/db/schema.ts` :
+
+```bash
+npm run db:generate --workspace=apps/api   # genere le SQL + le snapshot
+# relire le SQL genere
+git add apps/api/drizzle/                  # SQL + snapshot + journal ensemble
+npm run db:migrate --workspace=apps/api
+```
+
+`drizzle-kit push` ne doit **jamais** etre utilise contre une base de
+developpement partagee, le staging ou la production — uniquement contre une
+base jetable/scratch si besoin ponctuel (ex. prototypage local rapide). Une
+fois l'historique des migrations entre dans l'historique partage (commit
+pousse), il ne doit plus etre reecrit ni consolide : une migration deja
+generee peut encore etre relue/corrigee avant son commit, jamais apres.
+
+Deux commandes de diagnostic, en lecture seule pour la premiere :
+
+```bash
+npm run db:status --workspace=apps/api
+# liste les migrations du depot, celles deja appliquees en base, les
+# migrations en attente et les hash appliques qui ne correspondent a aucun
+# fichier du depot (historique perime)
+
+npm run db:reset:dev --workspace=apps/api -- --yes
+# DROP + CREATE + migrate + seed d'une base de developpement locale.
+# Refuse de s'executer si DATABASE_URL ne pointe pas vers un hote loopback
+# (localhost/127.0.0.1/::1) ou si le nom de la base ressemble a de la
+# production/du staging. Sans --yes, affiche ce qu'il ferait sans rien executer.
+```
+
 ### 3. Lancer en developpement
 
 ```bash

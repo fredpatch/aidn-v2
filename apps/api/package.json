@@ -10,6 +10,8 @@
     "test": "tsx --test \"src/**/*.test.ts\"",
     "db:generate": "drizzle-kit generate --config drizzle.config.ts",
     "db:migrate": "npx tsx src/scripts/migrate.ts",
+    "db:status": "npx tsx src/scripts/db-status.ts",
+    "db:reset:dev": "npx tsx src/scripts/db-reset-dev.ts",
     "db:studio": "drizzle-kit studio --config drizzle.config.ts",
     "seed": "npx tsx src/scripts/seed-reference-data.ts",
     "seed:params": "npx tsx src/scripts/seed-system-parameters.ts",
