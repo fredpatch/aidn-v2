@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { db } from '../../shared/db/index.js';
 import { insertAssetWithAddress } from './asset-registration.js';
 import { acceptsUploadMime, registerReceivedFile, uploadRejection, UploadRejectedError } from './upload-intake.js';
+import { validateFileContent } from './file-content-validation.js';
 
 type UploadRequest = Request & { uploadRelativeDir?: string };
 
@@ -26,17 +27,26 @@ export async function upload(req: Request, res: Response): Promise<void> {
     return;
   }
 
+  let canonicalMime = file.mimetype;
   try {
     const asset = await registerReceivedFile(file, async () => {
       // The Multer fileFilter already refused other types; kept as a guard.
       if (!acceptsUploadMime(file.mimetype)) throw new UploadRejectedError('UPLOAD_TYPE_NOT_ACCEPTED');
+      // FILE-CONTENT-VALIDATION - the declared MIME is only ever a claim;
+      // this inspects the bytes Multer just wrote and returns the
+      // canonical MIME to persist instead of trusting the browser's.
+      canonicalMime = await validateFileContent({
+        filePath: file.path,
+        declaredMime: file.mimetype,
+        originalName: file.originalname,
+      });
       const relativeDir = (req as UploadRequest).uploadRelativeDir;
       const storageKey = relativeDir ? `${relativeDir}/${file.filename}`.replace(/\\/g, '/') : file.filename;
       return db.transaction((tx) =>
         insertAssetWithAddress(tx, {
           storageKey,
           originalName: file.originalname,
-          mimeType: file.mimetype,
+          mimeType: canonicalMime,
           sizeBytes: file.size,
           uploadedByUserId: req.user?.userId,
           uploadedByApplicantId: req.applicant?.applicantId,
@@ -52,7 +62,7 @@ export async function upload(req: Request, res: Response): Promise<void> {
     res.status(201).json({
       uploadAssetId: asset.id,
       originalName: file.originalname,
-      mimeType: file.mimetype,
+      mimeType: canonicalMime,
       sizeBytes: file.size,
     });
   } catch (error) {

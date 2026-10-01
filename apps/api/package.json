@@ -18,7 +18,9 @@
   },
   "dependencies": {
     "@aidn/shared": "*",
+    "adm-zip": "^0.6.1",
     "bcryptjs": "^2.4.3",
+    "cfb": "^1.2.2",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
@@ -37,6 +39,7 @@
     "uuid": "14.0.1"
   },
   "devDependencies": {
+    "@types/adm-zip": "^0.5.8",
     "@types/bcryptjs": "^2.4.6",
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.17",

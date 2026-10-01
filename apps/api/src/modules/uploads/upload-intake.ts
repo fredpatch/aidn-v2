@@ -7,7 +7,10 @@ import fs from 'node:fs/promises';
 import multer from 'multer';
 import { ACCEPTED_DOCUMENT_MIME_TYPES } from '@aidn/shared';
 
-export type UploadRejectionCode = 'UPLOAD_TYPE_NOT_ACCEPTED' | 'UPLOAD_EMPTY';
+export type UploadRejectionCode =
+  | 'UPLOAD_TYPE_NOT_ACCEPTED'
+  | 'UPLOAD_EMPTY'
+  | 'UPLOAD_CONTENT_TYPE_MISMATCH';
 
 export class UploadRejectedError extends Error {
   constructor(readonly code: UploadRejectionCode) {
@@ -23,6 +26,10 @@ export function acceptsUploadMime(mimeType: string): boolean {
 const REJECTIONS: Record<UploadRejectionCode, string> = {
   UPLOAD_TYPE_NOT_ACCEPTED: 'Type de fichier non accepte. Formats acceptes : PDF, Word, PNG, JPG.',
   UPLOAD_EMPTY: 'Le fichier est vide.',
+  // FILE-CONTENT-VALIDATION - declared extension/MIME disagree with the
+  // file's actual content, or the content doesn't match the format its
+  // declared MIME claims.
+  UPLOAD_CONTENT_TYPE_MISMATCH: 'Le contenu du fichier ne correspond pas au type declare. Merci de verifier le fichier.',
 };
 
 /** Response for an upload refused before registration; null = not ours. */

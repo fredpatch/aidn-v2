@@ -55,6 +55,14 @@ describe('uploadRejection', () => {
   it('leaves unrelated errors to the normal error path', () => {
     assert.equal(uploadRejection(new Error('boom')), null);
   });
+
+  it('maps a content/type mismatch to 400', () => {
+    assert.deepEqual(uploadRejection(new UploadRejectedError('UPLOAD_CONTENT_TYPE_MISMATCH')), {
+      status: 400,
+      message: 'Le contenu du fichier ne correspond pas au type declare. Merci de verifier le fichier.',
+      code: 'UPLOAD_CONTENT_TYPE_MISMATCH',
+    });
+  });
 });
 
 describe('discardUploadedFile', () => {
