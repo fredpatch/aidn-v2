@@ -42,7 +42,10 @@ export async function schedule(req: Request, res: Response): Promise<void> {
 
 export async function get(req: Request, res: Response): Promise<void> {
   try {
-    const meeting = await meetingsService.getMeeting(Number(req.params.id));
+    const meeting = await meetingsService.getMeeting(Number(req.params.id), {
+      applicant: req.applicant,
+      user: req.user,
+    });
     res.json(meeting);
   } catch (error) {
     handleMeetingsError(res, error);
@@ -51,7 +54,10 @@ export async function get(req: Request, res: Response): Promise<void> {
 
 export async function ticket(req: Request, res: Response): Promise<void> {
   try {
-    const html = await meetingsService.getMeetingTicketHtml(Number(req.params.id));
+    const html = await meetingsService.getMeetingTicketHtml(Number(req.params.id), {
+      applicant: req.applicant,
+      user: req.user,
+    });
     res.type('html').send(html);
   } catch (error) {
     handleMeetingsError(res, error);

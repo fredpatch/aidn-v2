@@ -315,16 +315,28 @@ export async function scheduleMeeting(
   }
 }
 
-export async function getMeeting(meetingId: number): Promise<MeetingView> {
-  const [meeting] = await db.select().from(meetings).where(eq(meetings.id, meetingId));
-  if (!meeting) throw new Error('MEETING_NOT_FOUND');
-  return toMeetingView(meeting);
+export interface MeetingActor {
+  applicant?: { applicantId: number };
+  user?: { roles?: string[] };
 }
 
-/** Simple HTML ticket, not a generated PDF - a real PDF generator is a
- *  cross-phase concern (M3+M4+M6 all need one) better built once, later,
- *  than three times now. */
-export async function getMeetingTicketHtml(meetingId: number): Promise<string> {
+interface AuthorizedMeetingContext {
+  meeting: typeof meetings.$inferSelect;
+  phase: typeof phases.$inferSelect | null;
+  request: typeof requests.$inferSelect | null;
+}
+
+/** MEETINGS-IDOR - the only authorized way to read a single meeting by id.
+ *  Staff role policy is already enforced by requireApplicantOrRole at the
+ *  route layer; this helper's job is the object-level check a role check
+ *  alone can't do - an applicant may only ever see a meeting that belongs,
+ *  through phase -> request, to their own dossier. A cross-dossier
+ *  applicant gets the same MEETING_NOT_FOUND as a genuinely missing id,
+ *  never a 403, so existence isn't disclosed. */
+export async function getMeetingForAuthorizedActor(
+  meetingId: number,
+  actor: MeetingActor
+): Promise<AuthorizedMeetingContext> {
   const [meeting] = await db.select().from(meetings).where(eq(meetings.id, meetingId));
   if (!meeting) throw new Error('MEETING_NOT_FOUND');
 
@@ -332,6 +344,25 @@ export async function getMeetingTicketHtml(meetingId: number): Promise<string> {
   const [request] = phase
     ? await db.select().from(requests).where(eq(requests.id, phase.requestId))
     : [];
+
+  if (actor.applicant && (!request || request.applicantId !== actor.applicant.applicantId)) {
+    throw new Error('MEETING_NOT_FOUND');
+  }
+
+  return { meeting, phase: phase ?? null, request: request ?? null };
+}
+
+export async function getMeeting(meetingId: number, actor: MeetingActor): Promise<MeetingView> {
+  const { meeting } = await getMeetingForAuthorizedActor(meetingId, actor);
+  return toMeetingView(meeting);
+}
+
+/** Simple HTML ticket, not a generated PDF - a real PDF generator is a
+ *  cross-phase concern (M3+M4+M6 all need one) better built once, later,
+ *  than three times now. Consumes the same authorized meeting/context as
+ *  getMeeting (MEETINGS-IDOR) - no independent unscoped refetch by id. */
+export async function getMeetingTicketHtml(meetingId: number, actor: MeetingActor): Promise<string> {
+  const { meeting, phase, request } = await getMeetingForAuthorizedActor(meetingId, actor);
   const [agent] = await db.select().from(users).where(eq(users.id, meeting.dnAgentId));
 
   const typeLabels: Record<string, string> = {
