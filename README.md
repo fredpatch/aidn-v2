@@ -144,6 +144,27 @@ npm run db:reset:dev --workspace=apps/api -- --yes
 # production/du staging. Sans --yes, affiche ce qu'il ferait sans rien executer.
 ```
 
+**CI - integrite des migrations** (`.github/workflows/migration-integrity.yml`,
+sur chaque PR et chaque push sur `main`) verifie que l'historique de
+migrations reste rejouable depuis une base vide et que `schema.ts` n'a jamais
+avance sans migration committee. Reproduction locale a l'identique, contre
+n'importe quelle base jetable (jamais la base de dev reelle) :
+
+```bash
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/une_base_jetable
+
+npm run db:check:committed --workspace=apps/api   # chaque SQL <-> un tag du journal, sans orphelin ni doublon
+npm run db:check:replayable --workspace=apps/api  # db:generate isole ne doit creer aucune nouvelle migration
+npm run db:migrate --workspace=apps/api           # premiere passe
+npm run db:migrate --workspace=apps/api           # deuxieme passe : doit etre un no-op
+npm run db:status --workspace=apps/api -- --check # sortie non nulle si migrations en attente ou hash inconnu
+npm run seed:params --workspace=apps/api
+npm run seed --workspace=apps/api
+npm run typecheck --workspace=apps/api
+npm test --workspace=apps/api
+npm run build --workspace=apps/api
+```
+
 ### 3. Lancer en developpement
 
 ```bash

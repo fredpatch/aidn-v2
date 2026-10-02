@@ -1,0 +1,103 @@
+name: Migration Integrity
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  migration-integrity:
+    name: Migration Integrity (apps/api)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # Fresh, disposable per run - GitHub Actions service containers never
+    # persist between jobs, and none of this job's steps cache DB state.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: aidn_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/aidn_ci
+      # Disposable CI-only placeholders - nothing in this job's path
+      # (migrate/status/typecheck/test/build/seed) performs a real sign or
+      # a real outbound SMTP/third-party call. No GitHub secret is required.
+      JWT_SECRET: ci-placeholder-jwt-secret
+      JWT_REFRESH_SECRET: ci-placeholder-jwt-refresh-secret
+      PERSONNEL_ANAC_ENFORCE: 'false'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate migration SQL/journal consistency
+        run: npm run db:check:committed --workspace=apps/api
+
+      - name: Validate committed schema snapshot (db:generate)
+        run: npm run db:check:replayable --workspace=apps/api
+
+      - name: Run migrations - first pass
+        run: npm run db:migrate --workspace=apps/api
+
+      - name: Capture migration bookkeeping count (before second pass)
+        id: count_before
+        run: |
+          COUNT=$(PGPASSWORD=postgres psql -h localhost -U postgres -d aidn_ci -tAc "SELECT count(*) FROM drizzle.__drizzle_migrations")
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+
+      - name: Run migrations - second pass
+        run: npm run db:migrate --workspace=apps/api
+
+      - name: Assert migration count unchanged (second pass is a no-op)
+        run: |
+          COUNT_AFTER=$(PGPASSWORD=postgres psql -h localhost -U postgres -d aidn_ci -tAc "SELECT count(*) FROM drizzle.__drizzle_migrations")
+          echo "Before: ${{ steps.count_before.outputs.count }}, after: $COUNT_AFTER"
+          if [ "${{ steps.count_before.outputs.count }}" != "$COUNT_AFTER" ]; then
+            echo "Second db:migrate run was not a no-op (migration count changed)." >&2
+            exit 1
+          fi
+
+      - name: db:status --check
+        run: npm run db:status --workspace=apps/api -- --check
+
+      - name: Seed system parameters
+        run: npm run seed:params --workspace=apps/api
+
+      - name: Seed reference data
+        run: npm run seed --workspace=apps/api
+
+      - name: API typecheck
+        run: npm run typecheck --workspace=apps/api
+
+      - name: API tests
+        run: npm test --workspace=apps/api
+
+      - name: API build
+        run: npm run build --workspace=apps/api

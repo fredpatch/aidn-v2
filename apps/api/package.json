@@ -12,6 +12,8 @@
     "db:migrate": "npx tsx src/scripts/migrate.ts",
     "db:status": "npx tsx src/scripts/db-status.ts",
     "db:reset:dev": "npx tsx src/scripts/db-reset-dev.ts",
+    "db:check:committed": "npx tsx src/scripts/check-migrations-committed.ts",
+    "db:check:replayable": "npx tsx src/scripts/check-migrations-replayable.ts",
     "db:studio": "drizzle-kit studio --config drizzle.config.ts",
     "seed": "npx tsx src/scripts/seed-reference-data.ts",
     "seed:params": "npx tsx src/scripts/seed-system-parameters.ts",

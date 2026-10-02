@@ -4,7 +4,12 @@
  *  hashing/ordering, instead of re-implementing a second interpretation of
  *  migration history that could silently drift from the real runner.
  *
- *  Run: npx tsx src/scripts/db-status.ts  (or `npm run db:status`) */
+ *  MIGRATION-INTEGRITY-CI - `--check` keeps the default (always exit 0,
+ *  human-reading) behavior untouched; it only adds a non-zero exit when
+ *  pending or unknown/stale counts are above zero, so CI can gate on the
+ *  exit code instead of parsing this script's console output.
+ *
+ *  Run: npx tsx src/scripts/db-status.ts [--check]  (or `npm run db:status`) */
 import 'dotenv/config';
 import { readMigrationFiles } from 'drizzle-orm/migrator';
 import { Pool } from 'pg';
@@ -23,6 +28,7 @@ async function tableExists(pool: Pool): Promise<boolean> {
 }
 
 async function run(): Promise<void> {
+  const checkMode = process.argv.includes('--check');
   const repoMigrations = readMigrationFiles({ migrationsFolder: './drizzle' });
 
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -54,6 +60,11 @@ async function run(): Promise<void> {
 
     if (!hasTable) {
       console.log('\ndrizzle.__drizzle_migrations does not exist yet - no migrations have ever been applied to this database.');
+    }
+
+    if (checkMode && (pending.length > 0 || unknown.length > 0)) {
+      console.log('\n--check: unhealthy (pending or unknown/stale migrations present).');
+      process.exitCode = 1;
     }
   } finally {
     await pool.end();
