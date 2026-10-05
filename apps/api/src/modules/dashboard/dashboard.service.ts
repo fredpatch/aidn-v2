@@ -86,6 +86,7 @@ const RECEPTION_CIRCUIT_ACTION_LABELS: Record<string, string> = {
 const RECEPTION_CIRCUIT_SOURCE_LABELS: Record<string, string> = {
   intake_request: 'Demande initiale',
   formal_request_letter: 'Lettre formelle',
+  pre_evaluation: 'Déclaration de pré-évaluation',
 };
 
 const DASHBOARD_SLA_DEFAULTS = {
@@ -771,7 +772,7 @@ export async function getDashboardSummary(
         {
           id: `circuit-${circuit.id}`,
           owner:
-            circuit.entityType === 'formal_request_letter'
+            circuit.entityType === 'formal_request_letter' || circuit.entityType === 'pre_evaluation'
               ? 'Reception / Assistant DG'
               : 'Reception',
           responsibleService: 'Circuit signature',

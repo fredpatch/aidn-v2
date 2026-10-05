@@ -247,6 +247,11 @@ export const handlePhasesError = createErrorHandler(
       message:
         "Le postulant doit d'abord retourner sa declaration de pre-evaluation remplie avant de cloturer la phase.",
     },
+    PRELIMINARY_DG_RETURN_REQUIRED: {
+      status: 409,
+      message:
+        "La declaration de pre-evaluation doit d'abord revenir signee/visee par la DG (circuit courrier) avant de cloturer la phase.",
+    },
     ...UPLOAD_ATTACH_ERRORS,
   },
   '[phases]'
@@ -299,6 +304,10 @@ export const handlePreliminaryEvaluationError = createErrorHandler(
     NOT_YET_AVAILABLE: {
       status: 409,
       message: "La declaration n'a pas encore ete mise a disposition par la DN.",
+    },
+    DECLARATION_ALREADY_SUBMITTED: {
+      status: 409,
+      message: 'La declaration de pre-evaluation a deja ete soumise.',
     },
     ...UPLOAD_ATTACH_ERRORS,
   },

@@ -6,6 +6,7 @@ import {
   documentVersions,
   meetings,
   preliminaryEvaluationForms,
+  dgCircuitDocuments,
 } from '../../shared/db/schema.js';
 import { logAudit } from '../auth/auth.service.js';
 import {
@@ -167,13 +168,38 @@ export async function closePhase(
       throw new Error('MEETING_NOT_RESOLVED');
     }
 
-    const [evaluation] = await tx
-      .select()
-      .from(preliminaryEvaluationForms)
-      .where(eq(preliminaryEvaluationForms.phaseId, phaseId));
+    // PRELIM-DG-CIRCUIT-1 - explicitly scoped to M3 (the only phase this
+    // generic close endpoint is actually wired to today, per the admin
+    // preliminary-phase client) so a future caller closing another phase
+    // through this same shared service can never silently inherit the
+    // declaration/circuit requirement below.
+    if (phase.phaseCode === 'M3') {
+      const [evaluation] = await tx
+        .select()
+        .from(preliminaryEvaluationForms)
+        .where(eq(preliminaryEvaluationForms.phaseId, phaseId));
 
-    if (!evaluation || !evaluation.submittedFileUrl) {
-      throw new Error('DECLARATION_NOT_SUBMITTED');
+      if (!evaluation || !evaluation.submittedFileUrl) {
+        throw new Error('DECLARATION_NOT_SUBMITTED');
+      }
+
+      // The declaration alone is not enough to close: it must also have
+      // completed the DG signature circuit (print -> signature -> signed
+      // scan returned) - applicant submission alone must never make M3
+      // closable (the bug this task fixes).
+      const [circuit] = await tx
+        .select()
+        .from(dgCircuitDocuments)
+        .where(
+          and(
+            eq(dgCircuitDocuments.entityType, 'pre_evaluation'),
+            eq(dgCircuitDocuments.requestId, phase.requestId)
+          )
+        );
+
+      if (!circuit || circuit.status !== 'pending_review') {
+        throw new Error('PRELIMINARY_DG_RETURN_REQUIRED');
+      }
     }
 
     if (attachment) {

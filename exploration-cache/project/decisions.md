@@ -126,3 +126,23 @@ request. Now it reads `Origin` and checks the matching cookie (staff vs. applica
 first, falling back to the other only if that one's absent or invalid - with the
 old staff-first behavior preserved as a fallback for requests with no recognizable
 `Origin` (curl, server-to-server, Postman).
+
+## 14. DG circuit documents get their own physical file copy, never a shared `upload_assets` row
+
+Found during PRELIM-DG-CIRCUIT-1: M3's applicant declaration could close the phase
+without ever going through the mandatory DG signature circuit, because
+`closePhase()` only checked the applicant's own form field. Fixing it meant giving
+the DG circuit (`dg_circuit_documents`, `entityType='pre_evaluation'`) its own
+document identity alongside the applicant's - but `upload_assets.linkedOwnerType`/
+`linkedOwnerId` supports exactly one linked owner per asset, ever (`linkLockedAsset`'s
+`WHERE isNull(linkedOwnerType)` guard), and file-access authorization
+(`file-access.policy.ts`) resolves purely from that single link: the M3 stage grants
+DN only, while only the `dg_circuit` stage grants Reception/Assistant DG. Sharing one
+`upload_assets` row between the applicant's document and the circuit's document was
+therefore not an option - whoever "owned" the link would determine who could read the
+file, and no single owner type grants both DN and Reception/Assistant DG access.
+Resolved by copying the file server-side on submission (STORAGE-3B/3C pattern: write
+to disk under `generated/...` before the transaction, `insertAssetWithAddress` inside
+it, `cleanupGeneratedFileOnFailure` on any rollback) into a second, independent
+`upload_assets` row owned by the circuit document. Verified in the runtime UAT that
+the applicant's asset and the circuit's asset always get distinct ids.

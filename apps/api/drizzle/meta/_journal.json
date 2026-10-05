@@ -22,6 +22,13 @@
       "when": 1790772857414,
       "tag": "0002_version_current_discipline",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791194929217,
+      "tag": "0003_parallel_shocker",
+      "breakpoints": true
     }
   ]
 }

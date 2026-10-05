@@ -1,4 +1,4 @@
-export type CourrierTaskSource = 'intake_request' | 'formal_request_letter';
+export type CourrierTaskSource = 'intake_request' | 'formal_request_letter' | 'pre_evaluation';
 
 export type CourrierTaskBucket =
   | 'to_signature'

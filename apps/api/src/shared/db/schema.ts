@@ -44,6 +44,7 @@ export const dgCircuitStatusEnum = pgEnum('dg_circuit_status', [
 export const dgCircuitEntityTypeEnum = pgEnum('dg_circuit_entity_type', [
   'intake_request',
   'formal_request_letter',
+  'pre_evaluation', // M3 - PRELIM-DG-CIRCUIT-1
 ]);
 
 /** Overall dossier status - includes terminal states not part of the DG circuit.

@@ -207,7 +207,7 @@ export interface ReceptionDashboardMetric {
 export interface ReceptionDashboardCourrierItem {
   id: string;
   circuitId: number;
-  entityType: 'intake_request' | 'formal_request_letter';
+  entityType: 'intake_request' | 'formal_request_letter' | 'pre_evaluation';
   sourceLabel: string;
   requestId: number;
   requestReference: string;

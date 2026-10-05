@@ -118,6 +118,7 @@ export default function PreliminaryPhasePage() {
             <DeclarationCard
               phaseId={bundle.phase.id}
               evaluation={bundle.evaluation}
+              circuit={bundle.circuit}
               meetingHeld={bundle.meeting?.status === 'held'}
               requestId={requestId}
               setActionError={setActionError}

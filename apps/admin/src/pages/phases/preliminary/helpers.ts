@@ -25,6 +25,10 @@ export function buildChecklist(bundle: PreliminaryBundle): ChecklistItem[] {
       done: !!bundle.evaluation?.submittedFileUrl,
     },
     {
+      label: 'Retour signe / vise DG recu',
+      done: bundle.circuit?.status === 'pending_review',
+    },
+    {
       label: 'Phase cloturee',
       done: bundle.phase?.status === 'closed',
     },
@@ -39,8 +43,16 @@ export function isDeclarationSubmitted(bundle: PreliminaryBundle | null): boolea
   return !!bundle?.evaluation?.submittedFileUrl;
 }
 
+/** PRELIM-DG-CIRCUIT-1 - the declaration must also have completed the DG
+ *  signature circuit; applicant submission alone must never make M3
+ *  closable. Mirrors the backend guard (phases.service.ts::closePhase) -
+ *  this is UI feedback only, the backend remains authoritative. */
+export function isCircuitReturned(bundle: PreliminaryBundle | null): boolean {
+  return bundle?.circuit?.status === 'pending_review';
+}
+
 export function canClosePreliminaryPhase(bundle: PreliminaryBundle | null): boolean {
-  return isMeetingResolved(bundle) && isDeclarationSubmitted(bundle);
+  return isMeetingResolved(bundle) && isDeclarationSubmitted(bundle) && isCircuitReturned(bundle);
 }
 
 export function preliminaryWorkflowSummary(
@@ -108,6 +120,22 @@ export function preliminaryWorkflowSummary(
       metrics: [
         { label: 'Réunion', value: 'Résolue' },
         { label: 'Déclaration', value: bundle.evaluation?.madeAvailableAt ? 'En attente' : '-' },
+        { label: 'Compte-rendu', value: reportStatus },
+      ],
+    };
+  }
+
+  if (bundle.circuit?.status !== 'pending_review') {
+    return {
+      title: 'Circuit DG en cours',
+      description: 'La déclaration retournée doit revenir signée/visée par la DG avant de clôturer la phase.',
+      owner: 'Réception / Assistant DG',
+      tone: 'info',
+      phaseStatus,
+      blockReason,
+      metrics: [
+        { label: 'Réunion', value: 'Résolue' },
+        { label: 'Déclaration', value: 'Retournée' },
         { label: 'Compte-rendu', value: reportStatus },
       ],
     };

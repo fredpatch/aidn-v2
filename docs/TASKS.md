@@ -327,6 +327,41 @@ build + flow complet contre un vrai Postgres). Détail complet dans
 - [x] Ajout d'un scaffold de tests helpers (`helpers.test.ts`) pour valider
       la logique pure de checklist/gating M3
 
+### Correctif PRELIM-DG-CIRCUIT-1 (2026-10-05) - circuit DG obligatoire avant clôture M3
+
+Défaut métier confirmé : la déclaration de pré-évaluation du postulant rendait la
+phase M3 clôturable sans jamais passer par le circuit physique de signature DG
+(Réception/Assistant DG), alors que `closePhase()` ne vérifiait que
+`preliminaryEvaluationForms.submittedFileUrl`, sans aucune connaissance du circuit.
+
+- [x] Ajout de `pre_evaluation` à `dg_circuit_entity_type` (migration additive,
+      `entityType=pre_evaluation` + `requestId` existant, pas de nouvelle table,
+      pas de nouvelle colonne FK)
+- [x] La soumission du postulant crée désormais, dans la même transaction, à la
+      fois son propre document et l'identité propre du circuit DG - avec une
+      **copie physique serveur** du fichier (jamais le même `upload_assets` que
+      le postulant), car `upload_assets.linkedOwnerType` ne supporte qu'un seul
+      propriétaire lié et l'autorisation d'accès fichier se résout uniquement par
+      ce lien (le stage M3 n'autorise que DN, seul le stage `dg_circuit` autorise
+      Réception/Assistant DG) - voir `project/decisions.md`
+- [x] Règle "un seul envoi" : une deuxième soumission de la déclaration est
+      bloquée (`DECLARATION_ALREADY_SUBMITTED`, 409), y compris avant démarrage
+      du circuit
+- [x] Extension générique de `courrier-tasks` (source `pre_evaluation`, aucune
+      nouvelle corbeille/action) pour que Réception/Assistant DG traitent ce
+      circuit via l'inbox `Courriers à traiter` existante
+- [x] Garde de clôture M3 : réunion résolue ET déclaration soumise ET circuit
+      existant ET `circuit.status === 'pending_review'`, sinon
+      `PRELIMINARY_DG_RETOUR_REQUIRED` (409) - explicitement scopé à
+      `phase.phaseCode === 'M3'`, sans impact sur les autres phases
+- [x] UI DN (`DeclarationCard`) : statut du circuit en lecture seule + lien vers
+      le retour signé une fois `pending_review` ; UI portail recentrée sur le
+      traitement ANAC sans exposer le circuit DG interne
+- [x] Validé par un scénario UAT complet en conditions réelles (DB jetable,
+      serveur réel, JWT réels, 5 acteurs) : copie applicant/circuit/retour-signé
+      systématiquement sur 3 `upload_assets` distincts, accès fichier correct
+      par rôle, M4 atteignable immédiatement après clôture M3
+
 ### Convention frontend data-layer (adoptée le 2026-07-09)
 
 - [x] Les appels API métier ne sont plus faits directement dans les pages :

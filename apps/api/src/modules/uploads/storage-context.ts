@@ -67,7 +67,9 @@ export function isRelocatableOwnerType(ownerType: string): ownerType is UploadOw
 /** Injectable lookups, one per owner type that needs a join - kept as plain
  *  functions so tests can supply fixtures without a database. */
 export interface StorageContextDeps {
-  dgCircuitDocument: (id: number) => Promise<{ entityType: 'intake_request' | 'formal_request_letter'; reference: string } | undefined>;
+  dgCircuitDocument: (
+    id: number
+  ) => Promise<{ entityType: 'intake_request' | 'formal_request_letter' | 'pre_evaluation'; reference: string } | undefined>;
   formalRequestDocument: (id: number) => Promise<{ slot: string; reference: string } | undefined>;
   preliminaryEvaluationForm: (id: number) => Promise<{ reference: string } | undefined>;
   payment: (id: number) => Promise<{ reference: string; phaseCode: PhaseFolderCode } | undefined>;
@@ -158,7 +160,8 @@ export async function resolveStorageContext(
     case 'dg_circuit_document': {
       const row = await deps.dgCircuitDocument(ownerId);
       if (!row) return null;
-      const phase: PhaseFolderCode = row.entityType === 'intake_request' ? 'M1' : 'M4';
+      const phase: PhaseFolderCode =
+        row.entityType === 'intake_request' ? 'M1' : row.entityType === 'pre_evaluation' ? 'M3' : 'M4';
       return { requestReference: row.reference, phaseFolder: PHASE_FOLDERS[phase], categorySlug: 'circuit-dg' };
     }
 

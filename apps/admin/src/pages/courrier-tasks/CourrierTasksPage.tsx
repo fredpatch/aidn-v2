@@ -54,6 +54,7 @@ import { cn } from '../../lib/utils';
 const SOURCE_LABELS: Record<string, string> = {
   intake_request: 'Demande initiale',
   formal_request_letter: 'Lettre formelle',
+  pre_evaluation: 'Déclaration de pré-évaluation',
 };
 
 const BUCKET_LABELS: Record<CourrierTaskBucket | 'all', string> = {

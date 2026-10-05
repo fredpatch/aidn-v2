@@ -24,7 +24,11 @@ import type {
   CourrierTaskView,
 } from './courrier-tasks.types.js';
 
-const MANAGED_ENTITY_TYPES: CourrierTaskSource[] = ['intake_request', 'formal_request_letter'];
+const MANAGED_ENTITY_TYPES: CourrierTaskSource[] = [
+  'intake_request',
+  'formal_request_letter',
+  'pre_evaluation',
+];
 
 function parseTaskId(taskId: string): { source: CourrierTaskSource; requestId: number } {
   const [source, rawRequestId] = taskId.split(':');
@@ -38,6 +42,12 @@ function parseTaskId(taskId: string): { source: CourrierTaskSource; requestId: n
   }
 
   return { source: source as CourrierTaskSource, requestId };
+}
+
+function moduleForEntityType(entityType: string): string {
+  if (entityType === 'formal_request_letter') return 'M4';
+  if (entityType === 'pre_evaluation') return 'M3';
+  return 'M1';
 }
 
 function bucketForStatus(status: string): CourrierTaskBucket {
@@ -122,12 +132,14 @@ async function getCircuitForTask(taskId: string) {
 }
 
 async function ensureTaskCanMutate(circuit: typeof dgCircuitDocuments.$inferSelect): Promise<void> {
-  if (circuit.entityType !== 'formal_request_letter') return;
+  const phaseCode =
+    circuit.entityType === 'formal_request_letter' ? 'M4' : circuit.entityType === 'pre_evaluation' ? 'M3' : null;
+  if (!phaseCode) return;
 
   const [phase] = await db
     .select()
     .from(phases)
-    .where(and(eq(phases.requestId, circuit.requestId), eq(phases.phaseCode, 'M4')));
+    .where(and(eq(phases.requestId, circuit.requestId), eq(phases.phaseCode, phaseCode)));
   if (!phase) throw new Error('PHASE_NOT_FOUND');
   if (phase.status !== 'open') throw new Error('PHASE_NOT_OPEN');
 }
@@ -183,7 +195,7 @@ export async function confirmPrintedForSignature(
   await logAudit({
     userId: actorUserId,
     action: 'COURRIER_SENT_TO_SIGNATURE',
-    module: updated.entityType === 'formal_request_letter' ? 'M4' : 'M1',
+    module: moduleForEntityType(updated.entityType),
     entityId: updated.id,
     details: { requestId: updated.requestId, entityType: updated.entityType },
   });
@@ -234,7 +246,7 @@ export async function returnSigned(
       {
         userId: actorUserId,
         action: 'COURRIER_SIGNED_RETURNED',
-        module: signed.entityType === 'formal_request_letter' ? 'M4' : 'M1',
+        module: moduleForEntityType(signed.entityType),
         entityId: signed.id,
         details: { requestId: signed.requestId, entityType: signed.entityType },
       },

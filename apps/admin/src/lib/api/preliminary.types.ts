@@ -25,9 +25,20 @@ export interface EvaluationView {
   submittedAt: string | null;
 }
 
+export type PreliminaryCircuitStatus = 'submitted' | 'in_signature_circuit' | 'signed' | 'pending_review';
+
+export interface PreliminaryCircuitView {
+  status: PreliminaryCircuitStatus | string;
+  fileUrl: string | null;
+  signatureSentAt: string | null;
+  signedAt: string | null;
+  pendingReviewAt: string | null;
+}
+
 export interface PreliminaryBundle {
   phase: PhaseView | null;
   meeting: MeetingView | null;
   evaluation: EvaluationView | null;
+  circuit: PreliminaryCircuitView | null;
 }
 

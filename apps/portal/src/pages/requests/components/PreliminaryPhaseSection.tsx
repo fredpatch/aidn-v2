@@ -59,8 +59,8 @@ function buildPreliminaryPresentation(bundle: PreliminaryBundle) {
     description = 'Votre dossier passe a la phase suivante du traitement.';
     tone = 'success';
   } else if (declarationSubmitted) {
-    title = 'Declaration recue';
-    description = "Votre declaration remplie a ete transmise a l'ANAC.";
+    title = 'Formulaire transmis';
+    description = "Votre declaration est en cours de traitement par l'ANAC.";
     tone = 'success';
   } else if (declarationAvailable) {
     title = 'Action requise';
@@ -280,10 +280,10 @@ export function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
               <div className="flex items-start gap-2">
                 <FileCheck2 size={16} className="mt-0.5 text-anac-success" aria-hidden="true" />
                 <div>
-                  <p className="text-sm font-medium text-anac-navy">Declaration soumise</p>
+                  <p className="text-sm font-medium text-anac-navy">Formulaire transmis</p>
                   <p className="text-xs text-anac-muted">
-                    Transmise le {formatDate(evaluation?.submittedAt)}. L'ANAC poursuit le
-                    traitement.
+                    Transmis le {formatDate(evaluation?.submittedAt)}. Votre declaration est en
+                    cours de traitement par l'ANAC.
                   </p>
                 </div>
               </div>
