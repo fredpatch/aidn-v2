@@ -14,7 +14,6 @@ const router = Router();
 router.get(
   '/by-request/:requestId',
   authenticateEither,
-  requireApplicant,
   requireApplicantOrRole('dn_agent', 'dn_supervisor', 'SU'),
   formalController.getBundle
 );
@@ -32,7 +31,6 @@ router.post(
 router.post(
   '/requests/:requestId/letter',
   authenticateEither,
-  requireApplicant,
   requireApplicantOrRole('dn_agent', 'dn_supervisor', 'SU'),
   formalController.submitLetter
 );

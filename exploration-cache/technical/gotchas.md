@@ -235,3 +235,28 @@ back to the other cookie only if the preferred one is absent or invalid. Request
 with no recognized `Origin` (server-to-server, curl, Postman) keep the previous
 staff-first behaviour. New env var `PORTAL_ORIGIN` required for this to work in
 non-dev environments - confirm it's set alongside the others in `.env`.
+
+## 20. `requireApplicant` and `requireApplicantOrRole` are mutually exclusive, not stackable
+
+**Symptom** (M4-START-AUTH-1): DN opening the M4 workspace right after M3 closed
+got `"Accès réservé au portail postulant."` instead of the "Démarrer la Phase"
+button, even though the backend's open-phase logic and the admin UI's empty-state
+were both already correct.
+**Cause**: `formal-request.route.ts`'s shared bundle GET and formal-letter POST
+stacked `requireApplicant, requireApplicantOrRole(dn_agent, dn_supervisor, SU)` on
+the same route. `requireApplicant` (`apps/api/src/shared/guards/auth.middleware.ts`)
+is documented for "portal-only write actions" and unconditionally 403s/short-circuits
+any request where `req.applicant` is unset - i.e. every staff session - before
+`requireApplicantOrRole` ever runs. The two middlewares are mutually exclusive
+gates: `requireApplicant` already filters out everyone but applicants, so a role
+list passed to `requireApplicantOrRole` placed after it is dead code for staff.
+**Fix**: use `requireApplicantOrRole(...)` alone after `authenticateEither` for any
+route meant to be shared between applicant and staff - this is the pattern M3, M5,
+M6, M7 and meetings already use correctly. `requireApplicant` is only correct when
+used by itself, for a route that must truly be applicant-only.
+**Residual risk**: the same route file documented (in code comments) staff-on-behalf
+access on 4 sibling "proof of payment"/"resubmit" routes in M5/M6/M7 that use
+`requireApplicant` alone with no `requireApplicantOrRole` fallback at all - so those
+comments may be aspirational rather than implemented. Flagged, not yet fixed -
+needs its own audit before touching, since later hardening may have deliberately
+made those applicant-only.

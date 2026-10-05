@@ -459,6 +459,34 @@ Voir `exploration-cache/technical/gotchas.md` pour le détail complet.
 - [x] Conflit agenda réunion corrigé : seuls les rendez-vous encore `scheduled`
       occupent un créneau ; migration `0003_meeting_active_slot_index.sql`
 
+### Correctif M4-START-AUTH-1 (2026-10-05) - accès DN/SU bloqué sur le bundle M4
+
+Bloqueur confirmé en UAT juste après la clôture M3 : DN ouvrant la phase M4
+recevait `"Accès réservé au portail postulant."` au lieu de voir
+`"Démarrer la Phase - Demande Formelle"`, bien que `openFormalPhase()` et l'écran
+de démarrage existent déjà et soient corrects.
+
+- [x] Cause : `GET /formal-request/by-request/:requestId` et
+      `POST /formal-request/requests/:requestId/letter` empilaient
+      `requireApplicant` devant `requireApplicantOrRole(...)` - `requireApplicant`
+      (prévu pour des écritures strictement portail) rejette tout acteur staff
+      avant que le contrôle de rôle ne s'exécute, rendant la liste de rôles
+      permise totalement inopérante
+- [x] Correction minimale : suppression de `requireApplicant` sur ces deux routes,
+      alignement sur le pattern déjà utilisé par M3/M5/M6/M7/réunions
+      (`authenticateEither, requireApplicantOrRole(...)` seul) - aucun changement
+      de `checkApplicantOwnership()`, de service, de schéma ni de frontend
+- [x] Effet de bord corrigé en même temps (même cause) : la soumission de la
+      lettre officielle "au nom du postulant" par DN/SU depuis l'admin, déjà
+      prévue par le code/l'UI existants, était elle aussi bloquée
+- [x] 4 routes "preuve de paiement"/"resoumission" (M5/M6/M7) présentent un
+      écart comparable entre commentaire et code (staff-on-behalf documenté
+      mais non câblé) - identifiées mais volontairement non corrigées ici,
+      à auditer séparément
+- [x] Validé par un scénario UAT complet (DB jetable, serveur réel) : lecture
+      DN/SU/postulant propriétaire/postulant tiers/rôle non autorisé, démarrage
+      M4, 11 créneaux, soumission de lettre par DN et par le postulant - 15/15
+
 ### Sprint 3 - avancement frontend admin (2026-07-09, en cours)
 
 - [x] Route admin M4 ajoutée : `/demandes/:requestId/phase-formelle`
