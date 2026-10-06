@@ -5,6 +5,7 @@ import { Button } from '../ui/button';
 const NAV_ITEMS = [
   { to: '/', label: 'Tableau de bord', end: true },
   { to: '/dossiers', label: 'Mes dossiers', end: false },
+  { to: '/reunions', label: 'Mes réunions', end: false },
   { to: '/compte', label: 'Mon compte', end: false },
 ];
 

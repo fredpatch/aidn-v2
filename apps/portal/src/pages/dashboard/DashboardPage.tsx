@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { FileText, History, UserCircle } from 'lucide-react';
 import { useApplicantAuth } from '../../hooks/useApplicantAuth';
 import { useMyRequests } from '../requests/hooks/useMyRequests';
+import { NextMeetingCard } from '../../components/meetings/NextMeetingCard';
 import { REQUEST_TYPE_LABELS, TERMINAL_STATUSES, labelOf } from '../requests/constants';
 
 export default function DashboardPage() {
@@ -30,6 +31,8 @@ export default function DashboardPage() {
           </button>
         </div>
       )}
+
+      <NextMeetingCard />
 
       <div className="grid md:grid-cols-3 gap-4">
         <DashboardAction

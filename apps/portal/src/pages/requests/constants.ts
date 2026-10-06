@@ -30,6 +30,12 @@ export const MEETING_STATUS_LABELS: Record<string, string> = {
   file_cancelled: 'Dossier annulé',
 };
 
+export const MEETING_TYPE_LABELS: Record<string, string> = {
+  preliminary: 'Réunion préliminaire',
+  formal: 'Réunion formelle',
+  site_visit: 'Visite sur site',
+};
+
 /** payment_proof_status (shared by M5 / M6 / M7 payments). */
 export const PAYMENT_STATUS_LABELS: Record<string, string> = {
   awaiting_invoice: 'Facture en préparation',

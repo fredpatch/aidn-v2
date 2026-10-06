@@ -1,6 +1,7 @@
 import FileLink from '../files/FileLink';
 import { MEETING_STATUS_LABELS, labelOf } from '../../pages/requests/constants';
 import { formatDateTime } from '../../lib/format';
+import { meetingTicketHref } from '../../lib/api/meetings.api';
 
 export function isMeetingResolved(status: string | undefined): boolean {
   return status === 'held' || status === 'no_show' || status === 'file_cancelled';
@@ -41,7 +42,7 @@ export function MeetingDetails({
       </p>
       {meeting.id !== undefined && meeting.status === 'scheduled' && (
         <a
-          href={`/api/meetings/${meeting.id}/ticket`}
+          href={meetingTicketHref(meeting.id)}
           target="_blank"
           rel="noreferrer"
           className="btn-secondary inline-flex rounded px-3 py-1.5 text-xs"

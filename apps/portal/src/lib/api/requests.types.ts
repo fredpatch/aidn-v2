@@ -82,6 +82,7 @@ export interface SiteInspectionBundle {
   phase: { id: number; status: string } | null;
   payment: PaymentInfo | null;
   siteVisit: {
+    id: number;
     scheduledAt: string;
     location: string | null;
     status: string;

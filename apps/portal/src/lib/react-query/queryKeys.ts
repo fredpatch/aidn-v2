@@ -7,4 +7,7 @@ export const queryKeys = {
     /** One phase bundle of one dossier (M3 préliminaire ... M7 délivrance). */
     phase: (requestId: number, code: PhaseCode) => ['requests', requestId, 'phase', code] as const,
   },
+  meetings: {
+    mine: () => ['meetings', 'mine'] as const,
+  },
 };

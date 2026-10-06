@@ -7,6 +7,7 @@ import NewRequestPage from "./pages/requests/NewRequestPage";
 import DossiersPage from "./pages/dossiers/DossiersPage";
 import DossierPage from "./pages/dossiers/DossierPage";
 import AccountPage from "./pages/account/AccountPage";
+import MeetingsPage from "./pages/meetings/MeetingsPage";
 
 function Gate() {
   const { applicant, loading, logout } = useApplicantAuth();
@@ -32,6 +33,7 @@ function Gate() {
           <Route path="/dossiers" element={<DossiersPage />} />
           <Route path="/dossiers/:id" element={<DossierPage />} />
           <Route path="/demande" element={<NewRequestPage />} />
+          <Route path="/reunions" element={<MeetingsPage />} />
           <Route path="/compte" element={<AccountPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
