@@ -53,6 +53,51 @@ export interface FormalBundle {
   completionRate: number;
 }
 
+/** Payment slot shared by M5 / M6 / M7 bundles (status = payment_proof_status). */
+export interface PaymentInfo {
+  id: number;
+  status: string;
+  invoiceFileUrl: string | null;
+  proofFileUrl: string | null;
+  rejectionReason: string | null;
+}
+
+export type EvaluationVerdict = 'validated' | 'rejected' | 'needs_correction' | null;
+
+export interface DeepEvaluationBundle {
+  phase: { id: number; status: string } | null;
+  payment: PaymentInfo | null;
+  evaluations: Array<{
+    id: number;
+    slot: string;
+    label: string;
+    currentFileUrl: string | null;
+    verdict: EvaluationVerdict;
+    correctionDeadline: string | null;
+  }>;
+  completionRate: { total: number; validated: number };
+}
+
+export interface SiteInspectionBundle {
+  phase: { id: number; status: string } | null;
+  payment: PaymentInfo | null;
+  siteVisit: {
+    scheduledAt: string;
+    location: string | null;
+    status: string;
+  } | null;
+}
+
+export interface CertificatesBundle {
+  phase: { id: number; status: string } | null;
+  payment: PaymentInfo | null;
+  certificate: {
+    status: string;
+    notifiedAt: string | null;
+    collectedAt: string | null;
+  } | null;
+}
+
 export interface SubmitMyRequestInput {
   requestType: string;
   message: string;

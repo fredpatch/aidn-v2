@@ -1,13 +1,5 @@
 import { useEffect, useState } from 'react';
-import {
-  CalendarClock,
-  CheckCircle2,
-  Circle,
-  ClipboardList,
-  FileCheck2,
-  FileText,
-  UploadCloud,
-} from 'lucide-react';
+import { CalendarClock, CheckCircle2, Circle, ClipboardList, FileCheck2, FileText, UploadCloud } from 'lucide-react';
 import { apiErrorMessage } from '../../../lib/axios';
 import { notify } from '../../../lib/notify';
 import {
@@ -18,24 +10,12 @@ import {
 } from '../../../lib/api/requests.api';
 import type { FormalBundle, FormalDoc } from '../../../lib/api/requests.types';
 import { MEETING_STATUS_LABELS, labelOf } from '../constants';
+import { formatDateTime } from '../../../lib/format';
 import FileLink from '../../../components/files/FileLink';
-
-type StepState = 'done' | 'current' | 'waiting';
-
-function formatDateTime(value: string | null | undefined): string {
-  if (!value) return '-';
-  return new Date(value).toLocaleString('fr-FR');
-}
-
-function isMeetingResolved(status: string | undefined): boolean {
-  return status === 'held' || status === 'no_show' || status === 'file_cancelled';
-}
-
-function stepState(done: boolean, current: boolean): StepState {
-  if (done) return 'done';
-  if (current) return 'current';
-  return 'waiting';
-}
+import { PhaseSummaryCard, type PhaseTone } from '../../../components/request/PhaseSummaryCard';
+import { PhaseStep, stepState } from '../../../components/request/PhaseStep';
+import { SectionCard } from '../../../components/request/SectionCard';
+import { MeetingDetails, isMeetingResolved } from '../../../components/request/MeetingDetails';
 
 function letterLabel(status: string | undefined): string {
   if (!status) return 'À déposer';
@@ -58,7 +38,7 @@ function buildFormalPresentation(bundle: FormalBundle) {
   let title = 'Demande formelle ouverte';
   let description =
     "Cette phase rassemble votre lettre officielle, les pièces du dossier et la réunion formelle.";
-  let tone: 'info' | 'warning' | 'success' | 'muted' = 'info';
+  let tone: PhaseTone = 'info';
 
   if (phaseClosed) {
     title = 'Demande formelle clôturée';
@@ -205,45 +185,20 @@ export function FormalPhaseSection({ requestId }: { requestId: number }) {
 
   return (
     <section className="border-t border-anac-border pt-4 mt-4 space-y-4">
-      <div
-        className={`rounded-lg border p-4 ${
-          presentation.tone === 'warning'
-            ? 'border-anac-warning/40 bg-anac-warning/5'
-            : presentation.tone === 'success'
-              ? 'border-anac-success/30 bg-anac-success/5'
-              : 'border-anac-border bg-white'
-        }`}
+      <PhaseSummaryCard
+        phaseLabel="Demande formelle"
+        title={presentation.title}
+        description={presentation.description}
+        tone={presentation.tone}
+        closed={phaseClosed}
       >
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold text-anac-navy">Demande formelle</p>
-            <h3 className="mt-1 text-base font-semibold text-anac-navy">{presentation.title}</h3>
-            <p className="mt-1 text-sm text-anac-muted">{presentation.description}</p>
-          </div>
-          <span
-            className={`rounded px-2 py-0.5 text-[11px] font-medium ${
-              phaseClosed
-                ? 'bg-anac-success/10 text-anac-success'
-                : 'bg-anac-info/10 text-anac-info'
-            }`}
-          >
-            {phaseClosed ? 'Clôturée' : 'En cours'}
-          </span>
-        </div>
-
-        <div className="mt-4 grid gap-2 md:grid-cols-3">
-          {presentation.steps.map((step) => (
-            <PhaseStep key={step.key} label={step.label} detail={step.detail} state={step.state} />
-          ))}
-        </div>
-      </div>
+        {presentation.steps.map((step) => (
+          <PhaseStep key={step.key} label={step.label} detail={step.detail} state={step.state} />
+        ))}
+      </PhaseSummaryCard>
 
       <div className="grid gap-3 md:grid-cols-2">
-        <div className="rounded-lg border border-anac-border bg-white p-4">
-          <div className="flex items-center gap-2 text-anac-navy">
-            <FileText size={16} aria-hidden="true" />
-            <p className="text-sm font-semibold">Lettre de demande officielle</p>
-          </div>
+        <SectionCard icon={FileText} title="Lettre de demande officielle">
 
           {!bundle.letterCircuit ? (
             <div className="mt-3 space-y-3">
@@ -286,13 +241,9 @@ export function FormalPhaseSection({ requestId }: { requestId: number }) {
               </div>
             </div>
           )}
-        </div>
+        </SectionCard>
 
-        <div className="rounded-lg border border-anac-border bg-white p-4">
-          <div className="flex items-center gap-2 text-anac-navy">
-            <CalendarClock size={16} aria-hidden="true" />
-            <p className="text-sm font-semibold">Réunion formelle</p>
-          </div>
+        <SectionCard icon={CalendarClock} title="Réunion formelle">
 
           {!bundle.meeting ? (
             <p className="mt-3 text-sm text-anac-muted">
@@ -301,54 +252,15 @@ export function FormalPhaseSection({ requestId }: { requestId: number }) {
                 : 'La réunion sera planifiée après le retour signé de votre lettre officielle.'}
             </p>
           ) : (
-            <div className="mt-3 space-y-2 text-sm">
-              <p>
-                <span className="text-anac-muted">Date : </span>
-                <span className="font-medium text-anac-navy">
-                  {formatDateTime(bundle.meeting.scheduledAt)}
-                </span>
-              </p>
-              {bundle.meeting.location && (
-                <p>
-                  <span className="text-anac-muted">Lieu : </span>
-                  <span className="font-medium text-anac-navy">{bundle.meeting.location}</span>
-                </p>
-              )}
-              <p>
-                <span className="text-anac-muted">Statut : </span>
-                <span className="font-medium text-anac-navy">
-                  {labelOf(MEETING_STATUS_LABELS, bundle.meeting.status)}
-                </span>
-              </p>
-              {bundle.meeting.status === 'scheduled' && (
-                <a
-                  href={`/api/meetings/${bundle.meeting.id}/ticket`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="btn-secondary inline-flex rounded px-3 py-1.5 text-xs"
-                >
-                  Voir mon invitation
-                </a>
-              )}
-              {bundle.meeting.crDocumentUrl && (
-                <FileLink
-                  address={bundle.meeting.crDocumentUrl}
-                  className="inline-flex text-xs text-anac-blue underline"
-                >
-                  Consulter le compte-rendu
-                </FileLink>
-              )}
-            </div>
+            <MeetingDetails meeting={bundle.meeting} />
           )}
-        </div>
+        </SectionCard>
       </div>
 
-      <div className="rounded-lg border border-anac-border bg-white p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2 text-anac-navy">
-            <ClipboardList size={16} aria-hidden="true" />
-            <p className="text-sm font-semibold">Pièces du dossier formel</p>
-          </div>
+      <SectionCard
+        icon={ClipboardList}
+        title="Pièces du dossier formel"
+        aside={
           <span
             className={`rounded px-2 py-0.5 text-[11px] font-medium ${
               bundle.completionRate === 11
@@ -358,7 +270,8 @@ export function FormalPhaseSection({ requestId }: { requestId: number }) {
           >
             {bundle.completionRate}/11 déposées
           </span>
-        </div>
+        }
+      >
 
         {missingDocs.length > 0 && (
           <div className="mt-3 space-y-2">
@@ -417,7 +330,7 @@ export function FormalPhaseSection({ requestId }: { requestId: number }) {
             ))}
           </div>
         )}
-      </div>
+      </SectionCard>
     </section>
   );
 }
@@ -489,34 +402,6 @@ function FormalDocumentRow({
           </button>
         </div>
       )}
-    </div>
-  );
-}
-
-function PhaseStep({
-  label,
-  detail,
-  state,
-}: {
-  label: string;
-  detail: string;
-  state: StepState;
-}) {
-  const Icon = state === 'done' ? CheckCircle2 : state === 'current' ? Circle : ClipboardList;
-  const tone =
-    state === 'done'
-      ? 'border-anac-success/30 bg-white text-anac-success'
-      : state === 'current'
-        ? 'border-anac-warning/40 bg-white text-anac-warning'
-        : 'border-anac-border bg-white text-anac-muted';
-
-  return (
-    <div className={`rounded border p-3 ${tone}`}>
-      <div className="flex items-center gap-2">
-        <Icon size={15} aria-hidden="true" />
-        <p className="text-xs font-semibold text-anac-navy">{label}</p>
-      </div>
-      <p className="mt-1 text-xs text-anac-muted">{detail}</p>
     </div>
   );
 }

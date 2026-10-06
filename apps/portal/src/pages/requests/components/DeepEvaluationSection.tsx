@@ -1,36 +1,15 @@
 import { useEffect, useState } from 'react';
-import { AlertCircle, CheckCircle2, CreditCard, FileSearch, UploadCloud } from 'lucide-react';
+import { AlertCircle, FileSearch, UploadCloud } from 'lucide-react';
 import { api, apiErrorMessage } from '../../../lib/axios';
 import { uploadFile } from '../../../lib/uploads';
 import { notify } from '../../../lib/notify';
-import FileLink from '../../../components/files/FileLink';
+import { formatDate } from '../../../lib/format';
+import type { DeepEvaluationBundle } from '../../../lib/api/requests.types';
 import { PAYMENT_STATUS_LABELS, labelOf } from '../constants';
-
-type EvaluationVerdict = 'validated' | 'rejected' | 'needs_correction' | null;
-
-interface DeepEvaluationBundle {
-  phase: { id: number; status: string } | null;
-  payment: {
-    id: number;
-    status: string;
-    invoiceFileUrl: string | null;
-    proofFileUrl: string | null;
-    rejectionReason: string | null;
-  } | null;
-  evaluations: Array<{
-    id: number;
-    slot: string;
-    label: string;
-    currentFileUrl: string | null;
-    verdict: EvaluationVerdict;
-    correctionDeadline: string | null;
-  }>;
-  completionRate: { total: number; validated: number };
-}
-
-function paymentLabel(status: string | undefined): string {
-  return labelOf(PAYMENT_STATUS_LABELS, status, 'En attente');
-}
+import { PhaseSummaryCard, type PhaseTone } from '../../../components/request/PhaseSummaryCard';
+import { PhaseStep } from '../../../components/request/PhaseStep';
+import { SectionCard } from '../../../components/request/SectionCard';
+import { PaymentBlock } from '../../../components/request/PaymentBlock';
 
 function buildPresentation(bundle: DeepEvaluationBundle) {
   const phaseClosed = bundle.phase?.status === 'closed';
@@ -45,7 +24,7 @@ function buildPresentation(bundle: DeepEvaluationBundle) {
 
   let title = 'Évaluation approfondie ouverte';
   let description = "L'ANAC analyse les pièces techniques de votre dossier.";
-  let tone: 'info' | 'warning' | 'success' = 'info';
+  let tone: PhaseTone = 'info';
 
   if (phaseClosed) {
     title = 'Évaluation approfondie clôturée';
@@ -80,7 +59,6 @@ function buildPresentation(bundle: DeepEvaluationBundle) {
 
 export function DeepEvaluationSection({ requestId }: { requestId: number }) {
   const [bundle, setBundle] = useState<DeepEvaluationBundle | null>(null);
-  const [proofFile, setProofFile] = useState<File | null>(null);
   const [resubmitFiles, setResubmitFiles] = useState<Record<number, File>>({});
   const [submitting, setSubmitting] = useState(false);
 
@@ -99,23 +77,14 @@ export function DeepEvaluationSection({ requestId }: { requestId: number }) {
 
   if (!bundle?.phase) return null;
 
-  async function handleProofUpload() {
-    if (!proofFile) {
-      notify.warning('Merci de joindre votre quittance de paiement.');
-      return;
-    }
-    setSubmitting(true);
-    try {
-      const uploaded = await uploadFile(proofFile);
-      await api.post(`/deep-evaluation/phases/${bundle?.phase!.id}/requests/${requestId}/proof`, { uploadAssetId: uploaded.uploadAssetId });
-      notify.success('Preuve de paiement soumise.');
-      setProofFile(null);
-      await load();
-    } catch (err) {
-      notify.error(apiErrorMessage(err, 'Impossible de soumettre la preuve.'));
-    } finally {
-      setSubmitting(false);
-    }
+  const phaseId = bundle.phase.id;
+
+  async function submitProof(file: File) {
+    const uploaded = await uploadFile(file);
+    await api.post(`/deep-evaluation/phases/${phaseId}/requests/${requestId}/proof`, {
+      uploadAssetId: uploaded.uploadAssetId,
+    });
+    await load();
   }
 
   async function handleResubmit(evaluationId: number) {
@@ -144,104 +113,52 @@ export function DeepEvaluationSection({ requestId }: { requestId: number }) {
 
   return (
     <section className="border-t border-anac-border pt-4 mt-4 space-y-4">
-      <div
-        className={`rounded-lg border p-4 ${
-          presentation.tone === 'warning'
-            ? 'border-anac-warning/40 bg-anac-warning/5'
-            : presentation.tone === 'success'
-              ? 'border-anac-success/30 bg-anac-success/5'
-              : 'border-anac-border bg-white'
-        }`}
+      <PhaseSummaryCard
+        phaseLabel="Évaluation approfondie"
+        title={presentation.title}
+        description={presentation.description}
+        tone={presentation.tone}
+        closed={phaseClosed}
       >
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="text-sm font-semibold text-anac-navy">Évaluation approfondie</p>
-            <h3 className="mt-1 text-base font-semibold text-anac-navy">{presentation.title}</h3>
-            <p className="mt-1 text-sm text-anac-muted">{presentation.description}</p>
-          </div>
-          <span
-            className={`rounded px-2 py-0.5 text-[11px] font-medium ${
-              phaseClosed
-                ? 'bg-anac-success/10 text-anac-success'
-                : 'bg-anac-info/10 text-anac-info'
-            }`}
-          >
-            {phaseClosed ? 'Clôturée' : 'En cours'}
-          </span>
-        </div>
-
-        <div className="mt-4 grid gap-2 md:grid-cols-3">
-          <StatusStep
-            done={presentation.paymentValidated}
-            label="Paiement"
-            detail={paymentLabel(bundle.payment?.status)}
-          />
-          <StatusStep
-            done={presentation.docsComplete}
-            label="Documents"
-            detail={`${bundle.completionRate.validated}/${bundle.completionRate.total} validés`}
-          />
-          <StatusStep
-            done={phaseClosed}
-            label="Suite du dossier"
-            detail={phaseClosed ? 'Phase clôturée' : 'Traitement ANAC en cours'}
-          />
-        </div>
-      </div>
+        <PhaseStep
+          label="Paiement"
+          detail={labelOf(PAYMENT_STATUS_LABELS, bundle.payment?.status, 'En attente')}
+          state={presentation.paymentValidated ? 'done' : 'waiting'}
+        />
+        <PhaseStep
+          label="Documents"
+          detail={`${bundle.completionRate.validated}/${bundle.completionRate.total} validés`}
+          state={presentation.docsComplete ? 'done' : 'waiting'}
+        />
+        <PhaseStep
+          label="Suite du dossier"
+          detail={phaseClosed ? 'Phase clôturée' : 'Traitement ANAC en cours'}
+          state={phaseClosed ? 'done' : 'waiting'}
+        />
+      </PhaseSummaryCard>
 
       {bundle.payment && (
-        <div className="rounded-lg border border-anac-border bg-white p-4">
-          <div className="flex items-center gap-2 text-anac-navy">
-            <CreditCard size={16} aria-hidden="true" />
-            <p className="text-sm font-semibold">Paiement</p>
-          </div>
-
-          <div className="mt-3 space-y-3 text-sm">
-            {!bundle.payment.invoiceFileUrl ? (
-              <p className="text-anac-muted">En attente de la facture de la DN.</p>
-            ) : (
-              <FileLink
-                address={bundle.payment.invoiceFileUrl}
-                className="btn-secondary inline-flex rounded px-3 py-1.5 text-xs"
-              >
-                Consulter la facture
-              </FileLink>
-            )}
-
-            {bundle.payment.status === 'validated' ? (
-              <p className="text-sm font-medium text-anac-success">Paiement validé.</p>
-            ) : bundle.payment.proofFileUrl && bundle.payment.status === 'pending_validation' ? (
-              <p className="text-anac-muted">Quittance soumise, en attente de validation.</p>
-            ) : bundle.payment.invoiceFileUrl ? (
-              <PaymentUpload
-                rejectedReason={bundle.payment.rejectionReason}
-                proofFile={proofFile}
-                submitting={submitting}
-                onFile={setProofFile}
-                onSubmit={handleProofUpload}
-              />
-            ) : null}
-          </div>
-        </div>
+        <PaymentBlock
+          payment={bundle.payment}
+          waitingInvoiceText="En attente de la facture de la DN."
+          onSubmitProof={submitProof}
+        />
       )}
 
       {presentation.docsNeedingAction.length > 0 && (
-        <div className="rounded-lg border border-anac-warning/40 bg-white p-4">
-          <div className="flex items-center gap-2 text-anac-navy">
-            <AlertCircle size={16} className="text-anac-warning" aria-hidden="true" />
-            <p className="text-sm font-semibold">
-              Documents à corriger ({presentation.docsNeedingAction.length})
-            </p>
-          </div>
-
+        <SectionCard
+          icon={AlertCircle}
+          iconClassName="text-anac-warning"
+          className="border-anac-warning/40"
+          title={`Documents à corriger (${presentation.docsNeedingAction.length})`}
+        >
           <div className="mt-3 space-y-2">
             {presentation.docsNeedingAction.map((ev) => (
               <div key={ev.id} className="rounded border border-anac-border p-3">
                 <p className="text-sm font-medium text-anac-navy">{ev.label}</p>
                 <p className="mt-1 text-xs text-anac-muted">
                   {ev.verdict === 'rejected' ? 'Document rejeté' : 'Document à corriger'}
-                  {ev.correctionDeadline &&
-                    ` - attendu avant le ${new Date(ev.correctionDeadline).toLocaleDateString('fr-FR')}`}
+                  {ev.correctionDeadline && ` - attendu avant le ${formatDate(ev.correctionDeadline)}`}
                 </p>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <input
@@ -268,79 +185,18 @@ export function DeepEvaluationSection({ requestId }: { requestId: number }) {
               </div>
             ))}
           </div>
-        </div>
+        </SectionCard>
       )}
 
       {presentation.docsNeedingAction.length === 0 && (
-        <div className="rounded-lg border border-anac-border bg-white p-4">
-          <div className="flex items-center gap-2 text-anac-navy">
-            <FileSearch size={16} aria-hidden="true" />
-            <p className="text-sm font-semibold">Évaluation des documents</p>
-          </div>
+        <SectionCard icon={FileSearch} title="Évaluation des documents">
           <p className="mt-3 text-sm text-anac-muted">
             {presentation.docsComplete
               ? 'Tous les documents ont été validés.'
               : "L'ANAC analyse les documents soumis. Les corrections éventuelles apparaîtront ici."}
           </p>
-        </div>
+        </SectionCard>
       )}
     </section>
-  );
-}
-
-function PaymentUpload({
-  rejectedReason,
-  proofFile,
-  submitting,
-  onFile,
-  onSubmit,
-}: {
-  rejectedReason: string | null;
-  proofFile: File | null;
-  submitting: boolean;
-  onFile: (file: File | null) => void;
-  onSubmit: () => void;
-}) {
-  return (
-    <div className="rounded border border-dashed border-anac-border p-3">
-      {rejectedReason && (
-        <p className="mb-2 text-xs text-anac-danger">Preuve rejetée : {rejectedReason}</p>
-      )}
-      <label className="flex cursor-pointer flex-col gap-1 text-sm">
-        <span className="font-medium text-anac-navy">Déposer ma quittance</span>
-        <span className="text-xs text-anac-muted">Formats acceptés : PDF, Word, PNG ou JPG.</span>
-        <input
-          type="file"
-          accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-          className="mt-2 text-xs"
-          onChange={(e) => onFile(e.target.files?.[0] ?? null)}
-        />
-      </label>
-      <button
-        type="button"
-        className="btn-primary mt-3 inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-xs"
-        onClick={onSubmit}
-        disabled={submitting || !proofFile}
-      >
-        <UploadCloud size={13} aria-hidden="true" />
-        {submitting ? 'Envoi...' : 'Soumettre ma quittance'}
-      </button>
-    </div>
-  );
-}
-
-function StatusStep({ done, label, detail }: { done: boolean; label: string; detail: string }) {
-  return (
-    <div
-      className={`rounded border p-3 ${
-        done ? 'border-anac-success/30 text-anac-success' : 'border-anac-border text-anac-muted'
-      } bg-white`}
-    >
-      <div className="flex items-center gap-2">
-        <CheckCircle2 size={15} aria-hidden="true" />
-        <p className="text-xs font-semibold text-anac-navy">{label}</p>
-      </div>
-      <p className="mt-1 text-xs text-anac-muted">{detail}</p>
-    </div>
   );
 }

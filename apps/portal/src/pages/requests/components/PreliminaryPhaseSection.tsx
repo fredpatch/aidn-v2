@@ -1,13 +1,5 @@
 import { useEffect, useState } from 'react';
-import {
-  CalendarClock,
-  CheckCircle2,
-  ClipboardCheck,
-  Clock3,
-  FileCheck2,
-  FileText,
-  UploadCloud,
-} from 'lucide-react';
+import { CalendarClock, FileCheck2, FileText, UploadCloud } from 'lucide-react';
 import { apiErrorMessage } from '../../../lib/axios';
 import { notify } from '../../../lib/notify';
 import {
@@ -17,29 +9,12 @@ import {
 } from '../../../lib/api/requests.api';
 import type { PreliminaryBundle } from '../../../lib/api/requests.types';
 import { MEETING_STATUS_LABELS, labelOf } from '../constants';
+import { formatDate, formatDateTime } from '../../../lib/format';
 import FileLink from '../../../components/files/FileLink';
-
-type StepState = 'done' | 'current' | 'waiting';
-
-function formatDate(value: string | null | undefined): string {
-  if (!value) return '-';
-  return new Date(value).toLocaleDateString('fr-FR');
-}
-
-function formatDateTime(value: string | null | undefined): string {
-  if (!value) return '-';
-  return new Date(value).toLocaleString('fr-FR');
-}
-
-function isMeetingResolved(status: string | undefined): boolean {
-  return status === 'held' || status === 'no_show' || status === 'file_cancelled';
-}
-
-function buildStepState(done: boolean, current: boolean): StepState {
-  if (done) return 'done';
-  if (current) return 'current';
-  return 'waiting';
-}
+import { PhaseSummaryCard, type PhaseTone } from '../../../components/request/PhaseSummaryCard';
+import { PhaseStep, stepState } from '../../../components/request/PhaseStep';
+import { SectionCard } from '../../../components/request/SectionCard';
+import { MeetingDetails, isMeetingResolved } from '../../../components/request/MeetingDetails';
 
 function buildPreliminaryPresentation(bundle: PreliminaryBundle) {
   const meeting = bundle.meeting;
@@ -52,7 +27,7 @@ function buildPreliminaryPresentation(bundle: PreliminaryBundle) {
 
   let title = 'Traitement préliminaire ouvert';
   let description = "La Direction de la Navigabilité a pris votre dossier en charge.";
-  let tone: 'info' | 'warning' | 'success' | 'muted' = 'info';
+  let tone: PhaseTone = 'info';
 
   if (phaseClosed) {
     title = 'Phase préliminaire clôturée';
@@ -60,7 +35,7 @@ function buildPreliminaryPresentation(bundle: PreliminaryBundle) {
     tone = 'success';
   } else if (declarationSubmitted) {
     title = 'Formulaire transmis';
-    description = "Votre declaration est en cours de traitement par l'ANAC.";
+    description = "Votre déclaration est en cours de traitement par l'ANAC.";
     tone = 'success';
   } else if (declarationAvailable) {
     title = 'Action requise';
@@ -91,7 +66,7 @@ function buildPreliminaryPresentation(bundle: PreliminaryBundle) {
         detail: meeting
           ? `${labelOf(MEETING_STATUS_LABELS, meeting.status)} - ${formatDateTime(meeting.scheduledAt)}`
           : 'En attente de planification',
-        state: buildStepState(meetingDone, !meeting || meetingScheduled),
+        state: stepState(meetingDone, !meeting || meetingScheduled),
       },
       {
         key: 'declaration',
@@ -101,13 +76,13 @@ function buildPreliminaryPresentation(bundle: PreliminaryBundle) {
             ? `Soumise le ${formatDate(evaluation?.submittedAt)}`
             : `Retour attendu avant le ${formatDate(evaluation?.returnDeadline)}`
           : 'Pas encore disponible',
-        state: buildStepState(declarationSubmitted, declarationAvailable && !declarationSubmitted),
+        state: stepState(declarationSubmitted, declarationAvailable && !declarationSubmitted),
       },
       {
         key: 'closure',
         label: 'Suite du dossier',
         detail: phaseClosed ? 'Phase clôturée' : 'Traitement ANAC en cours',
-        state: buildStepState(phaseClosed, declarationSubmitted && !phaseClosed),
+        state: stepState(phaseClosed, declarationSubmitted && !phaseClosed),
       },
     ],
   };
@@ -176,101 +151,31 @@ export function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
 
   return (
     <section className="border-t border-anac-border pt-4 mt-4 space-y-4">
-      <div
-        className={`rounded-lg border p-4 ${
-          presentation.tone === 'warning'
-            ? 'border-anac-warning/40 bg-anac-warning/5'
-            : presentation.tone === 'success'
-              ? 'border-anac-success/30 bg-anac-success/5'
-              : 'border-anac-border bg-white'
-        }`}
+      <PhaseSummaryCard
+        phaseLabel="Phase préliminaire"
+        title={presentation.title}
+        description={presentation.description}
+        tone={presentation.tone}
+        closed={phaseClosed}
       >
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-anac-navy">Phase préliminaire</p>
-            <h3 className="mt-1 text-base font-semibold text-anac-navy">
-              {presentation.title}
-            </h3>
-            <p className="mt-1 text-sm text-anac-muted">{presentation.description}</p>
-          </div>
-          <span
-            className={`rounded px-2 py-0.5 text-[11px] font-medium ${
-              phaseClosed
-                ? 'bg-anac-success/10 text-anac-success'
-                : 'bg-anac-info/10 text-anac-info'
-            }`}
-          >
-            {phaseClosed ? 'Clôturée' : 'En cours'}
-          </span>
-        </div>
-
-        <div className="mt-4 grid gap-2 md:grid-cols-3">
-          {presentation.steps.map((step) => (
-            <PhaseStep key={step.key} label={step.label} detail={step.detail} state={step.state} />
-          ))}
-        </div>
-      </div>
+        {presentation.steps.map((step) => (
+          <PhaseStep key={step.key} label={step.label} detail={step.detail} state={step.state} />
+        ))}
+      </PhaseSummaryCard>
 
       <div className="grid gap-3 md:grid-cols-2">
-        <div className="rounded-lg border border-anac-border bg-white p-4">
-          <div className="flex items-center gap-2 text-anac-navy">
-            <CalendarClock size={16} aria-hidden="true" />
-            <p className="text-sm font-semibold">Réunion préliminaire</p>
-          </div>
-
+        <SectionCard icon={CalendarClock} title="Réunion préliminaire">
           {!meeting ? (
             <p className="mt-3 text-sm text-anac-muted">
               La réunion n'est pas encore planifiée. L'invitation apparaîtra ici dès qu'elle sera
               disponible.
             </p>
           ) : (
-            <div className="mt-3 space-y-2 text-sm">
-              <p>
-                <span className="text-anac-muted">Date : </span>
-                <span className="font-medium text-anac-navy">
-                  {formatDateTime(meeting.scheduledAt)}
-                </span>
-              </p>
-              {meeting.location && (
-                <p>
-                  <span className="text-anac-muted">Lieu : </span>
-                  <span className="font-medium text-anac-navy">{meeting.location}</span>
-                </p>
-              )}
-              <p>
-                <span className="text-anac-muted">Statut : </span>
-                <span className="font-medium text-anac-navy">
-                  {labelOf(MEETING_STATUS_LABELS, meeting.status)}
-                </span>
-              </p>
-              {meeting.status === 'scheduled' && (
-                <a
-                  href={`/api/meetings/${meeting.id}/ticket`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="btn-secondary inline-flex rounded px-3 py-1.5 text-xs"
-                >
-                  Voir mon invitation
-                </a>
-              )}
-              {meeting.crDocumentUrl && (
-                <FileLink
-                  address={meeting.crDocumentUrl}
-                  className="inline-flex text-xs text-anac-blue underline"
-                >
-                  Consulter le compte-rendu
-                </FileLink>
-              )}
-            </div>
+            <MeetingDetails meeting={meeting} />
           )}
-        </div>
+        </SectionCard>
 
-        <div className="rounded-lg border border-anac-border bg-white p-4">
-          <div className="flex items-center gap-2 text-anac-navy">
-            <FileText size={16} aria-hidden="true" />
-            <p className="text-sm font-semibold">Déclaration de pré-évaluation</p>
-          </div>
-
+        <SectionCard icon={FileText} title="Déclaration de pré-évaluation">
           {!declarationAvailable ? (
             <p className="mt-3 text-sm text-anac-muted">
               Le formulaire sera disponible après la réunion préliminaire.
@@ -282,7 +187,7 @@ export function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
                 <div>
                   <p className="text-sm font-medium text-anac-navy">Formulaire transmis</p>
                   <p className="text-xs text-anac-muted">
-                    Transmis le {formatDate(evaluation?.submittedAt)}. Votre declaration est en
+                    Transmis le {formatDate(evaluation?.submittedAt)}. Votre déclaration est en
                     cours de traitement par l'ANAC.
                   </p>
                 </div>
@@ -327,36 +232,8 @@ export function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
               </div>
             </div>
           )}
-        </div>
+        </SectionCard>
       </div>
     </section>
-  );
-}
-
-function PhaseStep({
-  label,
-  detail,
-  state,
-}: {
-  label: string;
-  detail: string;
-  state: StepState;
-}) {
-  const Icon = state === 'done' ? CheckCircle2 : state === 'current' ? Clock3 : ClipboardCheck;
-  const tone =
-    state === 'done'
-      ? 'border-anac-success/30 bg-white text-anac-success'
-      : state === 'current'
-        ? 'border-anac-warning/40 bg-white text-anac-warning'
-        : 'border-anac-border bg-white text-anac-muted';
-
-  return (
-    <div className={`rounded border p-3 ${tone}`}>
-      <div className="flex items-center gap-2">
-        <Icon size={15} aria-hidden="true" />
-        <p className="text-xs font-semibold text-anac-navy">{label}</p>
-      </div>
-      <p className="mt-1 text-xs text-anac-muted">{detail}</p>
-    </div>
   );
 }
