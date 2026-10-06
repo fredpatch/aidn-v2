@@ -18,7 +18,7 @@ function simplifiedCertificateStatus(status: string | undefined): string {
   return status;
 }
 
-function buildPresentation(bundle: CertificatesBundle) {
+export function buildCertificatesPresentation(bundle: CertificatesBundle) {
   const phaseClosed = bundle.phase?.status === 'closed';
   const paymentValidated = bundle.payment?.status === 'validated';
   const simplifiedStatus = simplifiedCertificateStatus(bundle.certificate?.status);
@@ -57,6 +57,12 @@ function buildPresentation(bundle: CertificatesBundle) {
   return { title, description, tone, paymentValidated, simplifiedStatus };
 }
 
+/** One line for the collapsed row of a closed phase. */
+export function summarizeCertificates(bundle: CertificatesBundle): string {
+  if (bundle.certificate?.collectedAt) return `Certificat retiré le ${formatDate(bundle.certificate.collectedAt)}`;
+  return buildCertificatesPresentation(bundle).title;
+}
+
 export function CertificatesSection({ requestId }: { requestId: number }) {
   const { bundle, loadFailed, isFetching, retry, invalidate } = usePhaseBundle(requestId, 'M7', fetchCertificatesBundle);
 
@@ -68,7 +74,7 @@ export function CertificatesSection({ requestId }: { requestId: number }) {
   const phaseId = bundle.phase.id;
   const phaseClosed = bundle.phase.status === 'closed';
   const cert = bundle.certificate;
-  const presentation = buildPresentation(bundle);
+  const presentation = buildCertificatesPresentation(bundle);
 
   async function submitProof(file: File) {
     const uploaded = await uploadFile(file);
@@ -77,7 +83,7 @@ export function CertificatesSection({ requestId }: { requestId: number }) {
   }
 
   return (
-    <section className="border-t border-anac-border pt-4 mt-4 space-y-4">
+    <section className="space-y-4">
       <PhaseSummaryCard
         phaseLabel="Délivrance du certificat"
         title={presentation.title}

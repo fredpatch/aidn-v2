@@ -11,7 +11,7 @@ export function PhaseLoadError({
   retrying: boolean;
 }) {
   return (
-    <section className="border-t border-anac-border pt-4 mt-4">
+    <section>
       <div
         role="alert"
         className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-anac-danger/30 bg-anac-danger/5 p-4"

@@ -18,7 +18,7 @@ import { PhaseStep, stepState } from '../../../components/request/PhaseStep';
 import { SectionCard } from '../../../components/request/SectionCard';
 import { MeetingDetails, isMeetingResolved } from '../../../components/request/MeetingDetails';
 
-function buildPreliminaryPresentation(bundle: PreliminaryBundle) {
+export function buildPreliminaryPresentation(bundle: PreliminaryBundle) {
   const meeting = bundle.meeting;
   const evaluation = bundle.evaluation;
   const phaseClosed = bundle.phase?.status === 'closed';
@@ -90,6 +90,18 @@ function buildPreliminaryPresentation(bundle: PreliminaryBundle) {
   };
 }
 
+/** One line for the collapsed row of a closed phase. */
+export function summarizePreliminary(bundle: PreliminaryBundle): string {
+  const parts: string[] = [];
+  if (bundle.meeting) {
+    parts.push(`Réunion : ${labelOf(MEETING_STATUS_LABELS, bundle.meeting.status).toLowerCase()} (${formatDate(bundle.meeting.scheduledAt)})`);
+  }
+  if (bundle.evaluation?.submittedAt) {
+    parts.push(`déclaration soumise le ${formatDate(bundle.evaluation.submittedAt)}`);
+  }
+  return parts.join(' · ') || 'Phase clôturée';
+}
+
 export function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -101,9 +113,7 @@ export function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
 
   if (isLoading) {
     return (
-      <div className="border-t border-anac-border pt-4 mt-4">
-        <p className="text-xs text-anac-muted">Chargement de la phase préliminaire...</p>
-      </div>
+      <p className="text-xs text-anac-muted">Chargement de la phase préliminaire...</p>
     );
   }
   if (loadFailed) {
@@ -142,7 +152,7 @@ export function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
   const declarationSubmitted = !!evaluation?.submittedFileUrl;
 
   return (
-    <section className="border-t border-anac-border pt-4 mt-4 space-y-4">
+    <section className="space-y-4">
       <PhaseSummaryCard
         phaseLabel="Phase préliminaire"
         title={presentation.title}

@@ -12,7 +12,7 @@ import type { FormalBundle, FormalDoc } from '../../../lib/api/requests.types';
 import { usePhaseBundle } from '../hooks/usePhaseBundle';
 import { PhaseLoadError } from '../../../components/request/PhaseLoadError';
 import { MEETING_STATUS_LABELS, labelOf } from '../constants';
-import { formatDateTime } from '../../../lib/format';
+import { formatDate, formatDateTime } from '../../../lib/format';
 import FileLink from '../../../components/files/FileLink';
 import { PhaseSummaryCard, type PhaseTone } from '../../../components/request/PhaseSummaryCard';
 import { PhaseStep, stepState } from '../../../components/request/PhaseStep';
@@ -31,7 +31,7 @@ function letterLabel(status: string | undefined): string {
   );
 }
 
-function buildFormalPresentation(bundle: FormalBundle) {
+export function buildFormalPresentation(bundle: FormalBundle) {
   const phaseClosed = bundle.phase?.status === 'closed';
   const letterDone = bundle.letterCircuit?.status === 'pending_review';
   const docsDone = bundle.completionRate === 11;
@@ -102,6 +102,15 @@ function buildFormalPresentation(bundle: FormalBundle) {
   };
 }
 
+/** One line for the collapsed row of a closed phase. */
+export function summarizeFormal(bundle: FormalBundle): string {
+  const parts = [letterLabel(bundle.letterCircuit?.status), `${bundle.completionRate}/11 pièces`];
+  if (bundle.meeting) {
+    parts.push(`réunion : ${labelOf(MEETING_STATUS_LABELS, bundle.meeting.status).toLowerCase()} (${formatDate(bundle.meeting.scheduledAt)})`);
+  }
+  return parts.join(' · ');
+}
+
 export function FormalPhaseSection({ requestId }: { requestId: number }) {
   const [uploadingSlot, setUploadingSlot] = useState<string | null>(null);
   const [slotFiles, setSlotFiles] = useState<Record<string, File>>({});
@@ -116,9 +125,7 @@ export function FormalPhaseSection({ requestId }: { requestId: number }) {
 
   if (isLoading) {
     return (
-      <div className="border-t border-anac-border pt-4 mt-4">
-        <p className="text-xs text-anac-muted">Chargement de la demande formelle...</p>
-      </div>
+      <p className="text-xs text-anac-muted">Chargement de la demande formelle...</p>
     );
   }
   if (loadFailed) {
@@ -176,7 +183,7 @@ export function FormalPhaseSection({ requestId }: { requestId: number }) {
   const submittedDocs = bundle.documents.filter((doc) => doc.status === 'submitted');
 
   return (
-    <section className="border-t border-anac-border pt-4 mt-4 space-y-4">
+    <section className="space-y-4">
       <PhaseSummaryCard
         phaseLabel="Demande formelle"
         title={presentation.title}

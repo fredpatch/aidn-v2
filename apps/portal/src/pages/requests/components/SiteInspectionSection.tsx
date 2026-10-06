@@ -1,18 +1,18 @@
 import { MapPinned } from 'lucide-react';
 import { uploadFile } from '../../../lib/uploads';
-import { formatDateTime } from '../../../lib/format';
+import { formatDate, formatDateTime } from '../../../lib/format';
 import type { SiteInspectionBundle } from '../../../lib/api/requests.types';
 import { fetchSiteInspectionBundle, submitSiteInspectionProof } from '../../../lib/api/requests.api';
 import { usePhaseBundle } from '../hooks/usePhaseBundle';
 import { PhaseLoadError } from '../../../components/request/PhaseLoadError';
-import { PAYMENT_STATUS_LABELS, labelOf } from '../constants';
+import { MEETING_STATUS_LABELS, PAYMENT_STATUS_LABELS, labelOf } from '../constants';
 import { PhaseSummaryCard, type PhaseTone } from '../../../components/request/PhaseSummaryCard';
 import { PhaseStep } from '../../../components/request/PhaseStep';
 import { SectionCard } from '../../../components/request/SectionCard';
 import { PaymentBlock } from '../../../components/request/PaymentBlock';
 import { MeetingDetails } from '../../../components/request/MeetingDetails';
 
-function buildPresentation(bundle: SiteInspectionBundle) {
+export function buildSiteInspectionPresentation(bundle: SiteInspectionBundle) {
   const phaseClosed = bundle.phase?.status === 'closed';
   const paymentValidated = bundle.payment?.status === 'validated';
   const visitHeld = bundle.siteVisit?.status === 'held';
@@ -50,6 +50,16 @@ function buildPresentation(bundle: SiteInspectionBundle) {
   return { title, description, tone, paymentValidated, visitHeld };
 }
 
+/** One line for the collapsed row of a closed phase. */
+export function summarizeSiteInspection(bundle: SiteInspectionBundle): string {
+  const parts: string[] = [];
+  if (bundle.siteVisit) {
+    parts.push(`Visite : ${labelOf(MEETING_STATUS_LABELS, bundle.siteVisit.status).toLowerCase()} (${formatDate(bundle.siteVisit.scheduledAt)})`);
+  }
+  parts.push(labelOf(PAYMENT_STATUS_LABELS, bundle.payment?.status, 'Paiement en attente').toLowerCase());
+  return parts.join(' · ');
+}
+
 export function SiteInspectionSection({ requestId }: { requestId: number }) {
   const { bundle, loadFailed, isFetching, retry, invalidate } = usePhaseBundle(requestId, 'M6', fetchSiteInspectionBundle);
 
@@ -60,7 +70,7 @@ export function SiteInspectionSection({ requestId }: { requestId: number }) {
 
   const phaseId = bundle.phase.id;
   const phaseClosed = bundle.phase.status === 'closed';
-  const presentation = buildPresentation(bundle);
+  const presentation = buildSiteInspectionPresentation(bundle);
 
   async function submitProof(file: File) {
     const uploaded = await uploadFile(file);
@@ -69,7 +79,7 @@ export function SiteInspectionSection({ requestId }: { requestId: number }) {
   }
 
   return (
-    <section className="border-t border-anac-border pt-4 mt-4 space-y-4">
+    <section className="space-y-4">
       <PhaseSummaryCard
         phaseLabel="Démonstration / inspection"
         title={presentation.title}

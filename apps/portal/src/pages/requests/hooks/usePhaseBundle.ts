@@ -10,12 +10,14 @@ export function usePhaseBundle<T extends { phase: unknown }>(
   requestId: number,
   code: PhaseCode,
   fetcher: (requestId: number) => Promise<T>,
+  enabled = true,
 ) {
   const queryClient = useQueryClient();
 
   const query = useQuery({
     queryKey: queryKeys.requests.phase(requestId, code),
     queryFn: () => fetcher(requestId),
+    enabled,
   });
 
   /** After any applicant action: refresh every request query (all phases + dossier status). */

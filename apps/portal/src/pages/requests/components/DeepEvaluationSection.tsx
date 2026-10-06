@@ -14,7 +14,7 @@ import { PhaseStep } from '../../../components/request/PhaseStep';
 import { SectionCard } from '../../../components/request/SectionCard';
 import { PaymentBlock } from '../../../components/request/PaymentBlock';
 
-function buildPresentation(bundle: DeepEvaluationBundle) {
+export function buildDeepEvaluationPresentation(bundle: DeepEvaluationBundle) {
   const phaseClosed = bundle.phase?.status === 'closed';
   const payment = bundle.payment;
   const paymentValidated = payment?.status === 'validated';
@@ -60,6 +60,14 @@ function buildPresentation(bundle: DeepEvaluationBundle) {
   return { title, description, tone, paymentValidated, docsComplete, docsNeedingAction };
 }
 
+/** One line for the collapsed row of a closed phase. */
+export function summarizeDeepEvaluation(bundle: DeepEvaluationBundle): string {
+  return [
+    `${bundle.completionRate.validated}/${bundle.completionRate.total} documents validés`,
+    labelOf(PAYMENT_STATUS_LABELS, bundle.payment?.status, 'Paiement en attente').toLowerCase(),
+  ].join(' · ');
+}
+
 export function DeepEvaluationSection({ requestId }: { requestId: number }) {
   const [resubmitFiles, setResubmitFiles] = useState<Record<number, File>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -100,10 +108,10 @@ export function DeepEvaluationSection({ requestId }: { requestId: number }) {
   }
 
   const phaseClosed = bundle.phase.status === 'closed';
-  const presentation = buildPresentation(bundle);
+  const presentation = buildDeepEvaluationPresentation(bundle);
 
   return (
-    <section className="border-t border-anac-border pt-4 mt-4 space-y-4">
+    <section className="space-y-4">
       <PhaseSummaryCard
         phaseLabel="Évaluation approfondie"
         title={presentation.title}
