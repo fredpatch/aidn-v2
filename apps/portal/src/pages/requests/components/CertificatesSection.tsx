@@ -130,7 +130,7 @@ export function CertificatesSection({ requestId }: { requestId: number }) {
       >
         {presentation.simplifiedStatus === 'in_preparation' && (
           <p className="mt-3 text-sm text-anac-muted">
-            Votre certificat est en préparation. Aucun téléchargement n'est disponible sur le
+            Votre certificat est en préparation. Aucun téléchargement n&apos;est disponible sur le
             portail, le retrait se fait en personne.
           </p>
         )}
@@ -139,7 +139,7 @@ export function CertificatesSection({ requestId }: { requestId: number }) {
             <p className="text-sm font-medium text-anac-navy">Certificat prêt au retrait</p>
             <p className="mt-1 text-xs text-anac-muted">
               Notification envoyée le {formatDate(cert?.notifiedAt)}. Merci de vous présenter aux
-              bureaux de l'ANAC pour le retrait.
+              bureaux de l&apos;ANAC pour le retrait.
             </p>
           </div>
         )}

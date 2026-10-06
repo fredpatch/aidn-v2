@@ -4,6 +4,7 @@ import { apiErrorMessage } from '../../../lib/axios';
 import { uploadFile } from '../../../lib/uploads';
 import { notify } from '../../../lib/notify';
 import { formatDate } from '../../../lib/format';
+import { FileDropzone } from '../../../components/files/FileDropzone';
 import type { DeepEvaluationBundle } from '../../../lib/api/requests.types';
 import { fetchDeepEvaluationBundle, submitDeepEvaluationProof, resubmitDeepEvaluationDocument } from '../../../lib/api/requests.api';
 import { useReadOnly } from '../../../components/request/ReadOnlyContext';
@@ -163,17 +164,22 @@ export function DeepEvaluationSection({ requestId }: { requestId: number }) {
                 </p>
                 {!readOnly && (
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <input
-                    type="file"
-                    accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-                    className="text-xs"
-                    onChange={(e) => {
-                      const selected = e.target.files?.[0];
-                      if (selected) {
-                        setResubmitFiles((prev) => ({ ...prev, [ev.id]: selected }));
+                  <div className="min-w-0 flex-1 basis-56">
+                    <FileDropzone
+                      compact
+                      label={`Version corrigée de « ${ev.label} »`}
+                      file={resubmitFiles[ev.id] ?? null}
+                      onFileChange={(file) =>
+                        setResubmitFiles((prev) => {
+                          const next = { ...prev };
+                          if (file) next[ev.id] = file;
+                          else delete next[ev.id];
+                          return next;
+                        })
                       }
-                    }}
-                  />
+                      disabled={submitting}
+                    />
+                  </div>
                   <button
                     type="button"
                     className="btn-primary inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-xs"

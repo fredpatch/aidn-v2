@@ -1,8 +1,9 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useId, useState } from 'react';
 import { apiErrorMessage } from '../../../lib/axios';
 import { notify } from '../../../lib/notify';
 import { submitMyRequest } from '../../../lib/api/requests.api';
 import { uploadFile } from '../../../lib/uploads';
+import { FileDropzone } from '../../../components/files/FileDropzone';
 
 export function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) {
   const [requestType, setRequestType] = useState('issuance');
@@ -10,6 +11,8 @@ export function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) 
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const typeId = useId();
+  const messageId = useId();
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -45,10 +48,11 @@ export function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) 
       <p className="text-anac-muted text-sm">
         Choisissez le type de demande et joignez votre courrier scanné.
       </p>
-      {error && <p className="text-anac-danger text-sm">{error}</p>}
+      {error && <p role="alert" className="text-anac-danger text-sm">{error}</p>}
       <div>
-        <label className="label">Type de demande</label>
+        <label className="label" htmlFor={typeId}>Type de demande</label>
         <select
+          id={typeId}
           className="input"
           value={requestType}
           onChange={(e) => setRequestType(e.target.value)}
@@ -60,8 +64,9 @@ export function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) 
         </select>
       </div>
       <div>
-        <label className="label">Message (optionnel)</label>
+        <label className="label" htmlFor={messageId}>Message (optionnel)</label>
         <textarea
+          id={messageId}
           className="input"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
@@ -69,13 +74,8 @@ export function SubmitRequestForm({ onSubmitted }: { onSubmitted: () => void }) 
         />
       </div>
       <div>
-        <label className="label">Votre demande scannée (PDF, Word, PNG, JPG)</label>
-        <input
-          type="file"
-          accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          required
-        />
+        <p className="label">Votre demande scannée</p>
+        <FileDropzone label="Joindre ma demande scannée" file={file} onFileChange={setFile} disabled={submitting} />
       </div>
       <button type="submit" className="btn-primary w-full" disabled={submitting}>
         {submitting ? 'Envoi...' : 'Soumettre ma demande'}

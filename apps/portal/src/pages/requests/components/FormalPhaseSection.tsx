@@ -15,6 +15,7 @@ import { PhaseLoadError } from '../../../components/request/PhaseLoadError';
 import { MEETING_STATUS_LABELS, labelOf } from '../constants';
 import { formatDate, formatDateTime } from '../../../lib/format';
 import FileLink from '../../../components/files/FileLink';
+import { FileDropzone, TEXT_DOCUMENT_ACCEPT } from '../../../components/files/FileDropzone';
 import { PhaseSummaryCard, type PhaseTone } from '../../../components/request/PhaseSummaryCard';
 import { PhaseStep, stepState } from '../../../components/request/PhaseStep';
 import { SectionCard } from '../../../components/request/SectionCard';
@@ -206,13 +207,14 @@ export function FormalPhaseSection({ requestId }: { requestId: number }) {
           ) : !bundle.letterCircuit ? (
             <div className="mt-3 space-y-3">
               <p className="text-sm text-anac-muted">
-                Joignez votre lettre officielle de demande d'agrément OMA.
+                Joignez votre lettre officielle de demande d&apos;agrément OMA.
               </p>
-              <input
-                type="file"
-                accept=".pdf,.doc,.docx"
-                className="text-xs"
-                onChange={(e) => setLetterFile(e.target.files?.[0] ?? null)}
+              <FileDropzone
+                label="Déposer la lettre officielle"
+                accept={TEXT_DOCUMENT_ACCEPT}
+                file={letterFile}
+                onFileChange={setLetterFile}
+                disabled={submittingLetter}
               />
               <button
                 type="button"
@@ -297,7 +299,14 @@ export function FormalPhaseSection({ requestId }: { requestId: number }) {
                     return next;
                   });
                 }}
-                onFile={(file) => setSlotFiles((prev) => ({ ...prev, [doc.slot]: file }))}
+                onFile={(file) =>
+                  setSlotFiles((prev) => {
+                    const next = { ...prev };
+                    if (file) next[doc.slot] = file;
+                    else delete next[doc.slot];
+                    return next;
+                  })
+                }
                 onSubmit={() => handleSubmitDocument(doc.slot)}
               />
             ))}
@@ -354,7 +363,7 @@ function FormalDocumentRow({
   submitting: boolean;
   onOpenUpload: () => void;
   onCancel: () => void;
-  onFile: (file: File) => void;
+  onFile: (file: File | null) => void;
   onSubmit: () => void;
 }) {
   const readOnly = useReadOnly();
@@ -380,15 +389,15 @@ function FormalDocumentRow({
 
       {isUploading && (
         <div className="mt-2 flex flex-wrap items-center gap-2 pl-6">
-          <input
-            type="file"
-            accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-            className="text-xs"
-            onChange={(e) => {
-              const selected = e.target.files?.[0];
-              if (selected) onFile(selected);
-            }}
-          />
+          <div className="min-w-0 flex-1 basis-56">
+            <FileDropzone
+              compact
+              label={`Fichier pour « ${doc.label} »`}
+              file={selectedFile ?? null}
+              onFileChange={onFile}
+              disabled={submitting}
+            />
+          </div>
           <button
             type="button"
             className="btn-primary rounded px-2 py-1 text-[10px]"

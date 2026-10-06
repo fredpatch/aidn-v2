@@ -21,6 +21,21 @@ body {
   @apply bg-anac-gray text-anac-text;
 }
 
+/* One visible keyboard-focus style for every interactive element. Mouse
+   clicks don't trigger :focus-visible, so pointer users see no change.
+   Components that draw their own ring (focus:outline-none + ring) keep it. */
+@layer base {
+  a:focus-visible,
+  button:focus-visible,
+  summary:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid var(--color-anac-sky);
+    outline-offset: 2px;
+  }
+}
+
 @layer components {
   .btn-primary {
     @apply bg-anac-navy text-white px-4 py-2 rounded hover:bg-anac-blue transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed;

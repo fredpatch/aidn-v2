@@ -14,6 +14,7 @@ import { PhaseLoadError } from '../../../components/request/PhaseLoadError';
 import { MEETING_STATUS_LABELS, labelOf } from '../constants';
 import { formatDate, formatDateTime } from '../../../lib/format';
 import FileLink from '../../../components/files/FileLink';
+import { FileDropzone } from '../../../components/files/FileDropzone';
 import { PhaseSummaryCard, type PhaseTone } from '../../../components/request/PhaseSummaryCard';
 import { PhaseStep, stepState } from '../../../components/request/PhaseStep';
 import { SectionCard } from '../../../components/request/SectionCard';
@@ -171,7 +172,7 @@ export function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
         <SectionCard icon={CalendarClock} title="Réunion préliminaire">
           {!meeting ? (
             <p className="mt-3 text-sm text-anac-muted">
-              La réunion n'est pas encore planifiée. L'invitation apparaîtra ici dès qu'elle sera
+              La réunion n&apos;est pas encore planifiée. L&apos;invitation apparaîtra ici dès qu&apos;elle sera
               disponible.
             </p>
           ) : (
@@ -192,7 +193,7 @@ export function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
                   <p className="text-sm font-medium text-anac-navy">Formulaire transmis</p>
                   <p className="text-xs text-anac-muted">
                     Transmis le {formatDate(evaluation?.submittedAt)}. Votre déclaration est en
-                    cours de traitement par l'ANAC.
+                    cours de traitement par l&apos;ANAC.
                   </p>
                 </div>
               </div>
@@ -213,18 +214,7 @@ export function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
               )}
               {!readOnly && (
               <div className="rounded border border-dashed border-anac-border p-3">
-                <label className="flex cursor-pointer flex-col gap-1 text-sm">
-                  <span className="font-medium text-anac-navy">Déposer ma déclaration remplie</span>
-                  <span className="text-xs text-anac-muted">
-                    Formats acceptés : PDF, Word, PNG ou JPG.
-                  </span>
-                  <input
-                    type="file"
-                    accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-                    className="mt-2 text-xs"
-                    onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                  />
-                </label>
+                <FileDropzone label="Déposer ma déclaration remplie" file={file} onFileChange={setFile} disabled={submitting} />
                 <button
                   type="button"
                   className="btn-primary mt-3 inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-xs"

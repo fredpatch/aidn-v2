@@ -243,7 +243,7 @@ export default function LoginPage() {
                   />
                 </FormField>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <FormField
                     id="requestedEmail"
                     label="Email organisme"
@@ -268,7 +268,7 @@ export default function LoginPage() {
                   <Input {...requestForm.register('originalApprovalNumber')} />
                 </FormField>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <FormField
                     id="contactFullName"
                     label="Nom du contact"

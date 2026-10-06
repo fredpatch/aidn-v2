@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { CreditCard, UploadCloud } from 'lucide-react';
 import FileLink from '../files/FileLink';
+import { FileDropzone } from '../files/FileDropzone';
 import { SectionCard } from './SectionCard';
 import { useReadOnly } from './ReadOnlyContext';
 import { apiErrorMessage } from '../../lib/axios';
@@ -65,16 +66,7 @@ export function PaymentBlock({
             {payment.rejectionReason && (
               <p className="mb-2 text-xs text-anac-danger">Preuve rejetée : {payment.rejectionReason}</p>
             )}
-            <label className="flex cursor-pointer flex-col gap-1 text-sm">
-              <span className="font-medium text-anac-navy">Déposer ma quittance</span>
-              <span className="text-xs text-anac-muted">Formats acceptés : PDF, Word, PNG ou JPG.</span>
-              <input
-                type="file"
-                accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-                className="mt-2 text-xs"
-                onChange={(e) => setProofFile(e.target.files?.[0] ?? null)}
-              />
-            </label>
+            <FileDropzone label="Déposer ma quittance" file={proofFile} onFileChange={setProofFile} disabled={submitting} />
             <button
               type="button"
               className="btn-primary mt-3 inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-xs"

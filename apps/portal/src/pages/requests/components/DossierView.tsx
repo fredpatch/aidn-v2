@@ -1,4 +1,4 @@
-import { useState, type ComponentType } from 'react';
+import { useRef, useState, type ComponentType } from 'react';
 import { apiErrorMessage } from '../../../lib/axios';
 import { notify } from '../../../lib/notify';
 import { formatDate } from '../../../lib/format';
@@ -12,6 +12,7 @@ import { ActionBanner } from '../../../components/request/ActionBanner';
 import { PhaseProgress } from '../../../components/request/PhaseProgress';
 import { ClosedPhaseRow } from '../../../components/request/ClosedPhaseRow';
 import { ReadOnlyProvider } from '../../../components/request/ReadOnlyContext';
+import { Modal } from '../../../components/ui/modal';
 import { isTerminalDossier } from '../progress';
 import { FormalPhaseSection } from './FormalPhaseSection';
 import { PreliminaryPhaseSection } from './PreliminaryPhaseSection';
@@ -40,6 +41,8 @@ export function DossierView({
 }) {
   const [cancelling, setCancelling] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const keepButtonRef = useRef<HTMLButtonElement>(null);
   const progress = useDossierProgress(request);
 
   const terminal = isTerminalDossier(request);
@@ -51,6 +54,7 @@ export function DossierView({
     try {
       await cancelMyRequest(request.id);
       notify.success('Demande annulée.');
+      setConfirmingCancel(false);
       onChanged();
     } catch (err) {
       const message = apiErrorMessage(err, 'Annulation impossible.');
@@ -86,11 +90,14 @@ export function DossierView({
           <DossierStatusBadge request={request} />
         </div>
 
-        {error && <p className="text-anac-danger text-sm">{error}</p>}
+        {error && !confirmingCancel && <p className="text-anac-danger text-sm">{error}</p>}
 
         {canCancel && (
-          <button className="btn-secondary text-sm" onClick={handleCancel} disabled={cancelling}>
-            {cancelling ? 'Annulation...' : 'Annuler ma demande'}
+          <button type="button" className="btn-secondary text-sm" onClick={() => {
+              setError(null);
+              setConfirmingCancel(true);
+            }}>
+            Annuler ma demande
           </button>
         )}
 
@@ -100,6 +107,33 @@ export function DossierView({
           </p>
         )}
       </div>
+
+      {confirmingCancel && (
+        <Modal
+          title={`Annuler la demande ${request.reference} ?`}
+          subtitle="Votre demande sera retirée du circuit de signature. Cette action est définitive : pour poursuivre, vous devrez déposer une nouvelle demande."
+          onClose={() => !cancelling && setConfirmingCancel(false)}
+          initialFocusRef={keepButtonRef}
+          footer={
+            <>
+              <button
+                ref={keepButtonRef}
+                type="button"
+                className="btn-secondary text-sm"
+                onClick={() => setConfirmingCancel(false)}
+                disabled={cancelling}
+              >
+                Garder ma demande
+              </button>
+              <button type="button" className="btn-danger text-sm" onClick={handleCancel} disabled={cancelling}>
+                {cancelling ? 'Annulation...' : 'Oui, annuler'}
+              </button>
+            </>
+          }
+        >
+          {error && <p className="text-sm text-anac-danger">{error}</p>}
+        </Modal>
+      )}
 
       {progress.banner && <ActionBanner banner={progress.banner} />}
 

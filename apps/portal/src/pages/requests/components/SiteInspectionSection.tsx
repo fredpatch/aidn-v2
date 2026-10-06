@@ -115,13 +115,13 @@ export function SiteInspectionSection({ requestId }: { requestId: number }) {
       <SectionCard icon={MapPinned} title="Visite sur site">
         {!bundle.siteVisit ? (
           <p className="mt-3 text-sm text-anac-muted">
-            La visite sera affichée ici une fois planifiée par l'ANAC.
+            La visite sera affichée ici une fois planifiée par l&apos;ANAC.
           </p>
         ) : (
           <MeetingDetails meeting={bundle.siteVisit} />
         )}
         <p className="mt-3 text-xs text-anac-muted">
-          L'avis technique interne n'est pas publié dans le portail postulant.
+          L&apos;avis technique interne n&apos;est pas publié dans le portail postulant.
         </p>
       </SectionCard>
     </section>
