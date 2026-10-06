@@ -21,14 +21,14 @@ const loginSchema = z.object({
 
 const accountRequestSchema = z.object({
   organisationNameInput: z.string().min(2, "Le nom de l'organisme est requis"),
-  legalAddress: z.string().min(2, "L'adresse legale est requise"),
+  legalAddress: z.string().min(2, "L'adresse légale est requise"),
   requestedEmail: z.string().email('Email organisme invalide'),
   phone: z.string().optional(),
   originalApprovalNumber: z.string().optional(),
   contactFullName: z.string().min(2, 'Le nom du contact est requis'),
   contactEmail: z.string().email('Email contact invalide'),
   contactPhone: z.string().optional(),
-  password: z.string().min(8, 'Le mot de passe doit contenir au moins 8 caracteres'),
+  password: z.string().min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
   honeypot: z.string().optional(),
 });
 
@@ -86,7 +86,7 @@ export default function LoginPage() {
     try {
       await api.post('/applicant-auth/login', data);
       await refreshMe();
-      notify.success('Connexion reussie.');
+      notify.success('Connexion réussie.');
     } catch (err) {
       const message = apiErrorMessage(err, 'Connexion impossible.');
       setServerError(message);
@@ -101,9 +101,9 @@ export default function LoginPage() {
       await api.post('/account-requests', { ...data, formStartedAt });
       requestForm.reset();
       setRequestSuccess(
-        "Votre demande a ete envoyee. L'ANAC verifiera l'organisme avant activation du compte."
+        "Votre demande a été envoyée. L'ANAC vérifiera l'organisme avant activation du compte."
       );
-      notify.success('Demande de compte envoyee.');
+      notify.success('Demande de compte envoyée.');
     } catch (err) {
       const message = apiErrorMessage(err, 'Demande de compte impossible.');
       setRequestError(message);
@@ -133,7 +133,7 @@ export default function LoginPage() {
           </motion.div>
           <h1 className="text-xl font-bold text-anac-navy tracking-tight">AIDN</h1>
           <p className="text-anac-muted text-[11px] mt-0.5 leading-relaxed">
-            Portail Postulant - Organismes de Maintenance des Aeronefs
+            Portail Postulant - Organismes de Maintenance des Aéronefs
           </p>
         </div>
 
@@ -234,7 +234,7 @@ export default function LoginPage() {
 
                 <FormField
                   id="legalAddress"
-                  label="Adresse legale"
+                  label="Adresse légale"
                   error={requestErrors.legalAddress?.message}
                 >
                   <Input
@@ -255,14 +255,14 @@ export default function LoginPage() {
                       className={errCls(!!requestErrors.requestedEmail)}
                     />
                   </FormField>
-                  <FormField id="phone" label="Telephone" error={requestErrors.phone?.message}>
+                  <FormField id="phone" label="Téléphone" error={requestErrors.phone?.message}>
                     <Input {...requestForm.register('phone')} />
                   </FormField>
                 </div>
 
                 <FormField
                   id="originalApprovalNumber"
-                  label="Numero d'agrement existant"
+                  label="Numéro d'agrément existant"
                   error={requestErrors.originalApprovalNumber?.message}
                 >
                   <Input {...requestForm.register('originalApprovalNumber')} />
@@ -281,7 +281,7 @@ export default function LoginPage() {
                   </FormField>
                   <FormField
                     id="contactPhone"
-                    label="Telephone contact"
+                    label="Téléphone contact"
                     error={requestErrors.contactPhone?.message}
                   >
                     <Input {...requestForm.register('contactPhone')} />

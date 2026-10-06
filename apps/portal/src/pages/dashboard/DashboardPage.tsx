@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { FileText, History, UserCircle } from 'lucide-react';
 import { useApplicantAuth } from '../../hooks/useApplicantAuth';
 import { useMyRequests } from '../requests/hooks/useMyRequests';
-import { REQUEST_TYPE_LABELS, TERMINAL_STATUSES } from '../requests/constants';
+import { REQUEST_TYPE_LABELS, TERMINAL_STATUSES, labelOf } from '../requests/constants';
 
 export default function DashboardPage() {
   const { applicant } = useApplicantAuth();
@@ -18,7 +18,7 @@ export default function DashboardPage() {
           Bonjour {applicant?.fullName}
         </h1>
         <p className="text-anac-muted text-sm">
-          Espace postulant pour le suivi et le depot des demandes OMA
+          Espace postulant pour le suivi et le dépôt des demandes OMA
         </p>
       </div>
 
@@ -27,11 +27,11 @@ export default function DashboardPage() {
       <div className="grid md:grid-cols-3 gap-4">
         <DashboardAction
           icon={FileText}
-          title={activeRequest ? 'Suivre ma demande' : 'Deposer une demande'}
+          title={activeRequest ? 'Suivre ma demande' : 'Déposer une demande'}
           text={
             activeRequest
               ? `Dossier ${activeRequest.reference} en cours`
-              : 'Demarrer une demande de reconnaissance, delivrance, modification ou renouvellement.'
+              : 'Démarrer une demande de reconnaissance, délivrance, modification ou renouvellement.'
           }
           to="/demande"
           primary
@@ -41,7 +41,7 @@ export default function DashboardPage() {
           title="Historique"
           text={
             latestRequest
-              ? `${requests?.length ?? 0} dossier${(requests?.length ?? 0) > 1 ? 's' : ''} enregistre${(requests?.length ?? 0) > 1 ? 's' : ''}`
+              ? `${requests?.length ?? 0} dossier${(requests?.length ?? 0) > 1 ? 's' : ''} enregistré${(requests?.length ?? 0) > 1 ? 's' : ''}`
               : 'Aucun dossier soumis pour le moment.'
           }
           to="/demande"
@@ -61,7 +61,7 @@ export default function DashboardPage() {
             <div>
               <p className="font-medium">{latestRequest.reference}</p>
               <p className="text-anac-muted">
-                {REQUEST_TYPE_LABELS[latestRequest.requestType] ?? latestRequest.requestType}
+                {labelOf(REQUEST_TYPE_LABELS, latestRequest.requestType)}
               </p>
             </div>
             <Link to="/demande" className="text-anac-blue underline text-xs">

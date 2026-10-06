@@ -42,7 +42,7 @@ function Gate() {
             className="h-8 px-2.5 gap-1.5 text-white/70 hover:text-white hover:bg-white/10"
           >
             <LogOut size={13} />
-            <span className="text-[11px]">Deconnexion</span>
+            <span className="text-[11px]">Déconnexion</span>
           </Button>
         </div>
       </header>

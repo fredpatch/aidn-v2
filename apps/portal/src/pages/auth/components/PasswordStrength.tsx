@@ -3,10 +3,10 @@ import { motion } from "framer-motion";
 import { cn } from "../../../lib/utils";
 
 const RULES = [
-  { label: "8 caracteres minimum", test: (p: string) => p.length >= 8 },
+  { label: "8 caractères minimum", test: (p: string) => p.length >= 8 },
   { label: "Une majuscule", test: (p: string) => /[A-Z]/.test(p) },
   { label: "Un chiffre", test: (p: string) => /[0-9]/.test(p) },
-  { label: "Un caractere special", test: (p: string) => /[^A-Za-z0-9]/.test(p) },
+  { label: "Un caractère spécial", test: (p: string) => /[^A-Za-z0-9]/.test(p) },
 ];
 
 const BAR_COLOR = ["", "bg-red-400", "bg-amber-400", "bg-blue-400", "bg-anac-success"];

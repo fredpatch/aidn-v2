@@ -17,7 +17,7 @@ import {
   uploadFile,
 } from '../../../lib/api/requests.api';
 import type { FormalBundle, FormalDoc } from '../../../lib/api/requests.types';
-import { MEETING_STATUS_LABELS } from '../constants';
+import { MEETING_STATUS_LABELS, labelOf } from '../constants';
 import FileLink from '../../../components/files/FileLink';
 
 type StepState = 'done' | 'current' | 'waiting';
@@ -38,14 +38,14 @@ function stepState(done: boolean, current: boolean): StepState {
 }
 
 function letterLabel(status: string | undefined): string {
-  if (!status) return 'A deposer';
+  if (!status) return 'À déposer';
   return (
     {
-      submitted: 'Lettre recue, en circuit de signature',
+      submitted: 'Lettre reçue, en circuit de signature',
       in_signature_circuit: 'Lettre en signature',
-      signed: 'Lettre signee, transmission en cours',
-      pending_review: 'Retour signe recu par la DN',
-    }[status] ?? status
+      signed: 'Lettre signée, transmission en cours',
+      pending_review: 'Retour signé reçu par la DN',
+    }[status] ?? 'Statut inconnu'
   );
 }
 
@@ -57,35 +57,35 @@ function buildFormalPresentation(bundle: FormalBundle) {
 
   let title = 'Demande formelle ouverte';
   let description =
-    "Cette phase rassemble votre lettre officielle, les pieces du dossier et la reunion formelle.";
+    "Cette phase rassemble votre lettre officielle, les pièces du dossier et la réunion formelle.";
   let tone: 'info' | 'warning' | 'success' | 'muted' = 'info';
 
   if (phaseClosed) {
-    title = 'Demande formelle cloturee';
-    description = 'Votre dossier formel est complet et passe a la phase suivante.';
+    title = 'Demande formelle clôturée';
+    description = 'Votre dossier formel est complet et passe à la phase suivante.';
     tone = 'success';
   } else if (!bundle.letterCircuit) {
     title = 'Action requise';
-    description = "Deposez votre lettre officielle de demande d'agrement OMA.";
+    description = "Déposez votre lettre officielle de demande d'agrément OMA.";
     tone = 'warning';
   } else if (!letterDone) {
     title = 'Courrier en traitement';
     description =
-      "Votre lettre suit le circuit de signature. La reunion formelle sera planifiee apres le retour signe.";
+      "Votre lettre suit le circuit de signature. La réunion formelle sera planifiée après le retour signé.";
     tone = 'info';
   } else if (!docsDone) {
-    title = 'Pieces a completer';
-    description = `Deposez les pieces manquantes du dossier formel (${bundle.completionRate}/11).`;
+    title = 'Pièces à compléter';
+    description = `Déposez les pièces manquantes du dossier formel (${bundle.completionRate}/11).`;
     tone = 'warning';
   } else if (bundle.meeting?.status === 'scheduled') {
-    title = 'Reunion formelle planifiee';
-    description = "Consultez votre invitation et presentez-vous au rendez-vous indique.";
+    title = 'Réunion formelle planifiée';
+    description = "Consultez votre invitation et présentez-vous au rendez-vous indiqué.";
   } else if (!meetingDone) {
     title = 'Traitement ANAC en cours';
-    description = "La DN poursuit la verification du dossier et la preparation de la reunion.";
+    description = "La DN poursuit la vérification du dossier et la préparation de la réunion.";
   } else {
     title = 'Conditions remplies';
-    description = "Les elements attendus sont disponibles. La DN peut cloturer la phase.";
+    description = "Les éléments attendus sont disponibles. La DN peut clôturer la phase.";
     tone = 'success';
   }
 
@@ -102,18 +102,18 @@ function buildFormalPresentation(bundle: FormalBundle) {
       },
       {
         key: 'documents',
-        label: 'Pieces du dossier',
-        detail: `${bundle.completionRate}/11 pieces deposees`,
+        label: 'Pièces du dossier',
+        detail: `${bundle.completionRate}/11 pièces déposées`,
         state: stepState(docsDone, !!bundle.letterCircuit && !docsDone),
       },
       {
         key: 'meeting',
-        label: 'Reunion formelle',
+        label: 'Réunion formelle',
         detail: bundle.meeting
-          ? `${MEETING_STATUS_LABELS[bundle.meeting.status] ?? bundle.meeting.status} - ${formatDateTime(bundle.meeting.scheduledAt)}`
+          ? `${labelOf(MEETING_STATUS_LABELS, bundle.meeting.status)} - ${formatDateTime(bundle.meeting.scheduledAt)}`
           : letterDone
             ? 'En attente de planification'
-            : 'En attente du retour signe',
+            : 'En attente du retour signé',
         state: stepState(meetingDone || phaseClosed, letterDone && docsDone && !meetingDone && !phaseClosed),
       },
     ],
@@ -227,7 +227,7 @@ export function FormalPhaseSection({ requestId }: { requestId: number }) {
                 : 'bg-anac-info/10 text-anac-info'
             }`}
           >
-            {phaseClosed ? 'Cloturee' : 'En cours'}
+            {phaseClosed ? 'Clôturée' : 'En cours'}
           </span>
         </div>
 
@@ -248,7 +248,7 @@ export function FormalPhaseSection({ requestId }: { requestId: number }) {
           {!bundle.letterCircuit ? (
             <div className="mt-3 space-y-3">
               <p className="text-sm text-anac-muted">
-                Joignez votre lettre officielle de demande d'agrement OMA.
+                Joignez votre lettre officielle de demande d'agrément OMA.
               </p>
               <input
                 type="file"
@@ -291,14 +291,14 @@ export function FormalPhaseSection({ requestId }: { requestId: number }) {
         <div className="rounded-lg border border-anac-border bg-white p-4">
           <div className="flex items-center gap-2 text-anac-navy">
             <CalendarClock size={16} aria-hidden="true" />
-            <p className="text-sm font-semibold">Reunion formelle</p>
+            <p className="text-sm font-semibold">Réunion formelle</p>
           </div>
 
           {!bundle.meeting ? (
             <p className="mt-3 text-sm text-anac-muted">
               {bundle.letterCircuit?.status === 'pending_review'
-                ? 'La reunion sera planifiee par la DN lorsque le dossier sera suffisamment avance.'
-                : 'La reunion sera planifiee apres le retour signe de votre lettre officielle.'}
+                ? 'La réunion sera planifiée par la DN lorsque le dossier sera suffisamment avancé.'
+                : 'La réunion sera planifiée après le retour signé de votre lettre officielle.'}
             </p>
           ) : (
             <div className="mt-3 space-y-2 text-sm">
@@ -317,7 +317,7 @@ export function FormalPhaseSection({ requestId }: { requestId: number }) {
               <p>
                 <span className="text-anac-muted">Statut : </span>
                 <span className="font-medium text-anac-navy">
-                  {MEETING_STATUS_LABELS[bundle.meeting.status] ?? bundle.meeting.status}
+                  {labelOf(MEETING_STATUS_LABELS, bundle.meeting.status)}
                 </span>
               </p>
               {bundle.meeting.status === 'scheduled' && (
@@ -347,7 +347,7 @@ export function FormalPhaseSection({ requestId }: { requestId: number }) {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-anac-navy">
             <ClipboardList size={16} aria-hidden="true" />
-            <p className="text-sm font-semibold">Pieces du dossier formel</p>
+            <p className="text-sm font-semibold">Pièces du dossier formel</p>
           </div>
           <span
             className={`rounded px-2 py-0.5 text-[11px] font-medium ${
@@ -356,14 +356,14 @@ export function FormalPhaseSection({ requestId }: { requestId: number }) {
                 : 'bg-anac-warning/10 text-anac-warning'
             }`}
           >
-            {bundle.completionRate}/11 deposees
+            {bundle.completionRate}/11 déposées
           </span>
         </div>
 
         {missingDocs.length > 0 && (
           <div className="mt-3 space-y-2">
             <p className="text-xs font-medium text-anac-navy">
-              A deposer ({missingDocs.length})
+              À déposer ({missingDocs.length})
             </p>
             {missingDocs.map((doc) => (
               <FormalDocumentRow
@@ -391,7 +391,7 @@ export function FormalPhaseSection({ requestId }: { requestId: number }) {
         {submittedDocs.length > 0 && (
           <div className="mt-4 space-y-2">
             <p className="text-xs font-medium text-anac-navy">
-              Deja deposees ({submittedDocs.length})
+              Déjà déposées ({submittedDocs.length})
             </p>
             {submittedDocs.map((doc) => (
               <div key={doc.slot} className="rounded border border-anac-success/20 p-2.5">

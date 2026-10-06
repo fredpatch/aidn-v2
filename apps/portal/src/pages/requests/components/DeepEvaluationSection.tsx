@@ -4,6 +4,7 @@ import { api, apiErrorMessage } from '../../../lib/axios';
 import { uploadFile } from '../../../lib/uploads';
 import { notify } from '../../../lib/notify';
 import FileLink from '../../../components/files/FileLink';
+import { PAYMENT_STATUS_LABELS, labelOf } from '../constants';
 
 type EvaluationVerdict = 'validated' | 'rejected' | 'needs_correction' | null;
 
@@ -28,16 +29,7 @@ interface DeepEvaluationBundle {
 }
 
 function paymentLabel(status: string | undefined): string {
-  if (!status) return 'En attente';
-  return (
-    {
-      awaiting_invoice: 'Facture en preparation',
-      awaiting_proof: 'Quittance attendue',
-      pending_validation: 'Quittance en validation',
-      validated: 'Paiement valide',
-      rejected: 'Quittance rejetee',
-    }[status] ?? status
-  );
+  return labelOf(PAYMENT_STATUS_LABELS, status, 'En attente');
 }
 
 function buildPresentation(bundle: DeepEvaluationBundle) {
@@ -51,35 +43,35 @@ function buildPresentation(bundle: DeepEvaluationBundle) {
     (item) => item.verdict === 'rejected' || item.verdict === 'needs_correction'
   );
 
-  let title = 'Evaluation approfondie ouverte';
-  let description = "L'ANAC analyse les pieces techniques de votre dossier.";
+  let title = 'Évaluation approfondie ouverte';
+  let description = "L'ANAC analyse les pièces techniques de votre dossier.";
   let tone: 'info' | 'warning' | 'success' = 'info';
 
   if (phaseClosed) {
-    title = 'Evaluation approfondie cloturee';
-    description = 'Les documents requis ont ete traites et le dossier passe a la suite.';
+    title = 'Évaluation approfondie clôturée';
+    description = 'Les documents requis ont été traités et le dossier passe à la suite.';
     tone = 'success';
   } else if (!payment?.invoiceFileUrl) {
-    title = 'Facture en preparation';
-    description = "La facture de cette phase sera disponible ici lorsqu'elle sera emise.";
+    title = 'Facture en préparation';
+    description = "La facture de cette phase sera disponible ici lorsqu'elle sera émise.";
   } else if (!paymentValidated && !payment.proofFileUrl) {
     title = 'Action requise';
-    description = 'Telechargez la facture puis deposez votre quittance de paiement.';
+    description = 'Téléchargez la facture puis déposez votre quittance de paiement.';
     tone = 'warning';
   } else if (payment.status === 'pending_validation') {
     title = 'Quittance en validation';
-    description = "Votre preuve de paiement est en cours de verification par l'ANAC.";
+    description = "Votre preuve de paiement est en cours de vérification par l'ANAC.";
   } else if (payment.rejectionReason) {
     title = 'Nouvelle quittance requise';
-    description = `Preuve rejetee : ${payment.rejectionReason}`;
+    description = `Preuve rejetée : ${payment.rejectionReason}`;
     tone = 'warning';
   } else if (docsNeedingAction.length > 0) {
     title = 'Corrections requises';
-    description = `${docsNeedingAction.length} document(s) necessitent une correction.`;
+    description = `${docsNeedingAction.length} document(s) nécessitent une correction.`;
     tone = 'warning';
   } else if (docsComplete) {
-    title = 'Documents valides';
-    description = 'Tous les documents de cette phase ont ete valides.';
+    title = 'Documents validés';
+    description = 'Tous les documents de cette phase ont été validés.';
     tone = 'success';
   }
 
@@ -133,7 +125,7 @@ export function DeepEvaluationSection({ requestId }: { requestId: number }) {
     try {
       const uploaded = await uploadFile(file);
       await api.post(`/deep-evaluation/evaluations/${evaluationId}/resubmit`, { uploadAssetId: uploaded.uploadAssetId });
-      notify.success('Document corrige soumis.');
+      notify.success('Document corrigé soumis.');
       setResubmitFiles((prev) => {
         const next = { ...prev };
         delete next[evaluationId];
@@ -141,7 +133,7 @@ export function DeepEvaluationSection({ requestId }: { requestId: number }) {
       });
       await load();
     } catch (err) {
-      notify.error(apiErrorMessage(err, 'Impossible de soumettre le document corrige.'));
+      notify.error(apiErrorMessage(err, 'Impossible de soumettre le document corrigé.'));
     } finally {
       setSubmitting(false);
     }
@@ -163,7 +155,7 @@ export function DeepEvaluationSection({ requestId }: { requestId: number }) {
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-sm font-semibold text-anac-navy">Evaluation approfondie</p>
+            <p className="text-sm font-semibold text-anac-navy">Évaluation approfondie</p>
             <h3 className="mt-1 text-base font-semibold text-anac-navy">{presentation.title}</h3>
             <p className="mt-1 text-sm text-anac-muted">{presentation.description}</p>
           </div>
@@ -174,7 +166,7 @@ export function DeepEvaluationSection({ requestId }: { requestId: number }) {
                 : 'bg-anac-info/10 text-anac-info'
             }`}
           >
-            {phaseClosed ? 'Cloturee' : 'En cours'}
+            {phaseClosed ? 'Clôturée' : 'En cours'}
           </span>
         </div>
 
@@ -187,12 +179,12 @@ export function DeepEvaluationSection({ requestId }: { requestId: number }) {
           <StatusStep
             done={presentation.docsComplete}
             label="Documents"
-            detail={`${bundle.completionRate.validated}/${bundle.completionRate.total} valides`}
+            detail={`${bundle.completionRate.validated}/${bundle.completionRate.total} validés`}
           />
           <StatusStep
             done={phaseClosed}
             label="Suite du dossier"
-            detail={phaseClosed ? 'Phase cloturee' : 'Traitement ANAC en cours'}
+            detail={phaseClosed ? 'Phase clôturée' : 'Traitement ANAC en cours'}
           />
         </div>
       </div>
@@ -217,7 +209,7 @@ export function DeepEvaluationSection({ requestId }: { requestId: number }) {
             )}
 
             {bundle.payment.status === 'validated' ? (
-              <p className="text-sm font-medium text-anac-success">Paiement valide.</p>
+              <p className="text-sm font-medium text-anac-success">Paiement validé.</p>
             ) : bundle.payment.proofFileUrl && bundle.payment.status === 'pending_validation' ? (
               <p className="text-anac-muted">Quittance soumise, en attente de validation.</p>
             ) : bundle.payment.invoiceFileUrl ? (
@@ -238,7 +230,7 @@ export function DeepEvaluationSection({ requestId }: { requestId: number }) {
           <div className="flex items-center gap-2 text-anac-navy">
             <AlertCircle size={16} className="text-anac-warning" aria-hidden="true" />
             <p className="text-sm font-semibold">
-              Documents a corriger ({presentation.docsNeedingAction.length})
+              Documents à corriger ({presentation.docsNeedingAction.length})
             </p>
           </div>
 
@@ -247,7 +239,7 @@ export function DeepEvaluationSection({ requestId }: { requestId: number }) {
               <div key={ev.id} className="rounded border border-anac-border p-3">
                 <p className="text-sm font-medium text-anac-navy">{ev.label}</p>
                 <p className="mt-1 text-xs text-anac-muted">
-                  {ev.verdict === 'rejected' ? 'Document rejete' : 'Document a corriger'}
+                  {ev.verdict === 'rejected' ? 'Document rejeté' : 'Document à corriger'}
                   {ev.correctionDeadline &&
                     ` - attendu avant le ${new Date(ev.correctionDeadline).toLocaleDateString('fr-FR')}`}
                 </p>
@@ -283,12 +275,12 @@ export function DeepEvaluationSection({ requestId }: { requestId: number }) {
         <div className="rounded-lg border border-anac-border bg-white p-4">
           <div className="flex items-center gap-2 text-anac-navy">
             <FileSearch size={16} aria-hidden="true" />
-            <p className="text-sm font-semibold">Evaluation des documents</p>
+            <p className="text-sm font-semibold">Évaluation des documents</p>
           </div>
           <p className="mt-3 text-sm text-anac-muted">
             {presentation.docsComplete
-              ? 'Tous les documents ont ete valides.'
-              : "L'ANAC analyse les documents soumis. Les corrections eventuelles apparaitront ici."}
+              ? 'Tous les documents ont été validés.'
+              : "L'ANAC analyse les documents soumis. Les corrections éventuelles apparaîtront ici."}
           </p>
         </div>
       )}
@@ -312,11 +304,11 @@ function PaymentUpload({
   return (
     <div className="rounded border border-dashed border-anac-border p-3">
       {rejectedReason && (
-        <p className="mb-2 text-xs text-anac-danger">Preuve rejetee : {rejectedReason}</p>
+        <p className="mb-2 text-xs text-anac-danger">Preuve rejetée : {rejectedReason}</p>
       )}
       <label className="flex cursor-pointer flex-col gap-1 text-sm">
-        <span className="font-medium text-anac-navy">Deposer ma quittance</span>
-        <span className="text-xs text-anac-muted">Formats acceptes : PDF, Word, PNG ou JPG.</span>
+        <span className="font-medium text-anac-navy">Déposer ma quittance</span>
+        <span className="text-xs text-anac-muted">Formats acceptés : PDF, Word, PNG ou JPG.</span>
         <input
           type="file"
           accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"

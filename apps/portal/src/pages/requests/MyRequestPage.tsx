@@ -1,6 +1,6 @@
 import { ActiveRequestCard } from './components/ActiveRequestCard';
 import { SubmitRequestForm } from './components/SubmitRequestForm';
-import { REQUEST_TYPE_LABELS, TERMINAL_STATUSES } from './constants';
+import { REQUEST_TYPE_LABELS, TERMINAL_STATUSES, labelOf } from './constants';
 import { useMyRequests } from './hooks/useMyRequests';
 
 export default function MyRequestPage() {
@@ -44,7 +44,7 @@ export default function MyRequestPage() {
                 <div>
                   <p className="font-medium">{request.reference}</p>
                   <p className="text-anac-muted">
-                    {REQUEST_TYPE_LABELS[request.requestType] ?? request.requestType}
+                    {labelOf(REQUEST_TYPE_LABELS, request.requestType)}
                   </p>
                 </div>
                 <span className="text-anac-muted text-xs">

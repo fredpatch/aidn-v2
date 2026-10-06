@@ -3,7 +3,7 @@ import { CalendarClock, CheckCircle2, CreditCard, MapPinned, UploadCloud } from 
 import { api, apiErrorMessage } from '../../../lib/axios';
 import { uploadFile } from '../../../lib/uploads';
 import { notify } from '../../../lib/notify';
-import { MEETING_STATUS_LABELS } from '../constants';
+import { MEETING_STATUS_LABELS, PAYMENT_STATUS_LABELS, labelOf } from '../constants';
 import FileLink from '../../../components/files/FileLink';
 
 interface SiteInspectionBundle {
@@ -32,34 +32,34 @@ function buildPresentation(bundle: SiteInspectionBundle) {
   const paymentValidated = bundle.payment?.status === 'validated';
   const visitHeld = bundle.siteVisit?.status === 'held';
 
-  let title = 'Demonstration / inspection ouverte';
+  let title = 'Démonstration / inspection ouverte';
   let description = "Cette phase organise la visite sur site et l'avis technique interne.";
   let tone: 'info' | 'warning' | 'success' = 'info';
 
   if (phaseClosed) {
-    title = 'Demonstration / inspection terminee';
-    description = "La visite et l'avis interne ont ete traites.";
+    title = 'Démonstration / inspection terminée';
+    description = "La visite et l'avis interne ont été traités.";
     tone = 'success';
   } else if (!bundle.payment?.invoiceFileUrl) {
-    title = 'Facture en preparation';
-    description = "La facture de cette phase sera disponible ici lorsqu'elle sera emise.";
+    title = 'Facture en préparation';
+    description = "La facture de cette phase sera disponible ici lorsqu'elle sera émise.";
   } else if (!paymentValidated && !bundle.payment.proofFileUrl) {
     title = 'Action requise';
-    description = 'Telechargez la facture puis deposez votre quittance de paiement.';
+    description = 'Téléchargez la facture puis déposez votre quittance de paiement.';
     tone = 'warning';
   } else if (bundle.payment.status === 'pending_validation') {
     title = 'Quittance en validation';
-    description = "Votre preuve de paiement est en cours de verification par l'ANAC.";
+    description = "Votre preuve de paiement est en cours de vérification par l'ANAC.";
   } else if (bundle.payment.rejectionReason) {
     title = 'Nouvelle quittance requise';
-    description = `Preuve rejetee : ${bundle.payment.rejectionReason}`;
+    description = `Preuve rejetée : ${bundle.payment.rejectionReason}`;
     tone = 'warning';
   } else if (!bundle.siteVisit) {
-    title = 'Visite en preparation';
-    description = "La DN planifie la visite sur site avec l'equipe technique.";
+    title = 'Visite en préparation';
+    description = "La DN planifie la visite sur site avec l'équipe technique.";
   } else if (!visitHeld) {
-    title = 'Visite sur site planifiee';
-    description = 'Consultez les informations de visite et preparez votre equipe.';
+    title = 'Visite sur site planifiée';
+    description = 'Consultez les informations de visite et préparez votre équipe.';
   }
 
   return { title, description, tone, paymentValidated, visitHeld };
@@ -120,7 +120,7 @@ export function SiteInspectionSection({ requestId }: { requestId: number }) {
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-sm font-semibold text-anac-navy">Demonstration / inspection</p>
+            <p className="text-sm font-semibold text-anac-navy">Démonstration / inspection</p>
             <h3 className="mt-1 text-base font-semibold text-anac-navy">{presentation.title}</h3>
             <p className="mt-1 text-sm text-anac-muted">{presentation.description}</p>
           </div>
@@ -131,21 +131,21 @@ export function SiteInspectionSection({ requestId }: { requestId: number }) {
                 : 'bg-anac-info/10 text-anac-info'
             }`}
           >
-            {phaseClosed ? 'Cloturee' : 'En cours'}
+            {phaseClosed ? 'Clôturée' : 'En cours'}
           </span>
         </div>
 
         <div className="mt-4 grid gap-2 md:grid-cols-3">
-          <StatusStep done={presentation.paymentValidated} label="Paiement" detail={bundle.payment?.status ?? 'En attente'} />
+          <StatusStep done={presentation.paymentValidated} label="Paiement" detail={labelOf(PAYMENT_STATUS_LABELS, bundle.payment?.status, 'En attente')} />
           <StatusStep
             done={!!bundle.siteVisit}
             label="Visite"
-            detail={bundle.siteVisit ? formatDateTime(bundle.siteVisit.scheduledAt) : 'A planifier'}
+            detail={bundle.siteVisit ? formatDateTime(bundle.siteVisit.scheduledAt) : 'À planifier'}
           />
           <StatusStep
             done={phaseClosed}
             label="Avis interne"
-            detail={phaseClosed ? 'Traite' : 'Reserve a la DN'}
+            detail={phaseClosed ? 'Traité' : 'Réservé à la DN'}
           />
         </div>
       </div>
@@ -168,7 +168,7 @@ export function SiteInspectionSection({ requestId }: { requestId: number }) {
               </FileLink>
             )}
             {bundle.payment.status === 'validated' ? (
-              <p className="text-sm font-medium text-anac-success">Paiement valide.</p>
+              <p className="text-sm font-medium text-anac-success">Paiement validé.</p>
             ) : bundle.payment.proofFileUrl && bundle.payment.status === 'pending_validation' ? (
               <p className="text-anac-muted">Quittance soumise, en attente de validation.</p>
             ) : bundle.payment.invoiceFileUrl ? (
@@ -191,7 +191,7 @@ export function SiteInspectionSection({ requestId }: { requestId: number }) {
         </div>
         {!bundle.siteVisit ? (
           <p className="mt-3 text-sm text-anac-muted">
-            La visite sera affichee ici une fois planifiee par l'ANAC.
+            La visite sera affichée ici une fois planifiée par l'ANAC.
           </p>
         ) : (
           <div className="mt-3 space-y-2 text-sm">
@@ -210,13 +210,13 @@ export function SiteInspectionSection({ requestId }: { requestId: number }) {
             <p>
               <span className="text-anac-muted">Statut : </span>
               <span className="font-medium text-anac-navy">
-                {MEETING_STATUS_LABELS[bundle.siteVisit.status] ?? bundle.siteVisit.status}
+                {labelOf(MEETING_STATUS_LABELS, bundle.siteVisit.status)}
               </span>
             </p>
           </div>
         )}
         <p className="mt-3 text-xs text-anac-muted">
-          L'avis technique interne n'est pas publie dans le portail postulant.
+          L'avis technique interne n'est pas publié dans le portail postulant.
         </p>
       </div>
     </section>
@@ -239,7 +239,7 @@ function PaymentUpload({
   return (
     <div className="rounded border border-dashed border-anac-border p-3">
       {rejectedReason && (
-        <p className="mb-2 text-xs text-anac-danger">Preuve rejetee : {rejectedReason}</p>
+        <p className="mb-2 text-xs text-anac-danger">Preuve rejetée : {rejectedReason}</p>
       )}
       <input
         type="file"

@@ -3,7 +3,7 @@ import { apiErrorMessage } from '../../../lib/axios';
 import { notify } from '../../../lib/notify';
 import { cancelMyRequest } from '../../../lib/api/requests.api';
 import type { RequestView } from '../../../lib/api/requests.types';
-import { CIRCUIT_STATUS_LABELS, REQUEST_TYPE_LABELS, STATUS_LABELS } from '../constants';
+import { CIRCUIT_STATUS_LABELS, REQUEST_TYPE_LABELS, STATUS_LABELS, labelOf } from '../constants';
 import { FormalPhaseSection } from './FormalPhaseSection';
 import { PreliminaryPhaseSection } from './PreliminaryPhaseSection';
 import { DeepEvaluationSection } from './DeepEvaluationSection';
@@ -27,7 +27,7 @@ export function ActiveRequestCard({
     setCancelling(true);
     try {
       await cancelMyRequest(request.id);
-      notify.success('Demande annulee.');
+      notify.success('Demande annulée.');
       onChanged();
     } catch (err) {
       const message = apiErrorMessage(err, 'Annulation impossible.');
@@ -39,16 +39,14 @@ export function ActiveRequestCard({
   }
 
   const statusLabel =
-    CIRCUIT_STATUS_LABELS[request.circuitStatus ?? ''] ??
-    STATUS_LABELS[request.status] ??
-    request.status;
+    CIRCUIT_STATUS_LABELS[request.circuitStatus ?? ''] ?? labelOf(STATUS_LABELS, request.status);
 
   return (
     <div className="card space-y-3">
       <div className="flex items-center justify-between">
         <span className="font-semibold text-anac-navy">{request.reference}</span>
         <span className="text-xs text-anac-muted">
-          {REQUEST_TYPE_LABELS[request.requestType] ?? request.requestType}
+          {labelOf(REQUEST_TYPE_LABELS, request.requestType)}
         </span>
       </div>
 
@@ -66,7 +64,7 @@ export function ActiveRequestCard({
 
       {!canCancel && request.status !== 'in_progress' && (
         <p className="text-anac-muted text-xs">
-          Cette demande ne peut plus etre annulee (deja envoyee en signature ou au-dela).
+          Cette demande ne peut plus être annulée (déjà envoyée en signature ou au-delà).
         </p>
       )}
 

@@ -16,7 +16,7 @@ import {
   uploadFile,
 } from '../../../lib/api/requests.api';
 import type { PreliminaryBundle } from '../../../lib/api/requests.types';
-import { MEETING_STATUS_LABELS } from '../constants';
+import { MEETING_STATUS_LABELS, labelOf } from '../constants';
 import FileLink from '../../../components/files/FileLink';
 
 type StepState = 'done' | 'current' | 'waiting';
@@ -50,13 +50,13 @@ function buildPreliminaryPresentation(bundle: PreliminaryBundle) {
   const declarationAvailable = !!evaluation?.madeAvailableAt;
   const declarationSubmitted = !!evaluation?.submittedFileUrl;
 
-  let title = 'Traitement preliminaire ouvert';
-  let description = "La Direction de la Navigabilite a pris votre dossier en charge.";
+  let title = 'Traitement préliminaire ouvert';
+  let description = "La Direction de la Navigabilité a pris votre dossier en charge.";
   let tone: 'info' | 'warning' | 'success' | 'muted' = 'info';
 
   if (phaseClosed) {
-    title = 'Phase preliminaire cloturee';
-    description = 'Votre dossier passe a la phase suivante du traitement.';
+    title = 'Phase préliminaire clôturée';
+    description = 'Votre dossier passe à la phase suivante du traitement.';
     tone = 'success';
   } else if (declarationSubmitted) {
     title = 'Formulaire transmis';
@@ -64,19 +64,19 @@ function buildPreliminaryPresentation(bundle: PreliminaryBundle) {
     tone = 'success';
   } else if (declarationAvailable) {
     title = 'Action requise';
-    description = 'Telechargez le formulaire, remplissez-le, puis deposez votre declaration.';
+    description = 'Téléchargez le formulaire, remplissez-le, puis déposez votre déclaration.';
     tone = 'warning';
   } else if (meetingScheduled) {
-    title = 'Reunion preliminaire planifiee';
-    description = "Consultez votre invitation et presentez-vous au rendez-vous indique.";
+    title = 'Réunion préliminaire planifiée';
+    description = "Consultez votre invitation et présentez-vous au rendez-vous indiqué.";
     tone = 'info';
   } else if (meetingDone) {
-    title = 'Declaration en preparation';
-    description = "L'ANAC prepare le formulaire de pre-evaluation a vous transmettre.";
+    title = 'Déclaration en préparation';
+    description = "L'ANAC prépare le formulaire de pré-évaluation à vous transmettre.";
     tone = 'info';
   } else {
-    title = 'Reunion a planifier';
-    description = "L'ANAC va planifier la reunion preliminaire et rendre l'invitation disponible ici.";
+    title = 'Réunion à planifier';
+    description = "L'ANAC va planifier la réunion préliminaire et rendre l'invitation disponible ici.";
     tone = 'muted';
   }
 
@@ -87,15 +87,15 @@ function buildPreliminaryPresentation(bundle: PreliminaryBundle) {
     steps: [
       {
         key: 'meeting',
-        label: 'Reunion',
+        label: 'Réunion',
         detail: meeting
-          ? `${MEETING_STATUS_LABELS[meeting.status] ?? meeting.status} - ${formatDateTime(meeting.scheduledAt)}`
+          ? `${labelOf(MEETING_STATUS_LABELS, meeting.status)} - ${formatDateTime(meeting.scheduledAt)}`
           : 'En attente de planification',
         state: buildStepState(meetingDone, !meeting || meetingScheduled),
       },
       {
         key: 'declaration',
-        label: 'Declaration',
+        label: 'Déclaration',
         detail: declarationAvailable
           ? declarationSubmitted
             ? `Soumise le ${formatDate(evaluation?.submittedAt)}`
@@ -106,7 +106,7 @@ function buildPreliminaryPresentation(bundle: PreliminaryBundle) {
       {
         key: 'closure',
         label: 'Suite du dossier',
-        detail: phaseClosed ? 'Phase cloturee' : 'Traitement ANAC en cours',
+        detail: phaseClosed ? 'Phase clôturée' : 'Traitement ANAC en cours',
         state: buildStepState(phaseClosed, declarationSubmitted && !phaseClosed),
       },
     ],
@@ -138,7 +138,7 @@ export function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
   if (loading && !bundle) {
     return (
       <div className="border-t border-anac-border pt-4 mt-4">
-        <p className="text-xs text-anac-muted">Chargement de la phase preliminaire...</p>
+        <p className="text-xs text-anac-muted">Chargement de la phase préliminaire...</p>
       </div>
     );
   }
@@ -147,7 +147,7 @@ export function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
 
   async function handleSubmitDeclaration() {
     if (!file) {
-      notify.warning('Merci de joindre votre declaration remplie.');
+      notify.warning('Merci de joindre votre déclaration remplie.');
       return;
     }
     const phaseId = bundle?.phase?.id;
@@ -157,11 +157,11 @@ export function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
     try {
       const uploaded = await uploadFile(file);
       await submitPreliminaryDeclaration(phaseId, uploaded.uploadAssetId);
-      notify.success('Declaration soumise avec succes.');
+      notify.success('Déclaration soumise avec succès.');
       setFile(null);
       await load();
     } catch (err) {
-      notify.error(apiErrorMessage(err, 'Impossible de soumettre la declaration.'));
+      notify.error(apiErrorMessage(err, 'Impossible de soumettre la déclaration.'));
     } finally {
       setSubmitting(false);
     }
@@ -187,7 +187,7 @@ export function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-anac-navy">Phase preliminaire</p>
+            <p className="text-sm font-semibold text-anac-navy">Phase préliminaire</p>
             <h3 className="mt-1 text-base font-semibold text-anac-navy">
               {presentation.title}
             </h3>
@@ -200,7 +200,7 @@ export function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
                 : 'bg-anac-info/10 text-anac-info'
             }`}
           >
-            {phaseClosed ? 'Cloturee' : 'En cours'}
+            {phaseClosed ? 'Clôturée' : 'En cours'}
           </span>
         </div>
 
@@ -215,12 +215,12 @@ export function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
         <div className="rounded-lg border border-anac-border bg-white p-4">
           <div className="flex items-center gap-2 text-anac-navy">
             <CalendarClock size={16} aria-hidden="true" />
-            <p className="text-sm font-semibold">Reunion preliminaire</p>
+            <p className="text-sm font-semibold">Réunion préliminaire</p>
           </div>
 
           {!meeting ? (
             <p className="mt-3 text-sm text-anac-muted">
-              La reunion n'est pas encore planifiee. L'invitation apparaitra ici des qu'elle sera
+              La réunion n'est pas encore planifiée. L'invitation apparaîtra ici dès qu'elle sera
               disponible.
             </p>
           ) : (
@@ -240,7 +240,7 @@ export function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
               <p>
                 <span className="text-anac-muted">Statut : </span>
                 <span className="font-medium text-anac-navy">
-                  {MEETING_STATUS_LABELS[meeting.status] ?? meeting.status}
+                  {labelOf(MEETING_STATUS_LABELS, meeting.status)}
                 </span>
               </p>
               {meeting.status === 'scheduled' && (
@@ -268,12 +268,12 @@ export function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
         <div className="rounded-lg border border-anac-border bg-white p-4">
           <div className="flex items-center gap-2 text-anac-navy">
             <FileText size={16} aria-hidden="true" />
-            <p className="text-sm font-semibold">Declaration de pre-evaluation</p>
+            <p className="text-sm font-semibold">Déclaration de pré-évaluation</p>
           </div>
 
           {!declarationAvailable ? (
             <p className="mt-3 text-sm text-anac-muted">
-              Le formulaire sera disponible apres la reunion preliminaire.
+              Le formulaire sera disponible après la réunion préliminaire.
             </p>
           ) : declarationSubmitted ? (
             <div className="mt-3 rounded border border-anac-success/30 bg-anac-success/5 p-3">
@@ -299,14 +299,14 @@ export function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
                   download
                   className="btn-secondary inline-flex rounded px-3 py-1.5 text-xs"
                 >
-                  Telecharger le formulaire vierge
+                  Télécharger le formulaire vierge
                 </FileLink>
               )}
               <div className="rounded border border-dashed border-anac-border p-3">
                 <label className="flex cursor-pointer flex-col gap-1 text-sm">
-                  <span className="font-medium text-anac-navy">Deposer ma declaration remplie</span>
+                  <span className="font-medium text-anac-navy">Déposer ma déclaration remplie</span>
                   <span className="text-xs text-anac-muted">
-                    Formats acceptes : PDF, Word, PNG ou JPG.
+                    Formats acceptés : PDF, Word, PNG ou JPG.
                   </span>
                   <input
                     type="file"
@@ -322,7 +322,7 @@ export function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
                   disabled={submitting || !file}
                 >
                   <UploadCloud size={13} aria-hidden="true" />
-                  {submitting ? 'Envoi...' : 'Soumettre ma declaration'}
+                  {submitting ? 'Envoi...' : 'Soumettre ma déclaration'}
                 </button>
               </div>
             </div>
