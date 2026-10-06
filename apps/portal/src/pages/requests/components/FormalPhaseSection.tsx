@@ -9,6 +9,7 @@ import {
   uploadFile,
 } from '../../../lib/api/requests.api';
 import type { FormalBundle, FormalDoc } from '../../../lib/api/requests.types';
+import { useReadOnly } from '../../../components/request/ReadOnlyContext';
 import { usePhaseBundle } from '../hooks/usePhaseBundle';
 import { PhaseLoadError } from '../../../components/request/PhaseLoadError';
 import { MEETING_STATUS_LABELS, labelOf } from '../constants';
@@ -112,6 +113,7 @@ export function summarizeFormal(bundle: FormalBundle): string {
 }
 
 export function FormalPhaseSection({ requestId }: { requestId: number }) {
+  const readOnly = useReadOnly();
   const [uploadingSlot, setUploadingSlot] = useState<string | null>(null);
   const [slotFiles, setSlotFiles] = useState<Record<string, File>>({});
   const [letterFile, setLetterFile] = useState<File | null>(null);
@@ -199,7 +201,9 @@ export function FormalPhaseSection({ requestId }: { requestId: number }) {
       <div className="grid gap-3 md:grid-cols-2">
         <SectionCard icon={FileText} title="Lettre de demande officielle">
 
-          {!bundle.letterCircuit ? (
+          {!bundle.letterCircuit && readOnly ? (
+            <p className="mt-3 text-sm text-anac-muted">Aucune lettre déposée.</p>
+          ) : !bundle.letterCircuit ? (
             <div className="mt-3 space-y-3">
               <p className="text-sm text-anac-muted">
                 Joignez votre lettre officielle de demande d'agrément OMA.
@@ -353,6 +357,7 @@ function FormalDocumentRow({
   onFile: (file: File) => void;
   onSubmit: () => void;
 }) {
+  const readOnly = useReadOnly();
   const isUploading = uploadingSlot === doc.slot;
 
   return (
@@ -362,7 +367,7 @@ function FormalDocumentRow({
         <div className="min-w-0 flex-1">
           <p className="text-xs leading-tight text-anac-navy">{doc.label}</p>
         </div>
-        {!isUploading && (
+        {!isUploading && !readOnly && (
           <button
             type="button"
             className="flex-shrink-0 text-[10px] text-anac-blue underline"

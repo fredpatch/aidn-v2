@@ -6,6 +6,7 @@ import { notify } from '../../../lib/notify';
 import { formatDate } from '../../../lib/format';
 import type { DeepEvaluationBundle } from '../../../lib/api/requests.types';
 import { fetchDeepEvaluationBundle, submitDeepEvaluationProof, resubmitDeepEvaluationDocument } from '../../../lib/api/requests.api';
+import { useReadOnly } from '../../../components/request/ReadOnlyContext';
 import { usePhaseBundle } from '../hooks/usePhaseBundle';
 import { PhaseLoadError } from '../../../components/request/PhaseLoadError';
 import { PAYMENT_STATUS_LABELS, labelOf } from '../constants';
@@ -69,6 +70,7 @@ export function summarizeDeepEvaluation(bundle: DeepEvaluationBundle): string {
 }
 
 export function DeepEvaluationSection({ requestId }: { requestId: number }) {
+  const readOnly = useReadOnly();
   const [resubmitFiles, setResubmitFiles] = useState<Record<number, File>>({});
   const [submitting, setSubmitting] = useState(false);
   const { bundle, loadFailed, isFetching, retry, invalidate } = usePhaseBundle(requestId, 'M5', fetchDeepEvaluationBundle);
@@ -159,6 +161,7 @@ export function DeepEvaluationSection({ requestId }: { requestId: number }) {
                   {ev.verdict === 'rejected' ? 'Document rejeté' : 'Document à corriger'}
                   {ev.correctionDeadline && ` - attendu avant le ${formatDate(ev.correctionDeadline)}`}
                 </p>
+                {!readOnly && (
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <input
                     type="file"
@@ -181,6 +184,7 @@ export function DeepEvaluationSection({ requestId }: { requestId: number }) {
                     {submitting ? 'Envoi...' : 'Soumettre la correction'}
                   </button>
                 </div>
+                )}
               </div>
             ))}
           </div>

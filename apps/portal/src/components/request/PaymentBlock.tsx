@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { CreditCard, UploadCloud } from 'lucide-react';
 import FileLink from '../files/FileLink';
 import { SectionCard } from './SectionCard';
+import { useReadOnly } from './ReadOnlyContext';
 import { apiErrorMessage } from '../../lib/axios';
 import { notify } from '../../lib/notify';
 import type { PaymentInfo } from '../../lib/api/requests.types';
@@ -23,6 +24,7 @@ export function PaymentBlock({
   /** Upload the file and attach it to the payment; reload the section afterwards. */
   onSubmitProof: (file: File) => Promise<void>;
 }) {
+  const readOnly = useReadOnly();
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -58,7 +60,7 @@ export function PaymentBlock({
           <p className="text-sm font-medium text-anac-success">Paiement validé.</p>
         ) : payment.proofFileUrl && payment.status === 'pending_validation' ? (
           <p className="text-anac-muted">Quittance soumise, en attente de validation.</p>
-        ) : payment.invoiceFileUrl ? (
+        ) : payment.invoiceFileUrl && !readOnly ? (
           <div className="rounded border border-dashed border-anac-border p-3">
             {payment.rejectionReason && (
               <p className="mb-2 text-xs text-anac-danger">Preuve rejetée : {payment.rejectionReason}</p>

@@ -40,7 +40,7 @@ export default function DashboardPage() {
               ? `Dossier ${activeRequest.reference} en cours`
               : 'Démarrer une demande de reconnaissance, délivrance, modification ou renouvellement.'
           }
-          to="/demande"
+          to={activeRequest ? `/dossiers/${activeRequest.id}` : '/demande'}
           primary
         />
         <DashboardAction
@@ -51,13 +51,13 @@ export default function DashboardPage() {
               ? `${requests?.length ?? 0} dossier${(requests?.length ?? 0) > 1 ? 's' : ''} enregistré${(requests?.length ?? 0) > 1 ? 's' : ''}`
               : 'Aucun dossier soumis pour le moment.'
           }
-          to="/demande"
+          to="/dossiers"
         />
         <DashboardAction
           icon={UserCircle}
           title="Mon compte"
           text={`Compte ${applicant?.email ?? ''}`}
-          to="/demande"
+          to="/compte"
         />
       </div>
 
@@ -71,7 +71,7 @@ export default function DashboardPage() {
                 {labelOf(REQUEST_TYPE_LABELS, latestRequest.requestType)}
               </p>
             </div>
-            <Link to="/demande" className="text-anac-blue underline text-xs">
+            <Link to={`/dossiers/${latestRequest.id}`} className="text-anac-blue underline text-xs">
               Ouvrir
             </Link>
           </div>

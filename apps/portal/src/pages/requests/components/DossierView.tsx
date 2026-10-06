@@ -5,11 +5,14 @@ import { formatDate } from '../../../lib/format';
 import { cancelMyRequest } from '../../../lib/api/requests.api';
 import type { RequestView } from '../../../lib/api/requests.types';
 import type { PhaseCode } from '../../../lib/react-query/queryKeys';
-import { CIRCUIT_STATUS_LABELS, REQUEST_TYPE_LABELS, STATUS_LABELS, labelOf } from '../constants';
+import { REQUEST_TYPE_LABELS, labelOf } from '../constants';
+import { DossierStatusBadge } from '../../../components/request/DossierStatusBadge';
 import { useDossierProgress } from '../hooks/useDossierProgress';
 import { ActionBanner } from '../../../components/request/ActionBanner';
 import { PhaseProgress } from '../../../components/request/PhaseProgress';
 import { ClosedPhaseRow } from '../../../components/request/ClosedPhaseRow';
+import { ReadOnlyProvider } from '../../../components/request/ReadOnlyContext';
+import { isTerminalDossier } from '../progress';
 import { FormalPhaseSection } from './FormalPhaseSection';
 import { PreliminaryPhaseSection } from './PreliminaryPhaseSection';
 import { DeepEvaluationSection } from './DeepEvaluationSection';
@@ -24,7 +27,11 @@ const SECTIONS: Record<PhaseCode, ComponentType<{ requestId: number }>> = {
   M7: CertificatesSection,
 };
 
-export function ActiveRequestCard({
+/**
+ * One dossier, active or terminal: header, banner, progress strip, open phases,
+ * closed phases. A terminal dossier and every closed phase render read-only.
+ */
+export function DossierView({
   request,
   onChanged,
 }: {
@@ -35,7 +42,8 @@ export function ActiveRequestCard({
   const [error, setError] = useState<string | null>(null);
   const progress = useDossierProgress(request);
 
-  const canCancel = request.circuitStatus === 'submitted';
+  const terminal = isTerminalDossier(request);
+  const canCancel = !terminal && request.circuitStatus === 'submitted';
 
   async function handleCancel() {
     setError(null);
@@ -53,8 +61,6 @@ export function ActiveRequestCard({
     }
   }
 
-  const statusLabel =
-    CIRCUIT_STATUS_LABELS[request.circuitStatus ?? ''] ?? labelOf(STATUS_LABELS, request.status);
 
   // Open phases (plus failing or still-loading ones, so each resolves on its own)
   // in workflow order; closed phases newest first. Upcoming phases live only in the strip.
@@ -67,6 +73,7 @@ export function ActiveRequestCard({
     progress.loading && progress.items.every((item) => item.stage === 'loading' || item.stage === 'upcoming');
 
   return (
+    <ReadOnlyProvider readOnly={terminal}>
     <div className="space-y-4">
       <div className="card space-y-3 !p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -76,9 +83,7 @@ export function ActiveRequestCard({
               {labelOf(REQUEST_TYPE_LABELS, request.requestType)} · déposée le {formatDate(request.createdAt)}
             </p>
           </div>
-          <span className="rounded bg-anac-info/10 px-2 py-0.5 text-xs font-medium text-anac-info">
-            {statusLabel}
-          </span>
+          <DossierStatusBadge request={request} />
         </div>
 
         {error && <p className="text-anac-danger text-sm">{error}</p>}
@@ -89,7 +94,7 @@ export function ActiveRequestCard({
           </button>
         )}
 
-        {!canCancel && request.status !== 'in_progress' && (
+        {!canCancel && !terminal && request.status !== 'in_progress' && (
           <p className="text-anac-muted text-xs">
             Cette demande ne peut plus être annulée (déjà envoyée en signature ou au-delà).
           </p>
@@ -123,7 +128,9 @@ export function ActiveRequestCard({
                   const Section = SECTIONS[item.code];
                   return (
                     <ClosedPhaseRow key={item.code} label={item.label} summary={item.summary}>
-                      <Section requestId={request.id} />
+                      <ReadOnlyProvider readOnly>
+                        <Section requestId={request.id} />
+                      </ReadOnlyProvider>
                     </ClosedPhaseRow>
                   );
                 })}
@@ -133,5 +140,6 @@ export function ActiveRequestCard({
         </>
       )}
     </div>
+    </ReadOnlyProvider>
   );
 }

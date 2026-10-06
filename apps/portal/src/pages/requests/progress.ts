@@ -59,13 +59,29 @@ export function buildProgressItems(snapshots: Record<PhaseCode, PhaseSnapshot>):
   });
 }
 
+export const TERMINAL_DOSSIER_STATUSES = ['completed', 'rejected', 'cancelled'];
+
+export function isTerminalDossier(request: Pick<RequestView, 'status'>): boolean {
+  return TERMINAL_DOSSIER_STATUSES.includes(request.status);
+}
+
 /** The request has left the DG signature circuit and reached the DN. */
 export function isIntakeDone(request: Pick<RequestView, 'status' | 'circuitStatus'>): boolean {
-  return request.circuitStatus === 'pending_review' || request.status === 'in_progress';
+  return (
+    request.circuitStatus === 'pending_review' ||
+    request.status === 'in_progress' ||
+    request.status === 'completed' ||
+    request.status === 'rejected'
+  );
+}
+
+/** Phases M4-M7 can exist: processing started (and possibly ended). */
+export function phasesReachable(request: Pick<RequestView, 'status'>): boolean {
+  return ['in_progress', 'completed', 'rejected'].includes(request.status);
 }
 
 export interface BannerContent {
-  kind: 'action' | 'waiting';
+  kind: 'action' | 'waiting' | 'done' | 'rejected' | 'cancelled';
   eyebrow: string;
   title: string;
   description: string;
@@ -99,9 +115,12 @@ const WAITING = "En attente de l'ANAC";
  * load error leaves no reliable state - the failing section shows its error.
  */
 export function buildBanner(
-  request: Pick<RequestView, 'status' | 'circuitStatus'>,
+  request: Pick<RequestView, 'status' | 'circuitStatus' | 'rejectionReason'>,
   items: PhaseProgressItem[],
 ): BannerContent | null {
+  const outcome = buildOutcomeBanner(request, items);
+  if (outcome) return outcome;
+
   if (items.some((item) => item.stage === 'loading')) return null;
 
   const current = [...items].reverse().find((item) => item.stage === 'current');
@@ -130,4 +149,35 @@ export function buildBanner(
   const intake = INTAKE_BANNERS[request.circuitStatus ?? ''];
   if (!intake) return null;
   return { kind: 'waiting', eyebrow: WAITING, ...intake };
+}
+
+const ARCHIVED = 'Ce dossier est archivé. Les documents restent consultables.';
+
+/** Terminal dossiers: the outcome replaces the "what now" message. */
+function buildOutcomeBanner(
+  request: Pick<RequestView, 'status' | 'rejectionReason'>,
+  items: PhaseProgressItem[],
+): BannerContent | null {
+  switch (request.status) {
+    case 'completed': {
+      const delivery = items.find((item) => item.code === 'M7');
+      return {
+        kind: 'done',
+        eyebrow: 'Dossier terminé',
+        title: delivery?.summary ?? 'Traitement terminé',
+        description: ARCHIVED,
+      };
+    }
+    case 'rejected':
+      return {
+        kind: 'rejected',
+        eyebrow: 'Dossier rejeté',
+        title: 'Votre demande a été rejetée',
+        description: request.rejectionReason ? `Motif : ${request.rejectionReason}` : ARCHIVED,
+      };
+    case 'cancelled':
+      return { kind: 'cancelled', eyebrow: 'Demande annulée', title: 'Cette demande a été annulée', description: ARCHIVED };
+    default:
+      return null;
+  }
 }

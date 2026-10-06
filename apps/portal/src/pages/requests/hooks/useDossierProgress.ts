@@ -16,6 +16,7 @@ import {
   buildBanner,
   buildProgressItems,
   isIntakeDone,
+  phasesReachable,
   type PhasePresentation,
   type PhaseSnapshot,
 } from '../progress';
@@ -40,13 +41,14 @@ function snapshot<T extends { phase: { status: string } | null }>(
 }
 
 /**
- * Stage of every phase + the top banner for one active dossier. Uses the same
- * query keys as the phase sections, so it adds no API call. Fetch gating is
- * unchanged: M3 from the DN hand-off, M4-M7 only while the dossier is in progress.
+ * Stage of every phase + the top banner for one dossier (active or terminal).
+ * Uses the same query keys as the phase sections, so it adds no API call.
+ * M3 loads from the DN hand-off, M4-M7 once processing started (in progress,
+ * completed or rejected). A cancelled dossier never reached the DN: nothing loads.
  */
 export function useDossierProgress(request: RequestView) {
   const m3Enabled = isIntakeDone(request);
-  const laterEnabled = request.status === 'in_progress';
+  const laterEnabled = phasesReachable(request);
 
   const m3 = usePhaseBundle(request.id, 'M3', fetchPreliminaryBundle, m3Enabled);
   const m4 = usePhaseBundle(request.id, 'M4', fetchFormalBundle, laterEnabled);

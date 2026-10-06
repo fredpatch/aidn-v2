@@ -8,6 +8,7 @@ import {
   uploadFile,
 } from '../../../lib/api/requests.api';
 import type { PreliminaryBundle } from '../../../lib/api/requests.types';
+import { useReadOnly } from '../../../components/request/ReadOnlyContext';
 import { usePhaseBundle } from '../hooks/usePhaseBundle';
 import { PhaseLoadError } from '../../../components/request/PhaseLoadError';
 import { MEETING_STATUS_LABELS, labelOf } from '../constants';
@@ -103,6 +104,7 @@ export function summarizePreliminary(bundle: PreliminaryBundle): string {
 }
 
 export function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
+  const readOnly = useReadOnly();
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const { bundle, isLoading, loadFailed, isFetching, retry, invalidate } = usePhaseBundle(
@@ -209,6 +211,7 @@ export function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
                   Télécharger le formulaire vierge
                 </FileLink>
               )}
+              {!readOnly && (
               <div className="rounded border border-dashed border-anac-border p-3">
                 <label className="flex cursor-pointer flex-col gap-1 text-sm">
                   <span className="font-medium text-anac-navy">Déposer ma déclaration remplie</span>
@@ -232,6 +235,7 @@ export function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
                   {submitting ? 'Envoi...' : 'Soumettre ma déclaration'}
                 </button>
               </div>
+              )}
             </div>
           )}
         </SectionCard>
