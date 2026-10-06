@@ -20,6 +20,7 @@ import {
   type PreparedAttachment,
 } from '../uploads/upload-attachment.js';
 import type {
+  ApplicantMeetingItem,
   MeetingCockpitItem,
   MeetingCockpitSummary,
   ScheduleMeetingParams,
@@ -244,6 +245,36 @@ export async function listMeetingCockpit(params: {
  *  - Soft overlap only considers meetings still planned for that day.
  *    Historical rows (held, no-show, cancelled, rescheduled) do not occupy
  *    the agenda anymore. */
+/**
+ * Every meeting of every dossier owned by this applicant, oldest first.
+ * Ownership is part of the query (requests.applicantId), not a post-filter,
+ * so another applicant's meeting can never be selected. Superseded rows
+ * (status 'rescheduled') are kept: the portal lists them in the history.
+ */
+export async function listApplicantMeetings(applicantId: number): Promise<ApplicantMeetingItem[]> {
+  const rows = await db
+    .select({ meeting: meetings, phase: phases, request: requests })
+    .from(meetings)
+    .innerJoin(phases, eq(meetings.phaseId, phases.id))
+    .innerJoin(requests, eq(phases.requestId, requests.id))
+    .where(eq(requests.applicantId, applicantId))
+    .orderBy(meetings.scheduledAt);
+
+  return rows.map(({ meeting, phase, request }) => ({
+    id: meeting.id,
+    meetingType: meeting.meetingType,
+    status: meeting.status,
+    scheduledAt: meeting.scheduledAt.toISOString(),
+    location: meeting.location,
+    phaseCode: phase.phaseCode,
+    requestId: request.id,
+    requestReference: request.reference,
+    requestType: request.requestType,
+    crDocumentUrl: meeting.crDocumentUrl,
+    ticketAvailable: meeting.status === 'scheduled',
+  }));
+}
+
 export async function scheduleMeeting(
   params: ScheduleMeetingParams
 ): Promise<{ meeting: MeetingView; softOverlapWarning: boolean }> {

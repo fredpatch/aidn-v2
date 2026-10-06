@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   authenticate,
+  authenticateApplicant,
   authenticateEither,
   requireApplicantOrRole,
   requireRole,
@@ -42,6 +43,10 @@ router.get(
   requireRole('dn_agent', 'dn_supervisor', 'SU'),
   meetingsController.list
 );
+
+// Applicant's own meetings across all their dossiers (portal "Mes réunions").
+// Declared before '/:id' so "mine" is never parsed as a meeting id.
+router.get('/mine', authenticateApplicant, meetingsController.mine);
 
 // Read access: either side needs to see the meeting/ticket, but MEETINGS-IDOR
 // scopes it - applicants always pass the middleware and are then

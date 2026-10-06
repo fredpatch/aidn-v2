@@ -18,6 +18,16 @@ export async function list(req: Request, res: Response): Promise<void> {
   }
 }
 
+/** GET /meetings/mine - applicant only; scope comes from the token, never from the query. */
+export async function mine(req: Request, res: Response): Promise<void> {
+  try {
+    const items = await meetingsService.listApplicantMeetings(req.applicant!.applicantId);
+    res.json(items);
+  } catch (error) {
+    handleMeetingsError(res, error);
+  }
+}
+
 export async function schedule(req: Request, res: Response): Promise<void> {
   try {
     const { phaseId, meetingType, dnAgentId, scheduledAt, location } = req.body ?? {};

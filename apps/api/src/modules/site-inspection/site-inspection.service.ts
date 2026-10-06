@@ -1,4 +1,4 @@
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, ne } from 'drizzle-orm';
 import { db } from '../../shared/db/index.js';
 import {
   phases,
@@ -185,11 +185,19 @@ export async function getBundleForRequest(requestId: number): Promise<SiteInspec
 
   const [payment] = await db.select().from(payments).where(eq(payments.phaseId, phase.id));
 
+  // Current visit only: a reschedule leaves the old row as 'rescheduled' and
+  // inserts a new one - same rule as the M3/M4 bundles.
   const [siteVisitRow] = await db
     .select()
     .from(meetings)
-    .where(and(eq(meetings.phaseId, phase.id), eq(meetings.meetingType, 'site_visit')))
-    .orderBy(meetings.scheduledAt);
+    .where(
+      and(
+        eq(meetings.phaseId, phase.id),
+        eq(meetings.meetingType, 'site_visit'),
+        ne(meetings.status, 'rescheduled')
+      )
+    )
+    .orderBy(desc(meetings.scheduledAt));
 
   const [inspectionRow] = await db
     .select()
