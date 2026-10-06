@@ -590,6 +590,29 @@ de démarrage existent déjà et soient corrects.
 - [x] R3 dispose d'une vue compacte visite + Avis R3, peut marquer sa visite comme
       tenue, puis soumettre l'avis qui cloture la phase.
 
+### Correctif M6-RESCHEDULE-1 (2026-10-06) - visite reprogrammée : ancienne ligne prise pour la courante
+
+`rescheduleMeeting()` conserve l'ancienne réunion (statut `rescheduled`) et en crée
+une nouvelle. M3/M4 excluaient déjà `rescheduled` ; les requêtes M6 non, et
+prenaient la première ligne `site_visit` trouvée - donc potentiellement la visite
+remplacée, y compris quand la reprogrammation change d'agent R3.
+
+- [x] Bundle M6 (portail + admin) : renvoyait la visite remplacée - corrigé en
+      Batch F1 (`getBundleForRequest`)
+- [x] `assertR3AssignedToRequest` : l'ancien R3 gardait l'accès au dossier
+      (contrôle d'accès) - corrigé
+- [x] `submitInspectionVerdict` : le R3 courant ne pouvait pas soumettre l'avis
+      (`SITE_VISIT_NOT_ASSIGNED`), et l'avis pouvait être rattaché à la visite
+      remplacée - corrigé (exclusion + visite la plus récente)
+- [x] `getMyQueue` : mission obsolète dans la file de l'ancien R3, dossier en
+      double - corrigé
+- [x] `getR3DashboardSummary` : mission comptée deux fois (indicateurs et
+      pourcentages faussés) - corrigé
+- [x] Garde-fou : `site-visit-reschedule.invariant.test.ts` (statique, sans DB)
+      échoue si une requête `site_visit` n'exclut pas `rescheduled`
+- [x] Validé sur DB réelle (reprogrammation avec changement de R3) : 7/7 après
+      correctif, 5 échecs sur le code d'origine ; suite API 256/256
+
 ## Sprint 6 - Délivrance & Certificats (M7) - Terminé (2026-07-27)
 
 - [x] Facture + preuve de paiement (réutilise pattern M5/M6)

@@ -234,7 +234,9 @@ export async function assertR3AssignedToRequest(
       and(
         eq(meetings.phaseId, phase.id),
         eq(meetings.meetingType, 'site_visit'),
-        eq(meetings.dnAgentId, r3AgentId)
+        eq(meetings.dnAgentId, r3AgentId),
+        // Access follows the current visit, not a superseded one.
+        ne(meetings.status, 'rescheduled')
       )
     );
   if (!siteVisit) throw new Error('SITE_VISIT_NOT_ASSIGNED');
@@ -426,10 +428,19 @@ export async function submitInspectionVerdict(
   const [payment] = await db.select().from(payments).where(eq(payments.phaseId, phaseId));
   if (!payment || payment.status !== 'validated') throw new Error('PAYMENT_NOT_VALIDATED');
 
+  // Current visit only: after a reschedule the superseded row stays as
+  // 'rescheduled' and must not be the one checked for 'held'.
   const [siteVisit] = await db
     .select()
     .from(meetings)
-    .where(and(eq(meetings.phaseId, phaseId), eq(meetings.meetingType, 'site_visit')));
+    .where(
+      and(
+        eq(meetings.phaseId, phaseId),
+        eq(meetings.meetingType, 'site_visit'),
+        ne(meetings.status, 'rescheduled')
+      )
+    )
+    .orderBy(desc(meetings.scheduledAt));
   if (!siteVisit) throw new Error('SITE_VISIT_NOT_SCHEDULED');
   if (siteVisit.dnAgentId !== r3AgentId) throw new Error('SITE_VISIT_NOT_ASSIGNED');
   if (siteVisit.status !== 'held') throw new Error('SITE_VISIT_NOT_HELD');
@@ -497,7 +508,9 @@ export async function getMyQueue(r3AgentId: number): Promise<MyQueueItem[]> {
       and(
         eq(phases.phaseCode, 'M6'),
         eq(meetings.meetingType, 'site_visit'),
-        eq(meetings.dnAgentId, r3AgentId)
+        eq(meetings.dnAgentId, r3AgentId),
+        // One row per dossier: a superseded visit would list it twice.
+        ne(meetings.status, 'rescheduled')
       )
     )
     .orderBy(desc(meetings.scheduledAt));

@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lt, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, lt, ne, sql } from 'drizzle-orm';
 import { db } from '../../shared/db/index.js';
 import {
   auditLogs,
@@ -1608,10 +1608,17 @@ export async function getR3DashboardSummary(
       .innerJoin(organisations, eq(requests.organisationId, organisations.id))
       .leftJoin(payments, eq(payments.phaseId, phases.id))
       .leftJoin(siteInspections, eq(siteInspections.phaseId, phases.id))
+      // One mission per dossier: a reschedule leaves the superseded visit as
+      // 'rescheduled' next to the current one (same rule as the M6 services).
       .where(
         scopeCondition
-          ? and(eq(phases.phaseCode, 'M6'), eq(meetings.meetingType, 'site_visit'), scopeCondition)
-          : and(eq(phases.phaseCode, 'M6'), eq(meetings.meetingType, 'site_visit'))
+          ? and(
+              eq(phases.phaseCode, 'M6'),
+              eq(meetings.meetingType, 'site_visit'),
+              ne(meetings.status, 'rescheduled'),
+              scopeCondition
+            )
+          : and(eq(phases.phaseCode, 'M6'), eq(meetings.meetingType, 'site_visit'), ne(meetings.status, 'rescheduled'))
       )
       .orderBy(desc(meetings.scheduledAt)),
     db
