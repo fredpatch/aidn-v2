@@ -15,13 +15,16 @@ export function useMyRequests() {
     await queryClient.invalidateQueries({ queryKey: queryKeys.requests.mine() });
   }
 
-  const error = myRequestsQuery.error
+  // A failed background refetch keeps the last list on screen; only a load
+  // with nothing to show is reported as an error.
+  const error = myRequestsQuery.error && myRequestsQuery.data === undefined
     ? apiErrorMessage(myRequestsQuery.error, 'Impossible de charger votre demande.')
     : null;
 
   return {
     requests: myRequestsQuery.data ?? null,
     loading: myRequestsQuery.isLoading,
+    fetching: myRequestsQuery.isFetching,
     error,
     reload,
   };

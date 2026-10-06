@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { CalendarClock, CheckCircle2, Circle, ClipboardList, FileCheck2, FileText, UploadCloud } from 'lucide-react';
 import { apiErrorMessage } from '../../../lib/axios';
 import { notify } from '../../../lib/notify';
@@ -9,6 +9,8 @@ import {
   uploadFile,
 } from '../../../lib/api/requests.api';
 import type { FormalBundle, FormalDoc } from '../../../lib/api/requests.types';
+import { usePhaseBundle } from '../hooks/usePhaseBundle';
+import { PhaseLoadError } from '../../../components/request/PhaseLoadError';
 import { MEETING_STATUS_LABELS, labelOf } from '../constants';
 import { formatDateTime } from '../../../lib/format';
 import FileLink from '../../../components/files/FileLink';
@@ -101,36 +103,26 @@ function buildFormalPresentation(bundle: FormalBundle) {
 }
 
 export function FormalPhaseSection({ requestId }: { requestId: number }) {
-  const [bundle, setBundle] = useState<FormalBundle | null>(null);
   const [uploadingSlot, setUploadingSlot] = useState<string | null>(null);
   const [slotFiles, setSlotFiles] = useState<Record<string, File>>({});
   const [letterFile, setLetterFile] = useState<File | null>(null);
   const [submittingLetter, setSubmittingLetter] = useState(false);
   const [submittingDoc, setSubmittingDoc] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const { bundle, isLoading, loadFailed, isFetching, retry, invalidate } = usePhaseBundle(
+    requestId,
+    'M4',
+    fetchFormalBundle,
+  );
 
-  async function load() {
-    setLoading(true);
-    try {
-      const data = await fetchFormalBundle(requestId);
-      setBundle(data);
-    } catch {
-      // Silently ignore so section remains hidden until the phase exists.
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    load();
-  }, [requestId]);
-
-  if (loading && !bundle) {
+  if (isLoading) {
     return (
       <div className="border-t border-anac-border pt-4 mt-4">
         <p className="text-xs text-anac-muted">Chargement de la demande formelle...</p>
       </div>
     );
+  }
+  if (loadFailed) {
+    return <PhaseLoadError phaseLabel="Demande formelle" onRetry={retry} retrying={isFetching} />;
   }
 
   if (!bundle?.phase) return null;
@@ -147,7 +139,7 @@ export function FormalPhaseSection({ requestId }: { requestId: number }) {
       await submitFormalLetter(requestId, uploaded.uploadAssetId);
       notify.success('Lettre de demande soumise.');
       setLetterFile(null);
-      await load();
+      await invalidate();
     } catch (err) {
       notify.error(apiErrorMessage(err, 'Impossible de soumettre la lettre.'));
     } finally {
@@ -170,7 +162,7 @@ export function FormalPhaseSection({ requestId }: { requestId: number }) {
         delete next[slot];
         return next;
       });
-      await load();
+      await invalidate();
     } catch (err) {
       notify.error(apiErrorMessage(err, 'Impossible de soumettre le document.'));
     } finally {

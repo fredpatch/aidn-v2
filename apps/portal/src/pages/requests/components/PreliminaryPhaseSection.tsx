@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { CalendarClock, FileCheck2, FileText, UploadCloud } from 'lucide-react';
 import { apiErrorMessage } from '../../../lib/axios';
 import { notify } from '../../../lib/notify';
@@ -8,6 +8,8 @@ import {
   uploadFile,
 } from '../../../lib/api/requests.api';
 import type { PreliminaryBundle } from '../../../lib/api/requests.types';
+import { usePhaseBundle } from '../hooks/usePhaseBundle';
+import { PhaseLoadError } from '../../../components/request/PhaseLoadError';
 import { MEETING_STATUS_LABELS, labelOf } from '../constants';
 import { formatDate, formatDateTime } from '../../../lib/format';
 import FileLink from '../../../components/files/FileLink';
@@ -89,33 +91,23 @@ function buildPreliminaryPresentation(bundle: PreliminaryBundle) {
 }
 
 export function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
-  const [bundle, setBundle] = useState<PreliminaryBundle | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const { bundle, isLoading, loadFailed, isFetching, retry, invalidate } = usePhaseBundle(
+    requestId,
+    'M3',
+    fetchPreliminaryBundle,
+  );
 
-  async function load() {
-    setLoading(true);
-    try {
-      const data = await fetchPreliminaryBundle(requestId);
-      setBundle(data);
-    } catch {
-      // Silently ignore so section remains hidden until the phase exists.
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    load();
-  }, [requestId]);
-
-  if (loading && !bundle) {
+  if (isLoading) {
     return (
       <div className="border-t border-anac-border pt-4 mt-4">
         <p className="text-xs text-anac-muted">Chargement de la phase préliminaire...</p>
       </div>
     );
+  }
+  if (loadFailed) {
+    return <PhaseLoadError phaseLabel="Phase préliminaire" onRetry={retry} retrying={isFetching} />;
   }
 
   if (!bundle?.phase) return null;
@@ -134,7 +126,7 @@ export function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
       await submitPreliminaryDeclaration(phaseId, uploaded.uploadAssetId);
       notify.success('Déclaration soumise avec succès.');
       setFile(null);
-      await load();
+      await invalidate();
     } catch (err) {
       notify.error(apiErrorMessage(err, 'Impossible de soumettre la déclaration.'));
     } finally {

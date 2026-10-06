@@ -4,12 +4,15 @@ import { REQUEST_TYPE_LABELS, TERMINAL_STATUSES, labelOf } from './constants';
 import { useMyRequests } from './hooks/useMyRequests';
 
 export default function MyRequestPage() {
-  const { requests, error, reload } = useMyRequests();
+  const { requests, error, reload, fetching } = useMyRequests();
 
   if (error) {
     return (
-      <div className="card max-w-lg mx-auto">
+      <div role="alert" className="card max-w-lg mx-auto space-y-3">
         <p className="text-anac-danger">{error}</p>
+        <button type="button" className="btn-secondary text-sm" onClick={() => reload()} disabled={fetching}>
+          {fetching ? 'Chargement...' : 'Réessayer'}
+        </button>
       </div>
     );
   }

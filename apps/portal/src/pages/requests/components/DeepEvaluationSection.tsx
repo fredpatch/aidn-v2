@@ -1,10 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { AlertCircle, FileSearch, UploadCloud } from 'lucide-react';
-import { api, apiErrorMessage } from '../../../lib/axios';
+import { apiErrorMessage } from '../../../lib/axios';
 import { uploadFile } from '../../../lib/uploads';
 import { notify } from '../../../lib/notify';
 import { formatDate } from '../../../lib/format';
 import type { DeepEvaluationBundle } from '../../../lib/api/requests.types';
+import { fetchDeepEvaluationBundle, submitDeepEvaluationProof, resubmitDeepEvaluationDocument } from '../../../lib/api/requests.api';
+import { usePhaseBundle } from '../hooks/usePhaseBundle';
+import { PhaseLoadError } from '../../../components/request/PhaseLoadError';
 import { PAYMENT_STATUS_LABELS, labelOf } from '../constants';
 import { PhaseSummaryCard, type PhaseTone } from '../../../components/request/PhaseSummaryCard';
 import { PhaseStep } from '../../../components/request/PhaseStep';
@@ -58,33 +61,21 @@ function buildPresentation(bundle: DeepEvaluationBundle) {
 }
 
 export function DeepEvaluationSection({ requestId }: { requestId: number }) {
-  const [bundle, setBundle] = useState<DeepEvaluationBundle | null>(null);
   const [resubmitFiles, setResubmitFiles] = useState<Record<number, File>>({});
   const [submitting, setSubmitting] = useState(false);
+  const { bundle, loadFailed, isFetching, retry, invalidate } = usePhaseBundle(requestId, 'M5', fetchDeepEvaluationBundle);
 
-  async function load() {
-    try {
-      const { data } = await api.get(`/deep-evaluation/by-request/${requestId}`);
-      setBundle(data);
-    } catch {
-      // phase not open yet
-    }
+  if (loadFailed) {
+    return <PhaseLoadError phaseLabel="Évaluation approfondie" onRetry={retry} retrying={isFetching} />;
   }
-
-  useEffect(() => {
-    load();
-  }, [requestId]);
-
   if (!bundle?.phase) return null;
 
   const phaseId = bundle.phase.id;
 
   async function submitProof(file: File) {
     const uploaded = await uploadFile(file);
-    await api.post(`/deep-evaluation/phases/${phaseId}/requests/${requestId}/proof`, {
-      uploadAssetId: uploaded.uploadAssetId,
-    });
-    await load();
+    await submitDeepEvaluationProof(phaseId, requestId, uploaded.uploadAssetId);
+    await invalidate();
   }
 
   async function handleResubmit(evaluationId: number) {
@@ -93,14 +84,14 @@ export function DeepEvaluationSection({ requestId }: { requestId: number }) {
     setSubmitting(true);
     try {
       const uploaded = await uploadFile(file);
-      await api.post(`/deep-evaluation/evaluations/${evaluationId}/resubmit`, { uploadAssetId: uploaded.uploadAssetId });
+      await resubmitDeepEvaluationDocument(evaluationId, uploaded.uploadAssetId);
       notify.success('Document corrigé soumis.');
       setResubmitFiles((prev) => {
         const next = { ...prev };
         delete next[evaluationId];
         return next;
       });
-      await load();
+      await invalidate();
     } catch (err) {
       notify.error(apiErrorMessage(err, 'Impossible de soumettre le document corrigé.'));
     } finally {

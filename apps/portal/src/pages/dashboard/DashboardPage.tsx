@@ -7,7 +7,7 @@ import { REQUEST_TYPE_LABELS, TERMINAL_STATUSES, labelOf } from '../requests/con
 
 export default function DashboardPage() {
   const { applicant } = useApplicantAuth();
-  const { requests, error } = useMyRequests();
+  const { requests, error, reload, fetching } = useMyRequests();
   const activeRequest = requests?.find((request) => !TERMINAL_STATUSES.includes(request.status));
   const latestRequest = requests?.[0];
 
@@ -22,7 +22,14 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {error && <div className="card text-anac-danger text-sm">{error}</div>}
+      {error && (
+        <div role="alert" className="card flex flex-wrap items-center justify-between gap-3 text-sm">
+          <p className="text-anac-danger">{error}</p>
+          <button type="button" className="btn-secondary text-xs" onClick={() => reload()} disabled={fetching}>
+            {fetching ? 'Chargement...' : 'Réessayer'}
+          </button>
+        </div>
+      )}
 
       <div className="grid md:grid-cols-3 gap-4">
         <DashboardAction

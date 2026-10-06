@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
 import { FileBadge2, PackageCheck } from 'lucide-react';
-import { api } from '../../../lib/axios';
 import { uploadFile } from '../../../lib/uploads';
 import { formatDate } from '../../../lib/format';
 import type { CertificatesBundle } from '../../../lib/api/requests.types';
+import { fetchCertificatesBundle, submitCertificatesProof } from '../../../lib/api/requests.api';
+import { usePhaseBundle } from '../hooks/usePhaseBundle';
+import { PhaseLoadError } from '../../../components/request/PhaseLoadError';
 import { PAYMENT_STATUS_LABELS, labelOf } from '../constants';
 import { PhaseSummaryCard, type PhaseTone } from '../../../components/request/PhaseSummaryCard';
 import { PhaseStep } from '../../../components/request/PhaseStep';
@@ -57,21 +58,11 @@ function buildPresentation(bundle: CertificatesBundle) {
 }
 
 export function CertificatesSection({ requestId }: { requestId: number }) {
-  const [bundle, setBundle] = useState<CertificatesBundle | null>(null);
+  const { bundle, loadFailed, isFetching, retry, invalidate } = usePhaseBundle(requestId, 'M7', fetchCertificatesBundle);
 
-  async function load() {
-    try {
-      const { data } = await api.get(`/certificates/by-request/${requestId}`);
-      setBundle(data);
-    } catch {
-      // phase not open yet
-    }
+  if (loadFailed) {
+    return <PhaseLoadError phaseLabel="Délivrance du certificat" onRetry={retry} retrying={isFetching} />;
   }
-
-  useEffect(() => {
-    load();
-  }, [requestId]);
-
   if (!bundle?.phase) return null;
 
   const phaseId = bundle.phase.id;
@@ -81,10 +72,8 @@ export function CertificatesSection({ requestId }: { requestId: number }) {
 
   async function submitProof(file: File) {
     const uploaded = await uploadFile(file);
-    await api.post(`/certificates/phases/${phaseId}/requests/${requestId}/proof`, {
-      uploadAssetId: uploaded.uploadAssetId,
-    });
-    await load();
+    await submitCertificatesProof(phaseId, requestId, uploaded.uploadAssetId);
+    await invalidate();
   }
 
   return (

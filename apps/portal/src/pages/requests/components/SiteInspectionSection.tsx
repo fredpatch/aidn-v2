@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
 import { MapPinned } from 'lucide-react';
-import { api } from '../../../lib/axios';
 import { uploadFile } from '../../../lib/uploads';
 import { formatDateTime } from '../../../lib/format';
 import type { SiteInspectionBundle } from '../../../lib/api/requests.types';
+import { fetchSiteInspectionBundle, submitSiteInspectionProof } from '../../../lib/api/requests.api';
+import { usePhaseBundle } from '../hooks/usePhaseBundle';
+import { PhaseLoadError } from '../../../components/request/PhaseLoadError';
 import { PAYMENT_STATUS_LABELS, labelOf } from '../constants';
 import { PhaseSummaryCard, type PhaseTone } from '../../../components/request/PhaseSummaryCard';
 import { PhaseStep } from '../../../components/request/PhaseStep';
@@ -50,21 +51,11 @@ function buildPresentation(bundle: SiteInspectionBundle) {
 }
 
 export function SiteInspectionSection({ requestId }: { requestId: number }) {
-  const [bundle, setBundle] = useState<SiteInspectionBundle | null>(null);
+  const { bundle, loadFailed, isFetching, retry, invalidate } = usePhaseBundle(requestId, 'M6', fetchSiteInspectionBundle);
 
-  async function load() {
-    try {
-      const { data } = await api.get(`/site-inspection/by-request/${requestId}`);
-      setBundle(data);
-    } catch {
-      // phase not open yet
-    }
+  if (loadFailed) {
+    return <PhaseLoadError phaseLabel="Démonstration / inspection" onRetry={retry} retrying={isFetching} />;
   }
-
-  useEffect(() => {
-    load();
-  }, [requestId]);
-
   if (!bundle?.phase) return null;
 
   const phaseId = bundle.phase.id;
@@ -73,10 +64,8 @@ export function SiteInspectionSection({ requestId }: { requestId: number }) {
 
   async function submitProof(file: File) {
     const uploaded = await uploadFile(file);
-    await api.post(`/site-inspection/phases/${phaseId}/requests/${requestId}/proof`, {
-      uploadAssetId: uploaded.uploadAssetId,
-    });
-    await load();
+    await submitSiteInspectionProof(phaseId, requestId, uploaded.uploadAssetId);
+    await invalidate();
   }
 
   return (
