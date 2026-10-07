@@ -16,7 +16,7 @@ no business regression risk"). **Decision: do not build it now.**
   `inspection: null`, `r3AgentId` removed) live in the **controllers**, not
   the services - an aggregator calling services would bypass them; loss of
   per-phase resilience (Batch D); portal cache rework (per-phase keys shared
-  by sections, banner, *Mes dossiers*); per-module error codes to merge; API
+  by sections, banner, _Mes dossiers_); per-module error codes to merge; API
   tests not run in CI.
 - Reopen only if real latency is measured in production (Libreville ->
   server). Chosen follow-up: move the M6 applicant masking from controller
