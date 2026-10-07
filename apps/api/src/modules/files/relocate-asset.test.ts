@@ -4,7 +4,6 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { relocateDossierAssetAfterCommit, relocateFile, realFsOps, type FsOps, type RelocateDossierAssetAfterCommitDeps } from './relocate-asset.js';
-import type { StorageContext } from '../uploads/storage-context.js';
 
 let root: string;
 
@@ -125,12 +124,6 @@ describe('relocateFile', () => {
 });
 
 describe('relocateDossierAssetAfterCommit', () => {
-  const certificateContext: StorageContext = {
-    requestReference: 'DEM-REF',
-    phaseFolder: 'M7-delivrance',
-    categorySlug: 'certificates',
-  };
-
   function deps(
     overrides: Partial<RelocateDossierAssetAfterCommitDeps> & { initialKey?: string; uploadedFromApp?: string } = {}
   ): {

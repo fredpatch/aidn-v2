@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { db } from "../../shared/db/index.js";
-import { applicants } from "../../shared/db/schema.js";
+import { applicants, organisations } from "../../shared/db/schema.js";
 import {
   signApplicantAccessToken,
   signApplicantRefreshToken,
@@ -13,15 +13,22 @@ import { logAudit } from "../auth/auth.service.js";
 export interface ApplicantPublic {
   id: number;
   organisationId: number;
+  /** Display name of the applicant's organisation (portal "Mon compte"). */
+  organisationName: string;
   fullName: string;
   email: string;
   contactOrder: string;
 }
 
-function toApplicantPublic(applicant: typeof applicants.$inferSelect): ApplicantPublic {
+async function toApplicantPublic(applicant: typeof applicants.$inferSelect): Promise<ApplicantPublic> {
+  const [organisation] = await db
+    .select({ name: organisations.name })
+    .from(organisations)
+    .where(eq(organisations.id, applicant.organisationId));
   return {
     id: applicant.id,
     organisationId: applicant.organisationId,
+    organisationName: organisation?.name ?? '',
     fullName: applicant.fullName,
     email: applicant.email,
     contactOrder: applicant.contactOrder,
@@ -64,7 +71,7 @@ export async function login(params: {
       accessToken: signApplicantAccessToken(payload),
       refreshToken: signApplicantRefreshToken(payload),
     },
-    applicant: toApplicantPublic(applicant),
+    applicant: await toApplicantPublic(applicant),
   };
 }
 
@@ -80,5 +87,5 @@ export async function refreshToken(token: string): Promise<{ accessToken: string
 export async function me(applicantId: number): Promise<ApplicantPublic> {
   const [applicant] = await db.select().from(applicants).where(eq(applicants.id, applicantId));
   if (!applicant) throw new Error("ACCOUNT_NOT_FOUND");
-  return toApplicantPublic(applicant);
+  return await toApplicantPublic(applicant);
 }

@@ -25,7 +25,7 @@ Default local services:
 
 - Main branch: `main`
 - Current source of truth: `origin/main`
-- Latest known commit: `26f6c71 feat: ai advanced`
+- Latest known commit: `04b217a fix(m6): exclude superseded site visits from all R3/dashboard queries`
 - Staging/infra baseline commit: `d65214c feat(infra): add AIDN staging deployment and reset migrations baseline`
 - Important unmerged branch: `chore/codex-frontend-agents`
 

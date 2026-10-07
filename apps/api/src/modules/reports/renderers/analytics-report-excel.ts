@@ -1,6 +1,6 @@
 import ExcelJS from 'exceljs';
 import type { AnalyticsMetric } from '../../analytics/analytics.types.js';
-import type { ReportKey, ReportSnapshot } from '../reports.types.js';
+import type { ReportSnapshot } from '../reports.types.js';
 
 function formatDate(value: string): string {
   return new Intl.DateTimeFormat('fr-FR', {

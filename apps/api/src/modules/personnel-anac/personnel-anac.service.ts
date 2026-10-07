@@ -1,4 +1,4 @@
-import { eq, inArray } from 'drizzle-orm';
+import { inArray } from 'drizzle-orm';
 import { db } from '../../shared/db/index.js';
 import { users } from '../../shared/db/schema.js';
 import * as personnelAnac from '../../shared/utils/personnel-anac.js';

@@ -673,6 +673,32 @@ reste un audit plus étroit des permissions fines côté UI.
       en lecture seule - terminé 2026-07-30
 - [ ] **E** - Notifications (M11) - V1 minimale (certificat prêt, document à corriger, dossier rejeté)
 
+### Cohérence backend H2 (2026-10-07) - suites du durcissement portail
+
+- [x] `@aidn/shared` réaligné sur les enums DB (règle "update both together" de
+      `schema.ts`, jusque-là manuelle et non respectée) :
+      `PAYMENT_PROOF_STATUSES` (`pending` -> `awaiting_invoice`, `awaiting_proof`,
+      `pending_validation`) et `REQUEST_STATUSES` (ajout de `in_signature_circuit`).
+      Aucun des deux n'était importé : pas d'impact consommateur
+- [x] Garde-fou `shared-enums.invariant.test.ts` : compare les 9 constantes miroirs
+      aux `enumValues` drizzle (pas d'analyse de source) ; échoue sur les 2 écarts
+      d'origine
+- [x] Limite d'upload unique : `MAX_UPLOAD_BYTES` dans `@aidn/shared`, utilisée par
+      l'API (multer) et le portail (pré-contrôle). Mesuré : 20 Mio - 1 octet accepté,
+      20 Mio refusé (413)
+- [x] Portail : `r3AgentId` (identifiant utilisateur interne) retiré du bundle M6
+      postulant, comme l'avis R3 - la clé n'est plus présente dans la réponse
+- [x] `login` et `/me` postulant renvoient `organisationName` (ajout, champs
+      existants inchangés) - affichage "Mon compte" prévu en Batch J
+- [x] Script lecture seule `npm run db:check:site-inspections [-- --check]` : liste
+      les avis R3 rattachés à une visite remplacée ou signés par un autre R3 que
+      l'assigné (données antérieures au correctif M6-RESCHEDULE-1)
+- [x] ESLint API : 11 erreurs `no-unused-vars` -> 0 (code mort vérifié un par un :
+      doublon `sourceAppFromOrigin`, `phasePath` dupliqué en ligne, `PHASE_SLA`
+      jamais lu)
+- [x] Validé : suite API 266/266, scénario réel (serveur + DB) 10/10, typecheck
+      api/admin/portal/shared, build portail, lint api/portal/shared à 0
+
 ## Sprint 7 - Documents (transverse, M8)
 
 - [ ] Upload multi-format (PDF/Word/PNG/JPG)

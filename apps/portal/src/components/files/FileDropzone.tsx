@@ -1,11 +1,9 @@
 import { useId, useState, type DragEvent } from 'react';
 import { AlertTriangle, FileText, UploadCloud, X } from 'lucide-react';
-import { ACCEPTED_DOCUMENT_MIME_TYPES } from '@aidn/shared';
+import { ACCEPTED_DOCUMENT_MIME_TYPES, MAX_UPLOAD_BYTES } from '@aidn/shared';
 
-/** The API's multer limit (apps/api uploads.route.ts). Measured against the
- *  running API: a file of exactly this size is already refused (413), so
- *  the largest accepted file is MAX_UPLOAD_BYTES - 1. */
-export const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
+// MAX_UPLOAD_BYTES comes from @aidn/shared: the API enforces the same value.
+export { MAX_UPLOAD_BYTES };
 
 export const DOCUMENT_ACCEPT = '.pdf,.doc,.docx,.png,.jpg,.jpeg';
 export const TEXT_DOCUMENT_ACCEPT = '.pdf,.doc,.docx';

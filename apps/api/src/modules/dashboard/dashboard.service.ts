@@ -25,12 +25,10 @@ import type {
   DashboardPerformanceMetric,
   DashboardPhaseStat,
   ReceptionDashboardActivityItem,
-  ReceptionDashboardAlert,
   ReceptionDashboardCourrierItem,
   ReceptionDashboardProgressMetric,
   ReceptionDashboardSummary,
   R3DashboardActivityItem,
-  R3DashboardAlert,
   R3DashboardMissionItem,
   R3DashboardProgressMetric,
   R3DashboardSummary,
@@ -419,12 +417,6 @@ function requestTypeLabel(type: string): string {
     renewal: 'Renouvellement',
   };
   return labels[type] ?? type;
-}
-
-function phasePath(phaseCode: string, requestId: number): string {
-  if (phaseCode === 'M5') return `/demandes/${requestId}/evaluation-approfondie`;
-  if (phaseCode === 'M6') return `/demandes/${requestId}/demonstration-inspection`;
-  return `/demandes/${requestId}/delivrance`;
 }
 
 function s5WaitingFrom(payment: typeof payments.$inferSelect): Date | null {

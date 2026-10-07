@@ -1,4 +1,4 @@
-import { eq, and, gte, lt, desc } from 'drizzle-orm';
+import { eq, and, gte, lt } from 'drizzle-orm';
 import { db } from '../../shared/db/index.js';
 import {
   applicants,
@@ -393,7 +393,7 @@ export async function getMeeting(meetingId: number, actor: MeetingActor): Promis
  *  than three times now. Consumes the same authorized meeting/context as
  *  getMeeting (MEETINGS-IDOR) - no independent unscoped refetch by id. */
 export async function getMeetingTicketHtml(meetingId: number, actor: MeetingActor): Promise<string> {
-  const { meeting, phase, request } = await getMeetingForAuthorizedActor(meetingId, actor);
+  const { meeting, request } = await getMeetingForAuthorizedActor(meetingId, actor);
   const [agent] = await db.select().from(users).where(eq(users.id, meeting.dnAgentId));
 
   const typeLabels: Record<string, string> = {

@@ -45,8 +45,10 @@ export async function getBundle(req: Request, res: Response): Promise<void> {
     const bundle = await inspectionService.getBundleForRequest(requestId);
     // "Avis R3" is DN-internal only (modules-feasibility.md, doc visibility
     // rules) - never returned to an applicant caller, not just hidden in UI.
+    // Same rule for the assigned R3 agent: an internal user id, not applicant data.
     if (req.applicant) {
-      res.json({ ...bundle, inspection: null });
+      const siteVisit = bundle.siteVisit ? { ...bundle.siteVisit, r3AgentId: undefined } : null;
+      res.json({ ...bundle, siteVisit, inspection: null });
       return;
     }
     res.json(bundle);

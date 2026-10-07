@@ -11,16 +11,8 @@ import {
 import * as uploadsController from './uploads.controller.js';
 import * as uploadsAdminController from './uploads.admin.controller.js';
 import { UPLOADS_ROOT } from '../../shared/uploads-root.js';
+import { MAX_UPLOAD_BYTES } from '@aidn/shared';
 import { acceptsUploadMime, uploadRejection, UploadRejectedError } from './upload-intake.js';
-
-
-function sourceAppFromOrigin(origin: string | undefined): 'admin' | 'portal' | 'api' | 'unknown' {
-  if (!origin) return 'unknown';
-  if (process.env.ADMIN_ORIGIN && origin === process.env.ADMIN_ORIGIN) return 'admin';
-  if (process.env.PORTAL_ORIGIN && origin === process.env.PORTAL_ORIGIN) return 'portal';
-  if (process.env.API_ORIGIN && origin === process.env.API_ORIGIN) return 'api';
-  return 'unknown';
-}
 
 type UploadRequest = Express.Request & { uploadRelativeDir?: string };
 
@@ -51,7 +43,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB
+  limits: { fileSize: MAX_UPLOAD_BYTES }, // shared with the portal pre-check
   // STORAGE-0B - a refused type is never written to disk.
   fileFilter: (_req, file, cb) => {
     if (acceptsUploadMime(file.mimetype)) cb(null, true);

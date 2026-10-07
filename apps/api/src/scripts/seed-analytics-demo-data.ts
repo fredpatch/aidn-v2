@@ -63,13 +63,6 @@ const PHASE_DURATIONS: Record<PhaseCode, number> = {
   M7: 7,
 };
 
-const PHASE_SLA: Record<PhaseCode, number> = {
-  M3: 15,
-  M4: 20,
-  M5: 30,
-  M6: 30,
-  M7: 10,
-};
 
 const USER_CODES = {
   su: '0000',

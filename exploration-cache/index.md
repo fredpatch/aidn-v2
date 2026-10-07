@@ -3,7 +3,7 @@
 This folder is the living technical memory for AIDN v2. Notion is the shared high-level project dashboard; this cache is the repo-adjacent handoff for engineering state, decisions, gotchas, and next actions.
 
 **Project**: AIDN - Application Informatique de la Direction de la Navigabilite - ANAC Gabon
-**Last updated**: 2026-09-24
+**Last updated**: 2026-10-07
 **Current status**: M1-M7 are implemented end-to-end. Current focus is documentation/branch reconciliation, final role replay, analytics hardening, and notifications V1.
 
 ## Active Session

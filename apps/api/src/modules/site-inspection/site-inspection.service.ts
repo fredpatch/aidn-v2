@@ -7,7 +7,6 @@ import {
   payments,
   meetings,
   siteInspections,
-  documentVersions,
 } from '../../shared/db/schema.js';
 import { logAudit } from '../auth/auth.service.js';
 import type { PreparedAttachment } from '../uploads/upload-attachment.js';

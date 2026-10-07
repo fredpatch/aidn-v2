@@ -4,8 +4,8 @@
  * Kept here so apps/api, apps/admin and apps/portal share one source of truth.
  */
 
-/** Pattern "Circuit DG" (M1) */
-export const REQUEST_STATUSES = ['submitted', 'signed', 'pending_review'] as const;
+/** Pattern "Circuit DG" (M1) - mirrors the DB enum dg_circuit_status. */
+export const REQUEST_STATUSES = ['submitted', 'in_signature_circuit', 'signed', 'pending_review'] as const;
 export type RequestStatus = (typeof REQUEST_STATUSES)[number];
 
 /** Pattern "Reunion / Visite" (M3, M4, M6) */
@@ -51,9 +51,16 @@ export const CERTIFICATE_STATUSES = [
 ] as const;
 export type CertificateStatus = (typeof CERTIFICATE_STATUSES)[number];
 
-/** M9 - payment proof outcome; rejection can end in a terminal dossier rejection
- *  which releases the "one active request" rule (M1) */
-export const PAYMENT_PROOF_STATUSES = ['pending', 'validated', 'rejected'] as const;
+/** M9 - payment proof lifecycle (M5/M6/M7), mirrors the DB enum payment_proof_status.
+ *  Rejection can end in a terminal dossier rejection, which releases the
+ *  "one active request" rule (M1). */
+export const PAYMENT_PROOF_STATUSES = [
+  'awaiting_invoice',
+  'awaiting_proof',
+  'pending_validation',
+  'validated',
+  'rejected',
+] as const;
 export type PaymentProofStatus = (typeof PAYMENT_PROOF_STATUSES)[number];
 
 export const DOSSIER_TERMINAL_STATUSES = ['rejected'] as const;
@@ -92,3 +99,8 @@ export const ACCEPTED_DOCUMENT_MIME_TYPES = [
   'image/png',
   'image/jpeg',
 ] as const;
+
+/** M8 - upload size limit, enforced by the API (multer limits.fileSize) and
+ *  pre-checked by the portal. Multer refuses a file of exactly this size, so
+ *  the largest accepted file is MAX_UPLOAD_BYTES - 1 (measured, Batch G). */
+export const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;

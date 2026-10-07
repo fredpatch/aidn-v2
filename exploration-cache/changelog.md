@@ -1,9 +1,37 @@
 # 📝 AIDN v2 - Changelog
 
-Commit-level history. Covers `be9fce9` through the current uncommitted
-2026-07-28 workflow hardening, document viewer, and Personnel ANAC users pass.
+Commit-level history. Covers `be9fce9` through the 2026-10-07 H2 backend
+consistency pass.
 
-## (uncommitted) - 2026-09-29 STORAGE-0B asset-only attachment
+## 2026-10-07 H2 backend consistency
+
+- `@aidn/shared` realigned with the DB enums (`schema.ts` "update both
+  together" rule, manual until now and drifted): `PAYMENT_PROOF_STATUSES`
+  holds the real lifecycle (`awaiting_invoice`, `awaiting_proof`,
+  `pending_validation`, `validated`, `rejected` - `pending` covered 3 states),
+  `REQUEST_STATUSES` gains `in_signature_circuit`. Neither constant had any
+  consumer: no behavior change.
+- `shared-enums.invariant.test.ts`: the 9 shared constants mirroring DB enums
+  are compared to drizzle's own `enumValues` (no source parsing); fails on the
+  2 original drifts.
+- Single upload limit: `MAX_UPLOAD_BYTES` in `@aidn/shared`, used by the API
+  (multer `limits.fileSize`) and the portal pre-check. Measured: 20 MiB - 1
+  byte accepted, 20 MiB refused (413).
+- M6 portal bundle: `r3AgentId` (internal user id) removed for applicant
+  callers, same rule as the R3 avis - the key is absent from the response.
+- Applicant `login` and `/me` return `organisationName` (additive; existing
+  fields unchanged) - "Mon compte" display planned in Batch J.
+- Read-only `npm run db:check:site-inspections [-- --check]`: lists avis R3
+  attached to a superseded visit or signed by an R3 other than the assigned
+  one (data written before the M6-RESCHEDULE-1 fix). `--check` exits non-zero
+  so it can gate a deployment.
+- API ESLint: 11 `no-unused-vars` errors -> 0, dead code verified one by one
+  (duplicate `sourceAppFromOrigin`, inline-duplicated `phasePath`, unread
+  `PHASE_SLA`).
+- Validated: API suite 266/266, real-server scenario 10/10, typecheck
+  api/admin/portal/shared, portal build, lint api/portal/shared at 0.
+
+## 2026-09-29 STORAGE-0B asset-only attachment
 
 - Business endpoints take only `uploadAssetId` (closures:
   `closureDocumentUploadAssetId`); address, MIME and uploader come from
@@ -28,7 +56,7 @@ Commit-level history. Covers `be9fce9` through the current uncommitted
   `scripts/storage-0b-risk-check.sql` for staging containment.
 - Shared `UploadedAsset` type and one `lib/uploads.ts` helper per app.
 
-## (uncommitted) - 2026-09-25 STORAGE-0A secure file delivery
+## 2026-09-25 STORAGE-0A secure file delivery
 
 - Stable address `/api/files/<uploadAssetId>` (`fileAddress`/`parseFileAddress`
   in `@aidn/shared`); `upload_assets.storage_key` stays the only physical path.
@@ -49,7 +77,7 @@ Commit-level history. Covers `be9fce9` through the current uncommitted
   helpers and hard-coded `http://localhost:4000` origins removed.
 - Deploy script follows the approved rollout order.
 
-## (uncommitted) - 2026-09-25 État du système: capacity
+## 2026-09-25 État du système: capacity
 
 - Status contract: `infrastructure.database.sizeBytes` (`pg_database_size`),
   `infrastructure.storage.{freeBytes,totalBytes,lowSpace}` (`fs.statfs` on
@@ -58,7 +86,7 @@ Commit-level history. Covers `be9fce9` through the current uncommitted
 - Admin Infrastructure card: « Espace utilisé », « X libres sur Y (Z %) »,
   « Espace faible » pill; `formatBytes` (1024-based, French units).
 
-## (uncommitted) - 2026-09-25 DG working days + parameter validation
+## 2026-09-25 DG working days + parameter validation
 
 - `@aidn/shared/workingDays`: `parsePublicHolidays` (YYYY-MM-DD dated, MM-DD
   every year), `isWorkingDay`, `workingDaysBetween`, `subtractWorkingDays` on
@@ -74,7 +102,7 @@ Commit-level history. Covers `be9fce9` through the current uncommitted
   `INVALID_PARAMETER_VALUE`). Admin: unit « jours ouvrés », « Jours fériés »
   field (optional, placeholder), TODO removed.
 
-## (uncommitted) - 2026-09-25 SEED-2 État du système
+## 2026-09-25 SEED-2 État du système
 
 - `GET /api/seeding/status` / `POST /api/seeding/run` (SU, `modules/seeding`
   route + controller). Status observes only; expected state = seed definitions.
@@ -91,7 +119,7 @@ Commit-level history. Covers `be9fce9` through the current uncommitted
   `hooks/useSystemHealth.ts`, `system-health-ui.ts`); `known-templates.ts`
   extracted from `DocumentTemplatesPage`.
 
-## (uncommitted) - 2026-09-25 SEED-1B official document-template seeding
+## 2026-09-25 SEED-1B official document-template seeding
 
 - DN-approved forms copied byte-identical from `docs/models/` to
   `apps/api/seed-assets/document-templates/`; runtime never reads `docs/`.
@@ -127,7 +155,7 @@ Commit-level history. Covers `be9fce9` through the current uncommitted
 - Added `npm test` in `apps/api` (`tsx --test`, Node built-in `node:test`, no new
   dependency): 12 seeding tests.
 
-## (uncommitted) - 2026-09-25 admin templates/settings UX pass
+## 2026-09-25 admin templates/settings UX pass
 
 - `/modeles-documents` redesigned (library table, derived statuses, upload
   modal), per-template read-only version history drawer backed by new
@@ -140,7 +168,7 @@ Commit-level history. Covers `be9fce9` through the current uncommitted
   with units, client validation and an `Autres parametres` fallback; accent
   clean-up across the settings page.
 
-## (uncommitted) - 2026-09-25 settings maintenance/dev reset
+## 2026-09-25 settings maintenance/dev reset
 
 - Reworked admin `Parametres` into code-backed sections only: `Securite`,
   `Sauvegardes`, and `Maintenance`.
@@ -165,7 +193,7 @@ Commit-level history. Covers `be9fce9` through the current uncommitted
 - Verified with admin/API typecheck and build. Admin still has the known Vite
   large-chunk warning.
 
-## (uncommitted) - 2026-08-04 shared cockpit visual-density polish
+## 2026-08-04 shared cockpit visual-density polish
 
 - Normalized compact Lucide icon sizing across admin cockpit surfaces so table
   rows, detail panels, metric cards, viewers, and action buttons keep a steadier
@@ -175,7 +203,7 @@ Commit-level history. Covers `be9fce9` through the current uncommitted
   `Reunions`, phase cockpits, document viewer/templates, settings, auth helpers,
   account requests, and user/personnel detail panels.
 
-## (uncommitted) - 2026-08-03 analytics & reports V1
+## 2026-08-03 analytics & reports V1
 
 - Added `/api/analytics/overview` for DN supervisor/SU analytics over existing
   workflow timestamps: processing duration, median, SLA breaches, DG waiting,
@@ -206,7 +234,7 @@ Commit-level history. Covers `be9fce9` through the current uncommitted
   components, while AIDN users and Personnel ANAC lists now render through the
   shared table/pagination primitives. Verified with full `npm run build`.
 
-## (uncommitted) - 2026-07-30 users management cockpit refactor
+## 2026-07-30 users management cockpit refactor
 
 - Redesigned `Gestion des utilisateurs` around the cockpit pattern used by the
   other operational screens: AIDN users and Personnel ANAC activation now share
@@ -226,7 +254,7 @@ Commit-level history. Covers `be9fce9` through the current uncommitted
 - Verified with `npm run typecheck --workspace @aidn/admin` and
   `npm run build --workspace @aidn/admin` (Vite large-chunk warning remains).
 
-## (uncommitted) - 2026-07-30 meetings and requests cockpits
+## 2026-07-30 meetings and requests cockpits
 
 - Added `/api/meetings` as a DN/SU transverse meeting cockpit endpoint, with
   typed admin client data for metrics, week/list views, filters, upcoming
@@ -246,7 +274,7 @@ Commit-level history. Covers `be9fce9` through the current uncommitted
   `npm run typecheck --workspace @aidn/admin`, `npm run build --workspace @aidn/api`,
   and `npm run build --workspace @aidn/admin` (Vite large-chunk warning remains).
 
-## (uncommitted) - 2026-07-29 role dashboards: Reception and R3
+## 2026-07-29 role dashboards: Reception and R3
 
 - Added `/api/dashboard/reception-summary` and a dedicated
   `Tableau de bord - Accueil & Circuit signature` page for reception/assistant DG,
@@ -266,7 +294,7 @@ Commit-level history. Covers `be9fce9` through the current uncommitted
   `npm run typecheck --workspace @aidn/admin`, `npm run build --workspace @aidn/api`,
   and `npm run build --workspace @aidn/admin` (Vite large-chunk warning remains).
 
-## (uncommitted) - 2026-07-29 S5 dashboard V1
+## 2026-07-29 S5 dashboard V1
 
 - Added `/api/dashboard/s5-summary` for the S5 operational dashboard: invoices to
   transmit, proofs to verify, validated/rejected payments, S5 workflow counters,
@@ -282,7 +310,7 @@ Commit-level history. Covers `be9fce9` through the current uncommitted
   `npm run typecheck --workspace @aidn/admin`, `npm run build --workspace @aidn/api`,
   and `npm run build --workspace @aidn/admin` (Vite large-chunk warning remains).
 
-## (uncommitted) - 2026-07-29 operational cockpit UX pass
+## 2026-07-29 operational cockpit UX pass
 
 - Redesigned `Courriers officiels` / circuit signature inbox around the same
   cockpit pattern as the workflow screens: KPI cards, bucket tabs, search/sort,
@@ -300,7 +328,7 @@ Commit-level history. Covers `be9fce9` through the current uncommitted
   `npm run typecheck --workspace @aidn/admin`, `npm run build --workspace @aidn/api`,
   and `npm run build --workspace @aidn/admin` (Vite large-chunk warning remains).
 
-## (uncommitted) - 2026-07-29 dashboard KPI V1
+## 2026-07-29 dashboard KPI V1
 
 - Added API module `/api/dashboard/summary` for DN/SU dashboard indicators:
   active requests, open dossiers, global process duration, pending signature
@@ -318,7 +346,7 @@ Commit-level history. Covers `be9fce9` through the current uncommitted
 - Verified with `npm run typecheck --workspace @aidn/api` and
   `npm run typecheck --workspace @aidn/admin`.
 
-## (uncommitted) - 2026-07-29 workflow cockpit redesign pilot
+## 2026-07-29 workflow cockpit redesign pilot
 
 - Added reusable admin `WorkflowCockpit` shell for request workflow screens:
   breadcrumb bar, phase stepper, left phase/checklist rail, center work area, and
@@ -342,7 +370,7 @@ Commit-level history. Covers `be9fce9` through the current uncommitted
 - Verified with `npm run typecheck --workspaces --if-present` and
   `npm run build --workspaces --if-present` (Vite large-chunk warning remains).
 
-## (uncommitted) - 2026-07-29 D-V1 collapsible cards + C-V2 viewer pass
+## 2026-07-29 D-V1 collapsible cards + C-V2 viewer pass
 
 - Added reusable admin `CollapsibleCard` with keyboard-accessible toggle and
   state-driven default open/closed behavior.
@@ -359,7 +387,7 @@ Commit-level history. Covers `be9fce9` through the current uncommitted
 - Verified with `npm run typecheck --workspaces --if-present` and
   `npm run build --workspaces --if-present` (Vite large-chunk warning remains).
 
-## (uncommitted) - 2026-07-28 Phase 3/M5 + Phase 4/M6 role hardening
+## 2026-07-28 Phase 3/M5 + Phase 4/M6 role hardening
 
 On top of `3b72053`:
 
@@ -389,7 +417,7 @@ On top of `3b72053`:
 - Verified with `npm run typecheck --workspaces --if-present` and
   `npm run build --workspaces --if-present` (Vite large-chunk warning remains).
 
-## (uncommitted) - 2026-07-28 Phase 2 formal request hardening
+## 2026-07-28 Phase 2 formal request hardening
 
 On top of the Phase 1 intake hardening batch:
 
@@ -417,7 +445,7 @@ On top of the Phase 1 intake hardening batch:
 - Verified with `npm run typecheck --workspaces --if-present` and
   `npm run build --workspaces --if-present` (Vite large-chunk warning remains).
 
-## (uncommitted) - 2026-07-28 Phase 1 applicant account + intake hardening
+## 2026-07-28 Phase 1 applicant account + intake hardening
 
 On top of `origin/main`, current working diff:
 
@@ -448,7 +476,7 @@ On top of `origin/main`, current working diff:
 - Verified with `npm run typecheck --workspaces --if-present` and
   `npm run build --workspaces --if-present` (Vite large-chunk warning remains).
 
-## (uncommitted) - 2026-07-28 workflow hardening + C-V1 document viewer + Personnel ANAC users
+## 2026-07-28 workflow hardening + C-V1 document viewer + Personnel ANAC users
 
 On top of `origin/main`, current working diff:
 
@@ -496,7 +524,7 @@ On top of `origin/main`, current working diff:
 - Verified with `npm run typecheck --workspaces --if-present` and full
   `npm run build` (Vite large-chunk warning remains).
 
-## (uncommitted) - 2026-07-10 Sprint 4 kickoff (M5 deep-evaluation)
+## 2026-07-10 Sprint 4 kickoff (M5 deep-evaluation)
 
 On top of `4c75bf2`, current working diff:
 
@@ -525,7 +553,7 @@ On top of `4c75bf2`, current working diff:
 - Added orphan cleanup API + scheduled cleanup job support
 - Added system parameter seed for orphan retention defaults
 
-## (uncommitted) - 2026-07-09 hardening pass (post-Sprint 2)
+## 2026-07-09 hardening pass (post-Sprint 2)
 
 On top of `0e29d06`, 2026-07-09 ongoing session:
 
@@ -595,7 +623,7 @@ On top of `0e29d06`, 2026-07-09 ongoing session:
   - added initial `FormalPhaseSection` in portal for M4 read/submit flows (letter + document slots + meeting visibility)
   - later split into portal feature modules (`lib/api`, `hooks`, `components`, `constants`) and adopted the React Query convention
 
-## (uncommitted) - Sprint 2: Phase Préliminaire (M3), full API + UI
+## Sprint 2: Phase Préliminaire (M3), full API + UI
 
 On top of `a4a5220`, 2026-07-08:
 
