@@ -740,7 +740,8 @@ reste un audit plus étroit des permissions fines côté UI.
 - [x] Bloc paiement : la quittance choisie est liée à l'identifiant du paiement
       (une nouvelle facture repart d'un champ vide)
 - [x] 94 tests portail (+11) ; mutation : 9 bugs injectés, 9 détectés
-- [ ] J2 : libellés rédigés pendant A-G, à valider par le métier avant correction
+- [x] J2 (2026-10-07) : libellés rédigés pendant A-G et L validés par Fred tels
+      quels - aucune modification de code
 
 ### Invitation PDF L (2026-10-07) - remplace le ticket HTML
 
@@ -768,6 +769,30 @@ reste un audit plus étroit des permissions fines côté UI.
       session 401, `dn_agent` 200, `reception` 403)
 - [ ] Un lancement de Chromium par téléchargement (~0,85 s mesuré), comme les
       certificats et rapports : pool partagé à envisager si le volume augmente
+
+### Décision M (2026-10-07) : endpoint dossier agrégé reporté
+
+Évaluation faite avant tout code, à la demande de Fred (« seulement sans risque
+de régression métier »). **Décision : ne pas le construire maintenant.**
+
+- Gain mesuré négligeable : la page dossier fait 6 appels parallèles
+  (`/requests/mine` + 5 bundles `by-request`) ; serveur local, médiane sur 50
+  passages : 18 ms au total, 3,9 ms par bundle, ~1 Ko de données. Le
+  navigateur les envoie déjà en parallèle
+- Risques identifiés :
+  1. Les contrôles d'appartenance et le masquage côté postulant (avis R3
+     `inspection: null`, `r3AgentId` retiré) sont dans les **contrôleurs**, pas
+     les services : un agrégateur appelant les services les contournerait
+  2. Perte de la résilience par phase (Batch D : une phase en erreur n'affiche
+     l'erreur que dans sa section)
+  3. Refonte du cache portail (clés par phase partagées par les sections, le
+     bandeau d'avancement et *Mes dossiers*, invalidées après chaque action)
+  4. Codes d'erreur propres à chaque module à fusionner
+  5. Tests API non exécutés en CI (base requise)
+- À rouvrir seulement si une latence réelle est mesurée en production
+  (Libreville → serveur)
+- Suite retenue : déplacer le masquage postulant de M6 du contrôleur vers une
+  fonction partagée testée (durcissement sans changement visible)
 
 ## Sprint 7 - Documents (transverse, M8)
 

@@ -1,7 +1,28 @@
 # 📝 AIDN v2 - Changelog
 
-Commit-level history. Covers `be9fce9` through the 2026-10-07 Batch L meeting
-invitation PDF.
+Commit-level history. Covers `be9fce9` through the 2026-10-07 Décision M
+docs-only update (aggregated dossier endpoint deferred, J2 labels validated).
+
+## 2026-10-07 Décision M: aggregated dossier endpoint deferred
+
+Docs-only (TASKS.md). Evaluated before any code at Fred's request ("only if
+no business regression risk"). **Decision: do not build it now.**
+
+- Measured gain negligible: the dossier page makes 6 parallel calls
+  (`/requests/mine` + 5 `by-request` bundles); local server median over 50
+  runs: 18 ms total, 3.9 ms per bundle, ~1 KB. The browser already
+  parallelizes them.
+- Risks: ownership checks and applicant-side masking (R3 avis
+  `inspection: null`, `r3AgentId` removed) live in the **controllers**, not
+  the services - an aggregator calling services would bypass them; loss of
+  per-phase resilience (Batch D); portal cache rework (per-phase keys shared
+  by sections, banner, *Mes dossiers*); per-module error codes to merge; API
+  tests not run in CI.
+- Reopen only if real latency is measured in production (Libreville ->
+  server). Chosen follow-up: move the M6 applicant masking from controller
+  to a tested shared function (hardening, no visible change).
+- J2 closed: labels drafted during A-G and L validated by Fred as-is - no
+  code change.
 
 ## 2026-10-07 Batch L meeting invitation PDF
 
