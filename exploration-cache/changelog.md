@@ -1,7 +1,33 @@
 # 📝 AIDN v2 - Changelog
 
-Commit-level history. Covers `be9fce9` through the 2026-10-07 Décision M
-docs-only update (aggregated dossier endpoint deferred, J2 labels validated).
+Commit-level history. Covers `be9fce9` through the 2026-10-07 Batch N
+applicant-view hardening (M6 + meetings).
+
+## 2026-10-07 Batch N applicant views (M6 + meetings)
+
+The Décision M follow-up: applicant masking moved into tested shared
+functions.
+
+- `site-inspection/applicant-view.ts`: `toApplicantSiteInspectionBundle`
+  replaces the masking written inline in the controller (avis R3 -> `null`,
+  `r3AgentId` removed). Site-visit fields are **whitelisted**: a field added
+  later stays hidden from the applicant until listed. Applicant response
+  identical to before (same keys, same order).
+- Leak fixed: `GET /api/meetings/:id`, open to the applicant (MEETINGS-IDOR
+  ownership check), returned `dnAgentId` - for a site visit that is the
+  internal R3 agent id, the same data H2 removed from the M6 bundle.
+  `meetings/applicant-view.ts`: `toApplicantMeetingView` (whitelist, no
+  `dnAgentId`). No client (portal, admin) calls this route: no visible
+  change. Staff unchanged: full M6 bundle and `dnAgentId` kept.
+- 10 API tests incl. controller/service wiring guards; mutation 8/8; real
+  server scenario 9/9 + H2 script replayed.
+- Fixed the wiring guard itself: `slice(0, indexOf('\n}\n'))` missed (-1)
+  and let the slice swallow the rest of the file (8 `res.json` instead of
+  1); bounded at the next `export` in both new wiring tests.
+- Open business question: a site-visit invitation PDF shows the assigned
+  agent's name (the R3 inspector) under "Agent de la Direction de la
+  Navigabilité" - inherited from the old ticket. To decide: keep the name
+  with an "Inspecteur" label, or remove it.
 
 ## 2026-10-07 Décision M: aggregated dossier endpoint deferred
 

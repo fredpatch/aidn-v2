@@ -25,7 +25,7 @@ Default local services:
 
 - Main branch: `main`
 - Current source of truth: `origin/main`
-- Latest known commit: `50d2a0e docs(cache): normalize emphasis markers in batch l changelog entry`
+- Latest known commit: `b140c4d docs(cache): normalize emphasis markers in decision m changelog entry`
 - Staging/infra baseline commit: `d65214c feat(infra): add AIDN staging deployment and reset migrations baseline`
 - Important unmerged branch: `chore/codex-frontend-agents`
 

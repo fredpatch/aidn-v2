@@ -794,6 +794,27 @@ de régression métier »). **Décision : ne pas le construire maintenant.**
 - Suite retenue : déplacer le masquage postulant de M6 du contrôleur vers une
   fonction partagée testée (durcissement sans changement visible)
 
+### Durcissement N (2026-10-07) - vues postulant M6 et réunion
+
+- [x] `site-inspection/applicant-view.ts` : `toApplicantSiteInspectionBundle`
+      remplace le masquage écrit dans le contrôleur (avis R3 → `null`,
+      `r3AgentId` retiré). Champs de la visite en **liste blanche** : un champ
+      ajouté plus tard reste masqué au postulant tant qu'il n'y est pas listé.
+      Réponse postulant identique à avant (mêmes clés, même ordre)
+- [x] **Fuite corrigée** : `GET /api/meetings/:id`, ouvert au postulant (contrôle
+      d'appartenance MEETINGS-IDOR), renvoyait `dnAgentId` - pour une visite sur
+      site, c'est l'identifiant interne de l'agent R3, la même donnée que H2
+      avait retirée du bundle M6. `meetings/applicant-view.ts` :
+      `toApplicantMeetingView` (liste blanche, sans `dnAgentId`). Aucun client
+      (portail, admin) n'appelle cette route : aucun changement visible
+- [x] Personnel inchangé : bundle M6 complet et `dnAgentId` conservés
+- [x] 10 tests API (dont garde-fous de câblage dans le contrôleur et le
+      service) ; mutation 8/8 ; scénario serveur réel 9/9 + script H2 rejoué
+- [ ] Question métier : l'invitation PDF d'une visite sur site affiche le nom
+      de l'agent assigné (l'inspecteur R3) sous le libellé « Agent de la
+      Direction de la Navigabilité » - comportement hérité de l'ancien ticket.
+      À trancher : garder le nom avec un libellé « Inspecteur », ou le retirer
+
 ## Sprint 7 - Documents (transverse, M8)
 
 - [ ] Upload multi-format (PDF/Word/PNG/JPG)

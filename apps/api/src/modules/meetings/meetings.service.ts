@@ -12,6 +12,7 @@ import {
 } from '../../shared/db/schema.js';
 import { logAudit } from '../auth/auth.service.js';
 import { logoDataUri, renderHtmlToPdf } from '../../shared/pdf/html-pdf.js';
+import { toApplicantMeetingView, type ApplicantMeetingView } from './applicant-view.js';
 import {
   buildMeetingInvitationHtml,
   invitationFileName,
@@ -389,9 +390,13 @@ export async function getMeetingForAuthorizedActor(
   return { meeting, phase: phase ?? null, request: request ?? null };
 }
 
-export async function getMeeting(meetingId: number, actor: MeetingActor): Promise<MeetingView> {
+export async function getMeeting(
+  meetingId: number,
+  actor: MeetingActor
+): Promise<MeetingView | ApplicantMeetingView> {
   const { meeting } = await getMeetingForAuthorizedActor(meetingId, actor);
-  return toMeetingView(meeting);
+  const view = toMeetingView(meeting);
+  return actor.applicant ? toApplicantMeetingView(view) : view;
 }
 
 /** Invitation PDF (Batch L - replaces the earlier plain HTML ticket).

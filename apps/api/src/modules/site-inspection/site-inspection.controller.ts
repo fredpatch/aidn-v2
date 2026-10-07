@@ -9,6 +9,7 @@ import {
   parseUploadAssetId,
   prepareUploadAttachment,
 } from '../uploads/upload-attachment.js';
+import { toApplicantSiteInspectionBundle } from './applicant-view.js';
 
 async function checkApplicantOwnership(req: Request, requestId: number): Promise<boolean> {
   if (!req.applicant) return true;
@@ -43,15 +44,9 @@ export async function getBundle(req: Request, res: Response): Promise<void> {
       await inspectionService.assertR3AssignedToRequest(requestId, req.user!.userId);
     }
     const bundle = await inspectionService.getBundleForRequest(requestId);
-    // "Avis R3" is DN-internal only (modules-feasibility.md, doc visibility
-    // rules) - never returned to an applicant caller, not just hidden in UI.
-    // Same rule for the assigned R3 agent: an internal user id, not applicant data.
-    if (req.applicant) {
-      const siteVisit = bundle.siteVisit ? { ...bundle.siteVisit, r3AgentId: undefined } : null;
-      res.json({ ...bundle, siteVisit, inspection: null });
-      return;
-    }
-    res.json(bundle);
+    // An applicant never receives the "avis R3" nor the assigned R3 agent id
+    // (enforced server-side, not just hidden in the UI): see applicant-view.ts.
+    res.json(req.applicant ? toApplicantSiteInspectionBundle(bundle) : bundle);
   } catch (error) {
     handleSiteInspectionError(res, error);
   }
