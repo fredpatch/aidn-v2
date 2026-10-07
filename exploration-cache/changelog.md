@@ -1,7 +1,18 @@
 # 📝 AIDN v2 - Changelog
 
-Commit-level history. Covers `be9fce9` through the 2026-10-07 Batch N
-applicant-view hardening (M6 + meetings).
+Commit-level history. Covers `be9fce9` through the 2026-10-07 Batch N2
+invitation change (no staff named).
+
+## 2026-10-07 Batch N2: invitation PDF names no ANAC staff
+
+Fred's answer to the Batch N open question: the invitation PDF names **no
+ANAC staff member** (neither the DN agent nor, for a site visit, the R3
+inspector).
+
+- "Agent de la Direction de la Navigabilité" line removed from the template;
+  the `users` lookup in `getMeetingInvitationPdf` removed.
+- Dedicated test: no "Agent"/"Inspecteur" text for any of the 3 meeting
+  types. 292/292 API suite.
 
 ## 2026-10-07 Batch N applicant views (M6 + meetings)
 

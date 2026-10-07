@@ -4,6 +4,8 @@ import { escapeHtml } from '../../shared/pdf/html-pdf.js';
  *  whatever the server's own TZ (the staging container runs on UTC). */
 export const INVITATION_TIME_ZONE = 'Africa/Libreville';
 
+/** Business rule (Fred, 2026-10-07): the invitation names no ANAC staff member
+ *  (neither the DN agent nor, for a site visit, the R3 inspector). */
 export interface MeetingInvitationData {
   meetingId: number;
   meetingType: string;
@@ -11,7 +13,6 @@ export interface MeetingInvitationData {
   scheduledAt: Date;
   /** Typed by the DN (site visits); null for preliminary / formal meetings. */
   location: string | null;
-  agentName: string | null;
   requestReference: string | null;
   requestType: string | null;
   organisationName: string | null;
@@ -170,7 +171,6 @@ export function buildMeetingInvitationHtml(
     <div>
       <div class="k">Objet</div><div class="v">${e(subject)}</div>
       ${data.location ? `<div class="k">Lieu</div><div class="v">${e(data.location)}</div>` : ''}
-      <div class="k">Agent de la Direction de la Navigabilité</div><div class="v">${e(data.agentName ?? 'Non renseigné')}</div>
     </div>
   </div>
   <div class="notes"><b>Informations pratiques</b><ul>

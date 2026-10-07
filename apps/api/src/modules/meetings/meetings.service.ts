@@ -407,7 +407,6 @@ export async function getMeetingInvitationPdf(
   actor: MeetingActor
 ): Promise<{ pdf: Buffer; fileName: string }> {
   const { meeting, request } = await getMeetingForAuthorizedActor(meetingId, actor);
-  const [agent] = await db.select({ fullName: users.fullName }).from(users).where(eq(users.id, meeting.dnAgentId));
   const [organisation] = request
     ? await db.select({ name: organisations.name }).from(organisations).where(eq(organisations.id, request.organisationId))
     : [];
@@ -421,7 +420,6 @@ export async function getMeetingInvitationPdf(
     meetingStatus: meeting.status,
     scheduledAt: meeting.scheduledAt,
     location: meeting.location,
-    agentName: agent?.fullName ?? null,
     requestReference: request?.reference ?? null,
     requestType: request?.requestType ?? null,
     organisationName: organisation?.name ?? null,

@@ -810,10 +810,10 @@ de régression métier »). **Décision : ne pas le construire maintenant.**
 - [x] Personnel inchangé : bundle M6 complet et `dnAgentId` conservés
 - [x] 10 tests API (dont garde-fous de câblage dans le contrôleur et le
       service) ; mutation 8/8 ; scénario serveur réel 9/9 + script H2 rejoué
-- [ ] Question métier : l'invitation PDF d'une visite sur site affiche le nom
-      de l'agent assigné (l'inspecteur R3) sous le libellé « Agent de la
-      Direction de la Navigabilité » - comportement hérité de l'ancien ticket.
-      À trancher : garder le nom avec un libellé « Inspecteur », ou le retirer
+- [x] Question métier tranchée par Fred (2026-10-07) : **l'invitation PDF ne
+      nomme aucun agent de l'ANAC** (ni agent DN, ni inspecteur R3 pour une
+      visite sur site). Ligne retirée du modèle, requête sur `users` supprimée,
+      test dédié (aucun « Agent » / « Inspecteur » pour les 3 types de réunion)
 
 ## Sprint 7 - Documents (transverse, M8)
 

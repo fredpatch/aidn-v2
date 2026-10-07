@@ -19,7 +19,6 @@ const data = (over: Partial<MeetingInvitationData> = {}): MeetingInvitationData 
   meetingStatus: 'scheduled',
   scheduledAt: new Date('2026-10-13T08:00:00Z'),
   location: null,
-  agentName: 'Paul Exemple',
   requestReference: 'DEM-2026-10-05-OMAT-02',
   requestType: 'issuance',
   organisationName: 'Organisme Exemple Maintenance',
@@ -64,6 +63,12 @@ describe('meeting invitation - content', () => {
     assert.match(html(), /Document généré automatiquement par AIDN, sans signature, le 07\/10\/2026 à 09:15 \(heure de Libreville\)/);
   });
 
+  it('names no ANAC staff member (decision 2026-10-07)', () => {
+    for (const meetingType of ['preliminary', 'formal', 'site_visit']) {
+      assert.doesNotMatch(html({ meetingType, location: 'Hangar 3' }), /Agent|Inspecteur/);
+    }
+  });
+
   it('numbers the invitation from the meeting id', () => {
     assert.equal(invitationNumber(128), 'RE-000128');
     assert.match(html(), /Invitation n° RE-000128/);
@@ -73,8 +78,7 @@ describe('meeting invitation - content', () => {
 describe('meeting invitation - security', () => {
   it('escapes every DN- or applicant-supplied value (no stored XSS)', () => {
     const out = html({
-      location: '<script>alert(1)</script>',
-      agentName: '<img src=x onerror=alert(2)>',
+      location: '<script>alert(1)</script><img src=x onerror=alert(2)>',
       organisationName: 'A&B "Aéro"',
       contactName: "O'Neil</b>",
       requestReference: '<b>REF</b>',
