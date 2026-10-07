@@ -861,12 +861,39 @@ de régression métier »). **Décision : ne pas le construire maintenant.**
       ajouté à l'admin (même version que le portail) ; 32 tests admin
 - [ ] Hors périmètre, relevé : `DocumentViewer` est une fenêtre écrite à la main
       sans gestion du focus ; le `Modal` du portail n'a pas de test
-- [ ] K2b : premiers tests des écrans de décision (`PhaseClosureForm`,
-      `VerdictCard` M6, `PaymentCard` validation / rejet)
+- [x] K2b : voir section suivante
 - [ ] **À trancher (Fred)** : dans `PaymentCard` (M5, M6, M7), « Rejeter le
       dossier (annulation définitive) » s'exécute au clic sur *Confirmer*, sans
       seconde confirmation. K2b figera le comportement actuel ; une étape de
       confirmation serait un lot visuel séparé (maquette d'abord)
+
+### Rattrapage admin K2b (2026-10-07) - premiers tests des écrans de décision
+
+Tests seuls, aucun code de production modifié. Seule la couche HTTP
+(`api.post`) est simulée : chaque test vérifie l'URL et le corps réellement
+envoyés par le composant, son hook et le module API.
+
+- [x] Clôture M3 (`ClosureCard` → `PhaseClosureForm`, partagé avec M4 et M5) :
+      clôture directe sans note ni document ; document envoyé d'abord puis
+      clôture avec son identifiant et la note, formulaire vidé ; échec de
+      l'envoi du document → pas de clôture, note conservée ; pas de double
+      soumission pendant l'envoi
+- [x] Avis R3 M6 (`VerdictCard`) : 3 motifs de blocage (paiement d'abord) ;
+      verdict + note envoyés en un seul appel, note nettoyée des espaces ; rien
+      sans verdict ; note faite d'espaces refusée ; message de l'API affiché et
+      saisie conservée en cas de refus ; lecture seule une fois l'avis donné
+- [x] Paiement M6 (`PaymentCard`) : validation ; rejet avec motif obligatoire ;
+      « nouvelle preuve » par défaut ; rejet définitif du dossier (comportement
+      actuel figé : un seul clic sur *Confirmer*) ; *Annuler* n'envoie rien et
+      oublie le motif ; aucune décision sans le rôle paiement ni hors
+      `pending_validation` ; facture envoyée puis rattachée à la phase
+- [x] 25 tests (3 fichiers) ; mutation 14/14 ; 57 tests admin
+- [ ] Non couverts : clôtures M4 / M5 (hooks propres, même formulaire),
+      `PaymentCard` M5 et M7 (quasi-copies de M6 : factorisation possible),
+      cycle de vie du certificat M7, *Paiements S5*
+- [ ] Relevé, hors périmètre : les `<label>` de `VerdictCard`,
+      `PhaseClosureForm` et `PaymentCard` ne sont pas reliés à leur champ (pas de
+      `htmlFor`) ; libellés « Cloturer » / « Cloture... » sans accent
 
 ## Sprint 7 - Documents (transverse, M8)
 

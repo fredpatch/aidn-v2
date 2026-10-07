@@ -1,7 +1,34 @@
 # 📝 AIDN v2 - Changelog
 
-Commit-level history. Covers `be9fce9` through the 2026-10-07 Batch K2a admin
-Modal focus pass.
+Commit-level history. Covers `be9fce9` through the 2026-10-07 Batch K2b admin
+decision-screen tests.
+
+## 2026-10-07 Batch K2b: first decision-screen tests
+
+Tests only, no production code changed. Only the HTTP layer (`api.post`) is
+mocked: each test verifies the URL and body actually sent by the component,
+its hook, and the API module.
+
+- M3 closure (`ClosureCard` -> `PhaseClosureForm`, shared with M4/M5): direct
+  closure without note or document; document uploaded first then closure
+  with its id + note, form reset; upload failure -> no closure, note kept;
+  no double submit while sending.
+- M6 R3 avis (`VerdictCard`): 3 blocking reasons (payment first); verdict +
+  note sent in one call, note trimmed; nothing without a verdict;
+  spaces-only note refused; API error message shown with input kept on
+  refusal; read-only once the avis is given.
+- M6 payment (`PaymentCard`): validation; rejection with mandatory reason;
+  "new proof" the default; definitive dossier rejection (current behavior
+  frozen: one click on _Confirmer_); _Annuler_ sends nothing and forgets the
+  reason; no decision without the payment role or outside
+  `pending_validation`; invoice uploaded then linked to the phase.
+- 25 tests (3 files); mutation 14/14; 57 admin tests total.
+- Not covered: M4/M5 closures (own hooks, same form), M5/M7 `PaymentCard`
+  (near-copies of M6: possible factorization), M7 certificate lifecycle,
+  _Paiements S5_.
+- Noted, out of scope: `<label>`s in `VerdictCard`, `PhaseClosureForm`,
+  `PaymentCard` are not linked to their fields (no `htmlFor`); "Cloturer" /
+  "Cloture..." labels missing accents.
 
 ## 2026-10-07 Batch K2a: admin Modal focus
 
