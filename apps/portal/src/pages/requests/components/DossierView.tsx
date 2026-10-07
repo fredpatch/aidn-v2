@@ -66,12 +66,15 @@ export function DossierView({
   }
 
 
-  // Open phases (plus failing or still-loading ones, so each resolves on its own)
-  // in workflow order; closed phases newest first. Upcoming phases live only in the strip.
+  // The open phase (plus failing or still-loading ones, so each resolves on its own)
+  // in workflow order. Closed phases, and the phase a rejection interrupted, newest
+  // first. Upcoming phases live only in the strip.
   const activeItems = progress.items.filter(
     (item) => item.stage === 'current' || item.stage === 'error' || item.stage === 'loading',
   );
-  const closedItems = progress.items.filter((item) => item.stage === 'closed').reverse();
+  const closedItems = progress.items
+    .filter((item) => item.stage === 'closed' || item.stage === 'interrupted')
+    .reverse();
   // Only a first load with nothing known yet gets the page-level message.
   const nothingKnownYet =
     progress.loading && progress.items.every((item) => item.stage === 'loading' || item.stage === 'upcoming');
@@ -161,7 +164,12 @@ export function DossierView({
                 {closedItems.map((item) => {
                   const Section = SECTIONS[item.code];
                   return (
-                    <ClosedPhaseRow key={item.code} label={item.label} summary={item.summary}>
+                    <ClosedPhaseRow
+                      key={item.code}
+                      label={item.label}
+                      summary={item.summary}
+                      interrupted={item.stage === 'interrupted'}
+                    >
                       <ReadOnlyProvider readOnly>
                         <Section requestId={request.id} />
                       </ReadOnlyProvider>

@@ -13,18 +13,25 @@ import type { PaymentInfo } from '../../lib/api/requests.types';
  * Order of states: validated > proof pending validation > upload allowed once
  * the invoice exists. The section supplies only the submit call.
  */
-export function PaymentBlock({
-  title = 'Paiement',
-  payment,
-  waitingInvoiceText,
-  onSubmitProof,
-}: {
+export function PaymentBlock(props: PaymentBlockProps) {
+  // A new payment record (new invoice) must not inherit a file picked for the previous one.
+  return <PaymentBlockInner key={props.payment.id} {...props} />;
+}
+
+interface PaymentBlockProps {
   title?: string;
   payment: PaymentInfo;
   waitingInvoiceText: string;
   /** Upload the file and attach it to the payment; reload the section afterwards. */
   onSubmitProof: (file: File) => Promise<void>;
-}) {
+}
+
+function PaymentBlockInner({
+  title = 'Paiement',
+  payment,
+  waitingInvoiceText,
+  onSubmitProof,
+}: PaymentBlockProps) {
   const readOnly = useReadOnly();
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);

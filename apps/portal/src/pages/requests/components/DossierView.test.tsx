@@ -75,6 +75,35 @@ describe('<DossierView> - read-only rules', () => {
   });
 });
 
+describe('<DossierView> - rejected dossier', () => {
+  const rejected = () => request({ status: 'rejected', rejectionReason: 'Manuel MPM non conforme' });
+
+  it('the phase open at rejection reads "Interrompue", never "En cours"', () => {
+    renderDossier(rejected());
+    const strip = screen.getByRole('list', { name: 'Avancement du dossier' });
+    const m5 = within(strip).getByText('Évaluation').closest('li') as HTMLElement;
+    expect(m5).toHaveTextContent('Interrompue');
+    expect(m5).not.toHaveAttribute('aria-current');
+    expect(strip).not.toHaveTextContent('En cours');
+  });
+
+  it('the interrupted phase is listed with the closed ones, not as an open card', () => {
+    renderDossier(rejected());
+    const rows = Array.from(document.querySelectorAll('details > summary')).map((el) => el.textContent);
+    expect(rows).toHaveLength(3);
+    expect(rows[0]).toContain('Évaluation approfondie');
+    expect(rows[0]).toContain('Interrompue');
+    expect(rows.slice(1).join(' ')).not.toContain('Interrompue');
+  });
+
+  it('an active dossier never shows "Interrompue"', () => {
+    renderDossier(request());
+    expect(screen.queryByText('Interrompue')).not.toBeInTheDocument();
+    const strip = screen.getByRole('list', { name: 'Avancement du dossier' });
+    expect(within(strip).getByText('Évaluation').closest('li')).toHaveAttribute('aria-current', 'step');
+  });
+});
+
 describe('<DossierView> - cancelled dossier', () => {
   // A cancelled dossier keeps circuitStatus 'submitted' (cancel is only allowed
   // at that step), so only the terminal guard stops "Annuler" from reappearing.

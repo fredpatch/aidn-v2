@@ -3,6 +3,7 @@ import type { PhaseCode } from '../../lib/react-query/queryKeys';
 import {
   buildBanner,
   buildProgressItems,
+  currentPhase,
   isIntakeDone,
   isTerminalDossier,
   phasesReachable,
@@ -45,6 +46,37 @@ describe('buildProgressItems', () => {
     expect(result.map((i) => i.code)).toEqual(['M3', 'M4', 'M5', 'M6', 'M7']);
     expect(result.map((i) => i.stage)).toEqual(['closed', 'current', 'upcoming', 'upcoming', 'upcoming']);
   });
+});
+
+describe('buildProgressItems - rejected dossier', () => {
+  const rejectedItems = (over: Partial<Record<PhaseCode, PhaseSnapshot>>) =>
+    buildProgressItems(
+      { M3: snap(), M4: snap(), M5: snap(), M6: snap(), M7: snap(), ...over },
+      { rejected: true },
+    );
+
+  it('the phase still open at rejection is interrupted, closed ones stay closed', () => {
+    const result = rejectedItems({ M3: closed(), M4: closed(), M5: open({ title: 't', description: 'd', tone: 'warning' }) });
+    expect(result.map((i) => i.stage)).toEqual(['closed', 'closed', 'interrupted', 'upcoming', 'upcoming']);
+    expect(currentPhase(result)).toBeUndefined();
+  });
+
+  it('loading and error stay as they are (only an open phase is relabelled)', () => {
+    const result = rejectedItems({ M3: snap({ isLoading: true }), M4: snap({ loadFailed: true }) });
+    expect(result.map((i) => i.stage).slice(0, 2)).toEqual(['loading', 'error']);
+  });
+
+  it('without the flag an open phase is current', () => {
+    expect(items({ M5: open({ title: 't', description: 'd', tone: 'info' }) })[2].stage).toBe('current');
+  });
+});
+
+describe('currentPhase', () => {
+  it('returns the open phase', () => {
+    const result = items({ M3: closed(), M4: open({ title: 't', description: 'd', tone: 'info' }) });
+    expect(currentPhase(result)?.code).toBe('M4');
+  });
+  it('none between two phases', () => expect(currentPhase(items({ M3: closed() }))).toBeUndefined());
 });
 
 describe('dossier status helpers', () => {

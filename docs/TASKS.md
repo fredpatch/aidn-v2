@@ -722,6 +722,23 @@ reste un audit plus étroit des permissions fines côté UI.
 - [x] Versions choisies pour Node 18 : `@testing-library/jest-dom` 6.9 (6.10 exige
       Node >= 22)
 
+### Finitions portail J1 (2026-10-07) - états et compte
+
+- [x] **Règle métier confirmée** : une seule phase ouverte à la fois. Le portail
+      lit « la phase en cours » comme la première phase ouverte (`currentPhase`),
+      utilisé par le bandeau et la liste *Mes dossiers*
+- [x] Dossier **rejeté** : la phase encore ouverte au moment du rejet (le backend
+      ne la clôture pas) s'affiche *Interrompue* (bandeau d'avancement et ligne
+      repliée, icône distincte) au lieu de *En cours* ; elle rejoint les étapes
+      clôturées, en lecture seule. Un dossier terminé n'a jamais de phase ouverte
+      (la remise du certificat clôture M7 puis passe la demande à `completed`)
+- [x] *Mon compte* affiche l'**Organisme** (`organisationName`, ajouté par H2 ;
+      chaîne vide côté API → « Non renseigné »)
+- [x] Bloc paiement : la quittance choisie est liée à l'identifiant du paiement
+      (une nouvelle facture repart d'un champ vide)
+- [x] 94 tests portail (+11) ; mutation : 9 bugs injectés, 9 détectés
+- [ ] J2 : libellés rédigés pendant A-G, à valider par le métier avant correction
+
 ## Sprint 7 - Documents (transverse, M8)
 
 - [ ] Upload multi-format (PDF/Word/PNG/JPG)

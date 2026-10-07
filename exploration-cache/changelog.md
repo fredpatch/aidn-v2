@@ -1,7 +1,25 @@
 # 📝 AIDN v2 - Changelog
 
-Commit-level history. Covers `be9fce9` through the 2026-10-07 Batch I portal
-test infrastructure.
+Commit-level history. Covers `be9fce9` through the 2026-10-07 Batch J1 portal
+states & account pass.
+
+## 2026-10-07 Batch J1 portal states & account
+
+- Business rule confirmed: only one phase open at a time. The portal reads
+  "the current phase" as the first open phase (`currentPhase`), used by the
+  progress banner and the *Mes dossiers* list.
+- Rejected dossier: the phase still open at rejection time (the backend does
+  not close it) now shows as *Interrompue* (progress banner and collapsed row,
+  distinct icon) instead of *En cours*; it joins the closed steps, read-only.
+  A completed dossier never has an open phase (certificate handoff closes M7
+  then flips the request to `completed`).
+- *Mon compte* displays the **Organisme** (`organisationName`, added by H2;
+  empty API string -> "Non renseigné").
+- Payment block: the chosen receipt is keyed to the payment id (a new invoice
+  starts from an empty field).
+- 94 portal tests (+11); mutation: 9 bugs injected, 9 detected.
+- J2 pending: labels drafted during A-G, to be validated by the business
+  before correction.
 
 ## 2026-10-07 Batch I portal test infrastructure
 

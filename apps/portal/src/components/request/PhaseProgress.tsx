@@ -1,13 +1,14 @@
-import { AlertTriangle, Check, Circle, Clock3 } from 'lucide-react';
+import { AlertTriangle, Ban, Check, Circle, Clock3 } from 'lucide-react';
 import type { PhaseProgressItem } from '../../pages/requests/progress';
 
-type StripState = 'done' | 'current' | 'upcoming' | 'error';
+type StripState = 'done' | 'current' | 'upcoming' | 'error' | 'interrupted';
 
 const STATE_STYLES: Record<StripState, { bar: string; text: string; icon: typeof Check; label: string }> = {
   done: { bar: 'bg-anac-success', text: 'text-anac-success', icon: Check, label: 'Terminée' },
   current: { bar: 'bg-anac-warning', text: 'text-anac-warning', icon: Clock3, label: 'En cours' },
   upcoming: { bar: 'bg-anac-border', text: 'text-anac-muted', icon: Circle, label: 'À venir' },
   error: { bar: 'bg-anac-danger', text: 'text-anac-danger', icon: AlertTriangle, label: 'Indisponible' },
+  interrupted: { bar: 'bg-anac-danger', text: 'text-anac-danger', icon: Ban, label: 'Interrompue' },
 };
 
 function stripState(item: PhaseProgressItem): StripState {
@@ -18,6 +19,8 @@ function stripState(item: PhaseProgressItem): StripState {
       return 'current';
     case 'error':
       return 'error';
+    case 'interrupted':
+      return 'interrupted';
     default:
       return 'upcoming';
   }

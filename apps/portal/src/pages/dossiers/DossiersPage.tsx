@@ -6,6 +6,7 @@ import { formatDate } from '../../lib/format';
 import { REQUEST_TYPE_LABELS, TERMINAL_STATUSES, labelOf } from '../requests/constants';
 import { useMyRequests } from '../requests/hooks/useMyRequests';
 import { useDossierProgress } from '../requests/hooks/useDossierProgress';
+import { currentPhase } from '../requests/progress';
 import { DossierStatusBadge } from '../../components/request/DossierStatusBadge';
 import { PageError } from '../../components/layout/PageError';
 
@@ -92,7 +93,7 @@ function DossierRow({ request, children }: { request: RequestView; children?: Re
 /** Same derivation as the dossier page (shared query cache): the row says what is expected now. */
 function ActiveDossierRow({ request }: { request: RequestView }) {
   const { banner, items } = useDossierProgress(request);
-  const current = [...items].reverse().find((item) => item.stage === 'current');
+  const current = currentPhase(items);
 
   return (
     <DossierRow request={request}>

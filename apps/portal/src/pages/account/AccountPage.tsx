@@ -12,6 +12,7 @@ export default function AccountPage() {
   if (!applicant) return null;
 
   const rows: Array<[string, string]> = [
+    ['Organisme', applicant.organisationName || 'Non renseigné'],
     ['Nom', applicant.fullName],
     ['E-mail', applicant.email],
     ['Rôle', CONTACT_ORDER_LABELS[applicant.contactOrder] ?? 'Contact'],

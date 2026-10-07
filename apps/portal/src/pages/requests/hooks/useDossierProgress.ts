@@ -64,7 +64,7 @@ export function useDossierProgress(request: RequestView) {
     M7: snapshot(m7, laterEnabled, buildCertificatesPresentation, summarizeCertificates),
   };
 
-  const items = buildProgressItems(snapshots);
+  const items = buildProgressItems(snapshots, { rejected: request.status === 'rejected' });
   return {
     items,
     banner: buildBanner(request, items),

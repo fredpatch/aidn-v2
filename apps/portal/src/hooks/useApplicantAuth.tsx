@@ -4,6 +4,8 @@ import { api } from "../lib/axios";
 interface ApplicantPublic {
   id: number;
   organisationId: number;
+  /** Empty string when the organisation row is missing (API fallback). */
+  organisationName: string;
   fullName: string;
   email: string;
   contactOrder: string;

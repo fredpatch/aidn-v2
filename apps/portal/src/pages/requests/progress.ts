@@ -11,7 +11,11 @@ export const PHASES: ReadonlyArray<{ code: PhaseCode; label: string; shortLabel:
   { code: 'M7', label: 'Délivrance du certificat', shortLabel: 'Délivrance' },
 ];
 
-export type PhaseStage = 'upcoming' | 'loading' | 'error' | 'current' | 'closed';
+/**
+ * 'interrupted': the phase was still open when the dossier was rejected. The
+ * DN leaves the phase row open on rejection, so the dossier status decides.
+ */
+export type PhaseStage = 'upcoming' | 'loading' | 'error' | 'current' | 'closed' | 'interrupted';
 
 export interface PhasePresentation {
   title: string;
@@ -47,16 +51,28 @@ export function phaseStage(snapshot: PhaseSnapshot): PhaseStage {
   return snapshot.phaseStatus === 'closed' ? 'closed' : 'current';
 }
 
-export function buildProgressItems(snapshots: Record<PhaseCode, PhaseSnapshot>): PhaseProgressItem[] {
+export function buildProgressItems(
+  snapshots: Record<PhaseCode, PhaseSnapshot>,
+  { rejected = false }: { rejected?: boolean } = {},
+): PhaseProgressItem[] {
   return PHASES.map((phase) => {
     const snapshot = snapshots[phase.code];
+    const stage = phaseStage(snapshot);
     return {
       ...phase,
-      stage: phaseStage(snapshot),
+      stage: rejected && stage === 'current' ? 'interrupted' : stage,
       presentation: snapshot.presentation,
       summary: snapshot.summary,
     };
   });
+}
+
+/**
+ * The phase the applicant is in now. Business rule: at most one phase is open
+ * at a time, so the first open phase is the only one.
+ */
+export function currentPhase(items: PhaseProgressItem[]): PhaseProgressItem | undefined {
+  return items.find((item) => item.stage === 'current');
 }
 
 export const TERMINAL_DOSSIER_STATUSES = ['completed', 'rejected', 'cancelled'];
@@ -110,7 +126,7 @@ const WAITING = "En attente de l'ANAC";
 
 /**
  * The single "what now" message at the top of the dossier. Derived from the
- * most advanced open phase so it always matches that phase's own summary card.
+ * open phase so it always matches that phase's own summary card.
  * Returns null while phases are still loading (avoids a flicker) or when a
  * load error leaves no reliable state - the failing section shows its error.
  */
@@ -123,7 +139,7 @@ export function buildBanner(
 
   if (items.some((item) => item.stage === 'loading')) return null;
 
-  const current = [...items].reverse().find((item) => item.stage === 'current');
+  const current = currentPhase(items);
   if (current?.presentation) {
     const isAction = current.presentation.tone === 'warning';
     return {
