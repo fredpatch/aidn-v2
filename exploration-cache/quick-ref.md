@@ -25,7 +25,7 @@ Default local services:
 
 - Main branch: `main`
 - Current source of truth: `origin/main`
-- Latest known commit: `f97c738 test(portal): batch i - vitest infrastructure and first suites`
+- Latest known commit: `a100e2f docs(cache): normalize emphasis markers in batch j1 changelog entry`
 - Staging/infra baseline commit: `d65214c feat(infra): add AIDN staging deployment and reset migrations baseline`
 - Important unmerged branch: `chore/codex-frontend-agents`
 

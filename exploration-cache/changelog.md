@@ -1,7 +1,33 @@
 # 📝 AIDN v2 - Changelog
 
-Commit-level history. Covers `be9fce9` through the 2026-10-07 Batch J1 portal
-states & account pass.
+Commit-level history. Covers `be9fce9` through the 2026-10-07 Batch L meeting
+invitation PDF.
+
+## 2026-10-07 Batch L meeting invitation PDF
+
+- `GET /api/meetings/:id/ticket` (same URL, same MEETINGS-IDOR control) now
+  returns an A4 PDF via Puppeteer: `inline`, filename
+  `invitation-<dossier>-<date>.pdf`, `Cache-Control: private, no-store`.
+  Admin and portal links unchanged.
+- Content: recipient organisation and contact, subject (meeting type +
+  request type), date/time **in Libreville time** regardless of server
+  timezone, DN agent, invitation no. `RE-<id>`.
+- Fred's decisions: *Lieu* shown only when entered (no default); a
+  rescheduled / held / no-show / cancelled-dossier meeting keeps its PDF,
+  stamped **"Cette invitation n'est plus valable"** with the reason; footer
+  note "généré automatiquement par AIDN, sans signature".
+- Old ticket fixes: values inserted unescaped (stored XSS possible via the
+  DN-entered *Lieu*, executed on the API origin); time shown in the server
+  timezone (UTC in staging, 1 h ahead); unaccented labels.
+- `shared/pdf/html-pdf.ts`: `renderHtmlToPdf`, `escapeHtml`, `logoDataUri`
+  (extracted from the analytics report renderer, behavior unchanged).
+- Portal: *Télécharger l'invitation (PDF)* link with `download` attribute.
+- 15 API tests (content, timezone, escaping, filename, validity); mutation
+  8/8; real server + Chromium scenario: 19 checks (valid PDF, headers, 09:00
+  for 08:00Z, other applicant 404, anonymous 401, `dn_agent` 200,
+  `reception` 403).
+- One Chromium launch per download (~0.85 s measured), same as certificates
+  and reports: consider a shared pool if volume grows.
 
 ## 2026-10-07 Batch J1 portal states & account
 

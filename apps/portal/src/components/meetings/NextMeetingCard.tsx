@@ -32,7 +32,7 @@ export function NextMeetingCard() {
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        {next.ticketAvailable && <TicketLink meetingId={next.id} label="Invitation" />}
+        {next.ticketAvailable && <TicketLink meetingId={next.id} label="Invitation (PDF)" />}
         <Link to="/reunions" className="text-xs text-anac-blue underline">Mes réunions</Link>
       </div>
     </section>

@@ -93,7 +93,9 @@ describe('<NextMeetingCard> (dashboard)', () => {
     renderCard(MEETINGS);
     const card = screen.getByRole('region', { name: 'Prochaine réunion' });
     expect(card).toHaveTextContent('dans 9 jours');
-    expect(within(card).getByRole('link', { name: /Invitation/ })).toHaveAttribute('href', '/api/meetings/4/ticket');
+    const invitation = within(card).getByRole('link', { name: 'Invitation (PDF)' });
+    expect(invitation).toHaveAttribute('href', '/api/meetings/4/ticket');
+    expect(invitation).toHaveAttribute('download');
   });
 
   it('renders nothing when no meeting is upcoming', () => {

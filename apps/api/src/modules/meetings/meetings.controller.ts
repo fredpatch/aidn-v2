@@ -62,13 +62,20 @@ export async function get(req: Request, res: Response): Promise<void> {
   }
 }
 
+/** GET /meetings/:id/ticket - the invitation as a PDF (same URL as the former HTML ticket). */
 export async function ticket(req: Request, res: Response): Promise<void> {
   try {
-    const html = await meetingsService.getMeetingTicketHtml(Number(req.params.id), {
+    const { pdf, fileName } = await meetingsService.getMeetingInvitationPdf(Number(req.params.id), {
       applicant: req.applicant,
       user: req.user,
     });
-    res.type('html').send(html);
+    // inline: opens in the browser's PDF viewer (print / download from there).
+    res
+      .status(200)
+      .type('application/pdf')
+      .set('Content-Disposition', `inline; filename="${fileName}"`)
+      .set('Cache-Control', 'private, no-store')
+      .send(pdf);
   } catch (error) {
     handleMeetingsError(res, error);
   }

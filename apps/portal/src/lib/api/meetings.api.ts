@@ -20,7 +20,7 @@ export async function fetchMyMeetings(): Promise<ApplicantMeeting[]> {
   return data;
 }
 
-/** Printable HTML invitation, served by the API with an ownership check. */
+/** Invitation PDF, served by the API with an ownership check. */
 export function meetingTicketHref(meetingId: number): string {
   return `/api/meetings/${meetingId}/ticket`;
 }

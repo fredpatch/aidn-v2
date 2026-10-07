@@ -11,6 +11,12 @@ import {
   documentVersions,
 } from '../../shared/db/schema.js';
 import { logAudit } from '../auth/auth.service.js';
+import { logoDataUri, renderHtmlToPdf } from '../../shared/pdf/html-pdf.js';
+import {
+  buildMeetingInvitationHtml,
+  invitationFileName,
+  type MeetingInvitationData,
+} from './meeting-invitation.js';
 import { relocateDossierAssetAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
 import {
   claimUploadAsset,
@@ -388,52 +394,37 @@ export async function getMeeting(meetingId: number, actor: MeetingActor): Promis
   return toMeetingView(meeting);
 }
 
-/** Simple HTML ticket, not a generated PDF - a real PDF generator is a
- *  cross-phase concern (M3+M4+M6 all need one) better built once, later,
- *  than three times now. Consumes the same authorized meeting/context as
- *  getMeeting (MEETINGS-IDOR) - no independent unscoped refetch by id. */
-export async function getMeetingTicketHtml(meetingId: number, actor: MeetingActor): Promise<string> {
+/** Invitation PDF (Batch L - replaces the earlier plain HTML ticket).
+ *  Consumes the same authorized meeting/context as getMeeting
+ *  (MEETINGS-IDOR) - no independent unscoped refetch by id. */
+export async function getMeetingInvitationPdf(
+  meetingId: number,
+  actor: MeetingActor
+): Promise<{ pdf: Buffer; fileName: string }> {
   const { meeting, request } = await getMeetingForAuthorizedActor(meetingId, actor);
-  const [agent] = await db.select().from(users).where(eq(users.id, meeting.dnAgentId));
+  const [agent] = await db.select({ fullName: users.fullName }).from(users).where(eq(users.id, meeting.dnAgentId));
+  const [organisation] = request
+    ? await db.select({ name: organisations.name }).from(organisations).where(eq(organisations.id, request.organisationId))
+    : [];
+  const [contact] = request
+    ? await db.select({ fullName: applicants.fullName }).from(applicants).where(eq(applicants.id, request.applicantId))
+    : [];
 
-  const typeLabels: Record<string, string> = {
-    preliminary: 'Reunion preliminaire',
-    formal: 'Reunion formelle',
-    site_visit: 'Visite sur site',
+  const data: MeetingInvitationData = {
+    meetingId: meeting.id,
+    meetingType: meeting.meetingType,
+    meetingStatus: meeting.status,
+    scheduledAt: meeting.scheduledAt,
+    location: meeting.location,
+    agentName: agent?.fullName ?? null,
+    requestReference: request?.reference ?? null,
+    requestType: request?.requestType ?? null,
+    organisationName: organisation?.name ?? null,
+    contactName: contact?.fullName ?? null,
   };
 
-  return `<!doctype html>
-<html lang="fr">
-<head>
-<meta charset="utf-8" />
-<title>Invitation - ${typeLabels[meeting.meetingType] ?? meeting.meetingType}</title>
-<style>
-  body { font-family: Arial, sans-serif; max-width: 480px; margin: 40px auto; color: #1a2340; }
-  h1 { color: #1b2a5e; font-size: 18px; }
-  .ref { color: #6b7a99; font-size: 12px; }
-  .box { background: #f4f6fa; border-radius: 8px; padding: 16px; margin-top: 16px; }
-  .label { color: #6b7a99; font-size: 11px; text-transform: uppercase; }
-  .value { font-weight: bold; margin-bottom: 12px; }
-</style>
-</head>
-<body>
-  <h1>AIDN - ${typeLabels[meeting.meetingType] ?? meeting.meetingType}</h1>
-  <p class="ref">ANAC Gabon - Direction de la Navigabilite</p>
-  <div class="box">
-    <div class="label">Reference du dossier</div>
-    <div class="value">${request?.reference ?? '-'}</div>
-    <div class="label">Date et heure</div>
-    <div class="value">${meeting.scheduledAt.toLocaleString('fr-FR')}</div>
-    ${meeting.location ? `<div class="label">Lieu</div><div class="value">${meeting.location}</div>` : ''}
-    <div class="label">Agent DN</div>
-    <div class="value">${agent?.fullName ?? '-'}</div>
-  </div>
-  <p style="margin-top: 24px; font-size: 11px; color: #6b7a99;">
-    Merci de vous presenter a la date et l'heure indiquees. En cas d'empechement,
-    contactez la Direction de la Navigabilite.
-  </p>
-</body>
-</html>`;
+  const html = buildMeetingInvitationHtml(data, { logo: await logoDataUri(), generatedAt: new Date() });
+  return { pdf: await renderHtmlToPdf(html), fileName: invitationFileName(data) };
 }
 
 /** DN's choice on a no-show or scheduling issue (project/modules-feasibility.md

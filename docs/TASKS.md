@@ -390,6 +390,9 @@ formulaires DN-AIR-R2-3-F-E-010/011/012 de M4 en auront besoin :
 
 ### Décision : ticket HTML simple, pas de PDF généré
 
+> **Révisée le 2026-10-07 (Batch L)** : le ticket est désormais une invitation
+> PDF générée par Puppeteer, à la même URL. Voir *Invitation PDF L* plus bas.
+
 Confirmé avec Fred - un vrai générateur PDF est un besoin transverse (M3 + M4
 
 - M6 en ont tous besoin) mieux construit une seule fois plus tard que trois
@@ -738,6 +741,33 @@ reste un audit plus étroit des permissions fines côté UI.
       (une nouvelle facture repart d'un champ vide)
 - [x] 94 tests portail (+11) ; mutation : 9 bugs injectés, 9 détectés
 - [ ] J2 : libellés rédigés pendant A-G, à valider par le métier avant correction
+
+### Invitation PDF L (2026-10-07) - remplace le ticket HTML
+
+- [x] `GET /api/meetings/:id/ticket` (même URL, même contrôle MEETINGS-IDOR)
+      renvoie un PDF A4 : `inline`, nom `invitation-<dossier>-<date>.pdf`,
+      `Cache-Control: private, no-store`. Liens admin et portail inchangés
+- [x] Contenu : organisme et contact destinataires, objet (type de réunion +
+      type de demande), date et heure **en heure de Libreville** quel que soit
+      le fuseau du serveur, agent DN, n° d'invitation `RE-<id>`
+- [x] Décisions Fred : *Lieu* affiché seulement s'il a été saisi (pas de lieu
+      par défaut) ; une réunion reprogrammée / tenue / absence / dossier annulé
+      garde son PDF, marqué **« Cette invitation n'est plus valable »** avec le
+      motif ; mention de pied de page « généré automatiquement par AIDN, sans
+      signature »
+- [x] **Correctifs de l'ancien ticket** : valeurs insérées sans échappement
+      (XSS stocké possible via le *Lieu* saisi par la DN, exécuté sur l'origine
+      de l'API) ; heure affichée dans le fuseau du serveur (UTC en staging, soit
+      1 h d'avance) ; libellés sans accents
+- [x] `shared/pdf/html-pdf.ts` : `renderHtmlToPdf`, `escapeHtml`, `logoDataUri`
+      (déplacés du rapport analytique, comportement inchangé - vérifié)
+- [x] Portail : lien *Télécharger l'invitation (PDF)* (attribut `download`)
+- [x] 15 tests API (contenu, fuseau, échappement, nom de fichier, validité) ;
+      mutation 8/8 ; scénario serveur réel + Chromium : 19 vérifications
+      (PDF valide, en-têtes, 09 h 00 pour 08:00Z, autre postulant 404, sans
+      session 401, `dn_agent` 200, `reception` 403)
+- [ ] Un lancement de Chromium par téléchargement (~0,85 s mesuré), comme les
+      certificats et rapports : pool partagé à envisager si le volume augmente
 
 ## Sprint 7 - Documents (transverse, M8)
 

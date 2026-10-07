@@ -1,6 +1,4 @@
-import fs from 'fs/promises';
-import path from 'path';
-import puppeteer from 'puppeteer';
+import { escapeHtml, logoDataUri, renderHtmlToPdf } from '../../../shared/pdf/html-pdf.js';
 import type { AnalyticsMetric } from '../../analytics/analytics.types.js';
 import type { ReportKey, ReportSnapshot } from '../reports.types.js';
 
@@ -13,39 +11,12 @@ const REPORT_NOTES: Record<ReportKey, string> = {
   s5: 'Suivi des paiements, preuves et validations bloquantes côté S5.',
 };
 
-function escapeHtml(value: unknown): string {
-  return String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
-}
-
 function formatDate(value: string): string {
   return new Intl.DateTimeFormat('fr-FR', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
   }).format(new Date(value));
-}
-
-async function logoDataUri(): Promise<string | null> {
-  const candidates = [
-    path.resolve(process.cwd(), 'assets', 'logo.png'),
-    path.resolve(process.cwd(), 'apps/api/assets', 'logo.png'),
-  ];
-
-  for (const filePath of candidates) {
-    try {
-      const buffer = await fs.readFile(filePath);
-      return `data:image/png;base64,${buffer.toString('base64')}`;
-    } catch {
-      // Try the next known runtime layout.
-    }
-  }
-
-  return null;
 }
 
 function metricsByKey(snapshot: ReportSnapshot, keys: string[]): AnalyticsMetric[] {
@@ -331,12 +302,5 @@ function renderHtml(snapshot: ReportSnapshot, logo: string | null): string {
 }
 
 export async function renderAnalyticsReportPdf(snapshot: ReportSnapshot): Promise<Buffer> {
-  const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
-  try {
-    const page = await browser.newPage();
-    await page.setContent(renderHtml(snapshot, await logoDataUri()), { waitUntil: 'load' });
-    return Buffer.from(await page.pdf({ format: 'A4', printBackground: true, preferCSSPageSize: true }));
-  } finally {
-    await browser.close();
-  }
+  return renderHtmlToPdf(renderHtml(snapshot, await logoDataUri()));
 }
