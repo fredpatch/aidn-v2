@@ -1,6 +1,9 @@
-import { useEffect, type MouseEvent, type ReactNode } from 'react';
+import { useEffect, useId, useRef, type MouseEvent, type ReactNode, type RefObject } from 'react';
 import { X } from 'lucide-react';
 import { cn } from '../../lib/utils';
+
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /**
  * Shared modal chrome: overlay, escape-to-close, backdrop-click-to-close,
@@ -8,8 +11,12 @@ import { cn } from '../../lib/utils';
  *
  * Body content goes in `children`; the action row (Annuler + submit, etc.)
  * goes in `footer` — each page keeps its own form fields and buttons, this
- * component only owns the mechanics every hand-rolled modal was
- * reimplementing (and in two of three cases, missing entirely).
+ * component only owns the mechanics.
+ *
+ * Focus handling (aligned on the portal Modal): on open, focus goes to
+ * `initialFocusRef`, else stays on a field that already took it
+ * (`autoFocus`), else the first control; Tab / Shift+Tab cycle inside the
+ * dialog; on close, focus returns to the element that opened it.
  */
 export function Modal({
   title,
@@ -18,6 +25,7 @@ export function Modal({
   children,
   footer,
   className,
+  initialFocusRef,
 }: {
   title: string;
   subtitle?: string;
@@ -25,30 +33,75 @@ export function Modal({
   children: ReactNode;
   footer?: ReactNode;
   className?: string;
+  initialFocusRef?: RefObject<HTMLElement>;
 }) {
+  const titleId = useId();
+  const panelRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  // Captured during the first render, before any `autoFocus` child moves
+  // focus inside the dialog at commit time.
+  const openerRef = useRef<HTMLElement | null>(
+    typeof document === 'undefined' ? null : (document.activeElement as HTMLElement | null),
+  );
+
   useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') onClose();
+    const opener = openerRef.current;
+    const panel = panelRef.current;
+    if (panel && !panel.contains(document.activeElement)) {
+      (initialFocusRef?.current ?? panel.querySelector<HTMLElement>(FOCUSABLE))?.focus();
+    } else if (initialFocusRef?.current) {
+      initialFocusRef.current.focus();
     }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        event.stopPropagation();
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== 'Tab' || !panel) return;
+      const items = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE));
+      if (items.length === 0) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      // Focus may have fallen to <body> (e.g. the focused button got disabled
+      // while submitting): bring it back into the dialog.
+      const active = document.activeElement;
+      if (event.shiftKey && (active === first || !panel.contains(active))) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (active === last || !panel.contains(active))) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
     document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      if (opener?.isConnected) opener.focus();
+    };
+    // Runs once per opening: the dialog owns focus for its whole lifetime.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function handleOverlayClick(event: MouseEvent<HTMLDivElement>) {
     if (event.target === event.currentTarget) onClose();
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 grid place-items-center bg-anac-navy/40 p-4"
-      role="dialog"
-      aria-modal="true"
-      onClick={handleOverlayClick}
-    >
-      <div className={cn('w-full max-w-md rounded-lg border border-anac-border bg-white p-5 shadow-xl', className)}>
+    <div className="fixed inset-0 z-50 grid place-items-center bg-anac-navy/40 p-4" onClick={handleOverlayClick}>
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className={cn('w-full max-w-md rounded-lg border border-anac-border bg-white p-5 shadow-xl', className)}
+      >
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-sm font-semibold text-anac-navy">{title}</h2>
+            <h2 id={titleId} className="text-sm font-semibold text-anac-navy">{title}</h2>
             {subtitle ? <p className="mt-1 text-xs text-anac-muted">{subtitle}</p> : null}
           </div>
           <button

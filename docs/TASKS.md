@@ -840,7 +840,33 @@ de régression métier »). **Décision : ne pas le construire maintenant.**
       (corriger des dépendances d'effets peut changer le comportement : à faire
       écran par écran, avec un test)
 - [ ] Reste K : focus du `Modal` admin, premiers tests des écrans de décision
-      (verdicts M3-M7, paiements, rejet)
+      (verdicts M3-M7, paiements, rejet) → découpé en K2a / K2b
+
+### Rattrapage admin K2a (2026-10-07) - focus du `Modal`
+
+- [x] `components/ui/modal.tsx` aligné sur le `Modal` du portail, API inchangée
+      (+ `initialFocusRef` optionnel) : à l'ouverture le focus entre dans la
+      fenêtre (`initialFocusRef`, sinon champ déjà en `autoFocus`, sinon premier
+      contrôle) ; Tab / Maj+Tab bouclent dans la fenêtre, y compris quand le
+      focus était tombé sur la page (bouton désactivé pendant l'envoi) ; Échap
+      ferme ; à la fermeture le focus revient à l'élément déclencheur
+- [x] `role="dialog"` déplacé de l'overlay vers le panneau, nommé par son titre
+      (`aria-labelledby`)
+- [x] Écart volontaire avec le portail : un champ en `autoFocus` garde le focus
+      (*Modèles de documents* → *Libellé*) et l'élément déclencheur est capturé
+      avant ce `autoFocus`
+- [x] 3 écrans concernés, sans changement visuel : *Modèles de documents*,
+      *Tâches courrier*, *Paiements S5* (2 fenêtres)
+- [x] 12 tests (`modal.test.tsx`) ; mutation 10/10 ; `@testing-library/user-event`
+      ajouté à l'admin (même version que le portail) ; 32 tests admin
+- [ ] Hors périmètre, relevé : `DocumentViewer` est une fenêtre écrite à la main
+      sans gestion du focus ; le `Modal` du portail n'a pas de test
+- [ ] K2b : premiers tests des écrans de décision (`PhaseClosureForm`,
+      `VerdictCard` M6, `PaymentCard` validation / rejet)
+- [ ] **À trancher (Fred)** : dans `PaymentCard` (M5, M6, M7), « Rejeter le
+      dossier (annulation définitive) » s'exécute au clic sur *Confirmer*, sans
+      seconde confirmation. K2b figera le comportement actuel ; une étape de
+      confirmation serait un lot visuel séparé (maquette d'abord)
 
 ## Sprint 7 - Documents (transverse, M8)
 

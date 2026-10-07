@@ -25,7 +25,7 @@ Default local services:
 
 - Main branch: `main`
 - Current source of truth: `origin/main`
-- Latest known commit: `924b535 feat(meetings): batch n2 - invitation pdf names no anac staff`
+- Latest known commit: `7e66bdf feat(admin): batch k1 - lint clean, vitest runner, r3 priority badge, blocking ci`
 - Staging/infra baseline commit: `d65214c feat(infra): add AIDN staging deployment and reset migrations baseline`
 - Important unmerged branch: `chore/codex-frontend-agents`
 

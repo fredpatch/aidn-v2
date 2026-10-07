@@ -1,7 +1,33 @@
 # 📝 AIDN v2 - Changelog
 
-Commit-level history. Covers `be9fce9` through the 2026-10-07 Batch K1 admin
-catch-up (lint, tests, CI).
+Commit-level history. Covers `be9fce9` through the 2026-10-07 Batch K2a admin
+Modal focus pass.
+
+## 2026-10-07 Batch K2a: admin Modal focus
+
+- `components/ui/modal.tsx` aligned on the portal Modal, API unchanged (+
+  optional `initialFocusRef`): on open, focus enters the dialog
+  (`initialFocusRef`, else a field already in `autoFocus`, else the first
+  control); Tab / Shift+Tab cycle inside, including when focus had fallen to
+  the page (button disabled mid-submit); Escape closes; on close, focus
+  returns to the opener.
+- `role="dialog"` moved from the overlay to the panel, named by its title
+  (`aria-labelledby`).
+- Deliberate difference from the portal: an `autoFocus` field keeps focus
+  (_Modèles de documents_ -> _Libellé_) and the opener is captured before
+  that `autoFocus`.
+- 3 screens, no visual change: _Modèles de documents_, _Tâches courrier_,
+  _Paiements S5_ (2 dialogs).
+- 12 tests (`modal.test.tsx`); mutation 10/10; `@testing-library/user-event`
+  added to admin (same version as the portal); 32 admin tests total.
+- Out of scope, noted: `DocumentViewer` is a hand-rolled dialog with no
+  focus handling; the portal Modal has no test.
+- K2b next: first decision-screen tests (`PhaseClosureForm`, M6
+  `VerdictCard`, `PaymentCard` validate/reject).
+- Open for Fred: in `PaymentCard` (M5, M6, M7), "Rejeter le dossier
+  (annulation définitive)" executes on _Confirmer_ with no second
+  confirmation. K2b will freeze current behavior; a confirmation step would
+  be a separate visual batch (mockup first).
 
 ## 2026-10-07 Batch K1 admin catch-up (lint, tests, CI)
 
