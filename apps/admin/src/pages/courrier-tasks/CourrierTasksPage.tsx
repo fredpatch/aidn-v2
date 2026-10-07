@@ -819,7 +819,7 @@ function CourrierActionPanel({
             </h3>
             <p className="mt-1 text-xs leading-relaxed text-anac-muted">
               Le courrier est en signature depuis {waitingLabel(task)}. Scannez le retour signe des
-              qu'il revient.
+              qu&apos;il revient.
             </p>
           </div>
           <Button size="sm" disabled={busy || !canOperate} onClick={() => onReturn(task)}>

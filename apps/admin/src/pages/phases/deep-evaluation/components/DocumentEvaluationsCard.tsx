@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertCircle, CheckCircle2, Circle, Eye } from 'lucide-react';
+import { CheckCircle2, Circle, Eye } from 'lucide-react';
 import { Button } from '../../../../components/ui/button';
 import CollapsibleCard from '../../../../components/ui/collapsible-card';
 import DocumentFileIcon from '../../../../components/documents/DocumentFileIcon';

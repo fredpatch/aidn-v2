@@ -240,7 +240,7 @@ function MeetingsHeader({
       </div>
       <div className="flex gap-2">
         <Button type="button" variant="secondary" onClick={onToday}>
-          Aujourd'hui
+          Aujourd&apos;hui
         </Button>
         <Button
           type="button"
@@ -746,7 +746,7 @@ function SelectedMeetingPanel({
           <div className="mt-4 rounded-lg border border-anac-border bg-slate-50 p-3">
             <h3 className="text-sm font-semibold text-anac-navy">Ordre du jour</h3>
             <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-anac-muted">
-              <li>Point d'avancement du dossier {item.requestReference}</li>
+              <li>Point d&apos;avancement du dossier {item.requestReference}</li>
               <li>Validation des actions ouvertes</li>
               <li>Planning des prochaines etapes</li>
             </ul>

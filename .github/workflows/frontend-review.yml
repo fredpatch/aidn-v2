@@ -45,13 +45,19 @@ jobs:
         # means a known regression (read-only rules, upload limits, banners...).
         run: npm run test --workspace=apps/portal
 
+      - name: Run admin tests
+        # Blocking too (Batch K1): first admin suite - files helpers, settings
+        # UI rules, preliminary helpers, R3 priority badge.
+        run: npm run test --workspace=apps/admin
+
       - name: Run typecheck
         run: npm run typecheck
         continue-on-error: true
 
       - name: Run lint
+        # Blocking since Batch K1: api, admin and portal are at 0 errors
+        # (warnings do not fail the step).
         run: npm run lint
-        continue-on-error: true
 
       - name: Build affected packages
         run: npm run build

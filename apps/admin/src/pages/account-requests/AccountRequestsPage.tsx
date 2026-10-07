@@ -3,12 +3,10 @@ import {
   Activity,
   AlertTriangle,
   Building2,
-  CheckCircle2,
   Clock3,
   Download,
   Eye,
   FileClock,
-  History,
   LockKeyhole,
   MoreVertical,
   RefreshCw,
@@ -17,7 +15,6 @@ import {
   UserCheck,
   UserCog,
   UserRound,
-  XCircle,
 } from 'lucide-react';
 import { api, apiErrorMessage } from '../../lib/axios';
 import { Button } from '../../components/ui/button';
@@ -530,7 +527,7 @@ function PendingRequestsTable({
             {requests.length} demande(s) en attente
           </h2>
           <p className="text-xs text-anac-muted">
-            Selectionnez une demande pour verifier l'organisme.
+            Selectionnez une demande pour verifier l&apos;organisme.
           </p>
         </div>
       </div>
@@ -799,7 +796,7 @@ function PendingRequestPanel({
           <div className="mt-3 space-y-2">
             {candidatePool.length === 0 ? (
               <div className="rounded-lg border border-dashed border-anac-border p-3 text-xs text-anac-muted">
-                Aucun organisme similaire detecte. La creation d'un organisme canonical reste
+                Aucun organisme similaire detecte. La creation d&apos;un organisme canonical reste
                 possible.
               </div>
             ) : (
@@ -1046,17 +1043,6 @@ function Info({ label, value }: { label: string; value: string }) {
     <div className="flex items-center justify-between gap-4 text-sm">
       <span className="text-anac-muted">{label}</span>
       <span className="text-right font-semibold text-anac-navy">{value}</span>
-    </div>
-  );
-}
-
-function FutureLine({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-4 rounded-md bg-slate-50 px-3 py-2 text-sm">
-      <span className="text-anac-muted">{label}</span>
-      <span className="rounded bg-white px-2 py-0.5 text-[11px] font-semibold text-anac-muted">
-        {value}
-      </span>
     </div>
   );
 }

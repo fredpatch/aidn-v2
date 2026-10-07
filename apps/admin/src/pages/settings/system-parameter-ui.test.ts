@@ -1,3 +1,4 @@
+import { it } from 'vitest';
 import {
   formatUnit,
   groupParameters,
@@ -119,3 +120,9 @@ export function runSystemParameterUiTests(): void {
   assert(validateParameterValue('boolean', 'true') === null, 'Boolean true is valid.');
   assert(validateParameterValue('boolean', 'yes') !== null, 'Unknown boolean should be rejected.');
 }
+
+// Batch K1: this runner used to be declared but never called, so none of the
+// assertions above ever ran. Vitest now executes it on every test run.
+it('system parameter UI rules (grouping, units, validation)', () => {
+  runSystemParameterUiTests();
+});

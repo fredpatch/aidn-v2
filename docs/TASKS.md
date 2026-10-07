@@ -815,6 +815,33 @@ de régression métier »). **Décision : ne pas le construire maintenant.**
       visite sur site). Ligne retirée du modèle, requête sur `users` supprimée,
       test dédié (aucun « Agent » / « Inspecteur » pour les 3 types de réunion)
 
+### Rattrapage admin K1 (2026-10-07) - lint, tests, CI
+
+- [x] Lint admin : 30 erreurs → 0 (23 apostrophes/guillemets JSX échappés,
+      7 symboles inutilisés). Chaque symbole vérifié avant suppression : 5
+      icônes importées et un composant `FutureLine` jamais rendu - supprimés
+- [x] **Câblage manquant trouvé** : `PRIORITY_STYLES` (inutilisé) révélait que
+      l'API calcule une `priority` par mission R3 (haute : visite du jour ou
+      dépassée / avis attendu ; moyenne : visite sous 2 jours ; basse : sinon)
+      que *Mes inspections* n'affichait pas. Décision Fred : badge « Priorité
+      haute/moyenne/basse » à côté du statut, masqué pour une mission clôturée
+- [x] Runner Vitest dans `apps/admin` (mêmes versions que le portail,
+      `npm run test`) ; `passWithNoTests: false`
+- [x] **Constat** : 4 fichiers de test admin n'avaient jamais été exécutés
+      (fonctions `run…Tests()` déclarées, jamais appelées) : `lib/files.test.ts`
+      et, découverts par le runner, `system-health-ui.test.ts`,
+      `system-parameter-ui.test.ts`, `phases/preliminary/helpers.test.ts`
+      (~80 assertions). Branchés sur Vitest sans toucher aux assertions : tous
+      passent ; un bug injecté dans chaque source testée fait échouer la suite
+- [x] 20 tests admin (dont 2 sur le badge de priorité, page réelle)
+- [x] CI `frontend-review.yml` : étape **bloquante** `Run admin tests` ; étape
+      lint désormais **bloquante** (api + admin + portail à 0 erreur)
+- [ ] 5 avertissements `react-hooks/exhaustive-deps` dans l'admin, non traités
+      (corriger des dépendances d'effets peut changer le comportement : à faire
+      écran par écran, avec un test)
+- [ ] Reste K : focus du `Modal` admin, premiers tests des écrans de décision
+      (verdicts M3-M7, paiements, rejet)
+
 ## Sprint 7 - Documents (transverse, M8)
 
 - [ ] Upload multi-format (PDF/Word/PNG/JPG)

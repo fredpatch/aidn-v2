@@ -55,7 +55,7 @@ export default function DeclarationCard({
       {!evaluation?.madeAvailableAt ? (
         !meetingHeld ? (
           <p className="text-anac-muted text-sm">
-            Disponible une fois la reunion preliminaire marquee "Tenue".
+            Disponible une fois la reunion preliminaire marquee &quot;Tenue&quot;.
           </p>
         ) : (
           <div className="space-y-2">

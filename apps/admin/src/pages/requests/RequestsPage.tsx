@@ -18,7 +18,6 @@ import {
   MoreVertical,
   Search,
   Send,
-  UserRound,
 } from 'lucide-react';
 import { Button, buttonVariants } from '../../components/ui/button';
 import { BucketTabs } from '../../components/common/BucketTabs';
@@ -452,7 +451,7 @@ function RequestDetailPanel({
             ) : null}
             <button className="grid h-9 w-9 place-items-center rounded-md border border-anac-border text-anac-muted">
               <MoreVertical size={14} aria-hidden="true" />
-              <span className="sr-only">Plus d'actions</span>
+              <span className="sr-only">Plus d&apos;actions</span>
             </button>
           </div>
         </div>

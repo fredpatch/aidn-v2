@@ -42,11 +42,31 @@ const STATUS_STYLES: Record<MyQueueItem['missionStatus'], string> = {
   closed: 'border-green-100 bg-green-50 text-anac-success',
 };
 
-const PRIORITY_STYLES = {
+// Priority is computed by the API (site-inspection.service: visit today or
+// overdue / verdict due -> haute, visit within 2 days -> moyenne, else basse).
+const PRIORITY_STYLES: Record<MyQueueItem['priority'], string> = {
   haute: 'border-red-100 bg-red-50 text-anac-danger',
   moyenne: 'border-orange-100 bg-orange-50 text-anac-warning',
   basse: 'border-green-100 bg-green-50 text-anac-success',
 };
+
+const PRIORITY_LABELS: Record<MyQueueItem['priority'], string> = {
+  haute: 'Priorité haute',
+  moyenne: 'Priorité moyenne',
+  basse: 'Priorité basse',
+};
+
+/** Status, plus the priority while the mission is still open (a closed mission has nothing left to rank). */
+function MissionBadges({ item }: { item: MyQueueItem }) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <StatusBadge label={item.statusLabel || STATUS_LABELS[item.missionStatus]} tone={STATUS_STYLES[item.missionStatus]} />
+      {item.missionStatus !== 'closed' && (
+        <StatusBadge label={PRIORITY_LABELS[item.priority]} tone={PRIORITY_STYLES[item.priority]} />
+      )}
+    </div>
+  );
+}
 
 const REQUEST_TYPE_LABELS: Record<string, string> = {
   recognition: 'Reconnaissance',
@@ -364,7 +384,7 @@ function InspectionTable({
                   <td className="px-4 py-3">{formatDateTime(item.siteVisit?.scheduledAt)}</td>
                   <td className="px-4 py-3">{item.siteVisit?.location ?? '-'}</td>
                   <td className="px-4 py-3">
-                    <StatusBadge label={item.statusLabel || STATUS_LABELS[item.missionStatus]} tone={STATUS_STYLES[item.missionStatus]} />
+                    <MissionBadges item={item} />
                   </td>
                   <td className="px-4 py-3 text-xs font-semibold text-anac-blue">{item.nextActionLabel}</td>
                 </tr>
@@ -445,7 +465,7 @@ function InspectionDetailPanel({
             <h2 className="mt-2 text-xl font-semibold text-anac-navy">{item.requestReference}</h2>
             <p className="mt-1 text-sm text-anac-muted">{item.organisationName}</p>
           </div>
-          <StatusBadge label={item.statusLabel || STATUS_LABELS[item.missionStatus]} tone={STATUS_STYLES[item.missionStatus]} />
+          <MissionBadges item={item} />
         </div>
         <p className="mt-3 flex items-center gap-2 text-xs text-anac-muted">
           <CalendarDays size={14} aria-hidden="true" />
@@ -479,7 +499,7 @@ function InspectionDetailPanel({
           </PanelBlock>
         ) : canSubmitVerdict ? (
           <form onSubmit={verdictForm.handleSubmit(onVerdictSubmit, onVerdictInvalid)} className="rounded-lg border border-anac-border p-4">
-            <h3 className="text-sm font-semibold text-anac-navy">Soumettre l'avis R3</h3>
+            <h3 className="text-sm font-semibold text-anac-navy">Soumettre l&apos;avis R3</h3>
             <label className="mt-3 block text-xs font-semibold text-anac-muted" htmlFor="r3-verdict">
               Verdict
             </label>

@@ -1,3 +1,4 @@
+import { it } from 'vitest';
 import {
   formatBytes,
   legacyAddressesLabel,
@@ -194,3 +195,9 @@ export function runSystemHealthUiTests(): void {
   );
   assert(deriveTemplatePageStatus({ active: true, fileUrl: file, fileExists: true }) === 'available', 'Healthy -> disponible.');
 }
+
+// Batch K1: this runner used to be declared but never called, so none of the
+// assertions above ever ran. Vitest now executes it on every test run.
+it('system health UI rules (statuses, template health, labels)', () => {
+  runSystemHealthUiTests();
+});

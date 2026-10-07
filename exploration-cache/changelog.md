@@ -1,7 +1,33 @@
 # 📝 AIDN v2 - Changelog
 
-Commit-level history. Covers `be9fce9` through the 2026-10-07 Batch N2
-invitation change (no staff named).
+Commit-level history. Covers `be9fce9` through the 2026-10-07 Batch K1 admin
+catch-up (lint, tests, CI).
+
+## 2026-10-07 Batch K1 admin catch-up (lint, tests, CI)
+
+- Admin lint: 30 errors -> 0 (23 escaped JSX quotes/apostrophes, 7 unused
+  symbols, each verified before removal: 5 imported icons and a never-rendered
+  `FutureLine` component).
+- Missing wiring found: unused `PRIORITY_STYLES` revealed the API computes a
+  `priority` per R3 mission (high: today's/overdue visit or awaited avis;
+  medium: visit within 2 days; low: otherwise) that _Mes inspections_ never
+  displayed. Fred's decision: _Priorité haute/moyenne/basse_ badge next to the
+  status, hidden for a closed mission.
+- Vitest runner in `apps/admin` (same versions as the portal, `npm run test`);
+  `passWithNoTests: false`.
+- Finding: 4 admin test files had never been executed (`run...Tests()`
+  declared, never called): `lib/files.test.ts` and, discovered by the runner,
+  `system-health-ui.test.ts`, `system-parameter-ui.test.ts`,
+  `phases/preliminary/helpers.test.ts` (~80 assertions). Wired to Vitest
+  untouched: all pass; one injected bug per tested source fails the suite.
+- 20 admin tests (incl. 2 on the priority badge, real page).
+- CI `frontend-review.yml`: blocking `Run admin tests` step; lint step now
+  **blocking** (api + admin + portal at 0 errors). Root `npm run lint`'s
+  `apps/*/src` glob needs a shell (Linux CI fine; run per-workspace on
+  Windows).
+- Deferred: 5 `react-hooks/exhaustive-deps` warnings (fixing effect deps can
+  change behavior: per-screen, with a test); Modal focus, first decision
+  screens tests (M3-M7 verdicts, payments, rejection).
 
 ## 2026-10-07 Batch N2: invitation PDF names no ANAC staff
 

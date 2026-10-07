@@ -61,8 +61,8 @@ export function PersonnelDetailPanel({
 
         <DetailSection title="Activation AIDN">
           <p className="text-sm text-anac-muted">
-            L'annuaire ANAC confirme l'identite. L'activation AIDN ajoute l'email de connexion, les
-            roles internes et envoie l'OTP de premiere connexion.
+            L&apos;annuaire ANAC confirme l&apos;identite. L&apos;activation AIDN ajoute l&apos;email de connexion, les
+            roles internes et envoie l&apos;OTP de premiere connexion.
           </p>
           <Button
             type="button"

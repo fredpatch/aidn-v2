@@ -78,7 +78,7 @@ export default function ReceptionDashboardPage() {
               Tableau de bord - Accueil & Circuit signature
             </h1>
             <p className="mt-1 text-sm text-anac-muted">
-              Suivez les courriers a imprimer, les retours signes et les blocages d'entree.
+              Suivez les courriers a imprimer, les retours signes et les blocages d&apos;entree.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">

@@ -84,7 +84,7 @@ export default function S5DashboardPage() {
             <PeriodFilter value={period} onChange={setPeriod} />
             <Link to="/paiements-s5" className={cn(buttonVariants({ size: 'sm' }), 'gap-2')}>
               <WalletCards size={14} aria-hidden="true" />
-              Ouvrir l'inbox S5
+              Ouvrir l&apos;inbox S5
             </Link>
           </div>
         </header>

@@ -1,3 +1,4 @@
+import { it } from 'vitest';
 import {
   buildChecklist,
   canClosePreliminaryPhase,
@@ -77,3 +78,9 @@ export function runPreliminaryHelpersTests(): void {
     'Phase should be closable when all gates, including the DG circuit return, are met.'
   );
 }
+
+// Batch K1: this runner used to be declared but never called, so none of the
+// assertions above ever ran. Vitest now executes it on every test run.
+it('preliminary phase helpers (checklist, closing rule)', () => {
+  runPreliminaryHelpersTests();
+});

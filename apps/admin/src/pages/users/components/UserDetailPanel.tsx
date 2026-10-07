@@ -129,7 +129,7 @@ export function UserDetailPanel({
             </Button>
             <Button type="button" variant="secondary" disabled className="text-xs min-w-12 h-8">
               <MoreVertical size={14} />
-              Voir le journal d'audit
+              Voir le journal d&apos;audit
             </Button>
           </div>
           {!canManageAccounts && (

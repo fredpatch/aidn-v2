@@ -569,7 +569,7 @@ function MaintenanceSection() {
           <p className="mt-2 flex items-center gap-1.5 text-xs text-anac-muted">
             <KeyRound size={13} />
             En production, le serveur refuse cette action sauf activation explicite par variable
-            d'environnement.
+            d&apos;environnement.
           </p>
 
           {error && <p className="mt-3 text-sm font-medium text-anac-danger">{error}</p>}

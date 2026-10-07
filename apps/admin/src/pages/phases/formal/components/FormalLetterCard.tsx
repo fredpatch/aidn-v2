@@ -21,11 +21,11 @@ export default function FormalLetterCard({ circuit }: FormalLetterCardProps) {
       {!circuit ? (
         <div className="space-y-2">
           <p className="text-anac-muted text-sm">
-            Le postulant doit soumettre sa lettre de demande officielle d'agrement d'OMA.
+            Le postulant doit soumettre sa lettre de demande officielle d&apos;agrement d&apos;OMA.
           </p>
           <p className="text-anac-muted text-xs">
-            Apres depot, reception / assistant DG gere l'impression, la mise en signature et le
-            scan du retour signe depuis l'ecran Courriers a traiter.
+            Apres depot, reception / assistant DG gere l&apos;impression, la mise en signature et le
+            scan du retour signe depuis l&apos;ecran Courriers a traiter.
           </p>
         </div>
       ) : (
@@ -56,7 +56,7 @@ export default function FormalLetterCard({ circuit }: FormalLetterCardProps) {
 
           {circuit.status === 'submitted' && (
             <p className="text-anac-muted text-xs">
-              Courrier recu. Reception / assistant DG doit l'imprimer et confirmer sa mise en
+              Courrier recu. Reception / assistant DG doit l&apos;imprimer et confirmer sa mise en
               signature.
             </p>
           )}
