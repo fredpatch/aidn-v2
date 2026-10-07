@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { api } from '../../../../lib/axios';
 import { renderWithProviders } from '../../../../test/render';
@@ -88,15 +88,15 @@ describe('<PaymentCard> M6 - rejection', () => {
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
   });
 
-  it('final rejection of the dossier: current behaviour is a single Confirmer click', async () => {
-    // Characterisation test - see TASKS.md K2b: a second confirmation is an
-    // open question for Fred. Update this test if that decision changes it.
+  it('final rejection of the dossier goes through a second confirmation (K3)', async () => {
     const { user, post } = setup();
     await user.click(button('Rejeter'));
     await user.selectOptions(screen.getByRole('combobox'), 'reject_dossier');
     await user.type(screen.getByRole('textbox'), 'Paiement frauduleux');
-    await user.click(button('Confirmer'));
+    await user.click(button('Rejeter le dossier…'));
+    expect(post).not.toHaveBeenCalled();
 
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Rejeter le dossier' }));
     expect(post).toHaveBeenCalledTimes(1);
     expect(post).toHaveBeenCalledWith(REJECT_URL, {
       rejectionAction: 'reject_dossier',

@@ -1,5 +1,9 @@
 import { useState } from 'react';
 import { CreditCard } from 'lucide-react';
+import {
+  PaymentRejectionForm,
+  type PaymentRejectionAction,
+} from '../../../../components/common/PaymentRejectionForm';
 import DocumentPreviewLink from '../../../../components/documents/DocumentPreviewLink';
 import { Button } from '../../../../components/ui/button';
 import CollapsibleCard from '../../../../components/ui/collapsible-card';
@@ -8,6 +12,8 @@ import { formatDate } from '../helpers';
 import { usePaymentActions } from '../hooks/usePaymentActions';
 import type { PaymentView } from '../types';
 import PhaseStatusBadge from '../../preliminary/components/PhaseStatusBadge';
+
+const PAYMENT_LABEL = "Paiement - Frais d'etude de dossier";
 
 interface PaymentCardProps {
   requestId: string | undefined;
@@ -26,10 +32,6 @@ export default function PaymentCard({
 }: PaymentCardProps) {
   const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
   const [rejecting, setRejecting] = useState(false);
-  const [rejectionAction, setRejectionAction] = useState<'request_new_proof' | 'reject_dossier'>(
-    'request_new_proof'
-  );
-  const [rejectionReason, setRejectionReason] = useState('');
 
   const { busy, uploadInvoiceFile, validate, reject } = usePaymentActions(
     requestId,
@@ -43,21 +45,15 @@ export default function PaymentCard({
     if (ok) setInvoiceFile(null);
   }
 
-  async function handleReject() {
-    if (!rejectionReason.trim()) {
-      setActionError('Un motif de rejet est requis.');
-      return;
-    }
-    const ok = await reject(rejectionAction, rejectionReason);
-    if (ok) {
-      setRejecting(false);
-      setRejectionReason('');
-    }
+  async function handleReject(action: PaymentRejectionAction, reason: string): Promise<boolean> {
+    const ok = await reject(action, reason);
+    if (ok) setRejecting(false);
+    return ok;
   }
 
   return (
     <CollapsibleCard
-      title="Paiement - Frais d'etude de dossier"
+      title={PAYMENT_LABEL}
       icon={<CreditCard size={16} className="text-anac-navy" />}
       defaultOpen={payment?.status !== 'validated'}
       resetKey={payment?.status ?? 'missing'}
@@ -135,53 +131,13 @@ export default function PaymentCard({
               )}
 
               {payment.status === 'pending_validation' && canManagePayment && rejecting && (
-                <div className="space-y-2">
-                  <div>
-                    <label className="label">Action</label>
-                    <select
-                      className="input"
-                      value={rejectionAction}
-                      onChange={(event) =>
-                        setRejectionAction(
-                          event.target.value as 'request_new_proof' | 'reject_dossier'
-                        )
-                      }
-                    >
-                      <option value="request_new_proof">Demander une nouvelle preuve</option>
-                      <option value="reject_dossier">Rejeter le dossier definitivement</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="label">Motif</label>
-                    <textarea
-                      className="input"
-                      rows={2}
-                      value={rejectionReason}
-                      onChange={(event) => setRejectionReason(event.target.value)}
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant={rejectionAction === 'reject_dossier' ? 'destructive' : 'secondary'}
-                      onClick={handleReject}
-                      disabled={busy}
-                    >
-                      Confirmer
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => {
-                        setRejecting(false);
-                        setRejectionReason('');
-                      }}
-                      disabled={busy}
-                    >
-                      Annuler
-                    </Button>
-                  </div>
-                </div>
+                <PaymentRejectionForm
+                  paymentLabel={PAYMENT_LABEL}
+                  busy={busy}
+                  onReject={handleReject}
+                  onCancel={() => setRejecting(false)}
+                  setActionError={setActionError}
+                />
               )}
 
               {payment.status === 'validated' && (

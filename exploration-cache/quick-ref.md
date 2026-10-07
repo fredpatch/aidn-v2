@@ -25,7 +25,7 @@ Default local services:
 
 - Main branch: `main`
 - Current source of truth: `origin/main`
-- Latest known commit: `7614d67 feat(admin): batch k2a - modal focus management`
+- Latest known commit: `85c864d test(admin): batch k2b - first decision-screen tests`
 - Staging/infra baseline commit: `d65214c feat(infra): add AIDN staging deployment and reset migrations baseline`
 - Important unmerged branch: `chore/codex-frontend-agents`
 

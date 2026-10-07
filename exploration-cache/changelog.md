@@ -1,7 +1,39 @@
 # 📝 AIDN v2 - Changelog
 
-Commit-level history. Covers `be9fce9` through the 2026-10-07 Batch K2b admin
-decision-screen tests.
+Commit-level history. Covers `be9fce9` through the 2026-10-07 K3 dossier
+rejection confirmation.
+
+## 2026-10-07 K3: definitive dossier rejection confirmation
+
+Mockup validated by Fred. Frontend only, no API change.
+
+- Finding: rejecting a payment with "Rejeter le dossier" sets both payment
+  **and dossier** to `rejected` (applicant-facing reason: "Paiement rejeté -
+  dossier annulé : <motif>"), with no in-app way back, and fired in one
+  click from 4 screens: M5/M6/M7 payment cards and _Paiements S5_.
+- M5/M6/M7 cards: shared `components/common/PaymentRejectionForm.tsx`
+  replaces 3 copies. With "Rejeter le dossier" the button becomes "Rejeter
+  le dossier…" and opens a confirmation; "Nouvelle preuve" stays one click
+  on _Confirmer_.
+- Confirmation `components/common/DossierRejectionConfirm.tsx` (K2a Modal):
+  "action définitive" warning, consequences, **exact reason shown to the
+  applicant**, organisation may re-apply; initial focus on _Retour_; solid
+  red final button; neither _Retour_ nor Escape while submitting.
+- _Paiements S5_: 2nd step in the same dialog (_Continuer…_ -> confirmation,
+  _Retour_ keeps the input); a single Modal from start to finish, so focus
+  returns to the row.
+- Accepted side effects: labels linked to fields (`htmlFor`) in the shared
+  form; M5 option label aligned on M6/M7; on API failure the confirmation
+  closes, the form keeps the reason.
+- 34 tests (`PaymentRejectionForm.test.tsx`: 9 cases x 3 cards;
+  `RejectModal.test.tsx`: 7) + K2b test updated; M5 and M7 tested for the
+  first time; 91 admin tests; mutation 14/15 (accepted survivor: `trim()` in
+  the S5 step, deliberately unfrozen).
+- Deferred: the "Paiement rejeté - dossier annulé :" prefix duplicated
+  between API and admin preview (expose via API or `@aidn/shared`); API:
+  `rejectPayment` (M5/M6/M7) updates payment then dossier **without a
+  transaction** - a mid-failure leaves the payment rejected and the dossier
+  active.
 
 ## 2026-10-07 Batch K2b: first decision-screen tests
 

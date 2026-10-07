@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import {
@@ -19,6 +19,11 @@ import DocumentViewer from '../../components/documents/DocumentViewer';
 import { Button, buttonVariants } from '../../components/ui/button';
 import { Modal } from '../../components/ui/modal';
 import { BucketTabs } from '../../components/common/BucketTabs';
+import {
+  DOSSIER_REJECTION_TITLE,
+  DossierRejectionSummary,
+  FINAL_REJECTION_BUTTON_CLASS,
+} from '../../components/common/DossierRejectionConfirm';
 import { EmptyState } from '../../components/common/EmptyState';
 import { StatusBadge } from '../../components/common/StatusBadge';
 import { Pagination, paginate } from '../../components/ui/pagination';
@@ -1025,7 +1030,8 @@ function InvoiceModal({
   );
 }
 
-function RejectModal({
+/** Exported for tests only. */
+export function RejectModal({
   item,
   busy,
   onClose,
@@ -1041,6 +1047,55 @@ function RejectModal({
 }) {
   const [reason, setReason] = useState('');
   const [action, setAction] = useState<'request_new_proof' | 'reject_dossier'>('request_new_proof');
+  // A final rejection of the dossier takes a second step in the same modal
+  // (one Modal throughout, so closing still returns focus to the row).
+  const [step, setStep] = useState<'form' | 'confirm'>('form');
+  const finalRejection = action === 'reject_dossier';
+  const backRef = useRef<HTMLButtonElement>(null);
+  const continueRef = useRef<HTMLButtonElement>(null);
+  const stepChanged = useRef(false);
+
+  useEffect(() => {
+    // The button that was clicked is gone after a step change: put focus on
+    // the safe choice (Retour) or back on Continuer.
+    if (!stepChanged.current) return;
+    (step === 'confirm' ? backRef : continueRef).current?.focus();
+  }, [step]);
+
+  function goTo(next: 'form' | 'confirm') {
+    stepChanged.current = true;
+    setStep(next);
+  }
+
+  if (step === 'confirm') {
+    return (
+      <Modal
+        title={DOSSIER_REJECTION_TITLE}
+        subtitle={item.requestReference}
+        onClose={() => {
+          if (!busy) goTo('form');
+        }}
+        footer={
+          <>
+            <Button ref={backRef} type="button" variant="secondary" size="sm" disabled={busy} onClick={() => goTo('form')}>
+              Retour
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              className={FINAL_REJECTION_BUTTON_CLASS}
+              disabled={busy}
+              onClick={() => onSubmit({ action: 'reject_dossier', reason })}
+            >
+              {busy ? 'Rejet...' : 'Rejeter le dossier'}
+            </Button>
+          </>
+        }
+      >
+        <DossierRejectionSummary reason={reason} />
+      </Modal>
+    );
+  }
 
   return (
     <Modal
@@ -1053,14 +1108,15 @@ function RejectModal({
             Annuler
           </Button>
           <Button
+            ref={continueRef}
             type="button"
             variant="destructive"
             size="sm"
             disabled={!reason.trim() || busy}
-            onClick={() => onSubmit({ action, reason })}
+            onClick={() => (finalRejection ? goTo('confirm') : onSubmit({ action, reason }))}
           >
             <XCircle size={14} aria-hidden="true" />
-            {busy ? 'Rejet...' : 'Confirmer le rejet'}
+            {finalRejection ? 'Continuer…' : busy ? 'Rejet...' : 'Confirmer le rejet'}
           </Button>
         </>
       }

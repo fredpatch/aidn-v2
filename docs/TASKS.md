@@ -862,10 +862,7 @@ de régression métier »). **Décision : ne pas le construire maintenant.**
 - [ ] Hors périmètre, relevé : `DocumentViewer` est une fenêtre écrite à la main
       sans gestion du focus ; le `Modal` du portail n'a pas de test
 - [x] K2b : voir section suivante
-- [ ] **À trancher (Fred)** : dans `PaymentCard` (M5, M6, M7), « Rejeter le
-      dossier (annulation définitive) » s'exécute au clic sur *Confirmer*, sans
-      seconde confirmation. K2b figera le comportement actuel ; une étape de
-      confirmation serait un lot visuel séparé (maquette d'abord)
+- [x] Rejet définitif sans seconde confirmation : tranché par Fred → lot K3
 
 ### Rattrapage admin K2b (2026-10-07) - premiers tests des écrans de décision
 
@@ -894,6 +891,41 @@ envoyés par le composant, son hook et le module API.
 - [ ] Relevé, hors périmètre : les `<label>` de `VerdictCard`,
       `PhaseClosureForm` et `PaymentCard` ne sont pas reliés à leur champ (pas de
       `htmlFor`) ; libellés « Cloturer » / « Cloture... » sans accent
+
+### Confirmation du rejet définitif K3 (2026-10-07)
+
+Maquette validée par Fred (canevas « K3 - Confirmation rejet dossier »). Front
+seul, aucun changement d'API.
+
+- [x] Constat : rejeter le paiement avec « Rejeter le dossier » passe paiement
+      **et dossier** au statut `rejected` (motif côté postulant : « Paiement
+      rejeté - dossier annulé : <motif> »), sans retour possible dans
+      l'application, et partait en un clic depuis 4 écrans : cartes paiement
+      M5, M6, M7 et *Paiements S5*
+- [x] Cartes M5 / M6 / M7 : formulaire de rejet partagé
+      `components/common/PaymentRejectionForm.tsx` (remplace 3 copies). Avec
+      « Rejeter le dossier », le bouton devient « Rejeter le dossier… » et ouvre
+      une confirmation ; « Nouvelle preuve » reste en un clic sur *Confirmer*
+- [x] Confirmation `components/common/DossierRejectionConfirm.tsx` (`Modal`
+      K2a) : avertissement « action définitive », conséquences, **motif exact vu
+      par le postulant**, l'organisme peut redéposer ; focus initial sur
+      *Retour* ; bouton final rouge plein ; ni *Retour* ni Échap pendant l'envoi
+- [x] *Paiements S5* : 2e étape dans la même fenêtre (« Continuer… » →
+      confirmation → *Retour* revient au formulaire, saisie conservée) ; une
+      seule `Modal` du début à la fin, donc le focus revient bien à la ligne
+- [x] Effets de bord assumés : libellés reliés à leurs champs (`htmlFor`) dans
+      le formulaire partagé ; option M5 alignée sur M6/M7 (« Rejeter le dossier
+      (annulation définitive) » au lieu de « …definitivement ») ; en cas d'échec
+      de l'API la confirmation se ferme, le formulaire garde le motif
+- [x] 34 tests (`PaymentRejectionForm.test.tsx` : 9 cas × 3 cartes ;
+      `RejectModal.test.tsx` : 7) + test K2b mis à jour ; M5 et M7 testés pour la
+      première fois ; 91 tests admin ; mutation 14/15 (survivant accepté : `trim()` du motif dans
+      l'étape S5, non figé volontairement)
+- [ ] Préfixe « Paiement rejeté - dossier annulé : » dupliqué entre l'API et
+      l'admin (aperçu) : à exposer par l'API ou à partager via `@aidn/shared`
+- [ ] **API, hors K3** : `rejectPayment` (M5, M6, M7) met à jour le paiement
+      puis la demande **sans transaction** : un échec entre les deux laisse le
+      paiement rejeté et le dossier actif
 
 ## Sprint 7 - Documents (transverse, M8)
 
