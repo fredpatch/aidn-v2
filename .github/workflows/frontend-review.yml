@@ -40,6 +40,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Run portal tests
+        # Blocking on purpose: unlike the advisory steps below, a failing test
+        # means a known regression (read-only rules, upload limits, banners...).
+        run: npm run test --workspace=apps/portal
+
       - name: Run typecheck
         run: npm run typecheck
         continue-on-error: true

@@ -25,7 +25,7 @@ Default local services:
 
 - Main branch: `main`
 - Current source of truth: `origin/main`
-- Latest known commit: `04b217a fix(m6): exclude superseded site visits from all R3/dashboard queries`
+- Latest known commit: `688eee4 refactor(api,shared): h2 backend consistency pass`
 - Staging/infra baseline commit: `d65214c feat(infra): add AIDN staging deployment and reset migrations baseline`
 - Important unmerged branch: `chore/codex-frontend-agents`
 
@@ -33,18 +33,18 @@ Do not merge `chore/codex-frontend-agents` directly into `main`; it is behind th
 
 ## Where Is...
 
-| Thing | Path |
-| --- | --- |
-| API entry | `apps/api/src/server.ts` |
-| DB schema | `apps/api/src/shared/db/schema.ts` |
-| Drizzle migrations | `apps/api/drizzle/` |
-| Admin app | `apps/admin/src` |
-| Portal app | `apps/portal/src` |
-| Shared constants/types | `packages/shared/src` |
-| Staging guide | `README-STAGING-INFRA.md` |
-| Staging env template | `.env.staging.example` |
-| Active handoff | `exploration-cache/active-session/current-task.md` |
-| Next actions | `exploration-cache/active-session/next-actions.md` |
+| Thing                  | Path                                               |
+| ---------------------- | -------------------------------------------------- |
+| API entry              | `apps/api/src/server.ts`                           |
+| DB schema              | `apps/api/src/shared/db/schema.ts`                 |
+| Drizzle migrations     | `apps/api/drizzle/`                                |
+| Admin app              | `apps/admin/src`                                   |
+| Portal app             | `apps/portal/src`                                  |
+| Shared constants/types | `packages/shared/src`                              |
+| Staging guide          | `README-STAGING-INFRA.md`                          |
+| Staging env template   | `.env.staging.example`                             |
+| Active handoff         | `exploration-cache/active-session/current-task.md` |
+| Next actions           | `exploration-cache/active-session/next-actions.md` |
 
 ## Auth Model
 
@@ -108,14 +108,14 @@ Operational/transverse surfaces now present:
 
 ## Rules
 
-| Never | Instead |
-| --- | --- |
-| Run raw `drizzle-kit migrate` as the primary migration path | Use `npm run db:migrate` |
-| Trust applicant IDs from applicant request bodies | Use authenticated applicant context |
-| Treat staff and applicant tokens as interchangeable | Check JWT `kind` |
-| Destructure request bodies without fallback | Use `req.body ?? {}` |
-| Merge stale feature branches directly into `main` | Rebase/cherry-pick against current `main` |
-| Treat Notion backlog status as authoritative when it conflicts with code | Verify against repo tree and Git history |
+| Never                                                                    | Instead                                   |
+| ------------------------------------------------------------------------ | ----------------------------------------- |
+| Run raw `drizzle-kit migrate` as the primary migration path              | Use `npm run db:migrate`                  |
+| Trust applicant IDs from applicant request bodies                        | Use authenticated applicant context       |
+| Treat staff and applicant tokens as interchangeable                      | Check JWT `kind`                          |
+| Destructure request bodies without fallback                              | Use `req.body ?? {}`                      |
+| Merge stale feature branches directly into `main`                        | Rebase/cherry-pick against current `main` |
+| Treat Notion backlog status as authoritative when it conflicts with code | Verify against repo tree and Git history  |
 
 ## Active Notes
 

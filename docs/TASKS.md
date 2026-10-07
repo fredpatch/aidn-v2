@@ -699,6 +699,29 @@ reste un audit plus étroit des permissions fines côté UI.
 - [x] Validé : suite API 266/266, scénario réel (serveur + DB) 10/10, typecheck
       api/admin/portal/shared, build portail, lint api/portal/shared à 0
 
+### Tests portail I (2026-10-07) - infrastructure Vitest
+
+- [x] Vitest 2.1 + Testing Library + jsdom dans `apps/portal` (`npm run test`,
+      `npm run test:watch`) ; config `vitest.config.ts` héritée de `vite.config.ts`
+      (mêmes alias), `passWithNoTests: false`
+- [x] **Correction de constat** : `src/lib/files.test.ts` ne faisait que *déclarer*
+      `runFilesTests()` sans jamais l'appeler (aucun appelant dans le dépôt). Le
+      lancer avec `tsx` sortait en 0 sans exécuter une seule assertion - les
+      "✅ files.test.ts" des rapports A à H2 étaient donc sans valeur. Converti en
+      Vitest (15 assertions réellement exécutées, toutes vertes). Même motif
+      présent dans `apps/admin/src/lib/files.test.ts` (non traité ici)
+- [x] 83 tests : règles de bandeau/étapes (`progress.ts`), lecture seule (dossier
+      clos, phases clôturées, dossier annulé), confirmation d'annulation (focus,
+      Échap, piège Tab, un seul appel), `FileDropzone` (limite 20 Mio mesurée,
+      formats, glisser-déposer), réunions (calendrier, tri, filtres, carte
+      tableau de bord), `labelOf`
+- [x] Mutation : 8 bugs réalistes injectés dans le code source, 8 détectés (le 8e
+      a révélé un trou - dossier annulé - comblé par un test dédié)
+- [x] CI `frontend-review.yml` : étape **bloquante** `Run portal tests` (les étapes
+      typecheck/lint/build restent consultatives) ; vérifié sous Node 18 (version CI)
+- [x] Versions choisies pour Node 18 : `@testing-library/jest-dom` 6.9 (6.10 exige
+      Node >= 22)
+
 ## Sprint 7 - Documents (transverse, M8)
 
 - [ ] Upload multi-format (PDF/Word/PNG/JPG)
@@ -806,3 +829,6 @@ reste un audit plus étroit des permissions fines côté UI.
   implémentés comme des modules/composants partagés, pas redéveloppés à chaque sprint
 - Le suivi vivant (nouvelles idées, pistes non retenues) reste dans la base Notion
   « Idées & Pistes d'Exploration », pas dans ce fichier
+- Un fichier `*.test.ts` doit être exécuté par un runner (`npm run test`), jamais
+  lancé directement : un module qui ne fait que déclarer des fonctions sort en 0
+  sans rien vérifier (cas `files.test.ts`, corrigé en Batch I)

@@ -1,7 +1,29 @@
 # 📝 AIDN v2 - Changelog
 
-Commit-level history. Covers `be9fce9` through the 2026-10-07 H2 backend
-consistency pass.
+Commit-level history. Covers `be9fce9` through the 2026-10-07 Batch I portal
+test infrastructure.
+
+## 2026-10-07 Batch I portal test infrastructure
+
+- Vitest 2.1 + Testing Library + jsdom in `apps/portal` (`npm run test`,
+  `test:watch`); `vitest.config.ts` merges `vite.config.ts` (same aliases),
+  jsdom environment, `src/test/setup.ts`, `passWithNoTests: false`.
+- Finding fixed: `src/lib/files.test.ts` only _declared_ `runFilesTests()`
+  without ever calling it - running it with `tsx` exited 0 having executed
+  zero assertions, so the "files.test.ts ✅" in batches A-H2 reports was
+  worthless. Converted to Vitest (15 real assertions). Same pattern exists in
+  `apps/admin/src/lib/files.test.ts` (not fixed here).
+- 83 tests, all green: banner/step rules (`progress.ts`), read-only rules
+  (closed dossier, closed phases, cancelled dossier), cancel confirmation
+  (focus, Escape, Tab trap, single call), `FileDropzone` (measured 20 MiB
+  limit, formats, drag-drop), meetings (calendar, sort, filters, dashboard
+  card), `labelOf`.
+- Mutation testing: 8 realistic bugs injected, 8 detected (the 8th exposed a
+  gap - cancelled dossier - closed by a dedicated test).
+- CI `frontend-review.yml`: **blocking** `Run portal tests` step (typecheck/
+  lint/build stay advisory); verified under Node 18 (CI version).
+- Versions pinned for Node 18: `@testing-library/jest-dom` 6.9 (6.10 requires
+  Node >= 22).
 
 ## 2026-10-07 H2 backend consistency
 
@@ -127,7 +149,7 @@ consistency pass.
   `preliminary_evaluation_declaration`). A key with any existing row is skipped
   (no repair of broken files, no replacement, no new version).
 - Missing key: asset copied into `uploads/YYYY/MM/DD/api/document-templates/
-  seed-<key>-<ts>-<rand>.docx` (`COPYFILE_EXCL`), then in the seeding
+seed-<key>-<ts>-<rand>.docx` (`COPYFILE_EXCL`), then in the seeding
   transaction: `document_templates` (ON CONFLICT DO NOTHING), current
   `document_versions`, linked `upload_assets` (`uploaded_from_app='api'`), and
   a `DOCUMENT_TEMPLATE_CREATED` audit row with null user (system convention).
@@ -230,7 +252,7 @@ consistency pass.
   reusable admin `Pagination`, `Select`, and `Table` UI helpers for future cockpit
   screens. Verified with full `npm run build`.
 - Extended the shared cockpit primitives to `Paiements S5` and `Gestion des
-  utilisateurs`: S5 payment queues now paginate and use the shared select/table
+utilisateurs`: S5 payment queues now paginate and use the shared select/table
   components, while AIDN users and Personnel ANAC lists now render through the
   shared table/pagination primitives. Verified with full `npm run build`.
 
@@ -288,7 +310,7 @@ consistency pass.
 - Redesigned `Mes inspections` as a cockpit mission board with metrics, filters,
   seven-day strip, dense table, selected mission panel, and R3-only actions.
 - Added `/api/dashboard/r3-summary` and a dedicated `Tableau de bord - Inspections
-  R3` page for pure `r3_agent` users, while keeping `Mes inspections` as the action
+R3` page for pure `r3_agent` users, while keeping `Mes inspections` as the action
   workbench.
 - Verified with `npm run typecheck --workspace @aidn/api`,
   `npm run typecheck --workspace @aidn/admin`, `npm run build --workspace @aidn/api`,
@@ -301,7 +323,7 @@ consistency pass.
   priority actions, recent invoices, proof queue, alerts, activity, and period
   progress.
 - Added typed admin dashboard client/types and a new `Tableau de bord - Facturation
-  S5` page for `s5_agent` users.
+S5` page for `s5_agent` users.
 - Routed pure S5 users to the S5 dashboard on login while keeping `Paiements S5` as
   their payment workbench.
 - Kept amount totals out of the dashboard because the current payment model does not
@@ -732,6 +754,7 @@ Two things bundled into one push:
 
 Full cross-app flow verified against a real running Postgres instance before this
 was pushed.
+
 # 2026-09-24 - Documentation reconciliation checkpoint
 
 - Confirmed `main` is clean and aligned with `origin/main` at `26f6c71 feat: ai advanced`.
