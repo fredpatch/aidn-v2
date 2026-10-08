@@ -25,7 +25,7 @@ Default local services:
 
 - Main branch: `main`
 - Current source of truth: `origin/main`
-- Latest known commit: `85c864d test(admin): batch k2b - first decision-screen tests`
+- Latest known commit before current K4 batch: `f49d1c0 feat(admin): k3 - confirmation step before definitive dossier rejection`
 - Staging/infra baseline commit: `d65214c feat(infra): add AIDN staging deployment and reset migrations baseline`
 - Important unmerged branch: `chore/codex-frontend-agents`
 
@@ -138,6 +138,10 @@ Operational/transverse surfaces now present:
   and links in the same transaction (`modules/uploads/upload-attachment.ts`).
   Staging must run `scripts/storage-0b-risk-check.sql` with orphan retention
   at 3650 before deploying (TASKS: STORAGE-0B-STAGING).
+- Payment decisions (K4): M5/M6/M7 rejection uses shared transactional logic
+  (`modules/payments/payment-decisions.ts`). Validation updates are conditional
+  on `pending_validation`, so validation/rejection races cannot both win. K5
+  remains: module-check validation and atomic M7 certificate creation.
 - Final role replay is the next product validation gate.
 - Notion backlog has known stale rows and is being reconciled.
 - M11 notifications are not implemented as a full notification center yet.

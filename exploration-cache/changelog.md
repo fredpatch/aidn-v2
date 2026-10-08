@@ -1,7 +1,27 @@
 # 📝 AIDN v2 - Changelog
 
-Commit-level history. Covers `be9fce9` through the 2026-10-07 K3 dossier
-rejection confirmation.
+Commit-level history. Covers `be9fce9` through the 2026-10-08 K4 atomic
+payment decisions.
+
+## 2026-10-08 K4: atomic payment decisions
+
+No route or UI contract change: same M5/M6/M7 payment decision endpoints, same
+admin confirmation flow.
+
+- `rejectPayment` for M5/M6/M7 now uses one shared transactional path:
+  payment row locked, phase code checked, payment/request/audit written
+  together, or none of them are written.
+- Validation updates are conditional on `pending_validation`; if a rejection or
+  another validation wins the race, the loser returns `PAYMENT_NOT_PENDING`.
+- M7 validation now also refuses the lost race before certificate creation, so a
+  rejected payment does not produce a certificate.
+- The dossier-cancellation reason prefix lives in `@aidn/shared`
+  (`dossierRejectionReason`), used by both the API and the admin preview.
+- Real PostgreSQL tests cover rejection, rollback on forced request-update
+  failure, module isolation, non-pending status, deterministic validate/reject
+  races, and simultaneous decisions.
+- Deferred to K5: validation still needs the same module check as rejection, and
+  M7 validation should be made fully atomic with certificate creation.
 
 ## 2026-10-07 K3: definitive dossier rejection confirmation
 

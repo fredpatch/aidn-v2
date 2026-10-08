@@ -1,15 +1,8 @@
 import { useRef } from 'react';
 import { AlertTriangle } from 'lucide-react';
+import { dossierRejectionReason } from '@aidn/shared';
 import { Button } from '../ui/button';
 import { Modal } from '../ui/modal';
-
-/**
- * Prefix the API puts in front of the reason when a payment rejection
- * cancels the dossier (`rejectPayment` in deep-evaluation, site-inspection
- * and certificates services). Duplicated here only to show the applicant's
- * wording before confirming - keep both in sync.
- */
-export const DOSSIER_REJECTION_PREFIX = 'Paiement rejeté - dossier annulé : ';
 
 export const DOSSIER_REJECTION_TITLE = 'Rejeter définitivement le dossier ?';
 
@@ -32,8 +25,8 @@ export function DossierRejectionSummary({ reason }: { reason: string }) {
         <li>Le postulant verra ce motif sur son dossier :</li>
       </ul>
       <blockquote className="whitespace-pre-wrap rounded-md bg-anac-gray px-3 py-2 text-[13px]">
-        {DOSSIER_REJECTION_PREFIX}
-        {reason}
+        {/* Same function the API uses to store the dossier's reason. */}
+        {dossierRejectionReason(reason)}
       </blockquote>
       <p className="text-[13px] text-anac-muted">L&apos;organisme pourra ensuite déposer une nouvelle demande.</p>
     </div>

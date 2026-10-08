@@ -3,14 +3,14 @@
   "client": "ANAC Gabon",
   "repo": "fredpatch/aidn-v2",
   "branch": "main",
-  "lastUpdated": "2026-07-28T00:00:00+02:00",
+  "lastUpdated": "2026-10-08T00:00:00+01:00",
   "currentSprint": "Post-M7 workflow hardening",
-  "currentSprintFocus": "Phase-level workflow summaries across M3-M7, M4 document traceability, C-V1 integrated document viewer for M5, and Personnel ANAC-backed internal user activation are complete. Next: D-V1 collapse/expand or C-V2 viewer rollout.",
-  "status": "Sprints 0-6 complete end-to-end. Current hardening batch typechecks and builds cleanly; Vite large-chunk warning remains.",
+  "currentSprintFocus": "K4 atomic payment decisions are implemented. Next: K5 validation module check, M7 certificate atomicity, final role replay, analytics hardening, and notifications V1.",
+  "status": "Sprints 0-6 complete end-to-end. Current K4 batch hardens payment decision concurrency and rejection atomicity; typecheck, API tests, admin tests, and build verified before push.",
   "activeSession": {
-    "task": "Push workflow hardening + document viewer + Personnel ANAC users batch after docs/cache/Notion sync.",
-    "startedAt": "2026-07-28",
-    "nextAction": "Commit/push current batch, then tackle D-V1 collapse/expand for M4/M5 or extend DocumentViewer to remaining phase links."
+    "task": "Commit and push K4 atomic payment decisions after docs/cache updates.",
+    "startedAt": "2026-10-08",
+    "nextAction": "Run verification, commit K4, push main, then start K5 payment validation hardening."
   },
   "index": [
     {
@@ -22,26 +22,26 @@
     {
       "path": "changelog.md",
       "type": "history",
-      "tags": ["git", "history", "workflow-hardening", "document-viewer", "personnel-anac"],
-      "summary": "Commit-level history including the 2026-07-28 hardening and Personnel ANAC users batch"
+      "tags": ["git", "history", "payments", "k4", "atomic-decisions"],
+      "summary": "Commit-level history including the 2026-10-08 K4 atomic payment decisions batch"
     },
     {
       "path": "active-session/current-task.md",
       "type": "session",
-      "tags": ["current", "post-m7", "hardening", "m3-m7", "personnel-anac"],
-      "summary": "Current state: phase summaries, M4 traceability, C-V1 viewer, and Personnel ANAC users complete"
+      "tags": ["current", "post-m7", "payments", "k4", "hardening"],
+      "summary": "Current state: K4 atomic payment decisions implemented; commit/push in progress"
     },
     {
       "path": "active-session/next-actions.md",
       "type": "session",
-      "tags": ["actions", "collapse", "document-viewer", "notifications", "permissions"],
-      "summary": "Next actions: push, D-V1 collapse/expand, C-V2 viewer rollout, UI permission audit"
+      "tags": ["actions", "payments", "k5", "notifications", "analytics"],
+      "summary": "Next actions: push K4, then K5 validation hardening, role replay, analytics, notifications"
     },
     {
       "path": "active-session/blockers.md",
       "type": "session",
-      "tags": ["blockers", "m13", "visual-qa", "bundle-size"],
-      "summary": "No hard blockers; soft blockers tracked"
+      "tags": ["blockers", "payments", "k5", "visual-qa", "bundle-size"],
+      "summary": "No K4 runtime blocker; K5 validation/certificate atomicity risks tracked"
     },
     {
       "path": "project/hardening-plan.md",
@@ -54,6 +54,12 @@
       "type": "session-log",
       "tags": ["workflow-hardening", "document-viewer", "m4", "m5", "personnel-anac", "session-log"],
       "summary": "Cross-phase workflow summaries, M4 traceability, C-V1 integrated document viewer, Personnel ANAC users"
+    },
+    {
+      "path": "sessions/2026-10-08-k4-payment-decisions.md",
+      "type": "session-log",
+      "tags": ["payments", "k4", "transactions", "concurrency", "session-log"],
+      "summary": "K4 payment rejection atomicity, validation race guards, shared dossier rejection wording"
     },
     {
       "path": "docs/TASKS.md",

@@ -27,6 +27,7 @@ import type {
   DeepEvaluationBundle,
   PaymentQueueItem,
 } from './deep-evaluation.types.js';
+import { rejectPhasePayment, stillPendingPayment } from '../payments/payment-decisions.js';
 
 function toPaymentView(row: typeof payments.$inferSelect): PaymentView {
   return {
@@ -234,8 +235,10 @@ export async function validatePayment(phaseId: number, actorUserId: number): Pro
   const [updated] = await db
     .update(payments)
     .set({ status: 'validated', validatedBy: actorUserId, validatedAt: new Date() })
-    .where(eq(payments.id, payment.id))
+    .where(stillPendingPayment(payment.id))
     .returning();
+  // K4 - another decision (rejection, double click) won the race.
+  if (!updated) throw new Error('PAYMENT_NOT_PENDING');
 
   await logAudit({
     userId: actorUserId,
@@ -253,40 +256,8 @@ export async function rejectPayment(
   rejectionAction: 'request_new_proof' | 'reject_dossier',
   rejectionReason: string
 ): Promise<PaymentView> {
-  const [payment] = await db.select().from(payments).where(eq(payments.phaseId, phaseId));
-  if (!payment) throw new Error('PAYMENT_NOT_FOUND');
-  if (payment.status !== 'pending_validation') throw new Error('PAYMENT_NOT_PENDING');
-
-  const newStatus = rejectionAction === 'reject_dossier' ? 'rejected' : 'awaiting_proof';
-
-  const [updated] = await db
-    .update(payments)
-    .set({ status: newStatus, rejectionAction, rejectionReason })
-    .where(eq(payments.id, payment.id))
-    .returning();
-
-  if (rejectionAction === 'reject_dossier') {
-    const [phase] = await db.select().from(phases).where(eq(phases.id, phaseId));
-    if (phase) {
-      await db
-        .update(requests)
-        .set({
-          status: 'rejected',
-          rejectionReason: `Paiement rejeté - dossier annulé : ${rejectionReason}`,
-          updatedAt: new Date(),
-        })
-        .where(eq(requests.id, phase.requestId));
-    }
-  }
-
-  await logAudit({
-    userId: actorUserId,
-    action: 'PAYMENT_REJECTED',
-    module: 'M5',
-    entityId: payment.id,
-    details: { rejectionAction },
-  });
-
+  // K4 - one transaction, row locked, phase checked to be M5.
+  const updated = await rejectPhasePayment({ phaseId, phaseCode: 'M5', actorUserId, rejectionAction, rejectionReason });
   return toPaymentView(updated);
 }
 

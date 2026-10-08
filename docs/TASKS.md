@@ -921,11 +921,58 @@ seul, aucun changement d'API.
       `RejectModal.test.tsx` : 7) + test K2b mis à jour ; M5 et M7 testés pour la
       première fois ; 91 tests admin ; mutation 14/15 (survivant accepté : `trim()` du motif dans
       l'étape S5, non figé volontairement)
-- [ ] Préfixe « Paiement rejeté - dossier annulé : » dupliqué entre l'API et
-      l'admin (aperçu) : à exposer par l'API ou à partager via `@aidn/shared`
-- [ ] **API, hors K3** : `rejectPayment` (M5, M6, M7) met à jour le paiement
-      puis la demande **sans transaction** : un échec entre les deux laisse le
-      paiement rejeté et le dossier actif
+- [x] Préfixe dupliqué API / admin → traité en K4 (`@aidn/shared`)
+- [x] `rejectPayment` sans transaction → traité en K4
+
+### Décisions de paiement atomiques K4 (2026-10-08) - API
+
+Suite de K3, sans changement visible : mêmes routes, mêmes codes et messages
+d'erreur.
+
+- [x] Constats sur `rejectPayment` (M5, M6, M7, trois copies identiques) :
+      1. paiement puis demande mis à jour **sans transaction** (un échec entre
+         les deux laissait le paiement rejeté et le dossier actif) ;
+      2. statut lu puis mise à jour **sans condition**, et `validatePayment`
+         pareil : une validation et un rejet du même justificatif pouvaient
+         **réussir tous les deux**. Reproduit sur `main` en HTTP réel :
+         15 tirages sur 20 avec 200 / 200 (« validé » puis « rejeté », deux
+         lignes d'audit) ;
+      3. aucune vérification du module : l'endpoint M6 rejetait un paiement M5
+- [x] `modules/payments/payment-decisions.ts` : `rejectPhasePayment`
+      (remplace les 3 copies) - une transaction, ligne verrouillée par
+      `lockPhasePayment` (déjà utilisé pour facture et preuve, désormais
+      exporté), qui vérifie aussi que la phase est celle du module (sinon 404
+      `PAYMENT_NOT_FOUND`) ; paiement, demande et audit écrits ensemble ou pas
+      du tout
+- [x] `validatePayment` (M5, M6, M7) : mise à jour conditionnée au statut
+      `pending_validation` (`stillPendingPayment`) ; si une autre décision a
+      gagné → 409 `PAYMENT_NOT_PENDING`, et en M7 aucun certificat créé
+- [x] `@aidn/shared` : `DOSSIER_REJECTION_PREFIX` + `dossierRejectionReason()`,
+      utilisés par l'API (motif enregistré) et l'admin (aperçu K3) ; constante
+      locale de l'admin supprimée
+- [x] `payment-decisions.db.test.ts` (12 tests, PostgreSQL réel, ignoré sans
+      `DATABASE_URL`) : nouvelle preuve ; rejet du dossier M5 / M6 / M7 ;
+      atomicité (échec forcé de la mise à jour de la demande par un trigger) ;
+      autre module refusé ; statut non en attente ; courses rendues
+      déterministes par un verrou tenu sur une 2e connexion (validation
+      M5 / M6 / M7 et rejet qui arrivent en second) ; 10 tirages simultanés.
+      Mutation 11/12 (survivant accepté : audit écrit hors transaction, seul
+      un échec au commit le révélerait)
+- [x] Scénario HTTP réel (serveur + PostgreSQL `aidn_verify`) : 29
+      vérifications (403 accueil, 401 sans session, 200 rejet, motif partagé,
+      409 second rejet, 409 validation après rejet, 404 autre module,
+      nouvelle preuve, M7 validation + 1 certificat puis 409 au rejet) + 20
+      tirages simultanés validation / rejet : 20 cohérents (validation 12,
+      rejet 8) contre 5 sur 20 sur `main`
+- [ ] Les tests API ne tournent qu'en Node ≥ 21 (`node --test` avec motif
+      glob) : `npm test` échoue en Node 18, la version de la CI
+- [ ] **K5 (API)** : `validatePayment` - vérifier le module de la phase
+      (aujourd'hui l'endpoint M7 valide un paiement M5 **et crée un
+      certificat**) et rendre la validation M7 atomique (paiement validé puis
+      certificat créé, sans transaction)
+- [ ] Relevé : l'API accepte un motif fait d'espaces et une `rejectionAction`
+      inconnue (erreur d'enum PostgreSQL → 500) ; rejet possible d'un paiement
+      dont le dossier est déjà terminé
 
 ## Sprint 7 - Documents (transverse, M8)
 

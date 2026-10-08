@@ -20,7 +20,7 @@ type PaymentRow = typeof payments.$inferSelect;
 
 /** The payment of a phase of the expected kind, locked. An endpoint of one
  *  module cannot reach another module's payment. */
-async function lockPhasePayment(
+export async function lockPhasePayment(
   tx: DbTx,
   phaseId: number,
   phaseCode: PaymentPhaseCode

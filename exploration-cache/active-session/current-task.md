@@ -1,98 +1,37 @@
 # Current Task
 
-**Session date**: 2026-09-25
-**Status**: Settings maintenance/dev-reset implementation in progress; not committed yet.
+**Session date**: 2026-10-08
+**Status**: K4 atomic payment decisions implemented; preparing commit and push.
 
 ## Current Repo Truth
 
-- Current branch: `main`, with local documentation reconciliation commit `d3d8c16 docs: reconcile project state` ahead of `origin/main`.
-- Current working tree has uncommitted settings maintenance/dev-tools changes.
-- Latest upstream product commit before local reconciliation: `26f6c71 feat: ai advanced`.
-- Previous important commit: `d65214c feat(infra): add AIDN staging deployment and reset migrations baseline`.
-- The latest `main` includes staging infrastructure and a reset Drizzle migration baseline.
-- The latest `main` does **not** include the recent frontend-agent decomposition/table refactor branch.
+- Current branch: `main`, tracking `origin/main`.
+- Latest committed work before this batch: `f49d1c0 feat(admin): k3 - confirmation step before definitive dossier rejection`.
+- Current working tree contains K4 API/shared/admin changes plus docs/cache updates.
+- Repo tree plus Git history remain the technical source of truth; Notion can lag and should be reconciled only after code/cache are updated.
 
-## Current Product Truth
+## K4 Scope
 
-Sprint 0-6 / M1-M7 remain the implemented baseline:
+K4 follows K3's definitive dossier-rejection confirmation. It keeps the same routes and admin flow, but hardens the server-side payment decision path.
 
-- M1/M2 intake and DG signature circuit.
-- M3 preliminary phase.
-- M4 formal request.
-- M5 deep evaluation.
-- M6 site inspection / R3 workflow.
-- M7 certificate issuance.
+- M5, M6, and M7 `rejectPayment` now share `modules/payments/payment-decisions.ts`.
+- Rejections lock the payment row, verify that the phase belongs to the calling module, and write payment/request/audit changes inside one transaction.
+- `validatePayment` now updates only if the payment is still `pending_validation`; losing races return `PAYMENT_NOT_PENDING`.
+- M7 validation no longer creates a certificate after a competing rejection has already won.
+- The dossier-cancellation reason prefix is shared through `@aidn/shared` via `dossierRejectionReason()`, used by API storage and the admin K3 preview.
+- PostgreSQL-backed tests cover rejection, rollback, module isolation, non-pending payments, deterministic validate/reject races, and simultaneous decisions.
 
-The app has since evolved into operational cockpits and transverse modules:
+## Validation To Run Before Push
 
-- role dashboards for DN/SU, S5, reception/assistant DG, and R3;
-- `Demandes`, `Courriers officiels`, `Paiements S5`, `Mes inspections`, and `Reunions` workbenches;
-- `Gestion des utilisateurs` cockpit with Personnel ANAC activation;
-- `/analytique` analytics cockpit;
-- `/api/reports` PDF/Excel report generation and generated-report history;
-- staging deployment files and migration baseline reset.
+- `npm run typecheck --workspaces --if-present`
+- `npm run test --workspace=apps/api`
+- `npm run test --workspace=apps/admin`
+- `npm run build`
 
-## Reconciliation Findings
+If `DATABASE_URL` is not set, the K4 PostgreSQL race tests skip themselves by design.
 
-- Notion dashboard correctly says M1-M7 are complete and analytics V1 exists.
-- Notion backlog still has stale `Not started` rows for several already-built M3 items and reporting export/manual generation items.
-- `exploration-cache/quick-ref.md` was stale and still described M4/M5 as ongoing.
-- `exploration-cache/changelog.md` had multiple entries marked `(uncommitted)` even though those changes are now part of committed history on `main`.
-- The active technical source of truth is the repo tree plus current Git branch; Notion remains the high-level/shared view and needs periodic status cleanup.
+## Known Follow-Up
 
-## Frontend-Agent Branch Status
-
-Branch `chore/codex-frontend-agents` exists locally and remotely. It contains the recent table/accessibility/decomposition work:
-
-- `ReadOnlyTable`, `SelectableDataTable`, `TableState`, `SelectableTableRow`;
-- Account Requests table/panel extractions;
-- S5 table/detail/modal/page-chrome extractions;
-- Meetings table migration;
-- Courrier `ReturnSignedModal` extraction;
-- frontend agent documentation.
-
-It must **not** be merged blindly into `main`: it is behind current `main` by the staging/migration commits, and a raw branch diff would remove current staging infra and latest migration files. Next step is a careful rebase/cherry-pick or a fresh scoped replay of selected frontend commits onto `main`.
-
-## Current Focus
-
-1. Review and finish the `Parametres` maintenance/dev reset batch.
-2. Keep the settings UI aligned with real code-backed sections only:
-   - `Securite` for existing system parameters;
-   - `Sauvegardes` for existing upload diagnostics/orphan cleanup, with future backup expansion;
-   - `Maintenance` for existing dev reset tooling, now with richer status metadata and session/confirmation gates.
-3. Do not reintroduce placeholder tabs such as Finances, E-mails, Recompenses, Catalogue commissions, Notifications, or Apparence until real settings functionality exists for them.
-4. After review, decide whether to continue with deeper cleanup scope work such as physical upload/report file cleanup.
-5. Keep the frontend-agent branch reconciliation on hold until this settings batch is either committed or reverted.
-
-## Latest Work In Progress - Settings Maintenance
-
-- Admin settings page was reshaped into three tabs backed by existing code paths only.
-- Existing dev reset tooling now exposes richer scope metadata for the Maintenance tab.
-- API dev reset now requires:
-  - `SU` role;
-  - `ENABLE_DEV_RESET=true`;
-  - environment allowed by the production guard (`ALLOW_PRODUCTION_DEV_RESET=true` is required if `NODE_ENV=production` or `APP_ENV=production`);
-  - actor-owned active maintenance session through `POST /api/dev-tools/session`;
-  - exact confirmation text `NETTOYER`.
-- Maintenance sessions are in-memory and scoped to the SU user who opened them; another SU cannot reuse someone else's session.
-- Starting a maintenance session writes a `DEV_MAINTENANCE_SESSION_STARTED` audit entry before any reset action.
-- Smoke-test follow-up fixed physical file cleanup for resettable scopes:
-  - `reports` now deletes generated files under `uploads/reports`;
-  - `requests_and_workflow` now deletes physical files referenced by resettable workflow document versions before DB truncation.
-- `document_template` files remain protected. If a protected template file is missing from disk, the admin page now shows a missing-file warning instead of a dead link.
-- Existing reset scopes remain explicit and conservative:
-  - requests/workflow;
-  - organisations/applicants;
-  - notifications;
-  - audit logs;
-  - reports.
-- Protected data remains out of scope:
-  - staff users;
-  - roles;
-  - system parameters;
-  - document templates.
-- Validation already passed:
-  - `npm run typecheck --workspace=apps/admin`;
-  - `npm run typecheck --workspace=apps/api`;
-  - `npm run build --workspace=apps/admin`;
-  - `npm run build --workspace=apps/api`.
+- K5: add the same module check to `validatePayment` that K4 added to rejection.
+- K5: make M7 validation and certificate creation fully atomic.
+- Payment API hardening: reject blank rejection reasons and unknown `rejectionAction` values before they reach PostgreSQL enum errors.
