@@ -17,10 +17,12 @@ import {
 } from './components/AnalyticsCharts';
 import { BlockingPointGrid } from './components/BlockingPointGrid';
 import { DelayedDossiersTable } from './components/DelayedDossiersTable';
+import { MeetingFollowUpsSection } from './components/MeetingFollowUpsSection';
 import { GeneratedReportsHistory } from './components/GeneratedReportsHistory';
 import { KpiExplanationPanel } from './components/KpiExplanationPanel';
 import { ReportCards } from './components/ReportCards';
 import { PHASE_LABELS, defaultPeriod } from './analytics.helpers';
+import { queryKeys } from '../../lib/react-query/queryKeys';
 
 export default function AnalyticsPage() {
   const queryClient = useQueryClient();
@@ -33,7 +35,7 @@ export default function AnalyticsPage() {
   const [appliedFilters, setAppliedFilters] = useState<AnalyticsFilters>(draftFilters);
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['analytics-overview', appliedFilters],
+    queryKey: queryKeys.analytics.overview(appliedFilters),
     queryFn: () => fetchAnalyticsOverview(appliedFilters),
   });
 
@@ -143,6 +145,8 @@ export default function AnalyticsPage() {
       </div>
 
       <BlockingPointGrid points={data.blockingPoints} />
+
+      <MeetingFollowUpsSection followUps={data.meetingFollowUps} />
 
       <div className="grid gap-4 xl:grid-cols-[1.25fr_1fr]">
         <DelayedDossiersTable dossiers={data.delayedDossiers} />

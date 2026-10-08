@@ -44,6 +44,10 @@ export const queryKeys = {
     all: ['requests'] as const,
     cockpit: () => ['requests', 'cockpit'] as const,
   },
+  analytics: {
+    all: ['analytics-overview'] as const,
+    overview: (filters: unknown) => ['analytics-overview', filters] as const,
+  },
   meetings: {
     all: ['meetings'] as const,
     cockpit: (from: string, to: string, meetingType: string, status: string, phaseCode: string) =>

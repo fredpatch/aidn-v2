@@ -16,10 +16,13 @@ export function useFormalMeetingActions(
   const queryClient = useQueryClient();
 
   function invalidate() {
+    // K6 - the analytics meeting follow-ups depend on these meetings.
+    void queryClient.invalidateQueries({ queryKey: queryKeys.analytics.all });
     if (requestId) {
       return queryClient.invalidateQueries({ queryKey: queryKeys.formal.bundle(requestId) });
     }
   }
+
 
   const scheduleMutation = useMutation({
     mutationFn: (params: {

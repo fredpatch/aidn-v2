@@ -1,7 +1,14 @@
 import { Link } from 'react-router-dom';
-import { AlertTriangle, ArrowRight, Clock } from 'lucide-react';
+import { AlertTriangle, ArrowDown, ArrowRight, Clock } from 'lucide-react';
 import type { AnalyticsBlockingPoint } from '../../../lib/api/analytics.types';
 import { cn } from '../../../lib/utils';
+import { MEETING_FOLLOW_UPS_ANCHOR } from './MeetingFollowUpsSection';
+
+/** K6 - these two cards point to their list further down this page. */
+const IN_PAGE_LINKS: Record<string, string> = {
+  missing_reports: 'Voir les reunions',
+  missing_r3_opinions: 'Voir les visites',
+};
 
 const toneStyles: Record<AnalyticsBlockingPoint['tone'], string> = {
   danger: 'border-red-200 bg-red-50 text-red-700',
@@ -16,7 +23,7 @@ export function BlockingPointGrid({ points }: { points: AnalyticsBlockingPoint[]
         <h2 className="text-sm font-semibold text-anac-navy">Points de blocage</h2>
         <p className="text-[11px] text-anac-muted">Alertes detectees impactant les delais.</p>
       </div>
-      <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+      <div className="mt-3 grid gap-3 md:grid-cols-3 xl:grid-cols-6">
         {points.map((point) => {
           const Icon = point.tone === 'info' ? Clock : AlertTriangle;
           return (
@@ -27,7 +34,14 @@ export function BlockingPointGrid({ points }: { points: AnalyticsBlockingPoint[]
               </div>
               <p className="mt-3 text-2xl font-semibold leading-none">{point.value}</p>
               <p className="mt-2 min-h-[30px] text-[11px]">{point.helper}</p>
-              {point.href ? (
+              {IN_PAGE_LINKS[point.key] ? (
+                <a
+                  href={`#${MEETING_FOLLOW_UPS_ANCHOR}`}
+                  className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-anac-blue"
+                >
+                  {IN_PAGE_LINKS[point.key]} <ArrowDown size={12} aria-hidden="true" />
+                </a>
+              ) : point.href ? (
                 <Link
                   to={point.href}
                   className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-anac-blue"

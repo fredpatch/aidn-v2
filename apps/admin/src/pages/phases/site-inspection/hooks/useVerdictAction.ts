@@ -16,6 +16,7 @@ export function useVerdictAction(
       note: string;
     }) => submitVerdict(params.phaseId, params.verdict, params.note),
     onSuccess: async () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.analytics.all }); // K6
       if (requestId) {
         await queryClient.invalidateQueries({
           queryKey: queryKeys.siteInspection.bundle(requestId),

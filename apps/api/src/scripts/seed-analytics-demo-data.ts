@@ -50,7 +50,8 @@ interface Scenario {
   overdue?: boolean;
   paymentBlocker?: boolean;
   dgBlocker?: boolean;
-  missingReport?: boolean;
+  /** K6 - held site visit, no R3 opinion yet (site visits have no compte-rendu). */
+  missingR3Opinion?: boolean;
 }
 
 const PHASES: PhaseCode[] = ['M3', 'M4', 'M5', 'M6', 'M7'];
@@ -109,7 +110,7 @@ const SCENARIOS: Scenario[] = [
   { kind: 'active', requestType: 'renewal', currentPhase: 'M4', ageDays: 42, currentPhaseAgeDays: 11 },
   { kind: 'active', requestType: 'recognition', currentPhase: 'M5', ageDays: 110, currentPhaseAgeDays: 36, overdue: true, paymentBlocker: true },
   { kind: 'active', requestType: 'modification', currentPhase: 'M5', ageDays: 84, currentPhaseAgeDays: 19 },
-  { kind: 'active', requestType: 'issuance', currentPhase: 'M6', ageDays: 136, currentPhaseAgeDays: 41, overdue: true, paymentBlocker: true, missingReport: true },
+  { kind: 'active', requestType: 'issuance', currentPhase: 'M6', ageDays: 136, currentPhaseAgeDays: 41, overdue: true, paymentBlocker: true, missingR3Opinion: true },
   { kind: 'active', requestType: 'recognition', currentPhase: 'M6', ageDays: 96, currentPhaseAgeDays: 18 },
   { kind: 'active', requestType: 'renewal', currentPhase: 'M7', ageDays: 156, currentPhaseAgeDays: 14, overdue: true, paymentBlocker: true },
   { kind: 'active', requestType: 'recognition', currentPhase: 'M7', ageDays: 130, currentPhaseAgeDays: 6 },
@@ -419,10 +420,11 @@ async function seedPhaseDetails(
         dnAgentId: usersByRole.dn,
         scheduledAt: addDays(phaseStart, 7),
         location: 'Libreville',
-        status: phaseEnd || scenario.missingReport ? 'held' : 'scheduled',
+        status: phaseEnd || scenario.missingR3Opinion ? 'held' : 'scheduled',
         ticketDocumentUrl: '/uploads/demo/ordre-mission.pdf',
-        crDocumentUrl: scenario.missingReport ? null : phaseEnd ? '/uploads/demo/rapport-inspection.pdf' : null,
-        crUploadedAt: scenario.missingReport ? null : phaseEnd ? addDays(phaseStart, 10) : null,
+        // A site visit has no compte-rendu: its output is the R3 opinion below.
+        crDocumentUrl: null,
+        crUploadedAt: null,
         createdAt: phaseStart,
       })
       .returning();

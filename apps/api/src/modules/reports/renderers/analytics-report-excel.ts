@@ -183,7 +183,8 @@ function populateWorkbook(workbook: ExcelJS.Workbook, snapshot: ReportSnapshot):
     case 'inspections':
       addMetricsSheet(workbook, snapshot, 'Synthèse inspections', reportMetrics(snapshot));
       addPhasesSheet(workbook, snapshot, 'Phase inspection', ['M6']);
-      addBlockersSheet(workbook, snapshot, 'CR inspections', ['missing_reports']);
+      // K6 - a site visit has no compte-rendu: its follow-up is the R3 opinion.
+      addBlockersSheet(workbook, snapshot, 'Avis R3', ['missing_r3_opinions']);
       addDelayedSheet(workbook, snapshot, 'Inspections en retard', ['M6']);
       break;
     case 's5':

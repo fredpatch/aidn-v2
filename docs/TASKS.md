@@ -1050,6 +1050,64 @@ l'analytique semble ne pas le compter. **Confirmé** sur base réelle en HTTP
         `warning` ni `danger` : information pour intervention, pas une alerte
 - [ ] Une seule règle partagée par les deux services, avec un test ; aligner
       la donnée de démo ; invalider l'analytique après un dépôt de CR
+      → K6a (API) ci-dessous ; K6b (admin, maquette d'abord) à suivre
+
+#### K6a (2026-10-08) - API
+
+- [x] `meetings/meeting-follow-up.ts` : règle unique `lacksMeetingReport` /
+      `awaitsR3Opinion`, utilisée par le cockpit Réunions **et** l'analytique.
+      Ne comptent que les dossiers **actifs** (ni terminé, ni annulé, ni
+      rejeté) : sur un dossier clos il n'y a plus rien à faire, et un avis R3
+      y resterait « manquant » pour toujours
+- [x] Analytique : « Réunions sans compte-rendu » = réunions préliminaires et
+      formelles seulement ; nouvel indicateur « Avis R3 manquant » ; ton
+      `info` pour les deux ; `meetingFollowUps.missingReports` et
+      `.missingR3Opinions` (plus anciennes d'abord) : réunion, dossier
+      (`requestId`, référence), organisme, type, phase, date, agent - de quoi
+      ouvrir la phase concernée
+- [x] **Trouvé en route** : le rapport « Inspections » (PDF et Excel) affichait
+      `missing_reports` comme blocage d'inspection (« CR inspections ») - il
+      affiche désormais « Avis R3 manquant » ; le rapport « Blocages » garde
+      les deux. Test qui génère le vrai classeur Excel
+- [x] Cockpit Réunions : même règle, ton `info`, aide « Facultatif - … »
+- [x] Démo : la visite sur site « sans avis » ne porte plus de compte-rendu
+      (`missingR3Opinion`)
+- [x] 9 tests unitaires (règle) + 2 (rapport) + 3 tests PostgreSQL réel (listes et données
+      de localisation ; dépôt du CR et avis qui retirent l'élément ; Réunions
+      et analytique d'accord) ; mutation 12/12. Scénario HTTP du signalement :
+      dépôt du CR → les deux écrans baissent de 1, la visite passe dans
+      « Avis R3 manquant »
+#### K6b (2026-10-08) - admin
+
+Maquette validée par Fred (canevas « K6 - Suivi des réunions »).
+
+- [x] *Analytique* > « Points de blocage » : 6 cartes sur une ligne ; les
+      cartes « Réunions sans compte-rendu » et « Avis R3 manquant » en ton
+      neutre, leur lien descend vers leur liste sur la même page
+- [x] Nouvelle section « Suivi des réunions » (`MeetingFollowUpsSection`) :
+      « Comptes-rendus non déposés » (dossier, organisme, réunion, date, agent
+      DN) et « Avis R3 en attente » (dossier, organisme, date, inspecteur R3),
+      plus anciennes d'abord ; chaque ligne « Ouvrir la phase → » vers
+      `phase-preliminaire`, `phase-formelle` ou `demonstration-inspection` ;
+      « Rien à suivre pour le moment » quand une liste est vide
+- [x] Rafraîchissement de l'analytique (`queryKeys.analytics`) après : dépôt
+      de CR et réunion marquée tenue (préliminaire, formelle, page Réunions),
+      visite sur site tenue, avis R3 soumis
+- [x] 11 tests (section, cartes, 6 rafraîchissements) ; mutation 10/11
+      (survivant : le rafraîchissement depuis la page Réunions n'a pas de test,
+      la page est lourde à monter ; les équivalents des pages de phase sont
+      couverts)
+- [x] Vérifié dans un vrai navigateur (Chromium, serveur API + admin, base
+      PostgreSQL, connexion superviseur DN) : 6 cartes sur une ligne, lien
+      « Voir les visites » → section, « Ouvrir la phase » →
+      `/demandes/:id/demonstration-inspection`, aucune erreur de page. Ajusté
+      après capture : référence sur une ligne, densité compacte de la maquette,
+      liste longue défilant dans sa colonne (`max-h-[26rem]`) au lieu
+      d'allonger la page
+
+- [ ] Relevé, hors K6 : l'avis R3 peut techniquement être soumis sur un
+      dossier rejeté (la phase M6 interrompue reste ouverte, aucun contrôle du
+      statut du dossier) ; le dépôt de CR non plus ne vérifie pas le dossier
 
 ## Sprint 7 - Documents (transverse, M8)
 

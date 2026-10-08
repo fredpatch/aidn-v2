@@ -63,6 +63,18 @@ export interface AnalyticsDelayedDossier {
   lastActionAt: string;
 }
 
+/** K6 - a held meeting that still calls for an action (API: meetings/meeting-follow-up.ts). */
+export interface AnalyticsMeetingFollowUp {
+  meetingId: number;
+  requestId: number;
+  reference: string;
+  organisationName: string;
+  meetingType: 'preliminary' | 'formal' | 'site_visit';
+  phaseCode: AnalyticsPhaseCode;
+  scheduledAt: string;
+  agentName: string | null;
+}
+
 export interface AnalyticsReportCard {
   key: string;
   title: string;
@@ -87,5 +99,9 @@ export interface AnalyticsOverview {
   slaDistribution: AnalyticsDistributionItem[];
   blockingPoints: AnalyticsBlockingPoint[];
   delayedDossiers: AnalyticsDelayedDossier[];
+  meetingFollowUps: {
+    missingReports: AnalyticsMeetingFollowUp[];
+    missingR3Opinions: AnalyticsMeetingFollowUp[];
+  };
   reports: AnalyticsReportCard[];
 }

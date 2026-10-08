@@ -33,6 +33,7 @@ import type {
   ScheduleMeetingParams,
   MeetingView,
 } from './meetings.types.js';
+import { lacksMeetingReport } from './meeting-follow-up.js';
 
 export type { ScheduleMeetingParams, MeetingView } from './meetings.types.js';
 
@@ -197,9 +198,11 @@ export async function listMeetingCockpit(params: {
   const upcoming = items
     .filter((item) => item.status === 'scheduled' && new Date(item.scheduledAt) >= now)
     .slice(0, 6);
-  const missingReports = items.filter(
-    (item) => item.status === 'held' && item.meetingType !== 'site_visit' && !item.crDocumentUrl
+  // K6 - shared rule with the analytics overview (meeting-follow-up.ts).
+  const missingReportIds = new Set(
+    rows.filter((row) => lacksMeetingReport(row.meeting, row.request.status)).map((row) => row.meeting.id)
   );
+  const missingReports = items.filter((item) => missingReportIds.has(item.id));
   const heldThisPeriod = items.filter((item) => item.status === 'held');
   const todayMeetings = items.filter((item) => {
     const date = new Date(item.scheduledAt);
@@ -228,8 +231,9 @@ export async function listMeetingCockpit(params: {
         key: 'missing_reports',
         label: 'Comptes-rendus manquants',
         value: missingReports.length,
-        helper: 'Reunions tenues sans compte-rendu',
-        tone: missingReports.length > 0 ? 'warning' : 'success',
+        helper: 'Facultatif - reunions tenues sans compte-rendu',
+        // K6 - optional document: information, never an alert (Fred).
+        tone: 'info',
       },
       {
         key: 'held',

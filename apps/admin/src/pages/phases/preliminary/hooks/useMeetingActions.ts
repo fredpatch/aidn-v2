@@ -45,6 +45,7 @@ export function useMeetingActions(
       status: 'held' | 'no_show' | 'file_cancelled';
     }) => markMeetingStatus(meetingId, status),
     onSuccess: async () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.analytics.all }); // K6
       if (requestId) {
         await queryClient.invalidateQueries({ queryKey: queryKeys.preliminary.bundle(requestId) });
       }
@@ -58,6 +59,7 @@ export function useMeetingActions(
       await attachMeetingReport(meetingId, uploaded.uploadAssetId);
     },
     onSuccess: async () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.analytics.all }); // K6
       if (requestId) {
         await queryClient.invalidateQueries({ queryKey: queryKeys.preliminary.bundle(requestId) });
       }

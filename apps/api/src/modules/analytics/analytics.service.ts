@@ -6,9 +6,12 @@ import {
   payments,
   phases,
   requests,
+  siteInspections,
+  users,
 } from '../../shared/db/schema.js';
 import type {
   AnalyticsDelayedDossier,
+  AnalyticsMeetingFollowUp,
   AnalyticsFilters,
   AnalyticsMetric,
   AnalyticsOverview,
@@ -16,6 +19,7 @@ import type {
   AnalyticsPhaseStat,
   AnalyticsTrendPoint,
 } from './analytics.types.js';
+import { awaitsR3Opinion, lacksMeetingReport } from '../meetings/meeting-follow-up.js';
 
 const PHASE_LABELS: Record<AnalyticsPhaseCode, string> = {
   M3: 'Préliminaire',
@@ -176,6 +180,8 @@ export async function getAnalyticsOverview(filters: AnalyticsFilters): Promise<A
   const paymentRows = await db.select().from(payments);
   const meetingRows = await db.select().from(meetings);
   const organisationRows = await db.select().from(organisations);
+  const inspectionRows = await db.select({ phaseId: siteInspections.phaseId }).from(siteInspections);
+  const agentRows = await db.select({ id: users.id, fullName: users.fullName }).from(users);
 
   const organisationsById = new Map(organisationRows.map((organisation) => [organisation.id, organisation]));
   const phasesByRequest = new Map<number, typeof phaseRows>();
@@ -305,12 +311,45 @@ export async function getAnalyticsOverview(filters: AnalyticsFilters): Promise<A
     (payment) => phaseIdsByFilteredRequest.has(payment.phaseId) && payment.status !== 'validated'
   );
 
-  const missingReports = meetingRows.filter(
-    (meeting) =>
-      phaseIdsByFilteredRequest.has(meeting.phaseId) &&
-      meeting.status === 'held' &&
-      !meeting.crUploadedAt
-  );
+  // K6 - same rule as the Réunions cockpit (meeting-follow-up.ts): site
+  // visits have no compte-rendu, their follow-up is the R3 opinion; only
+  // active dossiers count, so both lists can reach zero.
+  const phasesById = new Map(phaseRows.map((phase) => [phase.id, phase]));
+  const requestsById = new Map(requestRows.map((request) => [request.id, request]));
+  const agentNames = new Map(agentRows.map((agent) => [agent.id, agent.fullName]));
+  const phasesWithOpinion = new Set(inspectionRows.map((row) => row.phaseId));
+
+  const followUpOf = (meeting: (typeof meetingRows)[number]): AnalyticsMeetingFollowUp | null => {
+    const phase = phasesById.get(meeting.phaseId);
+    const request = phase ? requestsById.get(phase.requestId) : undefined;
+    if (!phase || !request) return null;
+    return {
+      meetingId: meeting.id,
+      requestId: request.id,
+      reference: request.reference,
+      organisationName: organisationsById.get(request.organisationId)?.name ?? '-',
+      meetingType: meeting.meetingType,
+      phaseCode: phase.phaseCode as AnalyticsPhaseCode,
+      scheduledAt: meeting.scheduledAt.toISOString(),
+      agentName: agentNames.get(meeting.dnAgentId) ?? null,
+    };
+  };
+  const meetingsInView = meetingRows
+    .filter((meeting) => phaseIdsByFilteredRequest.has(meeting.phaseId))
+    .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime());
+  const requestStatusOf = (meeting: (typeof meetingRows)[number]) =>
+    requestsById.get(phasesById.get(meeting.phaseId)?.requestId ?? -1)?.status ?? 'cancelled';
+
+  const missingReports = meetingsInView
+    .filter((meeting) => lacksMeetingReport(meeting, requestStatusOf(meeting)))
+    .map(followUpOf)
+    .filter((item): item is AnalyticsMeetingFollowUp => item !== null);
+  const missingR3Opinions = meetingsInView
+    .filter((meeting) =>
+      awaitsR3Opinion(meeting, requestStatusOf(meeting), phasesWithOpinion.has(meeting.phaseId))
+    )
+    .map(followUpOf)
+    .filter((item): item is AnalyticsMeetingFollowUp => item !== null);
 
   const inactiveRequests = activeRequests.filter((request) => {
     const age = daysBetween(request.updatedAt, new Date());
@@ -439,8 +478,17 @@ export async function getAnalyticsOverview(filters: AnalyticsFilters): Promise<A
         key: 'missing_reports',
         label: 'Reunions sans compte-rendu',
         value: String(missingReports.length),
-        helper: 'Reunions tenues sans CR depose',
-        tone: missingReports.length > 0 ? 'warning' : 'info',
+        // K6 - optional document: information, never an alert (Fred).
+        helper: 'Facultatif - reunions preliminaires et formelles tenues sans CR',
+        tone: 'info',
+        href: '/reunions',
+      },
+      {
+        key: 'missing_r3_opinions',
+        label: 'Avis R3 manquant',
+        value: String(missingR3Opinions.length),
+        helper: "Visites sur site tenues sans avis R3 soumis",
+        tone: 'info',
         href: '/reunions',
       },
       {
@@ -453,6 +501,7 @@ export async function getAnalyticsOverview(filters: AnalyticsFilters): Promise<A
       },
     ],
     delayedDossiers,
+    meetingFollowUps: { missingReports, missingR3Opinions },
     reports: ANALYTICS_REPORTS,
   };
 }

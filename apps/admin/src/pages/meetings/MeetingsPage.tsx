@@ -645,6 +645,8 @@ function SelectedMeetingPanel({
   const [reportFile, setReportFile] = useState<File | null>(null);
 
   const refresh = async () => {
+    // K6 - the analytics meeting follow-ups depend on these meetings.
+    void queryClient.invalidateQueries({ queryKey: queryKeys.analytics.all });
     await queryClient.invalidateQueries({ queryKey: queryKeys.meetings.all });
   };
 

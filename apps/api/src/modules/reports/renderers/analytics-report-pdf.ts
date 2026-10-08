@@ -214,7 +214,8 @@ function reportSections(snapshot: ReportSnapshot): string {
       return [
         renderMetricsSection('Indicateurs inspection', reportMetrics(snapshot)),
         renderPhaseSection(snapshot, 'Phase Démonstration / Inspection', ['M6']),
-        renderBlockersSection(snapshot, 'Blocages inspection', ['missing_reports']),
+        // K6 - a site visit has no compte-rendu: its follow-up is the R3 opinion.
+        renderBlockersSection(snapshot, 'Blocages inspection', ['missing_r3_opinions']),
         renderDelayedSection(snapshot, 'Inspections en retard', ['M6']),
       ].join('');
     case 's5':
