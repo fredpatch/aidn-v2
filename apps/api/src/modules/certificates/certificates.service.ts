@@ -38,7 +38,7 @@ import {
   type ScopeDetails,
   type CertificateTemplateData,
 } from './certificates.types.js';
-import { rejectPhasePayment, stillPendingPayment } from '../payments/payment-decisions.js';
+import { rejectPhasePayment, validatePhasePaymentInTx } from '../payments/payment-decisions.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATES_DIR = path.join(__dirname, '../../templates/certificates');
@@ -233,59 +233,41 @@ export async function validatePayment(
   phaseId: number,
   actorUserId: number
 ): Promise<{ payment: PaymentView; certificate: CertificateView }> {
-  const [payment] = await db.select().from(payments).where(eq(payments.phaseId, phaseId));
-  if (!payment) throw new Error('PAYMENT_NOT_FOUND');
-  if (payment.status !== 'pending_validation') throw new Error('PAYMENT_NOT_PENDING');
+  // K5 - payment validated and certificate created in ONE transaction: a
+  // failure on the certificate no longer leaves a validated payment with no
+  // certificate (which no screen could recover). Phase checked to be M7.
+  const { payment, certificate } = await db.transaction(async (tx) => {
+    const { payment, requestId } = await validatePhasePaymentInTx(tx, { phaseId, phaseCode: 'M7', actorUserId });
 
-  const [phase] = await db.select().from(phases).where(eq(phases.id, phaseId));
-  if (!phase) throw new Error('PHASE_NOT_FOUND');
+    const [existingCert] = await tx.select().from(certificates).where(eq(certificates.requestId, requestId));
+    if (existingCert) throw new Error('CERTIFICATE_ALREADY_EXISTS');
 
-  const [existingCert] = await db
-    .select()
-    .from(certificates)
-    .where(eq(certificates.requestId, phase.requestId));
-  if (existingCert) throw new Error('CERTIFICATE_ALREADY_EXISTS');
+    const [request] = await tx.select().from(requests).where(eq(requests.id, requestId));
+    if (!request) throw new Error('REQUEST_NOT_FOUND');
 
-  const [request] = await db.select().from(requests).where(eq(requests.id, phase.requestId));
-  if (!request) throw new Error('REQUEST_NOT_FOUND');
+    // Default certificate type from request type; DN can override anytime.
+    const certificateType = request.requestType === 'recognition' ? 'recognition' : 'agreement';
+    const reference = await generateCertificateReference(tx);
 
-  const [updatedPayment] = await db
-    .update(payments)
-    .set({ status: 'validated', validatedBy: actorUserId, validatedAt: new Date() })
-    .where(stillPendingPayment(payment.id))
-    .returning();
-  // K4 - another decision (rejection, double click) won the race.
-  if (!updatedPayment) throw new Error('PAYMENT_NOT_PENDING');
+    const [certificate] = await tx
+      .insert(certificates)
+      .values({ requestId, reference, certificateType, scopeDetails: EMPTY_SCOPE_DETAILS })
+      .returning();
 
-  // Default certificate type from request type; DN can override anytime.
-  const certificateType = request.requestType === 'recognition' ? 'recognition' : 'agreement';
-  const reference = await generateCertificateReference();
-
-  const [certificate] = await db
-    .insert(certificates)
-    .values({
-      requestId: phase.requestId,
-      reference,
-      certificateType,
-      scopeDetails: EMPTY_SCOPE_DETAILS,
-    })
-    .returning();
-
-  await logAudit({
-    userId: actorUserId,
-    action: 'PAYMENT_VALIDATED',
-    module: 'M7',
-    entityId: payment.id,
-  });
-  await logAudit({
-    userId: actorUserId,
-    action: 'CERTIFICATE_CREATED',
-    module: 'M7',
-    entityId: certificate.id,
-    details: { reference, certificateType },
+    await logAudit(
+      {
+        userId: actorUserId,
+        action: 'CERTIFICATE_CREATED',
+        module: 'M7',
+        entityId: certificate.id,
+        details: { reference, certificateType },
+      },
+      tx
+    );
+    return { payment, certificate };
   });
 
-  return { payment: toPaymentView(updatedPayment), certificate: await toCertificateView(certificate) };
+  return { payment: toPaymentView(payment), certificate: await toCertificateView(certificate) };
 }
 
 export async function rejectPayment(

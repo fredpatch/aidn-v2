@@ -27,7 +27,7 @@ import type {
   DeepEvaluationBundle,
   PaymentQueueItem,
 } from './deep-evaluation.types.js';
-import { rejectPhasePayment, stillPendingPayment } from '../payments/payment-decisions.js';
+import { rejectPhasePayment, validatePhasePayment } from '../payments/payment-decisions.js';
 
 function toPaymentView(row: typeof payments.$inferSelect): PaymentView {
   return {
@@ -228,26 +228,8 @@ export async function uploadPaymentProof(
 
 // ── Validate / reject proof ────────────────────────────────────────────────
 export async function validatePayment(phaseId: number, actorUserId: number): Promise<PaymentView> {
-  const [payment] = await db.select().from(payments).where(eq(payments.phaseId, phaseId));
-  if (!payment) throw new Error('PAYMENT_NOT_FOUND');
-  if (payment.status !== 'pending_validation') throw new Error('PAYMENT_NOT_PENDING');
-
-  const [updated] = await db
-    .update(payments)
-    .set({ status: 'validated', validatedBy: actorUserId, validatedAt: new Date() })
-    .where(stillPendingPayment(payment.id))
-    .returning();
-  // K4 - another decision (rejection, double click) won the race.
-  if (!updated) throw new Error('PAYMENT_NOT_PENDING');
-
-  await logAudit({
-    userId: actorUserId,
-    action: 'PAYMENT_VALIDATED',
-    module: 'M5',
-    entityId: payment.id,
-  });
-
-  return toPaymentView(updated);
+  // K5 - one transaction, row locked, phase checked to be M5.
+  return toPaymentView(await validatePhasePayment({ phaseId, phaseCode: 'M5', actorUserId }));
 }
 
 export async function rejectPayment(

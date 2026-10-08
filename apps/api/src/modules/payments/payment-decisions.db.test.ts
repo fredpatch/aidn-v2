@@ -269,4 +269,102 @@ describe('K4 payment decisions (real PostgreSQL)', { skip }, () => {
       }
     });
   });
+  // ── K5 - validation ─────────────────────────────────────────────────────
+  async function certificateRows(requestId: number) {
+    return (await pool.query('SELECT id, reference FROM certificates WHERE request_id = $1', [requestId])).rows;
+  }
+  async function certificateAudits(userId: number) {
+    return (await one(
+      `SELECT count(*)::int AS n FROM audit_logs WHERE action = 'CERTIFICATE_CREATED' AND user_id = $1`,
+      [userId]
+    )).n as number;
+  }
+
+  describe('validation (K5)', () => {
+    for (const code of CODES) {
+      it(`${code}: validates the proof, audited with its module`, async () => {
+        const s = await seed(code);
+        await svc[code].validatePayment(s.phaseId, s.userId);
+        const after = await state(s);
+        assert.equal(after.payment.status, 'validated');
+        assert.equal(after.payment.validated_by, s.userId);
+        assert.equal(after.request.status, 'in_progress');
+        assert.deepEqual(after.audits, [{ action: 'PAYMENT_VALIDATED', module: code }]);
+        assert.equal(after.certificates, code === 'M7' ? 1 : 0);
+      });
+    }
+
+    const crossModule: Array<[Code, Code]> = [
+      ['M7', 'M5'],
+      ['M7', 'M6'],
+      ['M5', 'M6'],
+      ['M6', 'M7'],
+    ];
+    for (const [endpoint, phaseCode] of crossModule) {
+      it(`the ${endpoint} endpoint cannot validate a ${phaseCode} payment`, async () => {
+        const s = await seed(phaseCode);
+        await assert.rejects(svc[endpoint].validatePayment(s.phaseId, s.userId), /PAYMENT_NOT_FOUND/);
+        const after = await state(s);
+        assert.equal(after.payment.status, 'pending_validation');
+        assert.equal(after.certificates, 0, 'no certificate for a dossier outside M7');
+        assert.deepEqual(after.audits, []);
+      });
+    }
+
+    it('M7 atomic: if the certificate cannot be created, the payment is not validated', async () => {
+      const s = await seed('M7');
+      const trigger = `k5_fail_cert_${s.requestId}`;
+      await pool.query(
+        `CREATE TRIGGER ${trigger} BEFORE INSERT ON certificates FOR EACH ROW
+         WHEN (NEW.request_id = ${s.requestId}) EXECUTE FUNCTION k4_forced_failure()`
+      );
+      try {
+        await assert.rejects(svc.M7.validatePayment(s.phaseId, s.userId), (error: Error) =>
+          /K4 forced failure/.test(String((error.cause as Error | undefined)?.message ?? error.message))
+        );
+      } finally {
+        await pool.query(`DROP TRIGGER ${trigger} ON certificates`);
+      }
+      const after = await state(s);
+      assert.equal(after.payment.status, 'pending_validation');
+      assert.equal(after.payment.validated_by, null);
+      assert.equal(after.certificates, 0);
+      assert.deepEqual(after.audits, []);
+      assert.equal(await certificateAudits(s.userId), 0);
+      // Recoverable: once the cause is gone, the same click works.
+      await svc.M7.validatePayment(s.phaseId, s.userId);
+      assert.equal((await certificateRows(s.requestId)).length, 1);
+    });
+
+    it('M7: two validations of the same proof fired together create one certificate', async () => {
+      for (let round = 0; round < 5; round++) {
+        const s = await seed('M7');
+        const outcomes = await Promise.allSettled([
+          svc.M7.validatePayment(s.phaseId, s.userId),
+          svc.M7.validatePayment(s.phaseId, s.userId),
+        ]);
+        assert.equal(outcomes.filter((o) => o.status === 'fulfilled').length, 1, `round ${round}`);
+        assert.equal((await certificateRows(s.requestId)).length, 1, `round ${round}`);
+        assert.equal(await certificateAudits(s.userId), 1, `round ${round}`);
+      }
+    });
+
+    it('M7: two different dossiers validated together both get a certificate, distinct references', async () => {
+      for (let round = 0; round < 5; round++) {
+        const a = await seed('M7');
+        const b = await seed('M7');
+        const outcomes = await Promise.allSettled([
+          svc.M7.validatePayment(a.phaseId, a.userId),
+          svc.M7.validatePayment(b.phaseId, b.userId),
+        ]);
+        assert.deepEqual(
+          outcomes.map((o) => (o.status === 'fulfilled' ? 'ok' : String((o.reason as Error).message).slice(0, 80))),
+          ['ok', 'ok'],
+          `round ${round}`
+        );
+        const [[certA], [certB]] = [await certificateRows(a.requestId), await certificateRows(b.requestId)];
+        assert.notEqual(certA.reference, certB.reference);
+      }
+    });
+  });
 });

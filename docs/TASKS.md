@@ -966,13 +966,51 @@ d'erreur.
       rejet 8) contre 5 sur 20 sur `main`
 - [ ] Les tests API ne tournent qu'en Node ≥ 21 (`node --test` avec motif
       glob) : `npm test` échoue en Node 18, la version de la CI
-- [ ] **K5 (API)** : `validatePayment` - vérifier le module de la phase
-      (aujourd'hui l'endpoint M7 valide un paiement M5 **et crée un
-      certificat**) et rendre la validation M7 atomique (paiement validé puis
-      certificat créé, sans transaction)
+- [x] `validatePayment` (module de la phase, validation M7 atomique) → K5
 - [ ] Relevé : l'API accepte un motif fait d'espaces et une `rejectionAction`
       inconnue (erreur d'enum PostgreSQL → 500) ; rejet possible d'un paiement
       dont le dossier est déjà terminé
+
+### Validation de paiement K5 (2026-10-08) - API
+
+Suite de K4, sans changement visible : mêmes routes, mêmes codes et messages.
+
+- [x] Constats (vérifiés sur base réelle) :
+      1. l'endpoint M7 validait le paiement d'une phase M5 ou M6 **et créait
+         un certificat** pour un dossier qui n'est pas en délivrance ; M5 et
+         M6 ne vérifiaient pas non plus le module ;
+      2. M7 validait le paiement puis créait le certificat **sans
+         transaction** ;
+      3. référence `CERT-AAAA-NNNN` calculée par un comptage : deux dossiers
+         validés au même moment obtenaient la même référence. Reproduit en
+         HTTP sur `main` : 3 tirages sur 10 → 500 **et paiement « validé »
+         sans certificat**, irrécupérable (nouvelle validation → 409)
+- [x] `payment-decisions.ts` : `validatePhasePaymentInTx` (ligne verrouillée
+      par `lockPhasePayment`, module vérifié → 404 sinon, statut lu sous le
+      verrou, mise à jour conditionnée, audit) ; `validatePhasePayment` pour
+      M5 / M6 ; M7 l'appelle dans **une seule transaction** avec la
+      vérification « certificat existant », la création du certificat et son
+      audit
+- [x] `generateCertificateReference(tx)` : verrou transactionnel
+      (`pg_advisory_xact_lock`) autour du comptage, tenu jusqu'au commit ;
+      deux validations simultanées sont sérialisées au lieu d'entrer en
+      collision
+- [x] `payment-decisions.db.test.ts` : 10 tests de plus (22 au total) -
+      validation M5 / M6 / M7 ; 4 appels croisés refusés sans certificat ;
+      atomicité M7 (échec forcé à la création du certificat → paiement non
+      validé, puis le même clic réussit) ; double validation simultanée → un
+      seul certificat ; deux dossiers simultanés → deux certificats,
+      références distinctes. Mutation 5/6 (survivant attendu : sans la
+      vérification du statut, la mise à jour conditionnée bloque encore)
+- [x] Scénario HTTP réel : 14/14 (404 croisés sans certificat, 200 puis 409,
+      un certificat) + 10 doubles clics (1 certificat chaque fois) + 10 paires
+      de dossiers (références distinctes) ; sur `main` : 3 paires sur 10 en
+      échec
+- [ ] Relevé, hors K5 : la référence reste un comptage (un certificat
+      supprimé ferait réutiliser un numéro) ; aucune contrainte d'unicité sur
+      `certificates.request_id` (protégé désormais par le verrou du
+      paiement) ; validation possible d'un paiement dont le dossier est déjà
+      terminé
 
 ### K6 (après K5) - Réunions sans compte-rendu : analytique et module Réunions divergent
 
@@ -1000,13 +1038,16 @@ l'analytique semble ne pas le compter. **Confirmé** sur base réelle en HTTP
       (les agents l'envoient le plus souvent par Outlook). On garde
       l'indicateur, sans en faire une alerte :
   - [ ] « Réunions sans compte-rendu » : réunions préliminaires et formelles
-        seulement (visites sur site exclues, comme le module Réunions)
+        seulement (visites sur site exclues, comme le module Réunions), avec
+        la liste des réunions concernées (référence, organisme, type, date,
+        agent DN) et un lien direct vers la phase où déposer le CR
+        (`demandes/:requestId/phase-preliminaire` ou `…/phase-formelle`)
   - [ ] Nouvel indicateur séparé « Avis R3 manquant » : visites sur site
         tenues sans avis R3, avec la liste des dossiers concernés (référence,
         organisme, date de la visite, agent R3) et un lien direct vers
         `demandes/:requestId/demonstration-inspection`
-  - [ ] Ton neutre (`info`) pour les deux, jamais `warning` ni `danger` :
-        information pour intervention, pas une alerte
+  - [ ] Ton neutre (`info`) pour les deux (confirmé par Fred), jamais
+        `warning` ni `danger` : information pour intervention, pas une alerte
 - [ ] Une seule règle partagée par les deux services, avec un test ; aligner
       la donnée de démo ; invalider l'analytique après un dépôt de CR
 
