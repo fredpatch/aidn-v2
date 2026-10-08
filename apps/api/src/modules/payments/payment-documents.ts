@@ -14,6 +14,7 @@ import {
   type PreparedAttachment,
 } from '../uploads/upload-attachment.js';
 import { relocateDossierAssetAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
+import { assertDossierOpen } from '../requests/dossier-open.js';
 
 export type PaymentPhaseCode = 'M5' | 'M6' | 'M7';
 type PaymentRow = typeof payments.$inferSelect;
@@ -48,7 +49,9 @@ export async function attachPaymentInvoice(
 ): Promise<PaymentRow> {
   let target: RelocationTarget | undefined;
   const result = await db.transaction(async (tx) => {
-    const { payment } = await lockPhasePayment(tx, phaseId, phaseCode);
+    const { payment, requestId } = await lockPhasePayment(tx, phaseId, phaseCode);
+    // K7 - closed dossier: read-only (requests/dossier-open.ts).
+    await assertDossierOpen(tx, requestId);
     if (payment.status === 'validated') throw new Error('PAYMENT_ALREADY_VALIDATED');
     if (payment.status === 'rejected') throw new Error('PAYMENT_REJECTED_IMMUTABLE');
 
@@ -117,6 +120,8 @@ export async function attachPaymentProof(
     if (phaseRequestId !== requestId || !request || request.applicantId !== applicantId) {
       throw new Error('PAYMENT_NOT_FOUND');
     }
+    // K7 - closed dossier: read-only (requests/dossier-open.ts).
+    await assertDossierOpen(tx, requestId);
 
     target = { ownerType: 'payment_proof', ownerId: payment.id };
     if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') return payment;

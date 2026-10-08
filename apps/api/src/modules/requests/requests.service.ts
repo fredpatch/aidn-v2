@@ -32,6 +32,7 @@ import {
   type PreparedAttachment,
 } from '../uploads/upload-attachment.js';
 import { relocateDossierAssetAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
+import { assertDossierOpen } from './dossier-open.js';
 
 export type { SubmitRequestParams, RequestView } from './requests.types.js';
 
@@ -579,6 +580,8 @@ export async function listRequestCockpit(): Promise<RequestCockpitSummary> {
 }
 
 export async function sendToSignature(requestId: number, actorUserId: number): Promise<RequestView> {
+  // K7 - closed dossier: read-only (requests/dossier-open.ts).
+  await assertDossierOpen(db, requestId);
   const [circuitDoc] = await db
     .select()
     .from(dgCircuitDocuments)
@@ -608,6 +611,8 @@ export async function sendToSignature(requestId: number, actorUserId: number): P
 /** Legacy fallback for records already in the old two-step state. New M1 intake
  *  uses sendToSignature() then returnSignedFromDg(). */
 export async function markSigned(requestId: number, actorUserId: number): Promise<RequestView> {
+  // K7 - closed dossier: read-only (requests/dossier-open.ts).
+  await assertDossierOpen(db, requestId);
   const [circuitDoc] = await db
     .select()
     .from(dgCircuitDocuments)
@@ -643,6 +648,8 @@ export async function markPendingReview(
   requestId: number,
   actorUserId: number
 ): Promise<RequestView> {
+  // K7 - closed dossier: read-only (requests/dossier-open.ts).
+  await assertDossierOpen(db, requestId);
   const [circuitDoc] = await db
     .select()
     .from(dgCircuitDocuments)
@@ -679,6 +686,8 @@ export async function returnSignedFromDg(
 ): Promise<RequestView> {
   let target: RelocationTarget | undefined;
   const { request, circuitDoc } = await db.transaction(async (tx) => {
+    // K7 - closed dossier: read-only (requests/dossier-open.ts).
+    await assertDossierOpen(tx, requestId);
     const circuit = await lockIntakeCircuit(tx, requestId);
     target = { ownerType: 'dg_circuit_document', ownerId: circuit.id };
     if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') {
@@ -726,6 +735,8 @@ export async function cancelRequest(
   if (actor.applicantId !== undefined && request.applicantId !== actor.applicantId) {
     throw new Error('REQUEST_NOT_FOUND'); // don't leak existence of someone else's request
   }
+  // K7 - closed dossier: read-only (requests/dossier-open.ts).
+  await assertDossierOpen(db, requestId);
 
   const [circuitDoc] = await db
     .select()
@@ -811,6 +822,8 @@ export async function replaceCircuitDocument(
 ): Promise<void> {
   let target: RelocationTarget | undefined;
   await db.transaction(async (tx) => {
+    // K7 - closed dossier: read-only (requests/dossier-open.ts).
+    await assertDossierOpen(tx, requestId);
     const circuit = await lockIntakeCircuit(tx, requestId);
     target = { ownerType: 'dg_circuit_document', ownerId: circuit.id };
     if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') return;

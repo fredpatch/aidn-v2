@@ -39,6 +39,7 @@ import {
   type CertificateTemplateData,
 } from './certificates.types.js';
 import { rejectPhasePayment, validatePhasePaymentInTx } from '../payments/payment-decisions.js';
+import { assertCertificateDossierOpen, assertDossierOpen } from '../requests/dossier-open.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATES_DIR = path.join(__dirname, '../../templates/certificates');
@@ -119,6 +120,8 @@ export async function openDeliveryPhase(
   requestId: number,
   actorUserId: number
 ): Promise<{ id: number }> {
+  // K7 - closed dossier: read-only (requests/dossier-open.ts).
+  await assertDossierOpen(db, requestId);
   const [request] = await db.select().from(requests).where(eq(requests.id, requestId));
   if (!request) throw new Error('REQUEST_NOT_FOUND');
 
@@ -294,6 +297,8 @@ export async function updateCertificateFields(
     scopeDetails?: ScopeDetails;
   }
 ): Promise<CertificateView> {
+  // K7 - closed dossier: read-only (requests/dossier-open.ts).
+  await assertCertificateDossierOpen(db, certificateId);
   const [existing] = await db.select().from(certificates).where(eq(certificates.id, certificateId));
   if (!existing) throw new Error('CERTIFICATE_NOT_FOUND');
   if (existing.status !== 'in_preparation') throw new Error('CERTIFICATE_NOT_EDITABLE');
@@ -331,6 +336,8 @@ export async function overrideCertificateType(
   actorUserId: number,
   certificateType: 'agreement' | 'recognition'
 ): Promise<CertificateView> {
+  // K7 - closed dossier: read-only (requests/dossier-open.ts).
+  await assertCertificateDossierOpen(db, certificateId);
   const [existing] = await db.select().from(certificates).where(eq(certificates.id, certificateId));
   if (!existing) throw new Error('CERTIFICATE_NOT_FOUND');
   if (existing.status !== 'in_preparation') throw new Error('CERTIFICATE_NOT_EDITABLE');
@@ -365,6 +372,8 @@ export async function generateCertificateDocument(
   certificateId: number,
   actorUserId: number
 ): Promise<{ fileUrl: string }> {
+  // K7 - closed dossier: read-only (requests/dossier-open.ts).
+  await assertCertificateDossierOpen(db, certificateId);
   const [certificate] = await db
     .select()
     .from(certificates)
@@ -519,6 +528,8 @@ async function setStatus(
   status: 'printed' | 'signed' | 'archived',
   timestampField: 'printedAt' | 'signedAt' | 'archivedAt'
 ): Promise<CertificateView> {
+  // K7 - closed dossier: read-only (requests/dossier-open.ts). Covers markPrinted / markArchived.
+  await assertCertificateDossierOpen(db, certificateId);
   const [existing] = await db.select().from(certificates).where(eq(certificates.id, certificateId));
   if (!existing) throw new Error('CERTIFICATE_NOT_FOUND');
 
@@ -554,6 +565,8 @@ export async function markSigned(
 ): Promise<CertificateView> {
   const target: RelocationTarget = { ownerType: 'certificate_document', ownerId: certificateId };
   const updated = await db.transaction(async (tx) => {
+    // K7 - closed dossier: read-only (requests/dossier-open.ts).
+    await assertCertificateDossierOpen(tx, certificateId);
     // Target first: the certificate row, then the upload asset.
     const [existing] = await tx
       .select()
@@ -601,6 +614,8 @@ export async function notifyApplicant(
   certificateId: number,
   actorUserId: number
 ): Promise<CertificateView> {
+  // K7 - closed dossier: read-only (requests/dossier-open.ts).
+  await assertCertificateDossierOpen(db, certificateId);
   const [existing] = await db.select().from(certificates).where(eq(certificates.id, certificateId));
   if (!existing) throw new Error('CERTIFICATE_NOT_FOUND');
   if (existing.status !== 'archived') throw new Error('INVALID_STATUS_TRANSITION');
@@ -642,6 +657,8 @@ export async function markCollected(
   certificateId: number,
   actorUserId: number
 ): Promise<CertificateView> {
+  // K7 - closed dossier: read-only (requests/dossier-open.ts).
+  await assertCertificateDossierOpen(db, certificateId);
   const [existing] = await db.select().from(certificates).where(eq(certificates.id, certificateId));
   if (!existing) throw new Error('CERTIFICATE_NOT_FOUND');
   if (existing.status !== 'notified') throw new Error('INVALID_STATUS_TRANSITION');

@@ -34,6 +34,7 @@ import type {
   MeetingView,
 } from './meetings.types.js';
 import { lacksMeetingReport } from './meeting-follow-up.js';
+import { assertMeetingDossierOpen, assertPhaseDossierOpen } from '../requests/dossier-open.js';
 
 export type { ScheduleMeetingParams, MeetingView } from './meetings.types.js';
 
@@ -289,6 +290,8 @@ export async function listApplicantMeetings(applicantId: number): Promise<Applic
 export async function scheduleMeeting(
   params: ScheduleMeetingParams
 ): Promise<{ meeting: MeetingView; softOverlapWarning: boolean }> {
+  // K7 - closed dossier: read-only (requests/dossier-open.ts).
+  await assertPhaseDossierOpen(db, params.phaseId);
   const [phase] = await db.select().from(phases).where(eq(phases.id, params.phaseId));
   if (!phase) throw new Error('PHASE_NOT_FOUND');
   if (phase.status !== 'open') throw new Error('PHASE_NOT_OPEN');
@@ -444,6 +447,8 @@ export async function markMeetingStatus(
   actorUserId: number,
   status: 'held' | 'no_show' | 'file_cancelled'
 ): Promise<MeetingView> {
+  // K7 - closed dossier: read-only (requests/dossier-open.ts).
+  await assertMeetingDossierOpen(db, meetingId);
   const [meeting] = await db.select().from(meetings).where(eq(meetings.id, meetingId));
   if (!meeting) throw new Error('MEETING_NOT_FOUND');
   if (meeting.status !== 'scheduled') throw new Error('MEETING_NOT_SCHEDULED');
@@ -482,6 +487,8 @@ export async function rescheduleMeeting(
   actorUserId: number,
   newScheduledAt: string
 ): Promise<{ meeting: MeetingView; softOverlapWarning: boolean }> {
+  // K7 - closed dossier: read-only (requests/dossier-open.ts).
+  await assertMeetingDossierOpen(db, meetingId);
   const [oldMeeting] = await db.select().from(meetings).where(eq(meetings.id, meetingId));
   if (!oldMeeting) throw new Error('MEETING_NOT_FOUND');
   if (oldMeeting.status !== 'scheduled') throw new Error('MEETING_NOT_SCHEDULED');
@@ -518,6 +525,8 @@ export async function attachMeetingReport(
 ): Promise<MeetingView> {
   const target: RelocationTarget = { ownerType: 'meeting_report', ownerId: meetingId };
   const updated = await db.transaction(async (tx) => {
+    // K7 - closed dossier: read-only (requests/dossier-open.ts).
+    await assertMeetingDossierOpen(tx, meetingId);
     const [meeting] = await tx.select().from(meetings).where(eq(meetings.id, meetingId)).for('update');
     if (!meeting) throw new Error('MEETING_NOT_FOUND');
     if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') return meeting;

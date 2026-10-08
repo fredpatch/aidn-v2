@@ -25,6 +25,7 @@ import { relocateDossierAssetAfterCommit, type RelocationTarget } from '../files
 import { cleanupGeneratedFileOnFailure } from '../files/generated-file-cleanup.js';
 import { resolveStoredFilePath } from '../files/stored-file.js';
 import { UPLOADS_ROOT } from '../../shared/uploads-root.js';
+import { assertPhaseDossierOpen } from '../requests/dossier-open.js';
 
 export interface PreliminaryEvaluationView {
   id: number;
@@ -174,6 +175,8 @@ export async function makeAvailable(
   actorUserId: number,
   returnDays?: number
 ): Promise<PreliminaryEvaluationView> {
+  // K7 - closed dossier: read-only (requests/dossier-open.ts).
+  await assertPhaseDossierOpen(db, phaseId);
   const [phase] = await db.select().from(phases).where(eq(phases.id, phaseId));
   if (!phase) throw new Error('PHASE_NOT_FOUND');
   if (phase.phaseCode !== 'M3') throw new Error('WRONG_PHASE');
@@ -255,12 +258,16 @@ export async function submit(
   phaseId: number,
   attachment: PreparedAttachment
 ): Promise<PreliminaryEvaluationView> {
+  // K7 - closed dossier: read-only (requests/dossier-open.ts).
+  await assertPhaseDossierOpen(db, phaseId); // before the file copy below
   let target: RelocationTarget | undefined;
   const circuitCopy = await copySubmittedFileForCircuit(attachment);
   let circuitCopyUsed = false;
 
   try {
     const updated = await db.transaction(async (tx) => {
+      // K7 - closed dossier: read-only (requests/dossier-open.ts).
+      await assertPhaseDossierOpen(tx, phaseId);
       // Target first: the evaluation form row, then the upload asset.
       const [row] = await tx
         .select()

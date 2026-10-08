@@ -6,6 +6,14 @@ import { SeedingError } from '../../modules/seeding/seeding.types.js';
 type ErrorMap = Record<string, { status: number; message: string; code?: string }>;
 type PrefixHandler = { prefix: string; status: number; message: (id: string) => string };
 
+/** K7 - refusals any workflow module can raise, mapped once for all of them. */
+const COMMON_ERRORS: ErrorMap = {
+  DOSSIER_CLOSED: {
+    status: 409,
+    message: 'Ce dossier est clos (rejeté, annulé ou terminé) : il reste consultable, mais aucune action n\'est possible.',
+  },
+};
+
 /** Factory: service-layer error code (a thrown Error's .message) -> HTTP response.
  *  Services throw plain SCREAMING_SNAKE_CASE error codes; controllers never
  *  need to know HTTP status codes, only this mapping does. */
@@ -25,7 +33,7 @@ function createErrorHandler(
       }
     }
 
-    const mapped = errorMap[message];
+    const mapped = errorMap[message] ?? COMMON_ERRORS[message];
     if (mapped) {
       if (mapped.code && mapped.code !== message) console.warn(logPrefix, 'refused:', message);
       res.status(mapped.status).json({ message: mapped.message, code: mapped.code ?? message });

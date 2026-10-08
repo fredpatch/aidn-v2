@@ -19,6 +19,7 @@ import { db, type DbTx } from '../../shared/db/index.js';
 import { payments, requests } from '../../shared/db/schema.js';
 import { logAudit } from '../auth/auth.service.js';
 import { lockPhasePayment, type PaymentPhaseCode } from './payment-documents.js';
+import { assertDossierOpen } from '../requests/dossier-open.js';
 
 type PaymentRow = typeof payments.$inferSelect;
 export type PaymentRejectionAction = 'request_new_proof' | 'reject_dossier';
@@ -41,6 +42,8 @@ export async function rejectPhasePayment(params: {
 
   return db.transaction(async (tx) => {
     const { payment, requestId } = await lockPhasePayment(tx, phaseId, phaseCode);
+    // K7 - closed dossier: read-only (requests/dossier-open.ts).
+    await assertDossierOpen(tx, requestId);
     if (payment.status !== 'pending_validation') throw new Error('PAYMENT_NOT_PENDING');
 
     const [updated] = await tx
@@ -91,6 +94,8 @@ export async function validatePhasePaymentInTx(
 ): Promise<{ payment: PaymentRow; requestId: number }> {
   const { phaseId, phaseCode, actorUserId } = params;
   const { payment, requestId } = await lockPhasePayment(tx, phaseId, phaseCode);
+  // K7 - closed dossier: read-only (requests/dossier-open.ts).
+  await assertDossierOpen(tx, requestId);
   if (payment.status !== 'pending_validation') throw new Error('PAYMENT_NOT_PENDING');
 
   const [updated] = await tx

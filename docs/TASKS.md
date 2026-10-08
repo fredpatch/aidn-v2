@@ -1109,6 +1109,57 @@ Maquette validée par Fred (canevas « K6 - Suivi des réunions »).
       dossier rejeté (la phase M6 interrompue reste ouverte, aucun contrôle du
       statut du dossier) ; le dépôt de CR non plus ne vérifie pas le dossier
 
+### Dossier clos en lecture seule K7a (2026-10-08) - API
+
+Décision Fred : sur un dossier clos (rejeté, annulé ou terminé), seules la
+consultation et le téléchargement restent possibles ; toute autre action est
+refusée.
+
+- [x] **Constat (risque de conformité)** : aucune action d'écriture des modules
+      de workflow ne vérifiait le statut du dossier (seule l'ouverture de M3 le
+      faisait). Reproduit sur base réelle : sur un dossier **rejeté**, l'avis R3
+      était accepté et clôturait M6, puis l'ouverture de M7 (délivrance) était
+      acceptée - chemin vers un certificat pour un dossier rejeté. Sur `main`,
+      14 actions sur 50 acceptées et écrites sur un dossier rejeté ; les autres
+      ne tombaient que sur des préconditions sans rapport
+- [x] `requests/dossier-open.ts` : gardes `assertDossierOpen`,
+      `assertPhaseDossierOpen`, `assertMeetingDossierOpen`,
+      `assertCertificateDossierOpen`, `assertEvaluationDossierOpen` →
+      `DOSSIER_CLOSED` (409, « Ce dossier est clos (rejeté, annulé ou terminé) :
+      il reste consultable, mais aucune action n'est possible. »), mappé une
+      fois pour tous les modules (`shared/utils/error.ts`). Silencieuses si
+      l'entité n'existe pas (chaque action garde son propre NOT_FOUND) ; dans
+      une transaction, ligne de la demande lue `FOR SHARE` (sérialisée avec un
+      rejet concurrent). Même liste de statuts que la règle K6
+- [x] Posées sur les 51 routes d'écriture concernées des modules de workflow
+      (53 au total : l'ouverture de M3 exige déjà « pending_review », la
+      création d'un dossier relève de la règle « un seul dossier actif ») - M1
+      circuit et annulation, M3-M7, réunions, courriers DG, paiements,
+      certificat - recensées route par route ; 2 actions oubliées par un premier inventaire
+      (`markPrinted`, `markArchived`) trouvées ainsi. Côté postulant (preuve,
+      renvoi de document, annulation) la garde passe **après** le contrôle de
+      propriété : un autre postulant reçoit toujours 404
+- [x] Tests : matrice PostgreSQL réel (`dossier-open.db.test.ts`) - les 50
+      actions (51 routes, deux partagent `sendToSignature`) sur un dossier rejeté, annulé puis terminé → `DOSSIER_CLOSED`, et
+      la base est identique avant / après (12 tables comparées) ; pas de fuite
+      côté postulant ; dossier ouvert accepté. Inventaire statique des routes
+      (`dossier-open.routes.test.ts`, sans base) : une nouvelle route d'écriture
+      fait échouer la suite tant qu'elle n'est pas gardée et recensée.
+      Mutation 10/10
+- [x] Scénario HTTP réel : sur un dossier rejeté, avis R3, ouverture M7, dépôt
+      de CR et preuve postulant → 409 avec le message ; rien n'est écrit ; la
+      consultation (DN et postulant) et le téléchargement du CR restent
+      possibles ; sur le dossier témoin ouvert, les mêmes actions passent
+- [x] Effet sur K4 : si le rejet définitif gagne la course, la validation
+      tardive reçoit `DOSSIER_CLOSED` (au lieu de `PAYMENT_NOT_PENDING`)
+- [x] `k7-check-closed-dossiers.sql` (lecture seule) : dossiers clos ayant une
+      activité après leur clôture (phase ouverte / clôturée, avis R3, paiement
+      validé, certificat) - à passer sur chaque environnement
+- [ ] K7b (admin) : pages de phase en lecture seule sur un dossier clos
+      (bandeau, actions masquées) - maquette d'abord
+- [ ] Course résiduelle : les actions hors transaction lisent le statut puis
+      écrivent (fenêtre de quelques millisecondes avec un rejet simultané)
+
 ## Sprint 7 - Documents (transverse, M8)
 
 - [ ] Upload multi-format (PDF/Word/PNG/JPG)

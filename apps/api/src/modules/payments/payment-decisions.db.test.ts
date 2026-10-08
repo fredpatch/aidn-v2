@@ -256,8 +256,14 @@ describe('K4 payment decisions (real PostgreSQL)', { skip }, () => {
         const won = outcomes.filter((o) => o.status === 'fulfilled').length;
         assert.equal(won, 1, `round ${round}: ${JSON.stringify(outcomes.map((o) => o.status))}`);
         const lost = outcomes.find((o) => o.status === 'rejected') as PromiseRejectedResult;
-        assert.match(lost.reason.message, /PAYMENT_NOT_PENDING/);
         const after = await state(s);
+        // K7 - when the final rejection wins, the dossier is closed: the late
+        // validation is refused by the closed-dossier guard.
+        assert.equal(
+          lost.reason.message,
+          after.payment.status === 'validated' ? 'PAYMENT_NOT_PENDING' : 'DOSSIER_CLOSED',
+          `round ${round}`
+        );
         if (after.payment.status === 'validated') {
           assert.equal(after.request.status, 'in_progress');
           assert.deepEqual(after.audits, [{ action: 'PAYMENT_VALIDATED', module: 'M6' }]);

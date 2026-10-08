@@ -22,6 +22,7 @@ import type {
   FormalLetterCircuitView,
   FormalPhaseBundle,
 } from './formal-request.types.js';
+import { assertDossierOpen, assertPhaseDossierOpen } from '../requests/dossier-open.js';
 
 // ── Slot labels (French) ───────────────────────────────────────────────────
 export const SLOT_LABELS: Record<string, string> = {
@@ -66,6 +67,8 @@ export async function openFormalPhase(
   requestId: number,
   actorUserId: number
 ): Promise<{ id: number }> {
+  // K7 - closed dossier: read-only (requests/dossier-open.ts).
+  await assertDossierOpen(db, requestId);
   const [request] = await db.select().from(requests).where(eq(requests.id, requestId));
   if (!request) throw new Error('REQUEST_NOT_FOUND');
 
@@ -113,6 +116,8 @@ export async function submitFormalLetter(
 ): Promise<FormalLetterCircuitView> {
   let target: RelocationTarget | undefined;
   const circuit = await db.transaction(async (tx) => {
+    // K7 - closed dossier: read-only (requests/dossier-open.ts).
+    await assertDossierOpen(tx, requestId);
     // Target first: the M4 phase row (the circuit document is created here).
     const [phase] = await tx
       .select()
@@ -177,6 +182,8 @@ export async function markLetterSigned(
   requestId: number,
   actorUserId: number
 ): Promise<FormalLetterCircuitView> {
+  // K7 - closed dossier: read-only (requests/dossier-open.ts).
+  await assertDossierOpen(db, requestId);
   const [circuit] = await db
     .select()
     .from(dgCircuitDocuments)
@@ -209,6 +216,8 @@ export async function markLetterPendingReview(
   requestId: number,
   actorUserId: number
 ): Promise<FormalLetterCircuitView> {
+  // K7 - closed dossier: read-only (requests/dossier-open.ts).
+  await assertDossierOpen(db, requestId);
   const [circuit] = await db
     .select()
     .from(dgCircuitDocuments)
@@ -248,6 +257,8 @@ export async function submitDocument(
 ): Promise<FormalDocumentView> {
   let target: RelocationTarget | undefined;
   const { doc, updated } = await db.transaction(async (tx) => {
+    // K7 - closed dossier: read-only (requests/dossier-open.ts).
+    await assertDossierOpen(tx, requestId);
     const [phase] = await tx
       .select()
       .from(phases)
@@ -439,6 +450,8 @@ export async function closeFormalPhase(
     closureNote?: string;
   }
 ): Promise<void> {
+  // K7 - closed dossier: read-only (requests/dossier-open.ts).
+  await assertPhaseDossierOpen(db, phaseId);
   const { attachment } = params;
   const target: RelocationTarget = { ownerType: 'phase_closure_document', ownerId: phaseId };
   await db.transaction(async (tx) => {

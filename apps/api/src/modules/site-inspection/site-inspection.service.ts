@@ -21,6 +21,7 @@ import type {
   PaymentQueueItem,
 } from './site-inspection.types.js';
 import { rejectPhasePayment, validatePhasePayment } from '../payments/payment-decisions.js';
+import { assertDossierOpen, assertMeetingDossierOpen, assertPhaseDossierOpen } from '../requests/dossier-open.js';
 
 function toPaymentView(row: typeof payments.$inferSelect): PaymentView {
   return {
@@ -142,6 +143,8 @@ export async function openSiteInspectionPhase(
   requestId: number,
   actorUserId: number
 ): Promise<{ id: number }> {
+  // K7 - closed dossier: read-only (requests/dossier-open.ts).
+  await assertDossierOpen(db, requestId);
   const [request] = await db.select().from(requests).where(eq(requests.id, requestId));
   if (!request) throw new Error('REQUEST_NOT_FOUND');
 
@@ -337,6 +340,8 @@ export async function markAssignedSiteVisitHeld(
   meetingId: number,
   r3AgentId: number
 ): Promise<SiteVisitView> {
+  // K7 - closed dossier: read-only (requests/dossier-open.ts).
+  await assertMeetingDossierOpen(db, meetingId);
   const [siteVisit] = await db
     .select()
     .from(meetings)
@@ -373,6 +378,8 @@ export async function submitInspectionVerdict(
   verdict: 'compliant' | 'non_compliant' | 'compliant_with_reserves',
   note: string
 ): Promise<InspectionView> {
+  // K7 - closed dossier: read-only (requests/dossier-open.ts).
+  await assertPhaseDossierOpen(db, phaseId);
   const [phase] = await db.select().from(phases).where(eq(phases.id, phaseId));
   if (!phase) throw new Error('PHASE_NOT_FOUND');
   if (phase.status !== 'open') throw new Error('PHASE_ALREADY_CLOSED');

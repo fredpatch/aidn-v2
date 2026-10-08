@@ -17,6 +17,7 @@ import {
   type PreparedAttachment,
 } from '../uploads/upload-attachment.js';
 import { relocateDossierAssetAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
+import { assertPhaseDossierOpen } from '../requests/dossier-open.js';
 
 export interface PhaseView {
   id: number;
@@ -153,6 +154,8 @@ export async function closePhase(
   const { attachment } = params;
   const target: RelocationTarget = { ownerType: 'phase_closure_document', ownerId: phaseId };
   const updated = await db.transaction(async (tx) => {
+    // K7 - closed dossier: read-only (requests/dossier-open.ts).
+    await assertPhaseDossierOpen(tx, phaseId);
     const [phase] = await tx.select().from(phases).where(eq(phases.id, phaseId)).for('update');
     if (!phase) throw new Error('PHASE_NOT_FOUND');
     if (attachment && (await claimUploadAsset(tx, attachment, target)) === 'attached_here') return phase;

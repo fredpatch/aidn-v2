@@ -23,6 +23,7 @@ import type {
   CourrierTaskSource,
   CourrierTaskView,
 } from './courrier-tasks.types.js';
+import { assertDossierOpen } from '../requests/dossier-open.js';
 
 const MANAGED_ENTITY_TYPES: CourrierTaskSource[] = [
   'intake_request',
@@ -132,6 +133,8 @@ async function getCircuitForTask(taskId: string) {
 }
 
 async function ensureTaskCanMutate(circuit: typeof dgCircuitDocuments.$inferSelect): Promise<void> {
+  // K7 - closed dossier: read-only (requests/dossier-open.ts), every circuit type.
+  await assertDossierOpen(db, circuit.requestId);
   const phaseCode =
     circuit.entityType === 'formal_request_letter' ? 'M4' : circuit.entityType === 'pre_evaluation' ? 'M3' : null;
   if (!phaseCode) return;

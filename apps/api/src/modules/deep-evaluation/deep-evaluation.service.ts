@@ -28,6 +28,7 @@ import type {
   PaymentQueueItem,
 } from './deep-evaluation.types.js';
 import { rejectPhasePayment, validatePhasePayment } from '../payments/payment-decisions.js';
+import { assertDossierOpen, assertEvaluationDossierOpen, assertPhaseDossierOpen } from '../requests/dossier-open.js';
 
 function toPaymentView(row: typeof payments.$inferSelect): PaymentView {
   return {
@@ -74,6 +75,8 @@ export async function openDeepEvaluationPhase(
   requestId: number,
   actorUserId: number
 ): Promise<{ id: number }> {
+  // K7 - closed dossier: read-only (requests/dossier-open.ts).
+  await assertDossierOpen(db, requestId);
   const [request] = await db.select().from(requests).where(eq(requests.id, requestId));
   if (!request) throw new Error('REQUEST_NOT_FOUND');
 
@@ -250,6 +253,8 @@ export async function setVerdict(
   actorUserId: number,
   correctionDays?: number
 ): Promise<DocumentEvaluationView> {
+  // K7 - closed dossier: read-only (requests/dossier-open.ts).
+  await assertEvaluationDossierOpen(db, evaluationId);
   const [evalRow] = await db
     .select()
     .from(documentEvaluations)
@@ -315,6 +320,8 @@ export async function resubmitDocument(
       .innerJoin(requests, eq(requests.id, phases.requestId))
       .where(eq(formalRequestDocuments.id, evalRow.formalRequestDocumentId));
     if (!owner || owner.applicantId !== applicantId) throw new Error('EVALUATION_NOT_FOUND');
+    // K7 - closed dossier: read-only (requests/dossier-open.ts).
+    await assertEvaluationDossierOpen(tx, evaluationId);
 
     target = { ownerType: 'formal_request_document', ownerId: owner.formalDoc.id };
     if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') {
@@ -371,6 +378,8 @@ export async function closeDeepEvaluationPhase(
     closureNote?: string;
   }
 ): Promise<void> {
+  // K7 - closed dossier: read-only (requests/dossier-open.ts).
+  await assertPhaseDossierOpen(db, phaseId);
   const { attachment } = params;
   const target: RelocationTarget = { ownerType: 'phase_closure_document', ownerId: phaseId };
   await db.transaction(async (tx) => {

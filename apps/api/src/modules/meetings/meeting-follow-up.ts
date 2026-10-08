@@ -10,6 +10,8 @@
  *  - only active dossiers count: on a completed, cancelled or rejected
  *    dossier nothing is left to do, and the indicator must be able to reach 0. */
 
+import { isDossierClosed } from '../requests/dossier-open.js';
+
 type MeetingType = 'preliminary' | 'formal' | 'site_visit';
 
 export interface FollowUpMeeting {
@@ -18,10 +20,9 @@ export interface FollowUpMeeting {
   crDocumentUrl: string | null;
 }
 
-const CLOSED_DOSSIER_STATUSES: readonly string[] = ['completed', 'cancelled', 'rejected'];
-
+/** Same definition as the K7 write guard: one list of closed statuses. */
 export function isActiveDossier(requestStatus: string): boolean {
-  return !CLOSED_DOSSIER_STATUSES.includes(requestStatus);
+  return !isDossierClosed(requestStatus);
 }
 
 /** A preliminary or formal meeting held on an active dossier, no compte-rendu. */
