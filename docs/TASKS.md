@@ -788,7 +788,8 @@ de régression métier »). **Décision : ne pas le construire maintenant.**
   3. Refonte du cache portail (clés par phase partagées par les sections, le
      bandeau d'avancement et *Mes dossiers*, invalidées après chaque action)
   4. Codes d'erreur propres à chaque module à fusionner
-  5. Tests API non exécutés en CI (base requise)
+  5. Tests API non exécutés en CI (base requise) - depuis couverts par
+     `migration-integrity.yml` (voir K8)
 - À rouvrir seulement si une latence réelle est mesurée en production
   (Libreville → serveur)
 - Suite retenue : déplacer le masquage postulant de M6 du contrôleur vers une
@@ -964,12 +965,14 @@ d'erreur.
       nouvelle preuve, M7 validation + 1 certificat puis 409 au rejet) + 20
       tirages simultanés validation / rejet : 20 cohérents (validation 12,
       rejet 8) contre 5 sur 20 sur `main`
-- [ ] Les tests API ne tournent qu'en Node ≥ 21 (`node --test` avec motif
-      glob) : `npm test` échoue en Node 18, la version de la CI
+- [x] Les tests API ne tournent qu'en Node ≥ 21 (`node --test` avec motif
+      glob) - **corrigé le 2026-10-08** : ils tournent déjà en CI dans
+      `migration-integrity.yml` (Node 22, PostgreSQL 16, migrations + seeds,
+      tests base comprises) ; seule la revue frontend est en Node 18 → lot CI
 - [x] `validatePayment` (module de la phase, validation M7 atomique) → K5
-- [ ] Relevé : l'API accepte un motif fait d'espaces et une `rejectionAction`
-      inconnue (erreur d'enum PostgreSQL → 500) ; rejet possible d'un paiement
-      dont le dossier est déjà terminé
+- [x] Relevé : l'API accepte un motif fait d'espaces et une `rejectionAction`
+      inconnue (erreur d'enum PostgreSQL → 500) → K8a ; rejet possible d'un
+      paiement dont le dossier est déjà terminé → K7a (`DOSSIER_CLOSED`)
 
 ### Validation de paiement K5 (2026-10-08) - API
 
@@ -1006,11 +1009,11 @@ Suite de K4, sans changement visible : mêmes routes, mêmes codes et messages.
       un certificat) + 10 doubles clics (1 certificat chaque fois) + 10 paires
       de dossiers (références distinctes) ; sur `main` : 3 paires sur 10 en
       échec
-- [ ] Relevé, hors K5 : la référence reste un comptage (un certificat
-      supprimé ferait réutiliser un numéro) ; aucune contrainte d'unicité sur
-      `certificates.request_id` (protégé désormais par le verrou du
-      paiement) ; validation possible d'un paiement dont le dossier est déjà
-      terminé
+- [x] Relevé, hors K5 : la référence reste un comptage (un certificat
+      supprimé ferait réutiliser un numéro) → K8a ; validation possible d'un
+      paiement dont le dossier est déjà terminé → K7a
+- [ ] Aucune contrainte d'unicité sur `certificates.request_id` (protégé
+      désormais par le verrou du paiement) → K8b
 
 ### K6 (après K5) - Réunions sans compte-rendu : analytique et module Réunions divergent
 
@@ -1105,9 +1108,10 @@ Maquette validée par Fred (canevas « K6 - Suivi des réunions »).
       liste longue défilant dans sa colonne (`max-h-[26rem]`) au lieu
       d'allonger la page
 
-- [ ] Relevé, hors K6 : l'avis R3 peut techniquement être soumis sur un
+- [x] Relevé, hors K6 : l'avis R3 peut techniquement être soumis sur un
       dossier rejeté (la phase M6 interrompue reste ouverte, aucun contrôle du
       statut du dossier) ; le dépôt de CR non plus ne vérifie pas le dossier
+      → corrigé par K7a (`DOSSIER_CLOSED`)
 
 ### Dossier clos en lecture seule K7a (2026-10-08) - API
 
@@ -1208,6 +1212,41 @@ sécurité.
       s'ils proposent une action sur un dossier clos, l'API la refuse (409)
 - [ ] Hors K7b : informations clés en codes bruts (`rejected`, `held`) et
       « Avis R3 : Attendu » en orange sur un dossier clos
+
+### Durcissement API K8a (2026-10-08) - rejet de paiement et référence de certificat
+
+- [x] **Constat (HTTP réel sur `main`)** : `rejectionAction` inconnue → 500
+      (erreur d'enum PostgreSQL) ; motif fait de 3 espaces → 200, stocké tel
+      quel et affiché au postulant ; aucune limite de longueur
+- [x] `payments/payment-rejection-input.ts` : `parsePaymentRejection` partagé
+      par les rejets M5 / M6 / M7, appelé avant toute lecture ou écriture.
+      Action dans la liste `PAYMENT_REJECTION_ACTIONS` (`@aidn/shared`, test
+      d'égalité avec l'enum de la base), motif rogné non vide, au plus
+      `PAYMENT_REJECTION_REASON_MAX_LENGTH` = 1000 caractères. Refus en 400
+      (`REJECTION_ACTION_INVALID`, `REJECTION_REASON_REQUIRED`,
+      `REJECTION_REASON_TOO_LONG`), mappés une fois pour tous les modules ;
+      motif enregistré rogné
+- [x] Admin : les deux formulaires de rejet (cartes de phase, modale S5)
+      limitent le motif à la même longueur (`maxLength`)
+- [x] Référence de certificat : plus grand `CERT-AAAA-n` de l'année + 1 (sous
+      le même verrou K5) au lieu d'un comptage. Le comptage incluait les
+      références d'un autre format (le seed de démo analytique écrit
+      `CERT-AN-n`) et, après une suppression, retombait sur un numéro déjà
+      pris → 500 sur l'index unique. Pas de migration
+- [x] Tests : `payment-rejection-input.test.ts` (8, sans base : règles,
+      400 dans les 3 modules, enum) ; `certificate-reference.db.test.ts` (3,
+      PostgreSQL réel, transactions annulées) ; admin `maxLength` (4).
+      Mutation 4/4. API 351/351 sur base neuve migrée + seeds (comme la CI),
+      admin 125/125, tsc, eslint, build
+- [x] HTTP réel (M6) : action inconnue, motif d'espaces, motif de 1001
+      caractères → 400 avec message ; motif valide entouré d'espaces → 200,
+      stocké rogné
+- [ ] K8b : contrainte d'unicité sur `certificates.request_id` (migration) -
+      après passage d'une requête de contrôle des doublons sur chaque
+      environnement
+- [ ] Lot CI : revue frontend en Node 22, tests non exclus du déclenchement,
+      typecheck / build bloquants, commentaire de revue réparé, exécution sur
+      `main`
 
 ## Sprint 7 - Documents (transverse, M8)
 

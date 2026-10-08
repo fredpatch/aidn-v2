@@ -10,6 +10,7 @@ import {
   prepareUploadAttachment,
 } from '../uploads/upload-attachment.js';
 import { toApplicantSiteInspectionBundle } from './applicant-view.js';
+import { parsePaymentRejection } from '../payments/payment-rejection-input.js';
 
 async function checkApplicantOwnership(req: Request, requestId: number): Promise<boolean> {
   if (!req.applicant) return true;
@@ -107,11 +108,8 @@ export async function validatePayment(req: Request, res: Response): Promise<void
 
 export async function rejectPayment(req: Request, res: Response): Promise<void> {
   try {
-    const { rejectionAction, rejectionReason } = req.body ?? {};
-    if (!rejectionAction || !rejectionReason) {
-      res.status(400).json({ message: 'rejectionAction et rejectionReason sont requis.' });
-      return;
-    }
+    // K8 - action and trimmed reason checked before any lookup (400).
+    const { rejectionAction, rejectionReason } = parsePaymentRejection(req.body);
     const payment = await inspectionService.rejectPayment(
       Number(req.params.phaseId),
       req.user!.userId,

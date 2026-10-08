@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import { PAYMENT_REJECTION_REASON_MAX_LENGTH } from '@aidn/shared';
 import { SeedingError } from '../../modules/seeding/seeding.types.js';
 
 /** `code` overrides the code sent to the client (several internal codes
@@ -11,6 +12,16 @@ const COMMON_ERRORS: ErrorMap = {
   DOSSIER_CLOSED: {
     status: 409,
     message: 'Ce dossier est clos (rejeté, annulé ou terminé) : il reste consultable, mais aucune action n\'est possible.',
+  },
+  // K8 - payment rejection body (modules/payments/payment-rejection-input.ts).
+  REJECTION_ACTION_INVALID: {
+    status: 400,
+    message: "Action de rejet invalide : « request_new_proof » ou « reject_dossier » attendu.",
+  },
+  REJECTION_REASON_REQUIRED: { status: 400, message: 'Un motif de rejet est requis.' },
+  REJECTION_REASON_TOO_LONG: {
+    status: 400,
+    message: `Le motif de rejet ne doit pas dépasser ${PAYMENT_REJECTION_REASON_MAX_LENGTH} caractères.`,
   },
 };
 

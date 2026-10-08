@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { RejectModal } from './S5PaymentsPage';
+import { PAYMENT_REJECTION_REASON_MAX_LENGTH } from '@aidn/shared';
 
 // K3 - Paiements S5: a final rejection of the dossier takes a second step
 // inside the same modal.
@@ -54,6 +55,11 @@ async function fillFinalRejection(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe('<RejectModal> S5 - final rejection of the dossier', () => {
+  it('the reason is limited to the length the API accepts (K8)', async () => {
+    await setup();
+    expect(screen.getByLabelText('Motif')).toHaveAttribute('maxLength', String(PAYMENT_REJECTION_REASON_MAX_LENGTH));
+  });
+
   it('Continuer… opens the confirmation step without sending anything', async () => {
     const { user, onSubmit } = await setup();
     await fillFinalRejection(user);

@@ -1,4 +1,5 @@
 import { useId, useState } from 'react';
+import { PAYMENT_REJECTION_REASON_MAX_LENGTH } from '@aidn/shared';
 import { Button } from '../ui/button';
 import { DossierRejectionConfirmModal } from './DossierRejectionConfirm';
 
@@ -74,6 +75,7 @@ export function PaymentRejectionForm({
           id={`${fieldId}-reason`}
           className="input"
           rows={2}
+          maxLength={PAYMENT_REJECTION_REASON_MAX_LENGTH}
           value={reason}
           onChange={(e) => setReason(e.target.value)}
         />

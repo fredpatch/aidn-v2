@@ -51,6 +51,7 @@ import type { PaymentQueueItem as DeepPaymentQueueItem } from '../../lib/api/dee
 import type { PaymentQueueItem as SitePaymentQueueItem } from '../../lib/api/site-inspection.types';
 import type { PaymentQueueItem as CertificatePaymentQueueItem } from '../../lib/api/certificates.types';
 import type { UploadedAsset } from '@aidn/shared';
+import { PAYMENT_REJECTION_REASON_MAX_LENGTH } from '@aidn/shared';
 import { apiErrorMessage } from '../../lib/axios';
 import { uploadFile } from '../../lib/uploads';
 import { queryKeys } from '../../lib/react-query/queryKeys';
@@ -1136,6 +1137,7 @@ export function RejectModal({
         <label className="label" htmlFor="rejection-reason">Motif</label>
         <textarea
           id="rejection-reason"
+          maxLength={PAYMENT_REJECTION_REASON_MAX_LENGTH}
           value={reason}
           disabled={busy}
           onChange={(event) => setReason(event.target.value)}

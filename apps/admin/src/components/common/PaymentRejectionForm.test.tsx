@@ -2,6 +2,7 @@ import type { ComponentType } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { PAYMENT_REJECTION_REASON_MAX_LENGTH } from '@aidn/shared';
 import { api } from '../../lib/axios';
 import { renderWithProviders } from '../../test/render';
 import DeepEvaluationPaymentCard from '../../pages/phases/deep-evaluation/components/PaymentCard';
@@ -136,6 +137,12 @@ describe.each(CARDS)('%s payment card - final rejection of the dossier', (_code,
     await user.click(screen.getByRole('button', { name: 'Rejeter le dossier…' }));
     expect(setActionError).toHaveBeenCalledWith('Un motif de rejet est requis.');
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('the reason is limited to the length the API accepts (K8)', async () => {
+    const { user } = setup();
+    await user.click(screen.getByRole('button', { name: 'Rejeter' }));
+    expect(screen.getByLabelText('Motif')).toHaveAttribute('maxLength', String(PAYMENT_REJECTION_REASON_MAX_LENGTH));
   });
 
   it('asking for a new proof stays a single Confirmer click', async () => {
