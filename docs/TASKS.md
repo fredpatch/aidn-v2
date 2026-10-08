@@ -974,6 +974,42 @@ d'erreur.
       inconnue (erreur d'enum PostgreSQL → 500) ; rejet possible d'un paiement
       dont le dossier est déjà terminé
 
+### K6 (après K5) - Réunions sans compte-rendu : analytique et module Réunions divergent
+
+Signalé par Fred en test (2026-10-08) : après dépôt d'un compte-rendu,
+l'analytique semble ne pas le compter. **Confirmé** sur base réelle en HTTP
+(dépôt du CR par un agent DN, puis lecture des deux indicateurs).
+
+- Le dépôt **est** pris en compte : sur un dossier avec une réunion
+  préliminaire tenue et une visite sur site tenue, « Réunions sans
+  compte-rendu » passe de 2 à 1 dans l'analytique, de 1 à 0 dans *Réunions*
+- Cause : l'analytique (`analytics.service.ts`, `missingReports`) compte
+  **aussi les visites sur site**, que le module Réunions exclut
+  (`meetings.service.ts`, `meetingType !== 'site_visit'`). Or une visite sur
+  site n'a pas de compte-rendu à déposer : l'écran ne le propose pas
+  (`canManage` faux, « Suivi inspection R3 ») et son livrable est l'avis R3.
+  Une visite tenue reste donc « sans compte-rendu » pour toujours dans
+  l'analytique, qui ne peut jamais revenir à 0
+- Écarts secondaires : les deux écrans ne comptent pas la même population
+  (Réunions : réunions de la période choisie ; analytique : réunions des
+  dossiers filtrés, toutes dates) ; après un dépôt, l'analytique déjà chargée
+  peut afficher l'ancien chiffre jusqu'à 30 s (`staleTime`, aucune
+  invalidation de `analytics-overview`) ; la démo `seed-analytics-demo-data`
+  modélise un « CR manquant » sur une visite sur site
+- [x] Décision Fred (2026-10-08) : le compte-rendu n'est **pas obligatoire**
+      (les agents l'envoient le plus souvent par Outlook). On garde
+      l'indicateur, sans en faire une alerte :
+  - [ ] « Réunions sans compte-rendu » : réunions préliminaires et formelles
+        seulement (visites sur site exclues, comme le module Réunions)
+  - [ ] Nouvel indicateur séparé « Avis R3 manquant » : visites sur site
+        tenues sans avis R3, avec la liste des dossiers concernés (référence,
+        organisme, date de la visite, agent R3) et un lien direct vers
+        `demandes/:requestId/demonstration-inspection`
+  - [ ] Ton neutre (`info`) pour les deux, jamais `warning` ni `danger` :
+        information pour intervention, pas une alerte
+- [ ] Une seule règle partagée par les deux services, avec un test ; aligner
+      la donnée de démo ; invalider l'analytique après un dépôt de CR
+
 ## Sprint 7 - Documents (transverse, M8)
 
 - [ ] Upload multi-format (PDF/Word/PNG/JPG)
