@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../../components/ui/button';
 import { useAuth } from '../../../hooks/useAuth';
 import WorkflowCockpit from '../components/WorkflowCockpit';
+import { ClosedDossierBanner, DossierStateValue, useDossierState } from '../components/DossierReadOnly';
 import DeepEvaluationClosureCard from './components/DeepEvaluationClosureCard';
 import DocumentEvaluationsCard from './components/DocumentEvaluationsCard';
 import PaymentCard from './components/PaymentCard';
@@ -32,6 +33,9 @@ export default function DeepEvaluationPhasePage() {
     requestId,
     setActionError
   );
+  // K7b - closed dossier: read-only (components/DossierReadOnly.tsx).
+  const dossierState = useDossierState(requestId);
+  const dossierClosed = !!dossierState?.closed;
 
   if (loading) return <p className="p-6 text-anac-muted">Chargement...</p>;
   if (error) return <p className="p-6 text-anac-danger">{error}</p>;
@@ -46,37 +50,41 @@ export default function DeepEvaluationPhasePage() {
 
   if (isS5OnlyView) {
     return (
-      <div className="mx-auto max-w-3xl space-y-5">
-        <button
-          onClick={() => navigate('/paiements-s5')}
-          className="text-xs text-anac-muted transition-colors hover:text-anac-navy"
-        >
-          {'<-'} Retour aux paiements S5
-        </button>
+      <DossierStateValue state={dossierState}>
+        <div className="mx-auto max-w-3xl space-y-5">
+          <button
+            onClick={() => navigate('/paiements-s5')}
+            className="text-xs text-anac-muted transition-colors hover:text-anac-navy"
+          >
+            {'<-'} Retour aux paiements S5
+          </button>
 
-        <div>
-          <h1 className="text-xl font-semibold text-anac-navy">Paiement - Evaluation approfondie</h1>
-          <p className="text-sm text-anac-muted">Demande #{requestId}</p>
-        </div>
-
-        {actionError && <p className="text-sm text-anac-danger">{actionError}</p>}
-
-        {!bundle?.phase ? (
-          <div className="card">
-            <p className="text-sm text-anac-muted">
-              Aucun paiement S5 n&apos;est disponible pour cette demande.
-            </p>
+          <div>
+            <h1 className="text-xl font-semibold text-anac-navy">Paiement - Evaluation approfondie</h1>
+            <p className="text-sm text-anac-muted">Demande #{requestId}</p>
           </div>
-        ) : (
-          <PaymentCard
-            requestId={requestId}
-            phaseId={bundle.phase.id}
-            payment={bundle.payment}
-            canManagePayment={canManagePayment}
-            setActionError={setActionError}
-          />
-        )}
-      </div>
+
+          <ClosedDossierBanner />
+
+          {actionError && <p className="text-sm text-anac-danger">{actionError}</p>}
+
+          {!bundle?.phase ? (
+            <div className="card">
+              <p className="text-sm text-anac-muted">
+                Aucun paiement S5 n&apos;est disponible pour cette demande.
+              </p>
+            </div>
+          ) : (
+            <PaymentCard
+              requestId={requestId}
+              phaseId={bundle.phase.id}
+              payment={bundle.payment}
+              canManagePayment={canManagePayment}
+              setActionError={setActionError}
+            />
+          )}
+        </div>
+      </DossierStateValue>
     );
   }
 
@@ -137,12 +145,15 @@ export default function DeepEvaluationPhasePage() {
         {!bundle?.phase ? (
           <div className="card">
             <p className="mb-3 text-sm text-anac-muted">
-              La phase de demande formelle doit etre cloturee avant de demarrer l&apos;evaluation
-              approfondie.
+              {dossierClosed
+                ? 'Phase non demarree - dossier clos.'
+                : "La phase de demande formelle doit etre cloturee avant de demarrer l'evaluation approfondie."}
             </p>
-            <Button onClick={startPhase} disabled={startingPhase}>
-              {startingPhase ? 'Demarrage...' : 'Demarrer la Phase - Evaluation Approfondie'}
-            </Button>
+            {!dossierClosed && (
+              <Button onClick={startPhase} disabled={startingPhase}>
+                {startingPhase ? 'Demarrage...' : 'Demarrer la Phase - Evaluation Approfondie'}
+              </Button>
+            )}
           </div>
         ) : (
           <>
@@ -162,7 +173,7 @@ export default function DeepEvaluationPhasePage() {
               setActionError={setActionError}
             />
 
-            {canEvaluateDocuments && bundle.phase.status === 'open' && canClose && (
+            {canEvaluateDocuments && !dossierClosed && bundle.phase.status === 'open' && canClose && (
               <DeepEvaluationClosureCard
                 phaseId={bundle.phase.id}
                 requestId={requestId}
@@ -170,7 +181,7 @@ export default function DeepEvaluationPhasePage() {
               />
             )}
 
-            {canEvaluateDocuments && bundle.phase.status === 'open' && !canClose && blockReason && (
+            {canEvaluateDocuments && !dossierClosed && bundle.phase.status === 'open' && !canClose && blockReason && (
               <div className="card">
                 <p className="text-sm text-anac-muted">{blockReason}</p>
               </div>

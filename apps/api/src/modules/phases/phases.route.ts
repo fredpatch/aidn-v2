@@ -13,6 +13,14 @@ router.get(
   phasesController.getPhasesSummary
 );
 
+// K7b - same audience as phases-summary: tells a phase page whether the
+// dossier is closed, so it can render read-only.
+router.get(
+  "/requests/:requestId/dossier-state",
+  authenticate,
+  phasesController.getDossierState
+);
+
 router.use(authenticate, requireRole("dn_agent", "dn_supervisor", "SU"));
 
 router.post("/requests/:requestId/start-preliminary-phase", phasesController.startPreliminaryPhase);

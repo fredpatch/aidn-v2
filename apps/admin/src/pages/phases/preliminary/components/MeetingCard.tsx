@@ -7,6 +7,7 @@ import DocumentPreviewLink from '../../../../components/documents/DocumentPrevie
 import { Button } from '../../../../components/ui/button';
 import { MEETING_STATUS_LABELS, MEETING_STATUS_TONES } from '../constants';
 import { formatDate, formatDateTime } from '../helpers';
+import { ClosedDossierNote, useDossierReadOnly } from '../../components/DossierReadOnly';
 import { useMeetingActions } from '../hooks/useMeetingActions';
 import type { MeetingView } from '../types';
 import PhaseStatusBadge from './PhaseStatusBadge';
@@ -37,6 +38,8 @@ export default function MeetingCard({
   requestId,
   setActionError,
 }: MeetingCardProps) {
+  // K7b - closed dossier: the meeting and its report stay viewable, no action.
+  const readOnly = useDossierReadOnly();
   const [scheduling, setScheduling] = useState(false);
   const [rescheduling, setRescheduling] = useState(false);
   const [warning, setWarning] = useState<string | null>(null);
@@ -104,7 +107,34 @@ export default function MeetingCard({
 
       {warning && <p className="text-anac-warning text-xs">{warning}</p>}
 
-      {!meeting ? (
+      {readOnly ? (
+        meeting ? (
+          <div className="space-y-2">
+            <p className="text-sm">
+              {formatDateTime(meeting.scheduledAt)}
+              {meeting.location && ` - ${meeting.location}`}
+            </p>
+            <PhaseStatusBadge
+              status={meeting.status}
+              label={MEETING_STATUS_LABELS[meeting.status] ?? meeting.status}
+              toneMap={MEETING_STATUS_TONES}
+              fallbackTone="bg-anac-info/10 text-anac-info"
+            />
+            {meeting.crDocumentUrl && (
+              <p className="text-sm">
+                Compte-rendu envoye le {formatDate(meeting.crUploadedAt)} -{' '}
+                <DocumentPreviewLink
+                  title="Compte-rendu de reunion preliminaire"
+                  url={meeting.crDocumentUrl}
+                />
+              </p>
+            )}
+            <ClosedDossierNote />
+          </div>
+        ) : (
+          <ClosedDossierNote>Aucune reunion planifiee - dossier clos.</ClosedDossierNote>
+        )
+      ) : !meeting ? (
         scheduling ? (
           <form onSubmit={scheduleForm.handleSubmit(onSchedule)} className="space-y-3">
             <div>

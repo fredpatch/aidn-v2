@@ -9,6 +9,7 @@ import { formatDateTime } from '../helpers';
 import { useR3Agents, useSiteVisitActions } from '../hooks/useSiteVisitActions';
 import type { SiteVisitView } from '../types';
 import PhaseStatusBadge from '../../preliminary/components/PhaseStatusBadge';
+import { ClosedDossierNote, useDossierReadOnly } from '../../components/DossierReadOnly';
 
 const scheduleSchema = z.object({
   r3AgentId: z.string().min(1, 'Merci de sélectionner un agent R3.'),
@@ -33,10 +34,14 @@ export default function SiteVisitCard({
   siteVisit,
   requestId,
   invoiceSent,
-  canScheduleVisit,
-  canMarkHeld,
+  canScheduleVisit: canScheduleVisitProp,
+  canMarkHeld: canMarkHeldProp,
   setActionError,
 }: SiteVisitCardProps) {
+  // K7b - closed dossier: the visit stays visible, no scheduling action.
+  const readOnly = useDossierReadOnly();
+  const canScheduleVisit = canScheduleVisitProp && !readOnly;
+  const canMarkHeld = canMarkHeldProp && !readOnly;
   const [scheduling, setScheduling] = useState(false);
 
   const { agents, loading: loadingAgents } = useR3Agents();
@@ -71,7 +76,9 @@ export default function SiteVisitCard({
       </div>
 
       {!siteVisit ? (
-        !invoiceSent ? (
+        readOnly ? (
+          <ClosedDossierNote>Aucune visite planifiée - dossier clos.</ClosedDossierNote>
+        ) : !invoiceSent ? (
           <p className="text-anac-muted text-xs">
             La facture doit être envoyée avant de planifier la visite.
           </p>

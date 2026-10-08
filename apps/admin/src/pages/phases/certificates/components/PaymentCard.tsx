@@ -11,6 +11,7 @@ import { formatDate } from '../helpers';
 import { usePaymentActions } from '../hooks/usePaymentActions';
 import type { PaymentView } from '../types';
 import PhaseStatusBadge from '../../preliminary/components/PhaseStatusBadge';
+import { ClosedDossierNote, useDossierReadOnly } from '../../components/DossierReadOnly';
 
 const PAYMENT_LABEL = 'Paiement - Frais de délivrance';
 
@@ -32,6 +33,10 @@ export default function PaymentCard({
   const [invoiceFile, setInvoiceFile] = useState<File | null>(null);
 
   const [rejecting, setRejecting] = useState(false);
+
+  // K7b - closed dossier: documents stay viewable, no payment action.
+  const readOnly = useDossierReadOnly();
+  const canAct = canManagePayment && !readOnly;
 
   const { busy, uploadInvoiceFile, validate, reject } = usePaymentActions(
     requestId,
@@ -76,7 +81,7 @@ export default function PaymentCard({
       <div className="space-y-2">
         <p className="text-xs font-medium text-anac-navy">Facture</p>
         {!payment?.invoiceFileUrl ? (
-          canManagePayment ? (
+          canAct ? (
             <div className="flex items-center gap-2">
               <input
                 type="file"
@@ -87,6 +92,8 @@ export default function PaymentCard({
                 Envoyer la facture
               </Button>
             </div>
+          ) : readOnly ? (
+            <ClosedDossierNote>Aucune facture envoyée - dossier clos.</ClosedDossierNote>
           ) : (
             <p className="text-anac-muted text-xs">En attente de l&apos;envoi par le service S5.</p>
           )
@@ -105,9 +112,13 @@ export default function PaymentCard({
         <div className="space-y-2">
           <p className="text-xs font-medium text-anac-navy">Preuve de paiement (postulant)</p>
           {!payment.proofFileUrl ? (
-            <p className="text-anac-muted text-xs">
-              En attente - le postulant doit soumettre sa quittance via le portail.
-            </p>
+            readOnly ? (
+              <ClosedDossierNote>Aucune preuve de paiement déposée - dossier clos.</ClosedDossierNote>
+            ) : (
+              <p className="text-anac-muted text-xs">
+                En attente - le postulant doit soumettre sa quittance via le portail.
+              </p>
+            )
           ) : (
             <div className="space-y-2">
               <p className="text-xs text-anac-muted">
@@ -118,7 +129,11 @@ export default function PaymentCard({
                 />
               </p>
 
-              {payment.status === 'pending_validation' && canManagePayment && !rejecting && (
+              {payment.status === 'pending_validation' && readOnly && (
+                <ClosedDossierNote>Preuve non traitée - dossier clos.</ClosedDossierNote>
+              )}
+
+              {payment.status === 'pending_validation' && canAct && !rejecting && (
                 <div className="flex gap-2">
                   <Button size="sm" onClick={validate} disabled={busy}>
                     Valider le paiement
@@ -134,7 +149,7 @@ export default function PaymentCard({
                 </div>
               )}
 
-              {payment.status === 'pending_validation' && canManagePayment && rejecting && (
+              {payment.status === 'pending_validation' && canAct && rejecting && (
                 <PaymentRejectionForm
                   paymentLabel={PAYMENT_LABEL}
                   busy={busy}

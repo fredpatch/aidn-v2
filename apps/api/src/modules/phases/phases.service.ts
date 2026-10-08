@@ -17,7 +17,7 @@ import {
   type PreparedAttachment,
 } from '../uploads/upload-attachment.js';
 import { relocateDossierAssetAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
-import { assertPhaseDossierOpen } from '../requests/dossier-open.js';
+import { assertPhaseDossierOpen, isDossierClosed } from '../requests/dossier-open.js';
 
 export interface PhaseView {
   id: number;
@@ -130,6 +130,38 @@ export async function getPhasesSummary(requestId: number): Promise<PhaseSummaryI
       closedAt: row.closedAt,
     };
   });
+}
+
+export interface DossierStateView {
+  status: string;
+  closed: boolean;
+  /** When the dossier was closed (its last update: a closed dossier is
+   *  read-only since K7, so nothing moves it afterwards). Null while open. */
+  closedAt: Date | null;
+  /** Set on a rejected dossier; a cancellation stores no reason. */
+  rejectionReason: string | null;
+}
+
+/** K7b - lets every phase page tell whether the dossier is closed (then the
+ *  page is read-only). Same audience as getPhasesSummary: any staff role that
+ *  can open a phase page, while GET /requests/:id stays DN-only. */
+export async function getDossierState(requestId: number): Promise<DossierStateView> {
+  const [row] = await db
+    .select({
+      status: requests.status,
+      updatedAt: requests.updatedAt,
+      rejectionReason: requests.rejectionReason,
+    })
+    .from(requests)
+    .where(eq(requests.id, requestId));
+  if (!row) throw new Error('REQUEST_NOT_FOUND');
+  const closed = isDossierClosed(row.status);
+  return {
+    status: row.status,
+    closed,
+    closedAt: closed ? row.updatedAt : null,
+    rejectionReason: row.status === 'rejected' ? row.rejectionReason : null,
+  };
 }
 
 /** Pattern "Cloture de phase" - doc attached and/or note, both fully

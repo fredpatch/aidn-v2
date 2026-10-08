@@ -9,6 +9,7 @@ import { formatDate } from '../helpers';
 import { useEvaluationActions } from '../hooks/useEvaluationActions';
 import type { DocumentEvaluationView } from '../types';
 import PhaseStatusBadge from '../../preliminary/components/PhaseStatusBadge';
+import { useDossierReadOnly } from '../../components/DossierReadOnly';
 
 interface DocumentEvaluationsCardProps {
   requestId: string | undefined;
@@ -27,9 +28,12 @@ export default function DocumentEvaluationsCard({
   requestId,
   evaluations,
   completionRate,
-  canEvaluateDocuments,
+  canEvaluateDocuments: canEvaluateDocumentsProp,
   setActionError,
 }: DocumentEvaluationsCardProps) {
+  // K7b - closed dossier: read-only (components/DossierReadOnly.tsx).
+  const readOnly = useDossierReadOnly();
+  const canEvaluateDocuments = canEvaluateDocumentsProp && !readOnly;
   const { busy, verdict } = useEvaluationActions(requestId, setActionError);
   const [verdictingId, setVerdictingId] = useState<number | null>(null);
   const [correctionDays, setCorrectionDays] = useState('');

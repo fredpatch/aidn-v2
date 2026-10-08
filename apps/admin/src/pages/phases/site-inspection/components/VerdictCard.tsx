@@ -8,6 +8,7 @@ import { formatDateTime } from '../helpers';
 import { useVerdictAction } from '../hooks/useVerdictAction';
 import type { InspectionView, SiteVisitView } from '../types';
 import PhaseStatusBadge from '../../preliminary/components/PhaseStatusBadge';
+import { ClosedDossierNote, useDossierReadOnly } from '../../components/DossierReadOnly';
 
 const VERDICT_VALUES = ['compliant', 'non_compliant', 'compliant_with_reserves'] as const;
 type Verdict = (typeof VERDICT_VALUES)[number];
@@ -43,6 +44,7 @@ export default function VerdictCard({
   requestId,
   setActionError,
 }: VerdictCardProps) {
+  const readOnly = useDossierReadOnly();
   const { busy, submit } = useVerdictAction(requestId, setActionError);
   const { register, handleSubmit, reset } = useForm<VerdictFormValues>({
     resolver: zodResolver(verdictSchema),
@@ -98,7 +100,10 @@ export default function VerdictCard({
         <span className="font-medium text-sm">Avis R3</span>
       </div>
 
-      {blockReason ? (
+      {readOnly ? (
+        // K7b - closed dossier: no opinion can be submitted any more.
+        <ClosedDossierNote>Aucun avis - dossier clos.</ClosedDossierNote>
+      ) : blockReason ? (
         <p className="text-anac-muted text-xs">{blockReason}</p>
       ) : (
         <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-3">

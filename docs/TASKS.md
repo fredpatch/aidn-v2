@@ -1155,10 +1155,59 @@ refusée.
 - [x] `k7-check-closed-dossiers.sql` (lecture seule) : dossiers clos ayant une
       activité après leur clôture (phase ouverte / clôturée, avis R3, paiement
       validé, certificat) - à passer sur chaque environnement
-- [ ] K7b (admin) : pages de phase en lecture seule sur un dossier clos
-      (bandeau, actions masquées) - maquette d'abord
+- [x] K7b (admin) : pages de phase en lecture seule sur un dossier clos -
+      voir ci-dessous
 - [ ] Course résiduelle : les actions hors transaction lisent le statut puis
       écrivent (fenêtre de quelques millisecondes avec un rejet simultané)
+
+### Dossier clos en lecture seule K7b (2026-10-08) - admin
+
+Maquette « K7b - Dossier clos en lecture seule » validée par Fred. Même règle
+que K7a : consultation et téléchargement seulement ; l'API reste le filet de
+sécurité.
+
+- [x] API : `GET /phases/requests/:requestId/dossier-state` → `{ status,
+      closed, closedAt, rejectionReason }` (même public que `phases-summary` :
+      tout agent connecté, `GET /requests/:id` restant réservé à la DN).
+      `closedAt` = dernière mise à jour (rien ne bouge un dossier clos depuis
+      K7a) ; motif renvoyé seulement pour un rejet (une annulation n'en
+      enregistre pas)
+- [x] `phases/components/DossierReadOnly.tsx` : état partagé par contexte,
+      `useDossierReadOnly()` pour les cartes, bandeau `ClosedDossierBanner`
+      (« Dossier rejeté / annulé / terminé le … - consultation uniquement »,
+      motif pour un rejet), `ClosedDossierNote` à la place des actions.
+      Pendant le chargement ou en cas d'erreur, la page reste comme avant
+- [x] `WorkflowCockpit` (5 pages de phase) : bandeau sous l'en-tête ; phase
+      ouverte affichée « Interrompue » (badge et frise, comme le portail),
+      phases suivantes « Non demarree » ; rail « Dossier clos » sans bouton ni
+      responsable ; plus d'étape « en cours » surlignée dans la checklist ;
+      « Responsable » (porteur de la prochaine action) retiré des informations
+      clés
+- [x] Vues S5 seul (M5, M6, M7) et R3 seul (M6) : même bandeau et mêmes cartes
+      en lecture seule
+- [x] Cartes : paiements M5/M6/M7 (facture, valider / rejeter), visite et avis
+      R3, réunions M3/M4 (planifier, tenue, absence, reprogrammer, annuler,
+      CR), déclaration M3, évaluation des documents M5, champs / périmètre /
+      cycle du certificat M7, boutons « Démarrer la phase » et cartes de
+      clôture → masqués. Restent : données, statuts, liens « voir le fichier »,
+      prévisualisation des documents
+- [x] Rafraîchissement : un rejet définitif (S5) recharge l'état du dossier, la
+      page passe en lecture seule sans rechargement ; toute action refusée en
+      `DOSSIER_CLOSED` (dossier clos entre-temps par un autre agent) recharge
+      aussi l'état (`MutationCache` du `queryClient`)
+- [x] Tests : admin `DossierReadOnly.test.tsx` (19 : bandeau ×3 statuts, cockpit
+      clos / ouvert, cartes des 5 phases, rechargement sur `DOSSIER_CLOSED`),
+      mutation 4/4 ; API `dossier-state.db.test.ts` (PostgreSQL réel, 4).
+      Admin 121/121, API 340/340 (Node 22), tsc admin + API, eslint, build
+- [x] Vérifié en navigateur (base réelle) : M6 avec preuve en attente → rejet
+      définitif via l'interface → bandeau, « Interrompue », rail clos, aucune
+      action ; M3 et M7 du même dossier en lecture seule. HTTP : 401 sans
+      session, 404 dossier inconnu
+- [ ] Hors K7b, non vérifié : les autres écrans (file S5, Réunions,
+      Courriers à traiter, Mes inspections) ne connaissent pas l'état clos ;
+      s'ils proposent une action sur un dossier clos, l'API la refuse (409)
+- [ ] Hors K7b : informations clés en codes bruts (`rejected`, `held`) et
+      « Avis R3 : Attendu » en orange sur un dossier clos
 
 ## Sprint 7 - Documents (transverse, M8)
 

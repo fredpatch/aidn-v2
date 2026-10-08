@@ -7,6 +7,7 @@ import { formatDateTime } from '../helpers';
 import { useCertificateLifecycle } from '../hooks/useCertificateLifecycle';
 import type { CertificateView } from '../types';
 import PhaseStatusBadge from '../../preliminary/components/PhaseStatusBadge';
+import { ClosedDossierNote, useDossierReadOnly } from '../../components/DossierReadOnly';
 
 interface LifecycleCardProps {
   requestId: string | undefined;
@@ -25,6 +26,8 @@ export default function LifecycleCard({
     requestId,
     setActionError
   );
+  // K7b - closed dossier: documents stay viewable, the cycle stops.
+  const readOnly = useDossierReadOnly();
   const [lastGeneratedUrl, setLastGeneratedUrl] = useState<string | null>(null);
   const [signedReturnFile, setSignedReturnFile] = useState<File | null>(null);
 
@@ -68,7 +71,7 @@ export default function LifecycleCard({
 
       {certificate.status === 'in_preparation' && (
         <div className="space-y-2">
-          {!paymentValidated ? (
+          {readOnly ? null : !paymentValidated ? (
             <p className="text-anac-muted text-xs">Le paiement doit etre valide au prealable.</p>
           ) : !scopeFilled || !certificate.approvalReferenceNumber ? (
             <p className="text-anac-muted text-xs">
@@ -88,7 +91,7 @@ export default function LifecycleCard({
               />
             </p>
           )}
-          {hasBeenGenerated && (
+          {!readOnly && hasBeenGenerated && (
             <Button
               size="sm"
               variant="secondary"
@@ -104,18 +107,22 @@ export default function LifecycleCard({
       {certificate.status === 'printed' && (
         <div className="space-y-3">
           <p className="text-xs text-anac-muted">Imprime le {formatDateTime(certificate.printedAt)}.</p>
-          <p className="text-xs text-anac-muted">
-            Le certificat imprime doit revenir signe avant archivage. Scannez le document retourne,
-            puis enregistrez le retour.
-          </p>
-          <input
-            type="file"
-            accept=".pdf,.png,.jpg,.jpeg"
-            onChange={(event) => setSignedReturnFile(event.target.files?.[0] ?? null)}
-          />
-          <Button size="sm" onClick={handleSignedReturn} disabled={busy || !signedReturnFile}>
-            Enregistrer le certificat signe retourne
-          </Button>
+          {!readOnly && (
+            <>
+              <p className="text-xs text-anac-muted">
+                Le certificat imprime doit revenir signe avant archivage. Scannez le document
+                retourne, puis enregistrez le retour.
+              </p>
+              <input
+                type="file"
+                accept=".pdf,.png,.jpg,.jpeg"
+                onChange={(event) => setSignedReturnFile(event.target.files?.[0] ?? null)}
+              />
+              <Button size="sm" onClick={handleSignedReturn} disabled={busy || !signedReturnFile}>
+                Enregistrer le certificat signe retourne
+              </Button>
+            </>
+          )}
         </div>
       )}
 
@@ -131,9 +138,11 @@ export default function LifecycleCard({
               />
             </p>
           )}
-          <Button size="sm" onClick={() => advance(certificate.id, 'archived')} disabled={busy}>
-            Marquer comme archive
-          </Button>
+          {!readOnly && (
+            <Button size="sm" onClick={() => advance(certificate.id, 'archived')} disabled={busy}>
+              Marquer comme archive
+            </Button>
+          )}
         </div>
       )}
 
@@ -142,9 +151,11 @@ export default function LifecycleCard({
           <p className="text-xs text-anac-muted">
             Archive le {formatDateTime(certificate.archivedAt)}.
           </p>
-          <Button size="sm" onClick={() => advance(certificate.id, 'notify')} disabled={busy}>
-            Notifier le postulant (pret pour retrait)
-          </Button>
+          {!readOnly && (
+            <Button size="sm" onClick={() => advance(certificate.id, 'notify')} disabled={busy}>
+              Notifier le postulant (pret pour retrait)
+            </Button>
+          )}
         </div>
       )}
 
@@ -154,9 +165,11 @@ export default function LifecycleCard({
             Postulant notifie le {formatDateTime(certificate.notifiedAt)} - en attente de retrait en
             personne.
           </p>
-          <Button size="sm" onClick={() => advance(certificate.id, 'collected')} disabled={busy}>
-            Marquer comme retire
-          </Button>
+          {!readOnly && (
+            <Button size="sm" onClick={() => advance(certificate.id, 'collected')} disabled={busy}>
+              Marquer comme retire
+            </Button>
+          )}
         </div>
       )}
 
@@ -177,6 +190,7 @@ export default function LifecycleCard({
           )}
         </div>
       )}
+      {readOnly && certificate.status !== 'collected' && <ClosedDossierNote />}
     </div>
   );
 }

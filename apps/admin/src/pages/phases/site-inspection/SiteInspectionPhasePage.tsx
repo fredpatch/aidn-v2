@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../../components/ui/button';
 import { useAuth } from '../../../hooks/useAuth';
 import WorkflowCockpit from '../components/WorkflowCockpit';
+import { ClosedDossierBanner, DossierStateValue, useDossierState } from '../components/DossierReadOnly';
 import PaymentCard from './components/PaymentCard';
 import SiteVisitCard from './components/SiteVisitCard';
 import VerdictCard from './components/VerdictCard';
@@ -27,6 +28,9 @@ export default function SiteInspectionPhasePage() {
     requestId,
     setActionError
   );
+  // K7b - closed dossier: read-only (components/DossierReadOnly.tsx).
+  const dossierState = useDossierState(requestId);
+  const dossierClosed = !!dossierState?.closed;
 
   if (loading) return <p className="p-6 text-anac-muted">Chargement...</p>;
   if (error) return <p className="p-6 text-anac-danger">{error}</p>;
@@ -42,88 +46,96 @@ export default function SiteInspectionPhasePage() {
 
   if (isS5OnlyView) {
     return (
-      <div className="mx-auto max-w-3xl space-y-5">
-        <button
-          onClick={() => navigate('/paiements-s5')}
-          className="text-xs text-anac-muted transition-colors hover:text-anac-navy"
-        >
-          {'<-'} Retour aux paiements S5
-        </button>
+      <DossierStateValue state={dossierState}>
+        <div className="mx-auto max-w-3xl space-y-5">
+          <button
+            onClick={() => navigate('/paiements-s5')}
+            className="text-xs text-anac-muted transition-colors hover:text-anac-navy"
+          >
+            {'<-'} Retour aux paiements S5
+          </button>
 
-        <div>
-          <h1 className="text-xl font-semibold text-anac-navy">
-            Paiement - Demonstration / Inspection
-          </h1>
-          <p className="text-sm text-anac-muted">Demande #{requestId}</p>
-        </div>
-
-        {actionError && <p className="text-sm text-anac-danger">{actionError}</p>}
-
-        {!bundle?.phase ? (
-          <div className="card">
-            <p className="text-sm text-anac-muted">
-              Aucun paiement S5 n&apos;est disponible pour cette demande.
-            </p>
+          <div>
+            <h1 className="text-xl font-semibold text-anac-navy">
+              Paiement - Demonstration / Inspection
+            </h1>
+            <p className="text-sm text-anac-muted">Demande #{requestId}</p>
           </div>
-        ) : (
-          <PaymentCard
-            requestId={requestId}
-            phaseId={bundle.phase.id}
-            payment={bundle.payment}
-            canManagePayment={canManagePayment}
-            setActionError={setActionError}
-          />
-        )}
-      </div>
+
+          <ClosedDossierBanner />
+
+          {actionError && <p className="text-sm text-anac-danger">{actionError}</p>}
+
+          {!bundle?.phase ? (
+            <div className="card">
+              <p className="text-sm text-anac-muted">
+                Aucun paiement S5 n&apos;est disponible pour cette demande.
+              </p>
+            </div>
+          ) : (
+            <PaymentCard
+              requestId={requestId}
+              phaseId={bundle.phase.id}
+              payment={bundle.payment}
+              canManagePayment={canManagePayment}
+              setActionError={setActionError}
+            />
+          )}
+        </div>
+      </DossierStateValue>
     );
   }
 
   if (isR3OnlyView) {
     return (
-      <div className="mx-auto max-w-3xl space-y-5">
-        <button
-          onClick={() => navigate('/mes-inspections')}
-          className="text-xs text-anac-muted transition-colors hover:text-anac-navy"
-        >
-          {'<-'} Retour aux inspections
-        </button>
+      <DossierStateValue state={dossierState}>
+        <div className="mx-auto max-w-3xl space-y-5">
+          <button
+            onClick={() => navigate('/mes-inspections')}
+            className="text-xs text-anac-muted transition-colors hover:text-anac-navy"
+          >
+            {'<-'} Retour aux inspections
+          </button>
 
-        <div>
-          <h1 className="text-xl font-semibold text-anac-navy">Avis R3 - Inspection sur site</h1>
-          <p className="text-sm text-anac-muted">Demande #{requestId}</p>
-        </div>
-
-        {actionError && <p className="text-sm text-anac-danger">{actionError}</p>}
-
-        {!bundle?.phase ? (
-          <div className="card">
-            <p className="text-sm text-anac-muted">
-              Aucune inspection R3 n&apos;est disponible pour cette demande.
-            </p>
+          <div>
+            <h1 className="text-xl font-semibold text-anac-navy">Avis R3 - Inspection sur site</h1>
+            <p className="text-sm text-anac-muted">Demande #{requestId}</p>
           </div>
-        ) : (
-          <>
-            <SiteVisitCard
-              phaseId={bundle.phase.id}
-              siteVisit={bundle.siteVisit}
-              requestId={requestId}
-              invoiceSent={!!bundle.payment?.invoiceFileUrl}
-              canScheduleVisit={false}
-              canMarkHeld
-              setActionError={setActionError}
-            />
 
-            <VerdictCard
-              phaseId={bundle.phase.id}
-              siteVisit={bundle.siteVisit}
-              inspection={bundle.inspection}
-              paymentValidated={bundle.payment?.status === 'validated'}
-              requestId={requestId}
-              setActionError={setActionError}
-            />
-          </>
-        )}
-      </div>
+          <ClosedDossierBanner />
+
+          {actionError && <p className="text-sm text-anac-danger">{actionError}</p>}
+
+          {!bundle?.phase ? (
+            <div className="card">
+              <p className="text-sm text-anac-muted">
+                Aucune inspection R3 n&apos;est disponible pour cette demande.
+              </p>
+            </div>
+          ) : (
+            <>
+              <SiteVisitCard
+                phaseId={bundle.phase.id}
+                siteVisit={bundle.siteVisit}
+                requestId={requestId}
+                invoiceSent={!!bundle.payment?.invoiceFileUrl}
+                canScheduleVisit={false}
+                canMarkHeld
+                setActionError={setActionError}
+              />
+
+              <VerdictCard
+                phaseId={bundle.phase.id}
+                siteVisit={bundle.siteVisit}
+                inspection={bundle.inspection}
+                paymentValidated={bundle.payment?.status === 'validated'}
+                requestId={requestId}
+                setActionError={setActionError}
+              />
+            </>
+          )}
+        </div>
+      </DossierStateValue>
     );
   }
 
@@ -185,12 +197,15 @@ export default function SiteInspectionPhasePage() {
         {!bundle?.phase ? (
           <div className="card">
             <p className="mb-3 text-sm text-anac-muted">
-              La phase d&apos;evaluation approfondie doit etre cloturee avant de demarrer la
-              demonstration/inspection.
+              {dossierClosed
+                ? "Phase non demarree - dossier clos."
+                : "La phase d'evaluation approfondie doit etre cloturee avant de demarrer la demonstration/inspection."}
             </p>
-            <Button onClick={startPhase} disabled={startingPhase}>
-              {startingPhase ? 'Demarrage...' : 'Demarrer la Phase - Demonstration/Inspection'}
-            </Button>
+            {!dossierClosed && (
+              <Button onClick={startPhase} disabled={startingPhase}>
+                {startingPhase ? 'Demarrage...' : 'Demarrer la Phase - Demonstration/Inspection'}
+              </Button>
+            )}
           </div>
         ) : (
           <>

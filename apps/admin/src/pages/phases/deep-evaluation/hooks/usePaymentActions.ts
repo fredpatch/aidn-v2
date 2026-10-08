@@ -44,7 +44,13 @@ export function usePaymentActions(
       rejectionAction: 'request_new_proof' | 'reject_dossier';
       rejectionReason: string;
     }) => rejectPayment(phaseId!, params.rejectionAction, params.rejectionReason),
-    onSuccess: invalidate,
+    // K7b - a final rejection closes the dossier: the page turns read-only.
+    onSuccess: () =>
+      Promise.all([
+        invalidate(),
+        requestId &&
+          queryClient.invalidateQueries({ queryKey: queryKeys.phases.dossierState(requestId) }),
+      ]),
     onError: (err) => setActionError(apiErrorMessage(err, 'Impossible de rejeter le paiement.')),
   });
 

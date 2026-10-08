@@ -39,6 +39,7 @@ export const queryKeys = {
   phases: {
     all: ['phases'] as const,
     summary: (requestId: string) => ['phases', 'summary', requestId] as const,
+    dossierState: (requestId: string) => ['phases', 'dossier-state', requestId] as const,
   },
   requests: {
     all: ['requests'] as const,

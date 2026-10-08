@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../../components/ui/button';
 import { useAuth } from '../../../hooks/useAuth';
 import WorkflowCockpit from '../components/WorkflowCockpit';
+import { useDossierState } from '../components/DossierReadOnly';
 import DocumentsChecklistCard from './components/DocumentsChecklistCard';
 import FormalClosureCard from './components/FormalClosureCard';
 import FormalLetterCard from './components/FormalLetterCard';
@@ -26,6 +27,9 @@ export default function FormalPhasePage() {
     requestId,
     setActionError
   );
+  // K7b - closed dossier: read-only (components/DossierReadOnly.tsx).
+  const dossierState = useDossierState(requestId);
+  const dossierClosed = !!dossierState?.closed;
 
   if (loading) return <p className="p-6 text-anac-muted">Chargement...</p>;
   if (error) return <p className="p-6 text-anac-danger">{error}</p>;
@@ -87,11 +91,15 @@ export default function FormalPhasePage() {
         {!bundle?.phase ? (
           <div className="card">
             <p className="mb-3 text-sm text-anac-muted">
-              La phase preliminaire doit etre cloturee avant de demarrer la demande formelle.
+              {dossierClosed
+                ? 'Phase non demarree - dossier clos.'
+                : 'La phase preliminaire doit etre cloturee avant de demarrer la demande formelle.'}
             </p>
-            <Button onClick={startPhase} disabled={startingPhase}>
-              {startingPhase ? 'Demarrage...' : 'Demarrer la Phase - Demande Formelle'}
-            </Button>
+            {!dossierClosed && (
+              <Button onClick={startPhase} disabled={startingPhase}>
+                {startingPhase ? 'Demarrage...' : 'Demarrer la Phase - Demande Formelle'}
+              </Button>
+            )}
           </div>
         ) : (
           <>
@@ -113,7 +121,7 @@ export default function FormalPhasePage() {
               setActionError={setActionError}
             />
 
-            {bundle.phase.status === 'open' && canClose && canManageFormal && (
+            {!dossierClosed && bundle.phase.status === 'open' && canClose && canManageFormal && (
               <FormalClosureCard
                 phaseId={bundle.phase.id}
                 requestId={requestId}
@@ -121,7 +129,7 @@ export default function FormalPhasePage() {
               />
             )}
 
-            {bundle.phase.status === 'open' && canClose && !canManageFormal && (
+            {!dossierClosed && bundle.phase.status === 'open' && canClose && !canManageFormal && (
               <div className="card">
                 <p className="text-sm text-anac-muted">
                   La phase est prete a etre cloturee. Action reservee a la DN.
@@ -129,7 +137,7 @@ export default function FormalPhasePage() {
               </div>
             )}
 
-            {bundle.phase.status === 'open' && !canClose && blockReason && (
+            {!dossierClosed && bundle.phase.status === 'open' && !canClose && blockReason && (
               <div className="card">
                 <p className="text-sm text-anac-muted">{blockReason}</p>
               </div>

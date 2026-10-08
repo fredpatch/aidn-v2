@@ -4,6 +4,7 @@ import { Button } from '../../../../components/ui/button';
 import { toDateInputValue } from '../helpers';
 import { useCertificateFields } from '../hooks/useCertificateFields';
 import type { CertificateView } from '../types';
+import { ClosedDossierNote, useDossierReadOnly } from '../../components/DossierReadOnly';
 
 interface CertificateFieldsCardProps {
   requestId: string | undefined;
@@ -16,7 +17,9 @@ export default function CertificateFieldsCard({
   certificate,
   setActionError,
 }: CertificateFieldsCardProps) {
-  const editable = certificate.status === 'in_preparation';
+  // K7b - closed dossier: the fields stay visible, no longer editable.
+  const readOnly = useDossierReadOnly();
+  const editable = certificate.status === 'in_preparation' && !readOnly;
   const { busy, saveFields, setType } = useCertificateFields(requestId, setActionError);
 
   const [approvalReferenceNumber, setApprovalReferenceNumber] = useState(
@@ -131,6 +134,8 @@ export default function CertificateFieldsCard({
         <Button size="sm" onClick={handleSave} disabled={busy}>
           Enregistrer
         </Button>
+      ) : readOnly ? (
+        <ClosedDossierNote>Ces champs ne sont plus modifiables - dossier clos.</ClosedDossierNote>
       ) : (
         <p className="text-anac-muted text-xs">
           Ces champs ne sont plus modifiables (certificat déjà {certificate.status}).

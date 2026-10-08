@@ -51,6 +51,14 @@ export async function getPhasesSummary(req: Request, res: Response): Promise<voi
   }
 }
 
+export async function getDossierState(req: Request, res: Response): Promise<void> {
+  try {
+    res.json(await phasesService.getDossierState(Number(req.params.requestId)));
+  } catch (error) {
+    handlePhasesError(res, error);
+  }
+}
+
 export async function close(req: Request, res: Response): Promise<void> {
   try {
     const { closureNote, closureDocumentUploadAssetId } = req.body ?? {};

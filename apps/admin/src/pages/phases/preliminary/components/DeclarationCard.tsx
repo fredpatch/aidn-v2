@@ -5,6 +5,7 @@ import { Button } from '../../../../components/ui/button';
 import { formatDate } from '../helpers';
 import { useDeclarationActions } from '../hooks/useDeclarationActions';
 import type { EvaluationView, PreliminaryCircuitView } from '../types';
+import { ClosedDossierNote, useDossierReadOnly } from '../../components/DossierReadOnly';
 
 interface DeclarationCardProps {
   phaseId: number;
@@ -34,6 +35,8 @@ export default function DeclarationCard({
   requestId,
   setActionError,
 }: DeclarationCardProps) {
+  // K7b - closed dossier: the declaration stays viewable, no action.
+  const readOnly = useDossierReadOnly();
   const [returnDays, setReturnDays] = useState('');
   const { busy, makeAvailable } = useDeclarationActions(setActionError, requestId);
 
@@ -53,7 +56,9 @@ export default function DeclarationCard({
       </div>
 
       {!evaluation?.madeAvailableAt ? (
-        !meetingHeld ? (
+        readOnly ? (
+          <ClosedDossierNote>Declaration non mise a disposition - dossier clos.</ClosedDossierNote>
+        ) : !meetingHeld ? (
           <p className="text-anac-muted text-sm">
             Disponible une fois la reunion preliminaire marquee &quot;Tenue&quot;.
           </p>
@@ -105,7 +110,9 @@ export default function DeclarationCard({
               </p>
             </>
           ) : (
-            <p className="text-anac-warning">En attente du retour du postulant</p>
+            <p className={readOnly ? 'text-anac-muted' : 'text-anac-warning'}>
+              {readOnly ? 'Aucun retour du postulant - dossier clos.' : 'En attente du retour du postulant'}
+            </p>
           )}
         </div>
       )}

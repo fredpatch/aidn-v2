@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { useAuth } from '../../hooks/useAuth';
 import WorkflowCockpit from './components/WorkflowCockpit';
+import { useDossierState } from './components/DossierReadOnly';
 import ClosureCard from './preliminary/components/ClosureCard';
 import DeclarationCard from './preliminary/components/DeclarationCard';
 import MeetingCard from './preliminary/components/MeetingCard';
@@ -25,6 +26,9 @@ export default function PreliminaryPhasePage() {
     requestId,
     setActionError
   );
+  // K7b - closed dossier: read-only (components/DossierReadOnly.tsx).
+  const dossierState = useDossierState(requestId);
+  const dossierClosed = !!dossierState?.closed;
 
   if (loading) return <p className="p-6 text-anac-muted">Chargement...</p>;
   if (error) return <p className="p-6 text-anac-danger">{error}</p>;
@@ -98,12 +102,15 @@ export default function PreliminaryPhasePage() {
         {!bundle?.phase ? (
           <div className="card">
             <p className="mb-3 text-sm text-anac-muted">
-              Cette demande est en attente de traitement. Demarrez la phase preliminaire pour
-              commencer.
+              {dossierClosed
+                ? 'Phase non demarree - dossier clos.'
+                : 'Cette demande est en attente de traitement. Demarrez la phase preliminaire pour commencer.'}
             </p>
-            <Button onClick={startPhase} disabled={startingPhase}>
-              {startingPhase ? 'Demarrage...' : 'Demarrer la Phase Preliminaire'}
-            </Button>
+            {!dossierClosed && (
+              <Button onClick={startPhase} disabled={startingPhase}>
+                {startingPhase ? 'Demarrage...' : 'Demarrer la Phase Preliminaire'}
+              </Button>
+            )}
           </div>
         ) : (
           <>
@@ -124,7 +131,7 @@ export default function PreliminaryPhasePage() {
               setActionError={setActionError}
             />
 
-            {bundle.phase.status === 'open' && canClose && (
+            {!dossierClosed && bundle.phase.status === 'open' && canClose && (
               <ClosureCard
                 phaseId={bundle.phase.id}
                 requestId={requestId}
@@ -132,7 +139,7 @@ export default function PreliminaryPhasePage() {
               />
             )}
 
-            {bundle.phase.status === 'open' && !canClose && (
+            {!dossierClosed && bundle.phase.status === 'open' && !canClose && (
               <div className="card">
                 <p className="text-sm text-anac-muted">{blockReason}</p>
               </div>

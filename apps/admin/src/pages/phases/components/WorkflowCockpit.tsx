@@ -19,6 +19,8 @@ import { PHASE_ROADMAP } from '../preliminary/constants';
 import { fetchPhasesSummary } from '../../../lib/api/phases.api';
 import { queryKeys } from '../../../lib/react-query/queryKeys';
 import { cn } from '../../../lib/utils';
+import type { DossierState } from '../../../lib/api/phases.types';
+import { ClosedDossierBanner, DossierStateValue, useDossierState } from './DossierReadOnly';
 
 export interface WorkflowChecklistItem {
   label: string;
@@ -96,14 +98,25 @@ const actionToneStyles = {
   },
 };
 
-function phaseStatusLabel(status: string | undefined, isCurrent: boolean): string {
+function phaseStatusLabel(status: string | undefined, isCurrent: boolean, dossierClosed: boolean): string {
   if (status === 'closed') return 'Terminee';
+  // K7b - a closed dossier stops its open phase; the rest never starts.
+  if (dossierClosed) return status === 'open' ? 'Interrompue' : 'Non demarree';
   if (status === 'open') return 'En cours';
   if (isCurrent) return 'En cours';
   return 'A venir';
 }
 
-function phaseDot(status: string | undefined, isCurrent: boolean, index: number) {
+function phaseDot(status: string | undefined, isCurrent: boolean, index: number, dossierClosed: boolean) {
+  if (dossierClosed && status !== 'closed') {
+    return status === 'open' || isCurrent ? (
+      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-200 text-[11px] font-semibold text-slate-600 ring-4 ring-white">
+        {index + 1}
+      </span>
+    ) : (
+      <CircleDashed size={16} className="text-anac-muted/60" aria-hidden="true" />
+    );
+  }
   if (isCurrent) {
     return (
       <span className="flex h-7 w-7 items-center justify-center rounded-full bg-anac-blue text-[11px] font-semibold text-white shadow-sm ring-4 ring-white">
@@ -132,7 +145,17 @@ function infoToneClass(tone: WorkflowKeyInfoItem['tone']) {
   return 'text-anac-navy';
 }
 
-export default function WorkflowCockpit({
+/** K7b - provides the dossier state to the cards: a closed dossier is read-only. */
+export default function WorkflowCockpit(props: WorkflowCockpitProps) {
+  const dossierState = useDossierState(props.requestId);
+  return (
+    <DossierStateValue state={dossierState}>
+      <WorkflowCockpitView {...props} dossierState={dossierState} />
+    </DossierStateValue>
+  );
+}
+
+function WorkflowCockpitView({
   requestId,
   currentCode,
   title,
@@ -147,15 +170,30 @@ export default function WorkflowCockpit({
   keyInfo,
   quickLinks,
   children,
-}: WorkflowCockpitProps) {
+  dossierState,
+}: WorkflowCockpitProps & { dossierState: DossierState | null }) {
   const navigate = useNavigate();
   const { data: phaseSummary } = useQuery({
     queryKey: requestId ? queryKeys.phases.summary(requestId) : queryKeys.phases.all,
     queryFn: () => fetchPhasesSummary(requestId!),
     enabled: !!requestId,
   });
+  const dossierClosed = !!dossierState?.closed;
+  // K7b - nothing left to do on a closed dossier: the rail says so, no button.
+  const railAction: WorkflowActionRailState = dossierClosed
+    ? {
+        title: 'Dossier clos',
+        description: 'Aucune action a mener sur ce dossier. Consultation uniquement.',
+        owner: '-',
+        tone: 'muted',
+      }
+    : action;
+  // "Responsable" is the owner of the next action: none on a closed dossier.
+  const visibleKeyInfo = dossierClosed
+    ? keyInfo.filter((info) => info.label !== 'Responsable')
+    : keyInfo;
   const completedCount = checklist.filter((item) => item.done).length;
-  const ActionIcon = actionToneStyles[action.tone].icon;
+  const ActionIcon = actionToneStyles[railAction.tone].icon;
 
   return (
     <div className="workflow-cockpit min-h-full -m-6 bg-[#f8fafc] text-anac-text [&_.card]:rounded-lg [&_.card]:border-anac-border [&_.card]:p-4 [&_.card]:shadow-sm">
@@ -206,15 +244,17 @@ export default function WorkflowCockpit({
               <span
                 className={cn(
                   'rounded px-2.5 py-1 text-xs font-semibold',
-                  phaseStatus === 'closed'
+                  phaseStatus === 'closed' || dossierClosed
                     ? 'bg-anac-muted/10 text-anac-muted'
                     : 'bg-anac-blue/10 text-anac-blue'
                 )}
               >
-                {phaseStatus === 'closed' ? 'Cloturee' : 'En cours'}
+                {phaseStatus === 'closed' ? 'Cloturee' : dossierClosed ? 'Interrompue' : 'En cours'}
               </span>
             )}
           </div>
+
+          <ClosedDossierBanner />
 
           <section className="rounded-lg border border-anac-border bg-white px-5 py-4 shadow-sm">
             <ol className="grid gap-2 md:grid-cols-5" aria-label="Progression du dossier">
@@ -235,7 +275,7 @@ export default function WorkflowCockpit({
                         isCurrent ? 'bg-anac-blue/5' : 'hover:bg-anac-gray'
                       )}
                     >
-                      {phaseDot(status, isCurrent, index)}
+                      {phaseDot(status, isCurrent, index, dossierClosed)}
                       <span className="min-w-0">
                         <span
                           className={cn(
@@ -250,12 +290,14 @@ export default function WorkflowCockpit({
                             'mt-0.5 block text-[10px]',
                             status === 'closed'
                               ? 'text-anac-success'
-                              : isCurrent || status === 'open'
+                              : dossierClosed
+                                ? 'text-anac-muted'
+                                : isCurrent || status === 'open'
                                 ? 'text-anac-blue'
                                 : 'text-anac-muted'
                           )}
                         >
-                          {phaseStatusLabel(status, isCurrent)}
+                          {phaseStatusLabel(status, isCurrent, dossierClosed)}
                         </span>
                       </span>
                     </button>
@@ -291,6 +333,8 @@ export default function WorkflowCockpit({
                     >
                       {status === 'closed' ? (
                         <CheckCircle2 size={14} className="text-anac-success" />
+                      ) : dossierClosed ? (
+                        <Circle size={14} className="text-anac-muted/60" />
                       ) : isCurrent || status === 'open' ? (
                         <Circle size={14} className={cn('text-anac-blue', isCurrent && 'fill-anac-blue')} />
                       ) : (
@@ -315,7 +359,9 @@ export default function WorkflowCockpit({
                 </div>
                 <div className="space-y-1.5">
                   {checklist.map((item, index) => {
-                    const currentItem = !item.done && checklist.findIndex((entry) => !entry.done) === index;
+                    // K7b - no "next step" highlight on a closed dossier.
+                    const currentItem =
+                      !dossierClosed && !item.done && checklist.findIndex((entry) => !entry.done) === index;
                     return (
                       <div
                         key={`${item.label}-${index}`}
@@ -362,33 +408,37 @@ export default function WorkflowCockpit({
           <section className="min-w-0 space-y-4">{children}</section>
 
           <aside className="space-y-4 xl:sticky xl:top-4">
-            <section className={cn('rounded-lg border p-4 shadow-sm', actionToneStyles[action.tone].ring)}>
+            <section className={cn('rounded-lg border p-4 shadow-sm', actionToneStyles[railAction.tone].ring)}>
               <div className="mb-4 flex items-center gap-2">
-                <ActionIcon size={16} className={actionToneStyles[action.tone].iconClass} />
-                <h2 className="text-sm font-semibold text-anac-navy">Prochaine action requise</h2>
+                <ActionIcon size={16} className={actionToneStyles[railAction.tone].iconClass} />
+                <h2 className="text-sm font-semibold text-anac-navy">
+                  {dossierClosed ? 'Prochaine action' : 'Prochaine action requise'}
+                </h2>
               </div>
               <div className="space-y-3">
                 <div className="flex items-start gap-2">
-                  <CheckCircle2 size={14} className={actionToneStyles[action.tone].iconClass} />
+                  <CheckCircle2 size={14} className={actionToneStyles[railAction.tone].iconClass} />
                   <div>
-                    <p className="text-sm font-medium text-anac-navy">{action.title}</p>
-                    <p className="mt-1 text-xs leading-relaxed text-anac-muted">{action.description}</p>
-                    {action.blockReason && (
-                      <p className="mt-2 text-xs font-medium text-anac-warning">{action.blockReason}</p>
+                    <p className="text-sm font-medium text-anac-navy">{railAction.title}</p>
+                    <p className="mt-1 text-xs leading-relaxed text-anac-muted">{railAction.description}</p>
+                    {railAction.blockReason && (
+                      <p className="mt-2 text-xs font-medium text-anac-warning">{railAction.blockReason}</p>
                     )}
                   </div>
                 </div>
-                <span className={cn('inline-flex rounded px-2 py-0.5 text-[10px] font-semibold', actionToneStyles[action.tone].badge)}>
-                  Responsable: {action.owner}
-                </span>
-                {action.primaryAction && (
+                {!dossierClosed && (
+                  <span className={cn('inline-flex rounded px-2 py-0.5 text-[10px] font-semibold', actionToneStyles[railAction.tone].badge)}>
+                    Responsable: {railAction.owner}
+                  </span>
+                )}
+                {railAction.primaryAction && (
                   <button
                     type="button"
-                    onClick={action.primaryAction.onClick}
-                    disabled={action.primaryAction.disabled}
+                    onClick={railAction.primaryAction.onClick}
+                    disabled={railAction.primaryAction.disabled}
                     className="mt-2 h-9 w-full rounded border border-anac-border bg-white text-xs font-semibold text-anac-navy transition-colors hover:bg-anac-gray disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-anac-sky"
                   >
-                    {action.primaryAction.label}
+                    {railAction.primaryAction.label}
                   </button>
                 )}
               </div>
@@ -400,7 +450,7 @@ export default function WorkflowCockpit({
                 <h2 className="text-sm font-semibold text-anac-navy">Informations cles</h2>
               </div>
               <dl className="space-y-3">
-                {keyInfo.map((info) => (
+                {visibleKeyInfo.map((info) => (
                   <div key={info.label}>
                     <dt className="text-[11px] text-anac-muted">{info.label}</dt>
                     <dd className={cn('mt-0.5 text-sm font-semibold', infoToneClass(info.tone))}>

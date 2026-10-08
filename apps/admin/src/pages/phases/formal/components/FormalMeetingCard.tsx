@@ -8,6 +8,7 @@ import { Button } from '../../../../components/ui/button';
 import CollapsibleCard from '../../../../components/ui/collapsible-card';
 import { MEETING_STATUS_LABELS, MEETING_STATUS_TONES } from '../constants';
 import { formatDate, formatDateTime } from '../helpers';
+import { ClosedDossierNote, useDossierReadOnly } from '../../components/DossierReadOnly';
 import { useFormalMeetingActions } from '../hooks/useFormalMeetingActions';
 import type { FormalMeetingView } from '../types';
 import PhaseStatusBadge from '../../preliminary/components/PhaseStatusBadge';
@@ -42,6 +43,8 @@ export default function FormalMeetingCard({
   canManage,
   setActionError,
 }: FormalMeetingCardProps) {
+  // K7b - closed dossier: the meeting and its report stay viewable, no action.
+  const readOnly = useDossierReadOnly();
   const [scheduling, setScheduling] = useState(false);
   const [rescheduling, setRescheduling] = useState(false);
   const [warning, setWarning] = useState<string | null>(null);
@@ -119,7 +122,34 @@ export default function FormalMeetingCard({
     >
       {warning && <p className="text-anac-warning text-xs">{warning}</p>}
 
-      {!letterReturned && !meeting ? (
+      {readOnly ? (
+        meeting ? (
+          <div className="space-y-2">
+            <p className="text-sm">
+              {formatDateTime(meeting.scheduledAt)}
+              {meeting.location && ` - ${meeting.location}`}
+            </p>
+            <PhaseStatusBadge
+              status={meeting.status}
+              label={MEETING_STATUS_LABELS[meeting.status] ?? meeting.status}
+              toneMap={MEETING_STATUS_TONES}
+              fallbackTone="bg-anac-info/10 text-anac-info"
+            />
+            {meeting.crDocumentUrl && (
+              <p className="text-sm">
+                Compte-rendu envoye le {formatDate(meeting.crUploadedAt)} -{' '}
+                <DocumentPreviewLink
+                  title="Compte-rendu de reunion formelle"
+                  url={meeting.crDocumentUrl}
+                />
+              </p>
+            )}
+            <ClosedDossierNote />
+          </div>
+        ) : (
+          <ClosedDossierNote>Aucune reunion planifiee - dossier clos.</ClosedDossierNote>
+        )
+      ) : !letterReturned && !meeting ? (
         <p className="text-anac-muted text-sm">
           La reunion formelle sera planifiable une fois la lettre de demande officielle revenue
           signee et scannee dans AIDN.

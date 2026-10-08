@@ -4,6 +4,7 @@ import { Button } from '../../../../components/ui/button';
 import { SCOPE_CATEGORY_LABELS } from '../constants';
 import { useCertificateFields } from '../hooks/useCertificateFields';
 import type { CertificateView, ScopeDetails, ScopeCategory } from '../types';
+import { useDossierReadOnly } from '../../components/DossierReadOnly';
 
 const EMPTY_CATEGORY: ScopeCategory = { qualification: '', qualificationEn: '', limitations: '' };
 const EMPTY_SCOPE: ScopeDetails = {
@@ -26,7 +27,9 @@ export default function ScopeDetailsCard({
   certificate,
   setActionError,
 }: ScopeDetailsCardProps) {
-  const editable = certificate.status === 'in_preparation';
+  // K7b - closed dossier: the scope stays visible, no longer editable.
+  const readOnly = useDossierReadOnly();
+  const editable = certificate.status === 'in_preparation' && !readOnly;
   const { busy, saveFields } = useCertificateFields(requestId, setActionError);
   const [scope, setScope] = useState<ScopeDetails>(certificate.scopeDetails ?? EMPTY_SCOPE);
 

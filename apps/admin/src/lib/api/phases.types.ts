@@ -4,3 +4,11 @@ export interface PhaseSummaryItem {
   openedAt: string | null;
   closedAt: string | null;
 }
+
+/** K7b - GET /phases/requests/:id/dossier-state */
+export interface DossierState {
+  status: string;
+  closed: boolean;
+  closedAt: string | null;
+  rejectionReason: string | null;
+}

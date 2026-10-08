@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../../components/ui/button';
 import { useAuth } from '../../../hooks/useAuth';
 import WorkflowCockpit from '../components/WorkflowCockpit';
+import { ClosedDossierBanner, DossierStateValue, useDossierState } from '../components/DossierReadOnly';
 import CertificateFieldsCard from './components/CertificateFieldsCard';
 import LifecycleCard from './components/LifecycleCard';
 import PaymentCard from './components/PaymentCard';
@@ -27,6 +28,9 @@ export default function CertificatesPhasePage() {
     requestId,
     setActionError
   );
+  // K7b - closed dossier: read-only (components/DossierReadOnly.tsx).
+  const dossierState = useDossierState(requestId);
+  const dossierClosed = !!dossierState?.closed;
 
   if (loading) return <p className="p-6 text-anac-muted">Chargement...</p>;
   if (error) return <p className="p-6 text-anac-danger">{error}</p>;
@@ -39,37 +43,41 @@ export default function CertificatesPhasePage() {
 
   if (isS5OnlyView) {
     return (
-      <div className="mx-auto max-w-3xl space-y-5">
-        <button
-          onClick={() => navigate('/paiements-s5')}
-          className="text-xs text-anac-muted transition-colors hover:text-anac-navy"
-        >
-          {'<-'} Retour aux paiements S5
-        </button>
+      <DossierStateValue state={dossierState}>
+        <div className="mx-auto max-w-3xl space-y-5">
+          <button
+            onClick={() => navigate('/paiements-s5')}
+            className="text-xs text-anac-muted transition-colors hover:text-anac-navy"
+          >
+            {'<-'} Retour aux paiements S5
+          </button>
 
-        <div>
-          <h1 className="text-xl font-semibold text-anac-navy">Paiement - Delivrance</h1>
-          <p className="text-sm text-anac-muted">Demande #{requestId}</p>
-        </div>
-
-        {actionError && <p className="text-sm text-anac-danger">{actionError}</p>}
-
-        {!bundle?.phase ? (
-          <div className="card">
-            <p className="text-sm text-anac-muted">
-              Aucun paiement S5 n&apos;est disponible pour cette demande.
-            </p>
+          <div>
+            <h1 className="text-xl font-semibold text-anac-navy">Paiement - Delivrance</h1>
+            <p className="text-sm text-anac-muted">Demande #{requestId}</p>
           </div>
-        ) : (
-          <PaymentCard
-            requestId={requestId}
-            phaseId={bundle.phase.id}
-            payment={bundle.payment}
-            canManagePayment={canManagePayment}
-            setActionError={setActionError}
-          />
-        )}
-      </div>
+
+          <ClosedDossierBanner />
+
+          {actionError && <p className="text-sm text-anac-danger">{actionError}</p>}
+
+          {!bundle?.phase ? (
+            <div className="card">
+              <p className="text-sm text-anac-muted">
+                Aucun paiement S5 n&apos;est disponible pour cette demande.
+              </p>
+            </div>
+          ) : (
+            <PaymentCard
+              requestId={requestId}
+              phaseId={bundle.phase.id}
+              payment={bundle.payment}
+              canManagePayment={canManagePayment}
+              setActionError={setActionError}
+            />
+          )}
+        </div>
+      </DossierStateValue>
     );
   }
 
@@ -131,12 +139,15 @@ export default function CertificatesPhasePage() {
         {!bundle?.phase ? (
           <div className="card">
             <p className="mb-3 text-sm text-anac-muted">
-              La phase de demonstration/inspection doit etre cloturee avant de demarrer la
-              delivrance.
+              {dossierClosed
+                ? 'Phase non demarree - dossier clos.'
+                : 'La phase de demonstration/inspection doit etre cloturee avant de demarrer la delivrance.'}
             </p>
-            <Button onClick={startPhase} disabled={startingPhase}>
-              {startingPhase ? 'Demarrage...' : 'Demarrer la Phase - Delivrance'}
-            </Button>
+            {!dossierClosed && (
+              <Button onClick={startPhase} disabled={startingPhase}>
+                {startingPhase ? 'Demarrage...' : 'Demarrer la Phase - Delivrance'}
+              </Button>
+            )}
           </div>
         ) : (
           <>
