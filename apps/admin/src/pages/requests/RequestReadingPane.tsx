@@ -100,7 +100,7 @@ export function RequestReadingPane({
         {kind === 'treat' && item.nextActionHref ? (
           <Link to={item.nextActionHref} className={cn(buttonVariants({ size: 'sm' }))}>
             <ArrowRight size={14} aria-hidden="true" />
-            Traiter — {item.nextActionLabel}
+            Traiter - {item.nextActionLabel}
           </Link>
         ) : null}
         {kind === 'consult' && item.nextActionHref ? (
@@ -247,7 +247,7 @@ function DocumentCells({ summary }: { summary: RequestCockpitItem['documentSumma
       </div>
       <p className="mt-2 text-xs text-anac-muted">
         {evaluated} évalué(s) · {summary.pending} en attente de revue · {summary.missing}{' '}
-        manquant(s) — sur {summary.total}
+        manquant(s) - sur {summary.total}
       </p>
     </div>
   );

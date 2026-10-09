@@ -1,14 +1,24 @@
-import type { RequestCockpitItem } from '../../lib/api/requests.types';
-
 /**
  * D1 - Demandes cockpit: tab (bucket) rules, filtering, sorting and day
  * grouping. Pure functions, no React, so the business rules stay explicit
  * and unit-tested (requestBuckets.test.ts).
  */
 
+import type { RequestCockpitItem } from '../../lib/api/requests.types';
+import { flatGroup, groupByDay, normalizeSearch, type DayGroup } from '../../lib/dayGroups';
+
+// C2a - day grouping moved to lib/dayGroups.ts (shared with Courriers);
+// re-exported so existing imports keep working.
+export {
+  DAY_GROUP_LABELS,
+  dayGroupOf,
+  formatRowDate,
+  normalizeSearch,
+  type DayGroupKey,
+} from '../../lib/dayGroups';
+
 export type RequestBucket = 'all' | 'todo' | 'waiting_dg' | 'closed';
 export type RequestSortKey = 'newest' | 'oldest' | 'reference';
-export type DayGroupKey = 'today' | 'yesterday' | 'week' | 'older';
 
 /** Closed dossier (K7): only viewing and downloading remain possible. */
 export const CLOSED_REQUEST_STATUSES = ['completed', 'rejected', 'cancelled'];
@@ -28,13 +38,6 @@ export const REQUEST_SORT_OPTIONS: Array<{ key: RequestSortKey; label: string }>
   { key: 'oldest', label: 'Date de dépôt (anciennes)' },
   { key: 'reference', label: 'Référence' },
 ];
-
-export const DAY_GROUP_LABELS: Record<DayGroupKey, string> = {
-  today: "Aujourd'hui",
-  yesterday: 'Hier',
-  week: 'Cette semaine',
-  older: 'Plus ancien',
-};
 
 export function isClosedRequest(item: Pick<RequestCockpitItem, 'status'>): boolean {
   return CLOSED_REQUEST_STATUSES.includes(item.status);
@@ -86,10 +89,6 @@ export function countBuckets(
   return counts;
 }
 
-export function normalizeSearch(value: string): string {
-  return value.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
-}
-
 export function filterRequests(
   items: RequestCockpitItem[],
   { bucket, search, sort }: { bucket: RequestBucket; search: string; sort: RequestSortKey }
@@ -111,30 +110,7 @@ export function filterRequests(
     });
 }
 
-function startOfDay(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-/** Calendar grouping on the local day, Outlook style. The week starts on
- *  Monday; a date in the future (clock skew) counts as today. */
-export function dayGroupOf(dateIso: string, now: Date = new Date()): DayGroupKey {
-  const day = startOfDay(new Date(dateIso)).getTime();
-  const today = startOfDay(now);
-  if (day >= today.getTime()) return 'today';
-  const yesterday = new Date(today);
-  yesterday.setDate(today.getDate() - 1);
-  if (day >= yesterday.getTime()) return 'yesterday';
-  const weekStart = new Date(today);
-  weekStart.setDate(today.getDate() - ((today.getDay() + 6) % 7));
-  if (day >= weekStart.getTime()) return 'week';
-  return 'older';
-}
-
-export interface RequestDayGroup {
-  key: DayGroupKey | 'flat';
-  label: string | null;
-  items: RequestCockpitItem[];
-}
+export type RequestDayGroup = DayGroup<RequestCockpitItem>;
 
 /**
  * Groups an already sorted list by submission day, keeping the sort order.
@@ -146,28 +122,8 @@ export function groupRequestsByDay(
   sort: RequestSortKey,
   now: Date = new Date()
 ): RequestDayGroup[] {
-  if (items.length === 0) return [];
-  if (sort === 'reference') return [{ key: 'flat', label: null, items }];
-  const groups: RequestDayGroup[] = [];
-  for (const item of items) {
-    const key = dayGroupOf(item.createdAt, now);
-    const last = groups[groups.length - 1];
-    if (last && last.key === key) last.items.push(item);
-    else groups.push({ key, label: DAY_GROUP_LABELS[key], items: [item] });
-  }
-  return groups;
-}
-
-/** Right-hand date of a row: time today, « Hier », weekday this week, else the date. */
-export function formatRowDate(dateIso: string, now: Date = new Date()): string {
-  const date = new Date(dateIso);
-  const group = dayGroupOf(dateIso, now);
-  if (group === 'today') {
-    return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-  }
-  if (group === 'yesterday') return 'Hier';
-  if (group === 'week') return date.toLocaleDateString('fr-FR', { weekday: 'short' });
-  return date.toLocaleDateString('fr-FR');
+  if (sort === 'reference') return flatGroup(items);
+  return groupByDay(items, (item) => item.createdAt, now);
 }
 
 function dateMs(value: string): number {

@@ -121,7 +121,7 @@ describe('<CourrierTasksPage> (K7c)', () => {
     expect(await screen.findByText('Dossier clos - consultation uniquement')).toBeInTheDocument();
     expect(screen.getAllByText('Dossier rejeté').length).toBeGreaterThan(0);
     expect(screen.queryByRole('button', { name: /Ouvrir \/ imprimer/ })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Ouvrir document/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Voir le document/ })).toBeInTheDocument();
   });
 
   it('open dossier: print unchanged', async () => {

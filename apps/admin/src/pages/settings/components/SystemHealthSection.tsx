@@ -1,8 +1,27 @@
-import { AlertTriangle, CheckCircle2, CircleDashed, Loader2, PlusCircle, RefreshCw, XCircle } from 'lucide-react';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  CircleDashed,
+  Loader2,
+  PlusCircle,
+  RefreshCw,
+  XCircle,
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '../../../components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
-import type { ServiceStatus, SystemStatus, TemplateHealthStatus } from '../../../lib/api/settings.types';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../../components/ui/table';
+import type {
+  ServiceStatus,
+  SystemStatus,
+  TemplateHealthStatus,
+} from '../../../lib/api/settings.types';
 import { notify } from '../../../lib/notify';
 import { cn } from '../../../lib/utils';
 import { formatDateTime } from '../../document-templates/format';
@@ -47,9 +66,22 @@ function Pill({ tone, label }: { tone: HealthTone; label: string }) {
   );
 }
 
-function Card({ id, title, description, children }: { id: string; title: string; description?: string; children: React.ReactNode }) {
+function Card({
+  id,
+  title,
+  description,
+  children,
+}: {
+  id: string;
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+}) {
   return (
-    <section aria-labelledby={id} className="overflow-hidden rounded-lg border border-anac-border bg-white shadow-sm">
+    <section
+      aria-labelledby={id}
+      className="overflow-hidden rounded-lg border border-anac-border bg-white shadow-sm"
+    >
       <header className="border-b border-anac-border px-5 py-3.5">
         <h2 id={id} className="text-sm font-semibold text-anac-navy">
           {title}
@@ -75,7 +107,11 @@ export function SystemHealthSection() {
 
   if (loading) {
     return (
-      <div className="max-w-4xl space-y-4" aria-busy="true" aria-label="Vérification de l’état du système">
+      <div
+        className="max-w-4xl space-y-4"
+        aria-busy="true"
+        aria-label="Vérification de l’état du système"
+      >
         {[1, 3, 3].map((rows, index) => (
           <div key={index} className="rounded-lg border border-anac-border bg-white shadow-sm">
             <div className="space-y-2 border-b border-anac-border px-5 py-4">
@@ -83,7 +119,10 @@ export function SystemHealthSection() {
               <div className="h-3 w-72 max-w-full animate-pulse rounded bg-anac-gray" />
             </div>
             {Array.from({ length: rows }, (_, row) => (
-              <div key={row} className="flex items-center justify-between gap-6 border-b border-anac-border px-5 py-3.5 last:border-0">
+              <div
+                key={row}
+                className="flex items-center justify-between gap-6 border-b border-anac-border px-5 py-3.5 last:border-0"
+              >
                 <div className="h-3.5 w-56 max-w-full animate-pulse rounded bg-anac-gray" />
                 <div className="h-5 w-24 animate-pulse rounded-full bg-anac-gray" />
               </div>
@@ -99,7 +138,9 @@ export function SystemHealthSection() {
       <div className="flex max-w-4xl flex-col items-center gap-3 rounded-lg border border-anac-border bg-white px-5 py-10 text-center shadow-sm">
         <AlertTriangle size={20} className="text-anac-danger" aria-hidden="true" />
         <div>
-          <p className="text-sm font-medium text-anac-text">Impossible de vérifier l’état du système.</p>
+          <p className="text-sm font-medium text-anac-text">
+            Impossible de vérifier l’état du système.
+          </p>
           {error && <p className="mt-1 text-xs text-anac-muted">{error}</p>}
         </div>
         <Button variant="secondary" size="sm" onClick={() => refetch()} disabled={refetching}>
@@ -114,13 +155,23 @@ export function SystemHealthSection() {
     <div className="max-w-4xl space-y-4" aria-busy={refetching || running}>
       <SummaryCard status={status} refetching={refetching} onRefresh={() => refetch()} />
       <ReferenceDataCard status={status} running={running} onRun={handleRun} />
-      {status.referenceData && <TemplatesCard items={status.referenceData.documentTemplates.items} />}
+      {status.referenceData && (
+        <TemplatesCard items={status.referenceData.documentTemplates.items} />
+      )}
       <InfrastructureCard status={status} />
     </div>
   );
 }
 
-function SummaryCard({ status, refetching, onRefresh }: { status: SystemStatus; refetching: boolean; onRefresh: () => void }) {
+function SummaryCard({
+  status,
+  refetching,
+  onRefresh,
+}: {
+  status: SystemStatus;
+  refetching: boolean;
+  onRefresh: () => void;
+}) {
   const { title, detail } = summarizeSystemStatus(status);
   const healthy = status.overallStatus === 'healthy';
   const Icon = healthy ? CheckCircle2 : AlertTriangle;
@@ -163,12 +214,25 @@ function SummaryCard({ status, refetching, onRefresh }: { status: SystemStatus; 
 }
 
 function sectionPill(status: 'healthy' | 'attention') {
-  return status === 'healthy' ? <Pill tone="success" label="Conforme" /> : <Pill tone="warning" label="Attention requise" />;
+  return status === 'healthy' ? (
+    <Pill tone="success" label="Conforme" />
+  ) : (
+    <Pill tone="warning" label="Attention requise" />
+  );
 }
 
-function ReferenceDataCard({ status, running, onRun }: { status: SystemStatus; running: boolean; onRun: () => void }) {
+function ReferenceDataCard({
+  status,
+  running,
+  onRun,
+}: {
+  status: SystemStatus;
+  running: boolean;
+  onRun: () => void;
+}) {
   const reference = status.referenceData;
-  const missingParameters = reference?.systemParameters.items.filter((item) => item.status === 'missing') ?? [];
+  const missingParameters =
+    reference?.systemParameters.items.filter((item) => item.status === 'missing') ?? [];
   const canRun = reference !== null && status.missingCount > 0 && !running;
 
   return (
@@ -200,7 +264,8 @@ function ReferenceDataCard({ status, running, onRun }: { status: SystemStatus; r
         </dl>
       ) : (
         <p className="px-5 py-4 text-sm text-anac-muted">
-          Les données de référence n’ont pas pu être vérifiées : la base de données est inaccessible.
+          Les données de référence n’ont pas pu être vérifiées : la base de données est
+          inaccessible.
         </p>
       )}
 
@@ -209,7 +274,10 @@ function ReferenceDataCard({ status, running, onRun }: { status: SystemStatus; r
           <h3 className="text-xs font-semibold text-anac-navy">Paramètres système manquants</h3>
           <ul className="mt-1.5 space-y-1">
             {missingParameters.map((item) => (
-              <li key={item.key} className="flex flex-wrap items-baseline justify-between gap-x-4 text-sm">
+              <li
+                key={item.key}
+                className="flex flex-wrap items-baseline justify-between gap-x-4 text-sm"
+              >
                 <span className="text-anac-text">{parameterLabel(item.key)}</span>
                 <code className="text-xs text-anac-muted">{item.key}</code>
               </li>
@@ -219,8 +287,17 @@ function ReferenceDataCard({ status, running, onRun }: { status: SystemStatus; r
       )}
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-anac-border px-5 py-3.5">
-        <Button size="sm" onClick={onRun} disabled={!canRun} aria-describedby="system-status-run-help">
-          {running ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : <PlusCircle size={14} aria-hidden="true" />}
+        <Button
+          size="sm"
+          onClick={onRun}
+          disabled={!canRun}
+          aria-describedby="system-status-run-help"
+        >
+          {running ? (
+            <Loader2 size={14} className="animate-spin" aria-hidden="true" />
+          ) : (
+            <PlusCircle size={14} aria-hidden="true" />
+          )}
           {running ? 'Création en cours…' : 'Créer les éléments manquants'}
         </Button>
         <p id="system-status-run-help" className="text-xs text-anac-muted">
@@ -238,7 +315,10 @@ function ReferenceDataCard({ status, running, onRun }: { status: SystemStatus; r
 function TemplateAction({ status }: { status: TemplateHealthStatus }) {
   if (status === 'file_missing') {
     return (
-      <Link to="/modeles-documents" className="text-sm font-medium text-anac-navy underline-offset-2 hover:underline">
+      <Link
+        to="/modeles-documents"
+        className="text-sm font-medium text-anac-navy underline-offset-2 hover:underline"
+      >
         Remplacer le modèle
       </Link>
     );
@@ -247,7 +327,7 @@ function TemplateAction({ status }: { status: TemplateHealthStatus }) {
   if (!hint) {
     return (
       <span className="text-anac-muted">
-        <span aria-hidden="true">—</span>
+        <span aria-hidden="true">-</span>
         <span className="sr-only">Aucune action requise</span>
       </span>
     );
@@ -260,7 +340,11 @@ function TemplateState({ status }: { status: TemplateHealthStatus }) {
   return <Pill tone={meta.tone} label={meta.label} />;
 }
 
-function TemplatesCard({ items }: { items: NonNullable<SystemStatus['referenceData']>['documentTemplates']['items'] }) {
+function TemplatesCard({
+  items,
+}: {
+  items: NonNullable<SystemStatus['referenceData']>['documentTemplates']['items'];
+}) {
   return (
     <Card
       id="system-status-templates"
@@ -281,7 +365,9 @@ function TemplatesCard({ items }: { items: NonNullable<SystemStatus['referenceDa
             {items.map((item) => (
               <TableRow key={item.key} className="align-top">
                 <TableCell className="pl-5 font-medium text-anac-navy">{item.label}</TableCell>
-                <TableCell className="max-w-[260px] text-xs text-anac-muted">{templateUsage(item.key) ?? '—'}</TableCell>
+                <TableCell className="max-w-[260px] text-xs text-anac-muted">
+                  {templateUsage(item.key) ?? '-'}
+                </TableCell>
                 <TableCell>
                   <TemplateState status={item.status} />
                 </TableCell>
@@ -300,7 +386,9 @@ function TemplatesCard({ items }: { items: NonNullable<SystemStatus['referenceDa
               <p className="text-sm font-medium text-anac-navy">{item.label}</p>
               <TemplateState status={item.status} />
             </div>
-            {templateUsage(item.key) && <p className="text-xs text-anac-muted">{templateUsage(item.key)}</p>}
+            {templateUsage(item.key) && (
+              <p className="text-xs text-anac-muted">{templateUsage(item.key)}</p>
+            )}
             <TemplateAction status={item.status} />
           </li>
         ))}
@@ -309,7 +397,10 @@ function TemplatesCard({ items }: { items: NonNullable<SystemStatus['referenceDa
   );
 }
 
-const SERVICE_LABEL: Record<ServiceStatus, string> = { available: 'Disponible', unavailable: 'Indisponible' };
+const SERVICE_LABEL: Record<ServiceStatus, string> = {
+  available: 'Disponible',
+  unavailable: 'Indisponible',
+};
 
 function ServiceRow({
   label,
@@ -337,7 +428,10 @@ function ServiceRow({
         {status === 'available' && warning ? (
           <Pill tone="warning" label={warning} />
         ) : (
-          <Pill tone={status === 'available' ? 'success' : 'danger'} label={SERVICE_LABEL[status]} />
+          <Pill
+            tone={status === 'available' ? 'success' : 'danger'}
+            label={SERVICE_LABEL[status]}
+          />
         )}
       </dd>
     </div>
@@ -349,7 +443,9 @@ function storageDetails(storage: SystemStatus['infrastructure']['storage']): str
   const details = ['Répertoire accessible'];
   if (storage.freeBytes !== null && storage.totalBytes !== null) {
     const freePercent = Math.floor((storage.freeBytes / storage.totalBytes) * 100);
-    details.push(`${formatBytes(storage.freeBytes)} libres sur ${formatBytes(storage.totalBytes)} (${freePercent} %)`);
+    details.push(
+      `${formatBytes(storage.freeBytes)} libres sur ${formatBytes(storage.totalBytes)} (${freePercent} %)`
+    );
   }
   return details;
 }
@@ -358,12 +454,20 @@ function InfrastructureCard({ status }: { status: SystemStatus }) {
   const { database, storage } = status.infrastructure;
   const files = status.files;
   return (
-    <Card id="system-status-infrastructure" title="Infrastructure" description="Services vérifiés par l’API au moment du contrôle.">
+    <Card
+      id="system-status-infrastructure"
+      title="Infrastructure"
+      description="Services vérifiés par l’API au moment du contrôle."
+    >
       <dl className="divide-y divide-anac-border">
         <ServiceRow label="API" status="available" />
         <ServiceRow
           label="Base de données"
-          details={database.sizeBytes !== null ? [`Espace utilisé : ${formatBytes(database.sizeBytes)}`] : []}
+          details={
+            database.sizeBytes !== null
+              ? [`Espace utilisé : ${formatBytes(database.sizeBytes)}`]
+              : []
+          }
           status={database.status}
         />
         <ServiceRow
@@ -375,11 +479,19 @@ function InfrastructureCard({ status }: { status: SystemStatus }) {
         <div className="flex items-center justify-between gap-4 px-5 py-3">
           <dt className="min-w-0">
             <span className="text-sm text-anac-text">Adresses de fichiers héritées</span>
-            <span className="block text-xs text-anac-muted">Anciennes adresses /uploads non converties</span>
+            <span className="block text-xs text-anac-muted">
+              Anciennes adresses /uploads non converties
+            </span>
           </dt>
           <dd className="shrink-0">
             <Pill
-              tone={files.legacyAddresses === null ? 'muted' : files.legacyAddresses === 0 ? 'success' : 'warning'}
+              tone={
+                files.legacyAddresses === null
+                  ? 'muted'
+                  : files.legacyAddresses === 0
+                    ? 'success'
+                    : 'warning'
+              }
               label={legacyAddressesLabel(files.legacyAddresses)}
             />
           </dd>

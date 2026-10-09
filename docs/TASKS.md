@@ -391,7 +391,7 @@ formulaires DN-AIR-R2-3-F-E-010/011/012 de M4 en auront besoin :
 ### Décision : ticket HTML simple, pas de PDF généré
 
 > **Révisée le 2026-10-07 (Batch L)** : le ticket est désormais une invitation
-> PDF générée par Puppeteer, à la même URL. Voir *Invitation PDF L* plus bas.
+> PDF générée par Puppeteer, à la même URL. Voir _Invitation PDF L_ plus bas.
 
 Confirmé avec Fred - un vrai générateur PDF est un besoin transverse (M3 + M4
 
@@ -707,7 +707,7 @@ reste un audit plus étroit des permissions fines côté UI.
 - [x] Vitest 2.1 + Testing Library + jsdom dans `apps/portal` (`npm run test`,
       `npm run test:watch`) ; config `vitest.config.ts` héritée de `vite.config.ts`
       (mêmes alias), `passWithNoTests: false`
-- [x] **Correction de constat** : `src/lib/files.test.ts` ne faisait que *déclarer*
+- [x] **Correction de constat** : `src/lib/files.test.ts` ne faisait que _déclarer_
       `runFilesTests()` sans jamais l'appeler (aucun appelant dans le dépôt). Le
       lancer avec `tsx` sortait en 0 sans exécuter une seule assertion - les
       "✅ files.test.ts" des rapports A à H2 étaient donc sans valeur. Converti en
@@ -729,13 +729,13 @@ reste un audit plus étroit des permissions fines côté UI.
 
 - [x] **Règle métier confirmée** : une seule phase ouverte à la fois. Le portail
       lit « la phase en cours » comme la première phase ouverte (`currentPhase`),
-      utilisé par le bandeau et la liste *Mes dossiers*
+      utilisé par le bandeau et la liste _Mes dossiers_
 - [x] Dossier **rejeté** : la phase encore ouverte au moment du rejet (le backend
-      ne la clôture pas) s'affiche *Interrompue* (bandeau d'avancement et ligne
-      repliée, icône distincte) au lieu de *En cours* ; elle rejoint les étapes
+      ne la clôture pas) s'affiche _Interrompue_ (bandeau d'avancement et ligne
+      repliée, icône distincte) au lieu de _En cours_ ; elle rejoint les étapes
       clôturées, en lecture seule. Un dossier terminé n'a jamais de phase ouverte
       (la remise du certificat clôture M7 puis passe la demande à `completed`)
-- [x] *Mon compte* affiche l'**Organisme** (`organisationName`, ajouté par H2 ;
+- [x] _Mon compte_ affiche l'**Organisme** (`organisationName`, ajouté par H2 ;
       chaîne vide côté API → « Non renseigné »)
 - [x] Bloc paiement : la quittance choisie est liée à l'identifiant du paiement
       (une nouvelle facture repart d'un champ vide)
@@ -751,18 +751,18 @@ reste un audit plus étroit des permissions fines côté UI.
 - [x] Contenu : organisme et contact destinataires, objet (type de réunion +
       type de demande), date et heure **en heure de Libreville** quel que soit
       le fuseau du serveur, agent DN, n° d'invitation `RE-<id>`
-- [x] Décisions Fred : *Lieu* affiché seulement s'il a été saisi (pas de lieu
+- [x] Décisions Fred : _Lieu_ affiché seulement s'il a été saisi (pas de lieu
       par défaut) ; une réunion reprogrammée / tenue / absence / dossier annulé
       garde son PDF, marqué **« Cette invitation n'est plus valable »** avec le
       motif ; mention de pied de page « généré automatiquement par AIDN, sans
       signature »
 - [x] **Correctifs de l'ancien ticket** : valeurs insérées sans échappement
-      (XSS stocké possible via le *Lieu* saisi par la DN, exécuté sur l'origine
+      (XSS stocké possible via le _Lieu_ saisi par la DN, exécuté sur l'origine
       de l'API) ; heure affichée dans le fuseau du serveur (UTC en staging, soit
       1 h d'avance) ; libellés sans accents
 - [x] `shared/pdf/html-pdf.ts` : `renderHtmlToPdf`, `escapeHtml`, `logoDataUri`
       (déplacés du rapport analytique, comportement inchangé - vérifié)
-- [x] Portail : lien *Télécharger l'invitation (PDF)* (attribut `download`)
+- [x] Portail : lien _Télécharger l'invitation (PDF)_ (attribut `download`)
 - [x] 15 tests API (contenu, fuseau, échappement, nom de fichier, validité) ;
       mutation 8/8 ; scénario serveur réel + Chromium : 19 vérifications
       (PDF valide, en-têtes, 09 h 00 pour 08:00Z, autre postulant 404, sans
@@ -786,7 +786,7 @@ de régression métier »). **Décision : ne pas le construire maintenant.**
   2. Perte de la résilience par phase (Batch D : une phase en erreur n'affiche
      l'erreur que dans sa section)
   3. Refonte du cache portail (clés par phase partagées par les sections, le
-     bandeau d'avancement et *Mes dossiers*, invalidées après chaque action)
+     bandeau d'avancement et _Mes dossiers_, invalidées après chaque action)
   4. Codes d'erreur propres à chaque module à fusionner
   5. Tests API non exécutés en CI (base requise) - depuis couverts par
      `migration-integrity.yml` (voir K8)
@@ -824,7 +824,7 @@ de régression métier »). **Décision : ne pas le construire maintenant.**
 - [x] **Câblage manquant trouvé** : `PRIORITY_STYLES` (inutilisé) révélait que
       l'API calcule une `priority` par mission R3 (haute : visite du jour ou
       dépassée / avis attendu ; moyenne : visite sous 2 jours ; basse : sinon)
-      que *Mes inspections* n'affichait pas. Décision Fred : badge « Priorité
+      que _Mes inspections_ n'affichait pas. Décision Fred : badge « Priorité
       haute/moyenne/basse » à côté du statut, masqué pour une mission clôturée
 - [x] Runner Vitest dans `apps/admin` (mêmes versions que le portail,
       `npm run test`) ; `passWithNoTests: false`
@@ -854,10 +854,10 @@ de régression métier »). **Décision : ne pas le construire maintenant.**
 - [x] `role="dialog"` déplacé de l'overlay vers le panneau, nommé par son titre
       (`aria-labelledby`)
 - [x] Écart volontaire avec le portail : un champ en `autoFocus` garde le focus
-      (*Modèles de documents* → *Libellé*) et l'élément déclencheur est capturé
+      (_Modèles de documents_ → _Libellé_) et l'élément déclencheur est capturé
       avant ce `autoFocus`
-- [x] 3 écrans concernés, sans changement visuel : *Modèles de documents*,
-      *Tâches courrier*, *Paiements S5* (2 fenêtres)
+- [x] 3 écrans concernés, sans changement visuel : _Modèles de documents_,
+      _Tâches courrier_, _Paiements S5_ (2 fenêtres)
 - [x] 12 tests (`modal.test.tsx`) ; mutation 10/10 ; `@testing-library/user-event`
       ajouté à l'admin (même version que le portail) ; 32 tests admin
 - [ ] Hors périmètre, relevé : `DocumentViewer` est une fenêtre écrite à la main
@@ -882,13 +882,13 @@ envoyés par le composant, son hook et le module API.
       saisie conservée en cas de refus ; lecture seule une fois l'avis donné
 - [x] Paiement M6 (`PaymentCard`) : validation ; rejet avec motif obligatoire ;
       « nouvelle preuve » par défaut ; rejet définitif du dossier (comportement
-      actuel figé : un seul clic sur *Confirmer*) ; *Annuler* n'envoie rien et
+      actuel figé : un seul clic sur _Confirmer_) ; _Annuler_ n'envoie rien et
       oublie le motif ; aucune décision sans le rôle paiement ni hors
       `pending_validation` ; facture envoyée puis rattachée à la phase
 - [x] 25 tests (3 fichiers) ; mutation 14/14 ; 57 tests admin
 - [ ] Non couverts : clôtures M4 / M5 (hooks propres, même formulaire),
       `PaymentCard` M5 et M7 (quasi-copies de M6 : factorisation possible),
-      cycle de vie du certificat M7, *Paiements S5*
+      cycle de vie du certificat M7, _Paiements S5_
 - [ ] Relevé, hors périmètre : les `<label>` de `VerdictCard`,
       `PhaseClosureForm` et `PaymentCard` ne sont pas reliés à leur champ (pas de
       `htmlFor`) ; libellés « Cloturer » / « Cloture... » sans accent
@@ -902,17 +902,17 @@ seul, aucun changement d'API.
       **et dossier** au statut `rejected` (motif côté postulant : « Paiement
       rejeté - dossier annulé : <motif> »), sans retour possible dans
       l'application, et partait en un clic depuis 4 écrans : cartes paiement
-      M5, M6, M7 et *Paiements S5*
+      M5, M6, M7 et _Paiements S5_
 - [x] Cartes M5 / M6 / M7 : formulaire de rejet partagé
       `components/common/PaymentRejectionForm.tsx` (remplace 3 copies). Avec
       « Rejeter le dossier », le bouton devient « Rejeter le dossier… » et ouvre
-      une confirmation ; « Nouvelle preuve » reste en un clic sur *Confirmer*
+      une confirmation ; « Nouvelle preuve » reste en un clic sur _Confirmer_
 - [x] Confirmation `components/common/DossierRejectionConfirm.tsx` (`Modal`
       K2a) : avertissement « action définitive », conséquences, **motif exact vu
       par le postulant**, l'organisme peut redéposer ; focus initial sur
-      *Retour* ; bouton final rouge plein ; ni *Retour* ni Échap pendant l'envoi
-- [x] *Paiements S5* : 2e étape dans la même fenêtre (« Continuer… » →
-      confirmation → *Retour* revient au formulaire, saisie conservée) ; une
+      _Retour_ ; bouton final rouge plein ; ni _Retour_ ni Échap pendant l'envoi
+- [x] _Paiements S5_ : 2e étape dans la même fenêtre (« Continuer… » →
+      confirmation → _Retour_ revient au formulaire, saisie conservée) ; une
       seule `Modal` du début à la fin, donc le focus revient bien à la ligne
 - [x] Effets de bord assumés : libellés reliés à leurs champs (`htmlFor`) dans
       le formulaire partagé ; option M5 alignée sur M6/M7 (« Rejeter le dossier
@@ -930,15 +930,12 @@ seul, aucun changement d'API.
 Suite de K3, sans changement visible : mêmes routes, mêmes codes et messages
 d'erreur.
 
-- [x] Constats sur `rejectPayment` (M5, M6, M7, trois copies identiques) :
-      1. paiement puis demande mis à jour **sans transaction** (un échec entre
-         les deux laissait le paiement rejeté et le dossier actif) ;
-      2. statut lu puis mise à jour **sans condition**, et `validatePayment`
-         pareil : une validation et un rejet du même justificatif pouvaient
-         **réussir tous les deux**. Reproduit sur `main` en HTTP réel :
-         15 tirages sur 20 avec 200 / 200 (« validé » puis « rejeté », deux
-         lignes d'audit) ;
-      3. aucune vérification du module : l'endpoint M6 rejetait un paiement M5
+- [x] Constats sur `rejectPayment` (M5, M6, M7, trois copies identiques) : 1. paiement puis demande mis à jour **sans transaction** (un échec entre
+      les deux laissait le paiement rejeté et le dossier actif) ; 2. statut lu puis mise à jour **sans condition**, et `validatePayment`
+      pareil : une validation et un rejet du même justificatif pouvaient
+      **réussir tous les deux**. Reproduit sur `main` en HTTP réel :
+      15 tirages sur 20 avec 200 / 200 (« validé » puis « rejeté », deux
+      lignes d'audit) ; 3. aucune vérification du module : l'endpoint M6 rejetait un paiement M5
 - [x] `modules/payments/payment-decisions.ts` : `rejectPhasePayment`
       (remplace les 3 copies) - une transaction, ligne verrouillée par
       `lockPhasePayment` (déjà utilisé pour facture et preuve, désormais
@@ -978,16 +975,13 @@ d'erreur.
 
 Suite de K4, sans changement visible : mêmes routes, mêmes codes et messages.
 
-- [x] Constats (vérifiés sur base réelle) :
-      1. l'endpoint M7 validait le paiement d'une phase M5 ou M6 **et créait
-         un certificat** pour un dossier qui n'est pas en délivrance ; M5 et
-         M6 ne vérifiaient pas non plus le module ;
-      2. M7 validait le paiement puis créait le certificat **sans
-         transaction** ;
-      3. référence `CERT-AAAA-NNNN` calculée par un comptage : deux dossiers
-         validés au même moment obtenaient la même référence. Reproduit en
-         HTTP sur `main` : 3 tirages sur 10 → 500 **et paiement « validé »
-         sans certificat**, irrécupérable (nouvelle validation → 409)
+- [x] Constats (vérifiés sur base réelle) : 1. l'endpoint M7 validait le paiement d'une phase M5 ou M6 **et créait
+      un certificat** pour un dossier qui n'est pas en délivrance ; M5 et
+      M6 ne vérifiaient pas non plus le module ; 2. M7 validait le paiement puis créait le certificat **sans
+      transaction** ; 3. référence `CERT-AAAA-NNNN` calculée par un comptage : deux dossiers
+      validés au même moment obtenaient la même référence. Reproduit en
+      HTTP sur `main` : 3 tirages sur 10 → 500 **et paiement « validé »
+      sans certificat**, irrécupérable (nouvelle validation → 409)
 - [x] `payment-decisions.ts` : `validatePhasePaymentInTx` (ligne verrouillée
       par `lockPhasePayment`, module vérifié → 404 sinon, statut lu sous le
       verrou, mise à jour conditionnée, audit) ; `validatePhasePayment` pour
@@ -1023,7 +1017,7 @@ l'analytique semble ne pas le compter. **Confirmé** sur base réelle en HTTP
 
 - Le dépôt **est** pris en compte : sur un dossier avec une réunion
   préliminaire tenue et une visite sur site tenue, « Réunions sans
-  compte-rendu » passe de 2 à 1 dans l'analytique, de 1 à 0 dans *Réunions*
+  compte-rendu » passe de 2 à 1 dans l'analytique, de 1 à 0 dans _Réunions_
 - Cause : l'analytique (`analytics.service.ts`, `missingReports`) compte
   **aussi les visites sur site**, que le module Réunions exclut
   (`meetings.service.ts`, `meetingType !== 'site_visit'`). Or une visite sur
@@ -1080,11 +1074,12 @@ l'analytique semble ne pas le compter. **Confirmé** sur base réelle en HTTP
       et analytique d'accord) ; mutation 12/12. Scénario HTTP du signalement :
       dépôt du CR → les deux écrans baissent de 1, la visite passe dans
       « Avis R3 manquant »
+
 #### K6b (2026-10-08) - admin
 
 Maquette validée par Fred (canevas « K6 - Suivi des réunions »).
 
-- [x] *Analytique* > « Points de blocage » : 6 cartes sur une ligne ; les
+- [x] _Analytique_ > « Points de blocage » : 6 cartes sur une ligne ; les
       cartes « Réunions sans compte-rendu » et « Avis R3 manquant » en ton
       neutre, leur lien descend vers leur liste sur la même page
 - [x] Nouvelle section « Suivi des réunions » (`MeetingFollowUpsSection`) :
@@ -1176,7 +1171,7 @@ que K7a : consultation et téléchargement seulement ; l'API reste le filet de
 sécurité.
 
 - [x] API : `GET /phases/requests/:requestId/dossier-state` → `{ status,
-      closed, closedAt, rejectionReason }` (même public que `phases-summary` :
+    closed, closedAt, rejectionReason }` (même public que `phases-summary` :
       tout agent connecté, `GET /requests/:id` restant réservé à la DN).
       `closedAt` = dernière mise à jour (rien ne bouge un dossier clos depuis
       K7a) ; motif renvoyé seulement pour un rejet (une annulation n'en
@@ -1335,10 +1330,10 @@ validations simultanées.
 
 - [x] Migration `0004_k8b_one_certificate_per_request` : index unique
       `certificates_request_id_idx` (une seule instruction `CREATE UNIQUE
-      INDEX`, générée par `db:generate`). `db:migrate` applique les migrations
+    INDEX`, générée par `db:generate`). `db:migrate` applique les migrations
       dans une transaction : en cas de doublon, rien n'est appliqué
 - [x] Contrôle préalable en lecture seule : `npm run db:check:certificates --
-      --check` (`scripts/check-certificate-duplicates.ts`, requête dans
+    --check` (`scripts/check-certificate-duplicates.ts`, requête dans
       `certificates/certificate-duplicates.ts`) liste chaque demande ayant
       plusieurs certificats ; code de sortie 1 si un doublon existe. Ne
       supprime rien : le certificat à garder est une décision métier
@@ -1383,20 +1378,16 @@ validations simultanées.
 - [ ] Non vérifiable ici : la première exécution GitHub Actions (à confirmer
       par Fred) et l'étape de revue de PR (API GitHub)
 - [ ] Postes de dev : Node ≥ 22.12 requis (`npm` avertit sinon)
-- [ ] Optionnel : `@testing-library/jest-dom` reste en 6.9 (épinglé pour Node
-      18) ; la 6.10 est désormais possible
+- [ ] Optionnel : `@testing-library/jest-dom` reste en 6.9 (épinglé pour Node 18) ; la 6.10 est désormais possible
 
 ### D1 (2026-10-09) - Demandes : vue 2 volets inspirée d'Outlook (admin)
 
-Audit UX validé par Fred (maquette « Demandes — maquette Outlook ») :
+Audit UX validé par Fred (maquette « Demandes - maquette Outlook ») :
 inspiré d'Outlook, pas un clone. Deux volets (pas de 3e volet « dossiers »),
 lignes denses groupées par jour, volet de lecture avec barre d'action.
 Frontend seul : aucun changement d'API ni du contrat cockpit.
 
-- [x] Onglets **exclusifs**, par priorité (`pages/requests/requestBuckets.ts`) :
-      1) Clôturées = `completed`, `rejected`, `cancelled` (K7) ;
-      2) En attente DG = circuit `submitted` / `in_signature_circuit` / `signed` ;
-      3) À traiter = le reste. Avant : « Nouvelles » ⊂ « À examiner », et
+- [x] Onglets **exclusifs**, par priorité (`pages/requests/requestBuckets.ts`) : 1) Clôturées = `completed`, `rejected`, `cancelled` (K7) ; 2) En attente DG = circuit `submitted` / `in_signature_circuit` / `signed` ; 3) À traiter = le reste. Avant : « Nouvelles » ⊂ « À examiner », et
       rejet / annulation absents de « Clôturées ». Les pastilles d'en-tête
       utilisent les mêmes compteurs (`metrics` de l'API n'est plus affiché,
       champ conservé)
@@ -1525,7 +1516,7 @@ Demande de Fred (2026-10-09) : la section `Courriers à traiter` (route
 `courriers`) sert surtout au processus courrier (réception / assistant DG) et
 ressemble déjà à un traitement de messagerie Outlook. Évaluer si la vue de D1
 (Demandes) peut s'y appliquer **sans casser la logique métier existante**.
-Audit seul, aucun code. Maquette « Courriers — maquette Outlook » validée par
+Audit seul, aucun code. Maquette « Courriers - maquette Outlook » validée par
 Fred (2026-10-09).
 
 - [x] Règles à préserver : rôles `reception` / `assistant_dg` / `SU` (route,
@@ -1553,6 +1544,7 @@ Fred (2026-10-09).
       frontend seul) → C2c optionnel (API : seuil J+n depuis le SLA M12)
 
 Hors C1 (constatés, non traités) :
+
 - Boutons d'action gouvernés par `bucket`, pas par `availableActions` ; la
   garde de phase M3 / M4 n'est pas dans `availableActions` (bouton visible puis
   `PHASE_NOT_OPEN`)
@@ -1560,24 +1552,40 @@ Hors C1 (constatés, non traités) :
 - `canViewDossier` (rôles DN) quasi mort : la route n'accepte que SU côté DN
 - Accents restants dans l'écran : « place dans », « des qu'il », « tache(s) »
 
-### C2a (à faire) - Liste type messagerie partagée (admin, refactor)
+### C2a + C2b (2026-10-09) - Courriers à traiter en 2 volets (admin, frontend seul)
 
-- [ ] `components/common/MessageList.tsx` générique (`getId` number | string,
-      `renderRow`, en-têtes de groupe, listbox, focus itinérant, ↑/↓/Début/Fin,
-      Entrée → `onActivate`)
-- [ ] `lib/dayGroups.ts` : `dayGroupOf`, `formatRowDate`,
-      `groupByDay(items, getDate)`
-- [ ] D1 migré sans changement de comportement ; tests D1 inchangés et verts
+Lots combinés à la demande de Fred (un seul patch) ; ordre interne : refactor
+D1 d'abord, tests D1 verts, puis Courriers. Maquette « Courriers - maquette
+Outlook » validée. Aucun changement d'API ni de contrat.
 
-### C2b (à faire) - Courriers à traiter en 2 volets (admin, frontend seul)
-
-- [ ] `courrierBuckets.ts` (règles pures + tests) : onglets, K7d, tri, date
-      d'étape, délai
-- [ ] Liste + volet de lecture selon la maquette validée, `?id=`, clavier,
-      `/` recherche ; pagination retirée ; KPI en badges d'en-tête
-- [ ] Préserver K7c / K7d et les ancres de test (`/^Tous/`, « Sélectionnez un
-      courrier », « Dossier clos - consultation uniquement », « Ouvrir /
-      imprimer ») ; corriger les accents restants
+- [x] C2a : `lib/dayGroups.ts` (`dayGroupOf`, `groupByDay(items, getDate)`,
+      `flatGroup`, `formatRowDate`, `normalizeSearch`) et
+      `components/common/MessageList.tsx` générique (id number | string,
+      listbox, focus itinérant, ↑/↓/Début/Fin, Entrée → `onActivate`).
+      `RequestsList` / `requestBuckets` s'appuient dessus (réexports conservés) ;
+      tests D1 inchangés et verts
+- [x] C2b : `courrierBuckets.ts` (règles pures) ; onglets À imprimer / En
+      signature / Retours signés / Tous (« Ancien signé » sous « Tous »
+      seulement) ; K7d inchangé (clos hors onglets d'action) ; compteurs
+      calculés à l'écran avec la même règle que l'API
+- [x] Liste regroupée par date de l'étape courante (dépôt, mise en
+      signature, retour) ; tri plus ancien d'abord sur les onglets d'action,
+      plus récent sur Retours / Tous ; badge J+n à partir de 7 jours en
+      signature (seuil frontend, C2c possible : SLA M12) ; pagination retirée
+- [x] Volet de lecture : une action (« Ouvrir / imprimer » ou « Scanner le
+      retour signé »), « Voir le document », « Voir le dossier » (DN / SU),
+      circuit en 4 étapes, document courant, informations. Confirmations
+      inchangées (visionneuse « Impression OK - mettre en signature », modale
+      de retour signé). `?id=`, `/` recherche ; Entrée met seulement le focus
+      sur l'action (jamais de transition)
+- [x] K7c conservé (badge, note « Dossier clos - consultation uniquement »,
+      pas d'action, document consultable, rechargement sur `DOSSIER_CLOSED`).
+      Bouton « Ouvrir document » renommé « Voir le document » (maquette) :
+      ancre du test K7c adaptée
+- [x] Tests : `courrierBuckets.test.ts` (9), `CourrierTasksPage.test.tsx`
+      (5). Admin 168/168, typecheck, lint (0 erreur, 4 avertissements déjà
+      présents), build complet
+- [ ] Vérification à l'écran par Fred
 
 ## Sprint 7 - Documents (transverse, M8)
 
@@ -1628,7 +1636,7 @@ Hors C1 (constatés, non traités) :
       `/api/dashboard/reception-summary` et `/api/dashboard/r3-summary`, pages dédiées
       en cockpit opérationnel, home routing par rôle pur, retrait de la gestion des
       comptes postulants du périmètre Reception/Assistant, et redesign de `Mes
-      inspections` en tableau de missions R3 avec panneau de détail (2026-07-29)
+    inspections` en tableau de missions R3 avec panneau de détail (2026-07-29)
 - [x] Cockpit `Demandes` V1 : endpoint `/api/requests/cockpit`, KPIs, liste filtrée,
       panneau de détail à droite, synthèse documentaire Chart.js, actions terminales
       désactivées et suivi des dossiers clôturés/auditables (2026-07-30)

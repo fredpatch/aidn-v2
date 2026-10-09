@@ -10,7 +10,7 @@ const FOCUSABLE =
  * and a consistent title/subtitle/close-button header.
  *
  * Body content goes in `children`; the action row (Annuler + submit, etc.)
- * goes in `footer` — each page keeps its own form fields and buttons, this
+ * goes in `footer` - each page keeps its own form fields and buttons, this
  * component only owns the mechanics.
  *
  * Focus handling (aligned on the portal Modal): on open, focus goes to
@@ -42,7 +42,7 @@ export function Modal({
   // Captured during the first render, before any `autoFocus` child moves
   // focus inside the dialog at commit time.
   const openerRef = useRef<HTMLElement | null>(
-    typeof document === 'undefined' ? null : (document.activeElement as HTMLElement | null),
+    typeof document === 'undefined' ? null : (document.activeElement as HTMLElement | null)
   );
 
   useEffect(() => {
@@ -91,17 +91,25 @@ export function Modal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-anac-navy/40 p-4" onClick={handleOverlayClick}>
+    <div
+      className="fixed inset-0 z-50 grid place-items-center bg-anac-navy/40 p-4"
+      onClick={handleOverlayClick}
+    >
       <div
         ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className={cn('w-full max-w-md rounded-lg border border-anac-border bg-white p-5 shadow-xl', className)}
+        className={cn(
+          'w-full max-w-md rounded-lg border border-anac-border bg-white p-5 shadow-xl',
+          className
+        )}
       >
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h2 id={titleId} className="text-sm font-semibold text-anac-navy">{title}</h2>
+            <h2 id={titleId} className="text-sm font-semibold text-anac-navy">
+              {title}
+            </h2>
             {subtitle ? <p className="mt-1 text-xs text-anac-muted">{subtitle}</p> : null}
           </div>
           <button

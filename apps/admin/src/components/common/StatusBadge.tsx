@@ -5,7 +5,7 @@ import { cn } from '../../lib/utils';
  * Presentational status badge shell, shared across cockpit pages.
  *
  * `tone` is a precomputed Tailwind class string (e.g. "border-green-100
- * bg-green-50 text-anac-success") — the status -> tone mapping is domain
+ * bg-green-50 text-anac-success") - the status -> tone mapping is domain
  * logic and stays in each feature file, not here.
  *
  * `pill` (default true) selects the two shapes found across the app:

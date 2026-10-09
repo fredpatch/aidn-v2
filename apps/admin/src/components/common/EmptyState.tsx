@@ -4,7 +4,7 @@ import { cn } from '../../lib/utils';
 /**
  * Shared empty-state block for cockpit lists/panels.
  *
- * `icon` is optional — when provided, renders the icon-badge variant
+ * `icon` is optional - when provided, renders the icon-badge variant
  * (Courrier, S5 Payments) with a smaller title/description. Without it,
  * renders the plain variant (Requests, Meetings, Account Requests,
  * Inspections).
@@ -43,7 +43,12 @@ export function EmptyState({
           {title}
         </p>
         {description ? (
-          <p className={cn('mt-1 text-sm text-anac-muted', Icon ? 'mx-auto max-w-sm text-xs' : undefined)}>
+          <p
+            className={cn(
+              'mt-1 text-sm text-anac-muted',
+              Icon ? 'mx-auto max-w-sm text-xs' : undefined
+            )}
+          >
             {description}
           </p>
         ) : null}

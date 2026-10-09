@@ -5,7 +5,7 @@ import { cn } from '../../lib/utils';
  *
  * Each page derives its own `items` array (key/label/count) from whatever
  * shape its bucket data happens to be in (an object array, a key list +
- * label map, a custom counts object, etc.) — that derivation is domain
+ * label map, a custom counts object, etc.) - that derivation is domain
  * logic and stays in the feature file. This component only renders the tabs.
  *
  * `size="compact"` (D1) fits a narrow list column (Demandes): equal-width

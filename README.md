@@ -34,16 +34,16 @@ aidn-v2/
 
 ## Stack technique
 
-| Couche | Technologie |
-|---|---|
+| Couche                    | Technologie                          |
+| ------------------------- | ------------------------------------ |
 | Frontend (admin + portal) | React 18 + TypeScript + Tailwind CSS |
-| Backend | Node.js + Express + TypeScript |
-| ORM | Drizzle ORM |
-| Base de donnees | PostgreSQL |
-| Jobs planifies | node-cron |
-| Export Excel | ExcelJS |
-| Email | Nodemailer |
-| Analyse IA (rapports) | Gemini (fournisseur swappable) |
+| Backend                   | Node.js + Express + TypeScript       |
+| ORM                       | Drizzle ORM                          |
+| Base de donnees           | PostgreSQL                           |
+| Jobs planifies            | node-cron                            |
+| Export Excel              | ExcelJS                              |
+| Email                     | Nodemailer                           |
+| Analyse IA (rapports)     | Gemini (fournisseur swappable)       |
 
 **Code entierement en anglais** (variables, fonctions, composants) ; seule l'UI est
 en francais. Voir `exploration-cache/technical/conventions.md` pour le detail
@@ -123,7 +123,7 @@ npm run db:migrate --workspace=apps/api
 ```
 
 `drizzle-kit push` ne doit **jamais** etre utilise contre une base de
-developpement partagee, le staging ou la production — uniquement contre une
+developpement partagee, le staging ou la production - uniquement contre une
 base jetable/scratch si besoin ponctuel (ex. prototypage local rapide). Une
 fois l'historique des migrations entre dans l'historique partage (commit
 pousse), il ne doit plus etre reecrit ni consolide : une migration deja

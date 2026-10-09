@@ -13,7 +13,7 @@ export type ClosureFormValues = z.infer<typeof closureSchema>;
 /**
  * Shared body for phase-closure forms (note + optional document + submit).
  * Each phase page keeps its own outer chrome (plain card vs CollapsibleCard,
- * title, icon) and its own domain-specific close-action hook — this
+ * title, icon) and its own domain-specific close-action hook - this
  * component only owns the note/file/submit wiring the 3 phase pages were
  * each reimplementing identically.
  */
