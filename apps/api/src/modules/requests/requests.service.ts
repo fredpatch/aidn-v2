@@ -38,35 +38,35 @@ export type { SubmitRequestParams, RequestView } from './requests.types.js';
 
 const REQUEST_TYPE_LABELS: Record<string, string> = {
   recognition: 'Reconnaissance',
-  issuance: 'Delivrance',
+  issuance: 'Délivrance',
   modification: 'Modification',
   renewal: 'Renouvellement',
 };
 
 const REQUEST_STATUS_LABELS: Record<string, string> = {
-  submitted: 'Depose',
-  signed: 'Signe',
+  submitted: 'Déposé',
+  signed: 'Signé',
   pending_review: 'En attente de traitement',
   in_progress: 'En cours',
-  rejected: 'Rejete',
-  completed: 'Termine',
-  cancelled: 'Annule',
+  rejected: 'Rejeté',
+  completed: 'Terminé',
+  cancelled: 'Annulé',
 };
 
 const CIRCUIT_STATUS_LABELS: Record<string, string> = {
-  submitted: 'Depose',
+  submitted: 'Déposé',
   in_signature_circuit: 'En signature',
-  signed: 'Signe',
-  pending_review: 'Circuit termine',
-  completed: 'Circuit termine',
+  signed: 'Signé',
+  pending_review: 'Circuit terminé',
+  completed: 'Circuit terminé',
 };
 
 const PHASE_LABELS: Record<string, string> = {
-  M3: 'Preliminaire',
+  M3: 'Préliminaire',
   M4: 'Demande formelle',
-  M5: 'Evaluation approfondie',
-  M6: 'Demonstration / Inspection',
-  M7: 'Delivrance',
+  M5: 'Évaluation approfondie',
+  M6: 'Démonstration / Inspection',
+  M7: 'Délivrance',
 };
 
 const PHASE_CODES = ['M3', 'M4', 'M5', 'M6', 'M7'] as const;
@@ -81,17 +81,17 @@ function phaseHref(phaseCode: string, requestId: number): string {
 }
 
 function activityLabel(action: string): { title: string; tone: RequestCockpitActivity['tone'] } {
-  if (action === 'REQUEST_SUBMITTED') return { title: 'Demande deposee', tone: 'info' };
+  if (action === 'REQUEST_SUBMITTED') return { title: 'Demande déposée', tone: 'info' };
   if (action === 'DG_CIRCUIT_SENT_TO_SIGNATURE') {
     return { title: 'Demande mise en signature', tone: 'warning' };
   }
   if (action === 'DG_CIRCUIT_SIGNED_RETURNED') {
-    return { title: 'Retour signe scanne', tone: 'success' };
+    return { title: 'Retour signé scanné', tone: 'success' };
   }
   if (action === 'DG_CIRCUIT_PENDING_REVIEW') {
-    return { title: 'Demande transmise a la DN', tone: 'success' };
+    return { title: 'Demande transmise à la DN', tone: 'success' };
   }
-  if (action === 'REQUEST_CANCELLED') return { title: 'Demande annulee', tone: 'danger' };
+  if (action === 'REQUEST_CANCELLED') return { title: 'Demande annulée', tone: 'danger' };
   return { title: action.replaceAll('_', ' ').toLowerCase(), tone: 'info' };
 }
 
@@ -147,16 +147,25 @@ async function toRequestView(
   };
 }
 
+/** Effective status: a closed M7 (Délivrance) completes the dossier even if
+ *  requests.status was not updated; terminal statuses are kept as stored.
+ *  Pure, so the cockpit applies it to the phases it already loaded (D2: no
+ *  query per dossier). */
+export function effectiveRequestStatus(storedStatus: string, deliveryPhaseStatus: string | null): string {
+  if (TERMINAL_REQUEST_STATUSES.includes(storedStatus)) return storedStatus;
+  if (deliveryPhaseStatus === 'closed') return 'completed';
+  return storedStatus;
+}
+
 async function resolveRequestStatus(row: typeof requests.$inferSelect): Promise<string> {
-  if (['completed', 'rejected', 'cancelled'].includes(row.status)) return row.status;
+  if (TERMINAL_REQUEST_STATUSES.includes(row.status)) return row.status;
 
   const [deliveryPhase] = await db
     .select({ status: phases.status })
     .from(phases)
     .where(and(eq(phases.requestId, row.id), eq(phases.phaseCode, 'M7')));
 
-  if (deliveryPhase?.status === 'closed') return 'completed';
-  return row.status;
+  return effectiveRequestStatus(row.status, deliveryPhase?.status ?? null);
 }
 
 /** The intake demande a circuit document belongs to, if it is this
@@ -353,7 +362,7 @@ export async function listRequestCockpit(): Promise<RequestCockpitSummary> {
     list.push({
       id: activity.id,
       title: label.title,
-      actor: activity.actor ?? 'Systeme',
+      actor: activity.actor ?? 'Système',
       createdAt: activity.createdAt.toISOString(),
       tone: label.tone,
     });
@@ -424,25 +433,31 @@ export async function listRequestCockpit(): Promise<RequestCockpitSummary> {
     const { requestId, status, circuitStatus, phasesSummary } = params;
     if (status === 'completed') {
       return {
-        nextActionLabel: 'Workflow termine',
-        nextActionDescription: 'Le dossier est cloture. Les phases restent disponibles pour audit.',
+        nextActionLabel: 'Workflow terminé',
+        nextActionDescription: 'Dossier clos : consultation et téléchargement uniquement.',
         nextActionHref: phaseHref('M7', requestId),
         nextActionTone: 'success',
         canStartPreliminary: false,
       };
     }
     if (status === 'rejected' || status === 'cancelled') {
+      // D2 - K7: a closed dossier stays viewable. Link to the last phase that
+      // was started (open or closed); none started (closed during the DG
+      // circuit) means there is no phase page to open.
+      const lastStarted = [...phasesSummary].reverse().find((phase) => phase.status !== 'not_started');
       return {
-        nextActionLabel: status === 'rejected' ? 'Dossier rejete' : 'Dossier annule',
-        nextActionDescription: 'Aucune action DN immediate sur ce dossier.',
-        nextActionHref: null,
+        nextActionLabel: status === 'rejected' ? 'Dossier rejeté' : 'Dossier annulé',
+        nextActionDescription: lastStarted
+          ? 'Dossier clos : consultation et téléchargement uniquement.'
+          : 'Dossier clos avant la phase préliminaire : aucune page de phase à consulter.',
+        nextActionHref: lastStarted?.href ?? null,
         nextActionTone: 'danger',
         canStartPreliminary: false,
       };
     }
     if (circuitStatus === 'submitted') {
       return {
-        nextActionLabel: 'Reception doit mettre en signature',
+        nextActionLabel: 'Réception doit mettre en signature',
         nextActionDescription: 'Le dossier attend impression et mise en circuit signature.',
         nextActionHref: null,
         nextActionTone: 'warning',
@@ -451,8 +466,8 @@ export async function listRequestCockpit(): Promise<RequestCockpitSummary> {
     }
     if (circuitStatus === 'in_signature_circuit') {
       return {
-        nextActionLabel: 'Retour signe attendu',
-        nextActionDescription: 'La DN suit le dossier en lecture seule jusqu au scan retour.',
+        nextActionLabel: 'Retour signé attendu',
+        nextActionDescription: 'La DN suit le dossier en lecture seule jusqu’au scan retour.',
         nextActionHref: null,
         nextActionTone: 'warning',
         canStartPreliminary: false,
@@ -460,8 +475,8 @@ export async function listRequestCockpit(): Promise<RequestCockpitSummary> {
     }
     if (status === 'pending_review' && circuitStatus === 'pending_review') {
       return {
-        nextActionLabel: 'Ouvrir la phase preliminaire',
-        nextActionDescription: 'Le retour signe est transmis. DN peut demarrer le traitement.',
+        nextActionLabel: 'Ouvrir la phase préliminaire',
+        nextActionDescription: 'Le retour signé est transmis. La DN peut démarrer le traitement.',
         nextActionHref: phaseHref('M3', requestId),
         nextActionTone: 'info',
         canStartPreliminary: true,
@@ -481,60 +496,60 @@ export async function listRequestCockpit(): Promise<RequestCockpitSummary> {
     if (lastClosed) {
       return {
         nextActionLabel: 'Ouvrir la phase suivante',
-        nextActionDescription: 'La derniere phase est cloturee. DN peut poursuivre le circuit.',
+        nextActionDescription: 'La dernière phase est clôturée. La DN peut poursuivre le circuit.',
         nextActionHref: lastClosed.href,
         nextActionTone: 'info',
         canStartPreliminary: false,
       };
     }
     return {
-      nextActionLabel: 'A verifier',
-      nextActionDescription: 'Le dossier ne correspond pas encore a une action DN standard.',
+      nextActionLabel: 'À vérifier',
+      nextActionDescription: 'Le dossier ne correspond pas encore à une action DN standard.',
       nextActionHref: null,
       nextActionTone: 'warning',
       canStartPreliminary: false,
     };
   }
 
-  const items: RequestCockpitItem[] = await Promise.all(
-    requestRows.map(async (row) => {
-      const resolvedStatus = await resolveRequestStatus(row.request);
-      const phasesSummary = phasesForRequest(row.request.id);
-      const currentPhase = currentPhaseLabel(phasesSummary);
-      const circuit = circuitByRequestId.get(row.request.id) ?? null;
-      const action = nextAction({
-        requestId: row.request.id,
-        status: resolvedStatus,
-        circuitStatus: circuit?.status ?? null,
-        phasesSummary,
-      });
-      return {
-        id: row.request.id,
-        reference: row.request.reference,
-        requestType: row.request.requestType,
-        requestTypeLabel: REQUEST_TYPE_LABELS[row.request.requestType] ?? row.request.requestType,
-        status: resolvedStatus,
-        statusLabel: REQUEST_STATUS_LABELS[resolvedStatus] ?? resolvedStatus,
-        circuitStatus: circuit?.status ?? null,
-        circuitStatusLabel: circuit
-          ? CIRCUIT_STATUS_LABELS[circuit.status] ?? circuit.status
-          : 'Non initialise',
-        createdAt: row.request.createdAt.toISOString(),
-        updatedAt: row.request.updatedAt.toISOString(),
-        organisationName: row.organisation.name,
-        organisationEmail: row.organisation.email,
-        organisationPhone: row.organisation.phone,
-        applicantName: row.applicant.fullName,
-        applicantEmail: row.applicant.email,
-        applicantPhone: row.applicant.phone,
-        ...currentPhase,
-        phases: phasesSummary,
-        documentSummary: documentSummary(row.request.id),
-        ...action,
-        activity: activitiesByRequestId.get(row.request.id) ?? [],
-      };
-    })
-  );
+  const items: RequestCockpitItem[] = requestRows.map((row) => {
+    // D2 - status from the phases loaded above (was one query per dossier).
+    const deliveryPhase = phaseRowsByRequestId.get(row.request.id)?.find((phase) => phase.phaseCode === 'M7');
+    const resolvedStatus = effectiveRequestStatus(row.request.status, deliveryPhase?.status ?? null);
+    const phasesSummary = phasesForRequest(row.request.id);
+    const currentPhase = currentPhaseLabel(phasesSummary);
+    const circuit = circuitByRequestId.get(row.request.id) ?? null;
+    const action = nextAction({
+      requestId: row.request.id,
+      status: resolvedStatus,
+      circuitStatus: circuit?.status ?? null,
+      phasesSummary,
+    });
+    return {
+      id: row.request.id,
+      reference: row.request.reference,
+      requestType: row.request.requestType,
+      requestTypeLabel: REQUEST_TYPE_LABELS[row.request.requestType] ?? row.request.requestType,
+      status: resolvedStatus,
+      statusLabel: REQUEST_STATUS_LABELS[resolvedStatus] ?? resolvedStatus,
+      circuitStatus: circuit?.status ?? null,
+      circuitStatusLabel: circuit
+        ? CIRCUIT_STATUS_LABELS[circuit.status] ?? circuit.status
+        : 'Non initialisé',
+      createdAt: row.request.createdAt.toISOString(),
+      updatedAt: row.request.updatedAt.toISOString(),
+      organisationName: row.organisation.name,
+      organisationEmail: row.organisation.email,
+      organisationPhone: row.organisation.phone,
+      applicantName: row.applicant.fullName,
+      applicantEmail: row.applicant.email,
+      applicantPhone: row.applicant.phone,
+      ...currentPhase,
+      phases: phasesSummary,
+      documentSummary: documentSummary(row.request.id),
+      ...action,
+      activity: activitiesByRequestId.get(row.request.id) ?? [],
+    };
+  });
 
   const activeItems = items.filter((item) => !TERMINAL_REQUEST_STATUSES.includes(item.status));
   const waitingDg = items.filter((item) =>
@@ -549,28 +564,28 @@ export async function listRequestCockpit(): Promise<RequestCockpitSummary> {
         key: 'new',
         label: 'Nouvelles',
         value: items.filter((item) => item.status === 'pending_review').length,
-        helper: 'Retours signes prets a ouvrir',
+        helper: 'Retours signés prêts à ouvrir',
         tone: 'info',
       },
       {
         key: 'in_review',
         label: "En cours d'examen",
         value: inReview.length,
-        helper: 'Dossiers ouverts ou prets DN',
+        helper: 'Dossiers ouverts ou prêts DN',
         tone: inReview.length > 0 ? 'warning' : 'success',
       },
       {
         key: 'waiting_dg',
         label: 'En attente DG',
         value: waitingDg.length,
-        helper: 'Circuit signature non termine',
+        helper: 'Circuit signature non terminé',
         tone: waitingDg.length > 0 ? 'warning' : 'success',
       },
       {
         key: 'closed',
-        label: 'Cloturees',
+        label: 'Clôturées',
         value: completed.length,
-        helper: `${activeItems.length} dossier(s) non termines`,
+        helper: `${activeItems.length} dossier(s) non terminé(s)`,
         tone: 'success',
       },
     ],

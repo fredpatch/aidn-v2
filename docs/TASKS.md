@@ -1425,15 +1425,44 @@ Frontend seul : aucun changement d'API ni du contrat cockpit.
 - [x] Tests : `requestBuckets.test.ts` (9), `RequestsPage.test.tsx` (7) ;
       admin 154/154, typecheck, lint (0 erreur, 5 avertissements existants),
       build admin
-- [ ] Vérification visuelle en 1366 et 1920 px (à faire par Fred)
-- [ ] **D2 (API)** : lien de consultation pour un dossier rejeté / annulé
-      (`nextActionHref` null → aucun bouton aujourd'hui, alors que la
-      consultation reste permise), accents des libellés API
-      (`Preliminaire`, `Termine`, `Rejete`…), N+1 de `resolveRequestStatus`
+- [x] Vérifié à l'écran par Fred (2026-10-09) : onglets trop larges dans la
+      colonne de 400 px (libellés sur 2-3 lignes, barre de défilement)
+- [x] **D1b** (2026-10-09) : `BucketTabs` accepte `size="compact"` (onglets
+      de largeur égale sur une ligne, texte 12 px), utilisé par Demandes
+      seulement ; onglet « En attente DG » renommé « Attente DG » pour tenir
+      (la pastille d'en-tête garde « en attente DG »)
+- [x] **D2 (API)** : voir la section D2
 - [ ] **D3 (API, option B)** : `lastActivityAt` par dossier (tri et groupes
       « Dernière activité »), fil d'activité toutes phases (aujourd'hui M1
       seul, 120 lignes globales), table `request_views` pour « Non lues »,
       drapeaux dérivés
+
+### D2 (2026-10-09) - cockpit Demandes : consultation des dossiers clos, libellés, requêtes (API)
+
+Suite de D1, `requests.service.ts` (`listRequestCockpit`) seulement ; contrat
+du cockpit inchangé (mêmes champs).
+
+- [x] Dossier **rejeté / annulé** (K7 : la consultation reste permise) :
+      `nextActionHref` pointe vers la dernière phase démarrée (ouverte ou
+      clôturée) au lieu de `null` ; l'admin affiche alors « Consulter le
+      dossier ». Aucune phase démarrée (clos pendant le circuit DG) : `null`,
+      description « aucune page de phase à consulter ». Ton `danger` et
+      `canStartPreliminary: false` inchangés ; aucune action de workflow
+- [x] Requête par dossier supprimée : le statut effectif (M7 clôturée →
+      `completed`) est calculé à partir des phases déjà chargées
+      (`effectiveRequestStatus`, fonction pure partagée avec
+      `resolveRequestStatus`, inchangé pour les autres appels)
+- [x] Libellés accentués dans le cockpit : types, statuts, circuit, phases,
+      actions, activités, indicateurs (`Délivrance`, `Terminé`, `Rejeté`,
+      `Préliminaire`, `Non initialisé`…)
+- [x] Tests `requests-cockpit.db.test.ts` (PostgreSQL réel, 5) : rejeté →
+      lien de phase, annulé sans phase → `null`, M7 clôturée → `completed`,
+      libellés ; API 366/366, admin 154/154, typecheck, lint (0 erreur),
+      build API
+- [ ] Hors périmètre, à planifier : les mêmes libellés sans accents existent
+      ailleurs (admin : `MyInspectionsPage`, `CourrierTasksPage`,
+      `MeetingsPage`, `preliminary/constants.ts`, formulaires M4 ; API :
+      `meetings.service.ts`, `dashboard.service.ts`) - un passage dédié
 
 ## Sprint 7 - Documents (transverse, M8)
 
