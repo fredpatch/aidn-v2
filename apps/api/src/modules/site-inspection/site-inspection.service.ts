@@ -97,7 +97,7 @@ function missionState(params: {
   if (params.inspection || params.phaseStatus === 'closed') {
     return {
       missionStatus: 'closed',
-      statusLabel: 'Cloturee',
+      statusLabel: 'Clôturée',
       nextAction: 'consult',
       nextActionLabel: 'Consulter',
       priority: 'basse',
@@ -124,7 +124,7 @@ function missionState(params: {
     );
     return {
       missionStatus: 'to_hold',
-      statusLabel: 'Prevue',
+      statusLabel: 'Prévue',
       nextAction: 'mark_held',
       nextActionLabel: 'Marquer tenue',
       priority: daysUntil <= 0 ? 'haute' : daysUntil <= 2 ? 'moyenne' : 'basse',

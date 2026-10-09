@@ -46,7 +46,7 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
   const token = req.cookies?.[ACCESS_TOKEN_COOKIE];
 
   if (!token) {
-    res.status(401).json({ message: 'Non authentifie.' });
+    res.status(401).json({ message: 'Non authentifié.' });
     return;
   }
 
@@ -55,7 +55,7 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
     next();
   } catch {
     // Expired token - client should call /api/auth/refresh
-    res.status(401).json({ message: 'Session expiree.', code: 'TOKEN_EXPIRED' });
+    res.status(401).json({ message: 'Session expirée.', code: 'TOKEN_EXPIRED' });
   }
 }
 
@@ -63,7 +63,7 @@ export function authenticateApplicant(req: Request, res: Response, next: NextFun
   const token = req.cookies?.[APPLICANT_ACCESS_TOKEN_COOKIE];
 
   if (!token) {
-    res.status(401).json({ message: 'Non authentifie.' });
+    res.status(401).json({ message: 'Non authentifié.' });
     return;
   }
 
@@ -71,7 +71,7 @@ export function authenticateApplicant(req: Request, res: Response, next: NextFun
     req.applicant = verifyApplicantAccessToken(token);
     next();
   } catch {
-    res.status(401).json({ message: 'Session expiree.', code: 'TOKEN_EXPIRED' });
+    res.status(401).json({ message: 'Session expirée.', code: 'TOKEN_EXPIRED' });
   }
 }
 
@@ -128,7 +128,7 @@ export function authenticateEither(req: Request, res: Response, next: NextFuncti
     return;
   }
 
-  res.status(401).json({ message: 'Non authentifie.' });
+  res.status(401).json({ message: 'Non authentifié.' });
 }
 
 /** Role gate - internal roles only, multi-role aware (see packages/shared
@@ -138,7 +138,7 @@ export function requireRole(...allowedRoles: string[]) {
     const roles = req.user?.roles ?? [];
     const hasAccess = roles.some((r) => allowedRoles.includes(r));
     if (!hasAccess) {
-      res.status(403).json({ message: 'Acces refuse pour ce role.' });
+      res.status(403).json({ message: 'Accès refusé pour ce rôle.' });
       return;
     }
     next();
@@ -158,7 +158,7 @@ export function requireApplicantOrRole(...allowedRoles: string[]) {
     const roles = req.user?.roles ?? [];
     const hasAccess = roles.some((r) => allowedRoles.includes(r));
     if (!hasAccess) {
-      res.status(403).json({ message: 'Acces refuse pour ce role.' });
+      res.status(403).json({ message: 'Accès refusé pour ce rôle.' });
       return;
     }
     next();
@@ -168,7 +168,7 @@ export function requireApplicantOrRole(...allowedRoles: string[]) {
 /** Use after authenticateEither for portal-only write actions. */
 export function requireApplicant(req: Request, res: Response, next: NextFunction): void {
   if (!req.applicant) {
-    res.status(403).json({ message: 'Acces reserve au portail postulant.' });
+    res.status(403).json({ message: 'Accès réservé au portail postulant.' });
     return;
   }
   next();

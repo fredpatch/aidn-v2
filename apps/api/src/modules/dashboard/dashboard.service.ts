@@ -44,41 +44,41 @@ import { workingDaysBetween, type PublicHolidays } from '@aidn/shared';
 import { getIntegerValue, getPublicHolidays } from '../system-parameters/system-parameters.service.js';
 
 const PHASE_LABELS: Record<string, string> = {
-  M3: 'Preliminaire',
+  M3: 'Préliminaire',
   M4: 'Demande formelle',
-  M5: 'Evaluation approfondie',
-  M6: 'Demonstration / Inspection',
-  M7: 'Delivrance',
+  M5: 'Évaluation approfondie',
+  M6: 'Démonstration / Inspection',
+  M7: 'Délivrance',
 };
 
 const S5_PAYMENT_STATUS_LABELS: Record<string, string> = {
-  awaiting_invoice: 'Facture a transmettre',
+  awaiting_invoice: 'Facture à transmettre',
   awaiting_proof: 'Preuve attendue',
-  pending_validation: 'Preuve a valider',
-  validated: 'Paiement valide',
-  rejected: 'Paiement rejete',
+  pending_validation: 'Preuve à valider',
+  validated: 'Paiement validé',
+  rejected: 'Paiement rejeté',
 };
 
 const S5_PAYMENT_ACTION_LABELS: Record<string, string> = {
   awaiting_invoice: 'Transmettre la facture',
   awaiting_proof: 'Attendre la preuve',
-  pending_validation: 'Verifier la preuve',
-  validated: 'Paiement termine',
+  pending_validation: 'Vérifier la preuve',
+  validated: 'Paiement terminé',
   rejected: 'Suivre le rejet',
 };
 
 const RECEPTION_CIRCUIT_STATUS_LABELS: Record<string, string> = {
-  submitted: 'A imprimer',
+  submitted: 'À imprimer',
   in_signature_circuit: 'En signature',
-  signed: 'Signe - a transmettre',
+  signed: 'Signe - à transmettre',
   pending_review: 'Transmis DN',
 };
 
 const RECEPTION_CIRCUIT_ACTION_LABELS: Record<string, string> = {
   submitted: 'Imprimer et mettre en signature',
-  in_signature_circuit: 'Scanner le retour signe',
-  signed: 'Transmettre a la DN',
-  pending_review: 'Circuit termine',
+  in_signature_circuit: 'Scanner le retour signé',
+  signed: 'Transmettre à la DN',
+  pending_review: 'Circuit terminé',
 };
 
 const RECEPTION_CIRCUIT_SOURCE_LABELS: Record<string, string> = {
@@ -100,13 +100,13 @@ const DASHBOARD_SLA_DEFAULTS = {
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  submitted: 'Depose',
-  signed: 'Signe',
+  submitted: 'Déposé',
+  signed: 'Signé',
   pending_review: 'En attente',
   in_progress: 'En cours',
-  rejected: 'Rejete',
-  completed: 'Termine',
-  cancelled: 'Annule',
+  rejected: 'Rejeté',
+  completed: 'Terminé',
+  cancelled: 'Annulé',
 };
 
 const TERMINAL_REQUEST_STATUSES = ['rejected', 'completed', 'cancelled'];
@@ -255,7 +255,7 @@ function trend(current: number, previous: number): DashboardMetric['trend'] {
     return { value: 'Stable', direction: 'flat', tone: 'muted' };
   }
   if (previous === 0) {
-    return { value: 'Nouvelle activite', direction: 'up', tone: 'success' };
+    return { value: 'Nouvelle activité', direction: 'up', tone: 'success' };
   }
   const delta = Math.round(((current - previous) / previous) * 100);
   return {
@@ -289,10 +289,10 @@ function slaLabel(
   overdueDays?: number | null,
   unit = 'j'
 ): string {
-  if (status === 'unknown') return 'Delai non mesure';
-  if (status === 'overdue') return `Delai depasse${overdueDays ? ` de ${overdueDays} ${unit}` : ''}`;
-  if (status === 'warning') return `Echeance proche (${targetDays} ${unit} cible)`;
-  if (status === 'blocked') return 'Blocage operationnel';
+  if (status === 'unknown') return 'Délai non mesure';
+  if (status === 'overdue') return `Délai dépassé${overdueDays ? ` de ${overdueDays} ${unit}` : ''}`;
+  if (status === 'warning') return `Échéance proche (${targetDays} ${unit} cible)`;
+  if (status === 'blocked') return 'Blocage opérationnel';
   return `Dans les temps (${targetDays} ${unit} cible)`;
 }
 
@@ -317,7 +317,7 @@ function enrichActionDelay<T extends DashboardActionItem>(
     ...action,
     slaTargetDays: targetDays,
     slaStatus: status,
-    slaLabel: slaLabel(status, targetDays, overdueDays, countsWorkingDays ? 'j ouvrés' : 'j'),
+    slaLabel: slaLabel(status, targetDays, overdueDays, countsWorkingDays ? 'j’ouvrés' : 'j'),
     overdueDays,
     priority:
       status === 'blocked' || status === 'overdue'
@@ -343,7 +343,7 @@ function actionAccess(
   return {
     actionRoles,
     canAct: hasOperationalRole,
-    accessLabel: hasOperationalRole ? 'Action a traiter' : 'Suivi lecture seule',
+    accessLabel: hasOperationalRole ? 'Action à traiter' : 'Suivi lecture seule',
   };
 }
 
@@ -369,7 +369,7 @@ function hrefForRoles(
 
 function waitingLabel(date: Date | string | null): string {
   const waitingDays = daysBetween(date, new Date());
-  if (waitingDays === null) return 'Delai non mesure';
+  if (waitingDays === null) return 'Délai non mesure';
   if (waitingDays < 1) return "Aujourd'hui";
   return `${waitingDays} j d'attente`;
 }
@@ -385,34 +385,34 @@ function activityTone(action: string): DashboardActivityItem['tone'] {
 
 function s5ActivityLabel(action: string): string | null {
   if (action === 'INVOICE_UPLOADED') return 'Facture transmise';
-  if (action === 'PAYMENT_PROOF_UPLOADED') return 'Preuve recue';
-  if (action === 'PAYMENT_VALIDATED') return 'Preuve validee';
-  if (action === 'PAYMENT_REJECTED') return 'Preuve rejetee';
+  if (action === 'PAYMENT_PROOF_UPLOADED') return 'Preuve reçue';
+  if (action === 'PAYMENT_VALIDATED') return 'Preuve validée';
+  if (action === 'PAYMENT_REJECTED') return 'Preuve rejetée';
   return null;
 }
 
 function receptionActivityLabel(action: string): string | null {
-  if (action === 'REQUEST_SUBMITTED') return 'Demande deposee';
+  if (action === 'REQUEST_SUBMITTED') return 'Demande déposée';
   if (action === 'DG_CIRCUIT_SENT_TO_SIGNATURE') return 'Demande mise en signature';
-  if (action === 'DG_CIRCUIT_SIGNED_RETURNED') return 'Retour signe scanne';
+  if (action === 'DG_CIRCUIT_SIGNED_RETURNED') return 'Retour signé scanné';
   if (action === 'COURRIER_SENT_TO_SIGNATURE') return 'Courrier mis en signature';
-  if (action === 'COURRIER_SIGNED_RETURNED') return 'Retour courrier scanne';
-  if (action === 'FORMAL_LETTER_SUBMITTED') return 'Lettre officielle deposee';
+  if (action === 'COURRIER_SIGNED_RETURNED') return 'Retour courrier scanné';
+  if (action === 'FORMAL_LETTER_SUBMITTED') return 'Lettre officielle déposée';
   return null;
 }
 
 function r3ActivityLabel(action: string): string | null {
-  if (action === 'MEETING_SCHEDULED') return 'Visite planifiee';
+  if (action === 'MEETING_SCHEDULED') return 'Visite planifiée';
   if (action === 'SITE_VISIT_HELD') return 'Visite tenue';
   if (action === 'INSPECTION_VERDICT_SUBMITTED') return 'Avis R3 soumis';
-  if (action === 'PHASE_CLOSED') return 'Phase demonstration cloturee';
+  if (action === 'PHASE_CLOSED') return 'Phase démonstration clôturée';
   return null;
 }
 
 function requestTypeLabel(type: string): string {
   const labels: Record<string, string> = {
     recognition: 'Reconnaissance',
-    issuance: 'Delivrance',
+    issuance: 'Délivrance',
     modification: 'Modification',
     renewal: 'Renouvellement',
   };
@@ -451,30 +451,30 @@ function businessActivityLabel(action: string): string | null {
   if (TECHNICAL_AUDIT_ACTIONS.some((technicalAction) => action.includes(technicalAction))) {
     return null;
   }
-  if (action.includes('PHASE') && action.includes('CLOSED')) return 'Phase cloturee';
+  if (action.includes('PHASE') && action.includes('CLOSED')) return 'Phase clôturée';
   if (action.includes('CERTIFICATE') && action.includes('STATUS')) {
-    return 'Statut certificat mis a jour';
+    return 'Statut certificat mis à jour';
   }
   if (action.includes('CERTIFICATE') && action.includes('COLLECTED')) {
     return 'Certificat retire';
   }
   if (action.includes('PAYMENT') && action.includes('VALIDATED')) {
-    return 'Paiement valide';
+    return 'Paiement validé';
   }
   if (action.includes('PAYMENT') && action.includes('REJECT')) {
-    return 'Paiement rejete';
+    return 'Paiement rejeté';
   }
   if (action.includes('DOCUMENT') && action.includes('VALIDATED')) {
     return 'Document accepte';
   }
   if (action.includes('DOCUMENT') && action.includes('REJECT')) {
-    return 'Document a reprendre';
+    return 'Document à reprendre';
   }
   if (action.includes('SIGN') || action.includes('CIRCUIT')) {
-    return 'Circuit signature mis a jour';
+    return 'Circuit signature mis à jour';
   }
-  if (action.includes('MEETING')) return 'Reunion mise a jour';
-  if (action.includes('REQUEST')) return 'Demande mise a jour';
+  if (action.includes('MEETING')) return 'Réunion mise à jour';
+  if (action.includes('REQUEST')) return 'Demande mise à jour';
   return action.replaceAll('_', ' ').toLowerCase();
 }
 
@@ -611,9 +611,9 @@ export async function getDashboardSummary(
       label: 'Dossiers actifs',
       value: activeRequests,
       trend: trend(currentRequestVolume, previousRequestVolume),
-      helper: 'Non clotures / non rejetes',
-      definition: 'Demandes dont le statut n est pas termine, rejete ou annule.',
-      periodLabel: 'Etat actuel',
+      helper: 'Non clôturés / non rejetés',
+      definition: 'Demandes dont le statut n’est pas terminé, rejeté ou annulé.',
+      periodLabel: 'État actuel',
       sampleSize: requestRows.length,
       href: hrefForRoles(userRoles, ['dn_agent', 'dn_supervisor', 'SU'], '/demandes'),
     },
@@ -623,17 +623,17 @@ export async function getDashboardSummary(
       value: openPhases,
       helper: 'Phases M3-M7 en cours',
       definition: 'Nombre de phases de traitement actuellement ouvertes, tous dossiers confondus.',
-      periodLabel: 'Etat actuel',
+      periodLabel: 'État actuel',
       sampleSize: phaseRows.length,
       href: hrefForRoles(userRoles, ['dn_agent', 'dn_supervisor', 'SU'], '/demandes'),
     },
     {
       key: 'average_global_duration',
-      label: 'Duree moyenne globale',
+      label: 'Durée moyenne globale',
       value: averageGlobalDuration === null ? '-' : `${averageGlobalDuration} j`,
-      helper: 'Entree -> retrait physique',
+      helper: 'Entrée -> retrait physique',
       definition:
-        'Duree calendaire moyenne entre la creation de la demande et le retrait du certificat, calculee sur les certificats deja retires.',
+        'Durée calendaire moyenne entre la création de la demande et le retrait du certificat, calculée sur les certificats déjà retires.',
       periodLabel: 'Historique retire',
       sampleSize: completedGlobalDurations.filter((value) => value !== null).length,
     },
@@ -643,8 +643,8 @@ export async function getDashboardSummary(
       value: pendingDgCircuit,
       helper: 'Courriers en circuit',
       definition:
-        'Courriers deposes, en signature ou signes mais pas encore transmis au traitement.',
-      periodLabel: 'Etat actuel',
+        'Courriers déposés, en signature ou signés mais pas encore transmis au traitement.',
+      periodLabel: 'État actuel',
       sampleSize: circuitRows.length,
       href: hrefForRoles(userRoles, ['reception', 'assistant_dg', 'SU'], '/courriers'),
     },
@@ -655,7 +655,7 @@ export async function getDashboardSummary(
       helper: 'Facture, preuve ou validation',
       definition:
         'Paiements qui bloquent une phase: facture attendue, preuve attendue ou validation S5 attendue.',
-      periodLabel: 'Etat actuel',
+      periodLabel: 'État actuel',
       sampleSize: paymentRows.length,
       href: hrefForRoles(userRoles, ['s5_agent', 'SU'], '/paiements-s5'),
     },
@@ -701,7 +701,7 @@ export async function getDashboardSummary(
       emptyLabel: openCount === 0 ? 'Aucun dossier actif' : undefined,
       durationLabel:
         closedDurations.filter((duration): duration is number => duration !== null).length === 0
-          ? 'Pas encore de duree cloturee'
+          ? 'Pas encore de durée clôturée'
           : undefined,
     };
   });
@@ -744,7 +744,7 @@ export async function getDashboardSummary(
           blockingReason:
             payment.status === 'awaiting_invoice'
               ? 'La phase attend la facture avant la preuve de paiement.'
-              : 'La phase attend la decision S5 sur la preuve de paiement.',
+              : 'La phase attend la décision S5 sur la preuve de paiement.',
           priority: priorityFromAge(submittedAt),
           href: phase
             ? `/demandes/${phase.requestId}/${phase.phaseCode === 'M7' ? 'delivrance' : phase.phaseCode === 'M6' ? 'demonstration-inspection' : 'evaluation-approfondie'}`
@@ -765,23 +765,23 @@ export async function getDashboardSummary(
           id: `circuit-${circuit.id}`,
           owner:
             circuit.entityType === 'formal_request_letter' || circuit.entityType === 'pre_evaluation'
-              ? 'Reception / Assistant DG'
-              : 'Reception',
+              ? 'Réception / Assistant DG'
+              : 'Réception',
           responsibleService: 'Circuit signature',
           ...actionAccess(userRoles, ['reception', 'assistant_dg']),
           ...requestContext(circuit.requestId),
           title:
             circuit.status === 'submitted'
               ? 'Ouvrir / imprimer le courrier'
-              : 'Scanner le retour signe',
+              : 'Scanner le retour signé',
           submittedAt: circuit.depositedAt.toISOString(),
           dueAt: circuit.signatureSentAt?.toISOString() ?? null,
           waitingDays: daysBetween(waitingFrom, new Date()),
           waitingLabel: waitingLabel(waitingFrom),
           blockingReason:
             circuit.status === 'submitted'
-              ? 'Le courrier doit etre imprime puis mis en circuit signature.'
-              : 'Le retour signe doit etre scanne pour transmettre le dossier au traitement.',
+              ? 'Le courrier doit être imprimé puis mis en circuit signature.'
+              : 'Le retour signé doit être scanné pour transmettre le dossier au traitement.',
           priority: priorityFromAge(circuit.depositedAt),
           href: '/courriers',
         },
@@ -808,15 +808,15 @@ export async function getDashboardSummary(
         {
           id: `evaluation-${evaluation.id}`,
           owner: 'DN',
-          responsibleService: 'Direction de la Navigabilite',
+          responsibleService: 'Direction de la Navigabilité',
           ...actionAccess(userRoles, ['dn_agent', 'dn_supervisor']),
           ...context,
-          title: 'Evaluer un document formel',
+          title: 'Évaluer un document formel',
           submittedAt: formalDocument?.submittedAt?.toISOString() ?? null,
           dueAt: evaluation.correctionDeadline?.toISOString() ?? null,
           waitingDays: daysBetween(formalDocument?.submittedAt ?? null, new Date()),
           waitingLabel: waitingLabel(formalDocument?.submittedAt ?? null),
-          blockingReason: 'Le dossier attend un verdict DN sur une piece documentaire.',
+          blockingReason: 'Le dossier attend un verdict DN sur une pièce documentaire.',
           priority: priorityFromAge(formalDocument?.submittedAt ?? null),
           href: phase ? `/demandes/${phase.requestId}/evaluation-approfondie` : undefined,
         },
@@ -845,8 +845,8 @@ export async function getDashboardSummary(
           meeting.meetingType === 'site_visit'
             ? 'Inspection sur site'
             : meeting.meetingType === 'formal'
-              ? 'Reunion formelle'
-              : 'Reunion preliminaire',
+              ? 'Réunion formelle'
+              : 'Réunion préliminaire',
         scheduledAt: meeting.scheduledAt.toISOString(),
         requestReference: request?.reference ?? `Demande #${phase?.requestId ?? '-'}`,
         tag: meeting.scheduledAt.toDateString() === today ? 'today' : 'planned',
@@ -861,7 +861,7 @@ export async function getDashboardSummary(
         id: row.id,
         title,
         requestReference: row.entityId ? `#${row.entityId}` : null,
-        actor: row.actor ?? 'Systeme',
+        actor: row.actor ?? 'Système',
         createdAt: row.createdAt.toISOString(),
         tone: activityTone(row.action),
       };
@@ -913,7 +913,7 @@ export async function getDashboardSummary(
     },
     {
       key: 'overdue_corrections',
-      title: 'Echeances depassees',
+      title: 'Échéances dépassées',
       value: overdueCorrections,
       helper: 'Corrections documentaires en retard',
       tone: overdueCorrections > 0 ? 'warning' : 'info',
@@ -934,15 +934,15 @@ export async function getDashboardSummary(
 
   const performance: DashboardPerformanceMetric[] = [
     {
-      label: 'Dossiers clotures sur la periode',
+      label: 'Dossiers clôturés sur la période',
       value: `${closedThisPeriod} / ${Math.max(currentRequestVolume, closedThisPeriod)}`,
       percentage: percent(closedThisPeriod, Math.max(currentRequestVolume, closedThisPeriod)),
       tone: 'success',
-      helper: 'Phases de delivrance cloturees sur le volume entrant de la periode.',
+      helper: 'Phases de délivrance clôturées sur le volume entrant de la période.',
       denominator: Math.max(currentRequestVolume, closedThisPeriod),
     },
     {
-      label: 'Demandes recues sur la periode',
+      label: 'Demandes reçues sur la période',
       value: String(currentRequestVolume),
       target: 'Volume entrant',
       percentage: percent(
@@ -950,11 +950,11 @@ export async function getDashboardSummary(
         Math.max(previousRequestVolume, currentRequestVolume, 1)
       ),
       tone: 'info',
-      helper: 'Demandes creees dans la periode selectionnee.',
+      helper: 'Demandes créées dans la période sélectionnée.',
       denominator: Math.max(previousRequestVolume, currentRequestVolume, 1),
     },
     {
-      label: 'Taux de conformite documentaire',
+      label: 'Taux de conformité documentaire',
       value: `${complianceRate}%`,
       percentage: complianceRate,
       tone: complianceRate >= 80 ? 'success' : 'warning',
@@ -962,14 +962,14 @@ export async function getDashboardSummary(
       denominator: totalEvaluations,
     },
     {
-      label: 'Agrements / reconnaissances delivres',
+      label: 'Agréments / reconnaissances délivrés',
       value: String(deliveredCertificates),
       percentage: percent(
         deliveredCertificates,
         Math.max(currentRequestVolume, deliveredCertificates)
       ),
       tone: 'success',
-      helper: 'Certificats retires physiquement pendant la periode.',
+      helper: 'Certificats retires physiquement pendant la période.',
       denominator: Math.max(currentRequestVolume, deliveredCertificates),
     },
   ];
@@ -1123,7 +1123,7 @@ export async function getS5DashboardSummary(
       key: 'overdue_invoices',
       title: 'Factures non transmises',
       value: overdueInvoices,
-      helper: `Cible: ${slaConfig.invoiceUploadDays} j apres reception par S5`,
+      helper: `Cible: ${slaConfig.invoiceUploadDays} j’après réception par S5`,
       tone: overdueInvoices > 0 ? 'warning' : 'info',
       href: '/paiements-s5',
     },
@@ -1131,13 +1131,13 @@ export async function getS5DashboardSummary(
       key: 'overdue_proofs',
       title: 'Preuves attendues > 5 jours',
       value: overdueProofs,
-      helper: 'Factures envoyees, preuve postulant non recue',
+      helper: 'Factures envoyées, preuve postulant non reçue',
       tone: overdueProofs > 0 ? 'warning' : 'info',
       href: '/paiements-s5',
     },
     {
       key: 'overdue_validation',
-      title: 'Preuves a valider en retard',
+      title: 'Preuves à valider en retard',
       value: overdueValidation,
       helper: `Cible validation S5: ${slaConfig.paymentValidationDays} j`,
       tone: overdueValidation > 0 ? 'danger' : 'info',
@@ -1145,9 +1145,9 @@ export async function getS5DashboardSummary(
     },
     {
       key: 'rejected_payments',
-      title: 'Paiements rejetes / a corriger',
+      title: 'Paiements rejetés / à corriger',
       value: paymentRows.filter((row) => row.payment.status === 'rejected').length,
-      helper: 'Historique des rejets et dossiers a suivre',
+      helper: 'Historique des rejets et dossiers à suivre',
       tone: paymentRows.some((row) => row.payment.status === 'rejected') ? 'danger' : 'info',
       href: '/paiements-s5',
     },
@@ -1164,7 +1164,7 @@ export async function getS5DashboardSummary(
         title,
         requestReference: paymentContext?.requestReference ?? null,
         organisationName: paymentContext?.organisationName,
-        actor: row.actor ?? 'Systeme',
+        actor: row.actor ?? 'Système',
         createdAt: row.createdAt.toISOString(),
         tone: activityTone(row.action),
       };
@@ -1176,16 +1176,16 @@ export async function getS5DashboardSummary(
 
   const monthlyProgress: S5DashboardProgressMetric[] = [
     {
-      label: 'Factures transmises sur la periode',
+      label: 'Factures transmises sur la période',
       value: String(invoicesTransmittedThisPeriod.length),
-      helper: 'Volume de factures enregistrees comme transmises au postulant.',
+      helper: 'Volume de factures enregistrées comme transmises au postulant.',
       percentage: percent(invoicesTransmittedThisPeriod.length, Math.max(paymentRows.length, 1)),
       tone: 'info',
     },
     {
-      label: 'Preuves validees sur la periode',
+      label: 'Preuves validées sur la période',
       value: String(validatedThisPeriod.length),
-      helper: 'Paiements approuves par S5.',
+      helper: 'Paiements approuvés par S5.',
       percentage: percent(validatedThisPeriod.length, Math.max(proofsReceivedThisPeriod.length, 1)),
       tone: 'success',
     },
@@ -1205,38 +1205,38 @@ export async function getS5DashboardSummary(
     metrics: [
       {
         key: 'invoices_to_send',
-        label: 'Factures a transmettre',
+        label: 'Factures à transmettre',
         value: awaitingInvoice.length,
-        helper: 'Factures recues par S5 a envoyer au postulant',
+        helper: 'Factures reçues par S5 à envoyer au postulant',
         tone: awaitingInvoice.length > 0 ? 'info' : 'success',
       },
       {
         key: 'proofs_to_check',
-        label: 'Preuves a verifier',
+        label: 'Preuves à vérifier',
         value: pendingValidation.length,
-        helper: 'Preuves retournees par le postulant',
+        helper: 'Preuves retournées par le postulant',
         tone: pendingValidation.length > 0 ? 'warning' : 'success',
       },
       {
         key: 'validated_payments',
         label: 'Paiements valides',
         value: validatedThisPeriod.length,
-        helper: 'Paiements approuves sur la periode',
+        helper: 'Paiements approuvés sur la période',
         tone: 'success',
       },
       {
         key: 'rejected_payments',
-        label: 'Paiements rejetes / a corriger',
+        label: 'Paiements rejetés / à corriger',
         value: paymentRows.filter((row) => row.payment.status === 'rejected').length,
-        helper: 'Paiements rejetes conserves en historique',
+        helper: 'Paiements rejetés conserves en historique',
         tone: paymentRows.some((row) => row.payment.status === 'rejected') ? 'danger' : 'success',
       },
     ],
     flow: [
       {
         key: 'invoice_received',
-        label: 'Facture recue',
-        description: 'A transmettre par S5',
+        label: 'Facture reçue',
+        description: 'À transmettre par S5',
         count: awaitingInvoice.length,
         tone: 'info',
       },
@@ -1249,7 +1249,7 @@ export async function getS5DashboardSummary(
       },
       {
         key: 'proof_received',
-        label: 'Preuve recue',
+        label: 'Preuve reçue',
         description: 'Validation S5 requise',
         count: pendingValidation.length,
         tone: 'warning',
@@ -1257,7 +1257,7 @@ export async function getS5DashboardSummary(
       {
         key: 'validated',
         label: 'Validation S5',
-        description: 'Paiements approuves',
+        description: 'Paiements approuvés',
         count: paymentRows.filter((row) => row.payment.status === 'validated').length,
         tone: 'success',
       },
@@ -1423,7 +1423,7 @@ export async function getReceptionDashboardSummary(
         title,
         requestReference: context?.requestReference ?? (row.entityId ? `#${row.entityId}` : null),
         organisationName: context?.organisationName,
-        actor: row.actor ?? 'Systeme',
+        actor: row.actor ?? 'Système',
         createdAt: row.createdAt.toISOString(),
         tone: activityTone(row.action),
       };
@@ -1436,21 +1436,21 @@ export async function getReceptionDashboardSummary(
     {
       label: 'Courriers mis en signature',
       value: String(sentThisPeriod.length),
-      helper: 'Courriers imprimes puis confirmes en circuit signature sur la periode.',
+      helper: 'Courriers imprimes puis confirmes en circuit signature sur la période.',
       percentage: percent(sentThisPeriod.length, Math.max(circuitRows.length, 1)),
       tone: 'info',
     },
     {
-      label: 'Retours signes transmis DN',
+      label: 'Retours signés transmis DN',
       value: String(transmittedThisPeriod.length),
-      helper: 'Retours signes scannes et transmis au traitement DN.',
+      helper: 'Retours signés scannés et transmis au traitement DN.',
       percentage: returnRate,
       tone: 'success',
     },
     {
-      label: 'Delai moyen retour signature',
-      value: averageSignatureReturn === null ? '-' : `${averageSignatureReturn} j ouvrés`,
-      helper: `Cible: ${slaConfig.signatureReturnDays} j ouvrés apres mise en signature.`,
+      label: 'Délai moyen retour signature',
+      value: averageSignatureReturn === null ? '-' : `${averageSignatureReturn} j’ouvrés`,
+      helper: `Cible: ${slaConfig.signatureReturnDays} j’ouvrés après mise en signature.`,
       percentage:
         averageSignatureReturn === null
           ? 0
@@ -1469,14 +1469,14 @@ export async function getReceptionDashboardSummary(
     metrics: [
       {
         key: 'courriers_to_print',
-        label: 'Courriers a imprimer',
+        label: 'Courriers à imprimer',
         value: toPrintRows.length,
-        helper: 'Documents deposes a mettre en circuit signature',
+        helper: 'Documents déposés à mettre en circuit signature',
         tone: toPrintRows.length > 0 ? 'info' : 'success',
       },
       {
         key: 'waiting_signature',
-        label: 'Retours signes attendus',
+        label: 'Retours signés attendus',
         value: waitingSignatureRows.length,
         helper: 'Courriers actuellement en signature',
         tone: waitingSignatureRows.length > 0 ? 'warning' : 'success',
@@ -1485,14 +1485,14 @@ export async function getReceptionDashboardSummary(
         key: 'returned_this_period',
         label: 'Retours transmis DN',
         value: transmittedThisPeriod.length,
-        helper: 'Retours signes scannes sur la periode',
+        helper: 'Retours signés scannés sur la période',
         tone: 'success',
       },
       {
         key: 'average_signature_return',
-        label: 'Delai moyen signature',
-        value: averageSignatureReturn === null ? '-' : `${averageSignatureReturn} j ouvrés`,
-        helper: 'Mise en signature -> scan retour signe',
+        label: 'Délai moyen signature',
+        value: averageSignatureReturn === null ? '-' : `${averageSignatureReturn} j’ouvrés`,
+        helper: 'Mise en signature -> scan retour signé',
         tone:
           averageSignatureReturn === null || averageSignatureReturn <= slaConfig.signatureReturnDays
             ? 'success'
@@ -1502,29 +1502,29 @@ export async function getReceptionDashboardSummary(
     flow: [
       {
         key: 'deposited',
-        label: 'Depose',
-        description: 'Document a imprimer',
+        label: 'Déposé',
+        description: 'Document à imprimer',
         count: toPrintRows.length,
         tone: toPrintRows.length > 0 ? 'info' : 'success',
       },
       {
         key: 'in_signature',
         label: 'En signature',
-        description: 'Retour signe attendu',
+        description: 'Retour signé attendu',
         count: waitingSignatureRows.length,
         tone: waitingSignatureRows.length > 0 ? 'warning' : 'success',
       },
       {
         key: 'signed_return',
-        label: 'Retour scanne',
-        description: 'Scan recu sur la periode',
+        label: 'Retour scanné',
+        description: 'Scan reçu sur la période',
         count: signedThisPeriod.length,
         tone: 'success',
       },
       {
         key: 'transmitted_dn',
         label: 'Transmis DN',
-        description: 'Traitement DN debloque',
+        description: 'Traitement DN débloqué',
         count: transmittedThisPeriod.length,
         tone: 'success',
       },
@@ -1537,31 +1537,31 @@ export async function getReceptionDashboardSummary(
         key: 'overdue_print',
         title: 'Mise en signature en retard',
         value: overduePrint,
-        helper: `Cible impression: ${slaConfig.signatureDepositDays} j apres depot`,
+        helper: `Cible impression: ${slaConfig.signatureDepositDays} j’après dépôt`,
         tone: overduePrint > 0 ? 'warning' : 'info',
         href: '/courriers',
       },
       {
         key: 'overdue_signature_return',
-        title: 'Retour signature hors delai',
+        title: 'Retour signature hors délai',
         value: overdueSignatureReturn,
-        helper: `Cible retour: ${slaConfig.signatureReturnDays} j ouvrés apres mise en signature`,
+        helper: `Cible retour: ${slaConfig.signatureReturnDays} j’ouvrés après mise en signature`,
         tone: overdueSignatureReturn > 0 ? 'danger' : 'info',
         href: '/courriers',
       },
       {
         key: 'formal_letters_waiting',
-        title: 'Lettres formelles bloquees',
+        title: 'Lettres formelles bloquées',
         value: formalLettersWaiting,
-        helper: 'La reunion formelle attend le retour signe',
+        helper: 'La réunion formelle attend le retour signé',
         tone: formalLettersWaiting > 0 ? 'warning' : 'info',
         href: '/courriers',
       },
       {
         key: 'intake_requests_waiting',
-        title: 'Demandes initiales bloquees',
+        title: 'Demandes initiales bloquées',
         value: intakeRequestsWaiting,
-        helper: 'DN attend le retour signe pour ouvrir M3',
+        helper: 'DN attend le retour signé pour ouvrir M3',
         tone: intakeRequestsWaiting > 0 ? 'warning' : 'info',
         href: '/courriers',
       },
@@ -1644,14 +1644,14 @@ export async function getR3DashboardSummary(
       new Date()
     );
     const statusLabel = closed
-      ? 'Cloturee'
+      ? 'Clôturée'
       : row.inspection
         ? 'Avis soumis'
         : !paymentValidated
           ? 'Paiement attendu'
           : visitHeld
             ? 'Avis attendu'
-            : 'Prevue';
+            : 'Prévue';
     const nextAction = closed
       ? 'Consulter'
       : !paymentValidated
@@ -1695,7 +1695,7 @@ export async function getR3DashboardSummary(
   const reportsDue = items.filter(
     (item) => item.visitStatus === 'held' && item.inspectionVerdict === null
   );
-  const openMissions = items.filter((item) => item.statusLabel !== 'Cloturee');
+  const openMissions = items.filter((item) => item.statusLabel !== 'Clôturée');
   const plannedVisits = items.filter((item) => item.visitStatus === 'scheduled');
   const closedThisPeriod = missionRows.filter(
     (row) => row.closedAt && row.closedAt >= start && row.closedAt < end
@@ -1745,7 +1745,7 @@ export async function getR3DashboardSummary(
         title,
         requestReference: context?.requestReference ?? null,
         organisationName: context?.organisationName,
-        actor: row.actor ?? 'Systeme',
+        actor: row.actor ?? 'Système',
         createdAt: row.createdAt.toISOString(),
         tone: activityTone(row.action),
       };
@@ -1753,7 +1753,7 @@ export async function getR3DashboardSummary(
     .filter((item): item is R3DashboardActivityItem => item !== null);
 
   const priorityActions = items
-    .filter((item) => item.statusLabel !== 'Cloturee')
+    .filter((item) => item.statusLabel !== 'Clôturée')
     .sort((a, b) => {
       const priorityOrder = { haute: 0, moyenne: 1, basse: 2 };
       if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
@@ -1765,23 +1765,23 @@ export async function getR3DashboardSummary(
 
   const periodProgress: R3DashboardProgressMetric[] = [
     {
-      label: 'Visites tenues sur la periode',
+      label: 'Visites tenues sur la période',
       value: String(visitsHeldThisPeriod.length),
-      helper: 'Visites R3 marquees comme tenues dans la periode.',
+      helper: 'Visites R3 marquées comme tenues dans la période.',
       percentage: percent(visitsHeldThisPeriod.length, Math.max(missionRows.length, 1)),
       tone: 'info',
     },
     {
-      label: 'Avis soumis sur la periode',
+      label: 'Avis soumis sur la période',
       value: String(reportsSubmittedThisPeriod.length),
-      helper: 'Avis R3 soumis et phases cloturees automatiquement.',
+      helper: 'Avis R3 soumis et phases clôturées automatiquement.',
       percentage: percent(reportsSubmittedThisPeriod.length, Math.max(visitsHeldThisPeriod.length, 1)),
       tone: 'success',
     },
     {
-      label: 'Missions cloturees',
+      label: 'Missions clôturées',
       value: String(closedThisPeriod.length),
-      helper: 'Missions R3 cloturees sur la periode selectionnee.',
+      helper: 'Missions R3 clôturées sur la période sélectionnée.',
       percentage: percent(closedThisPeriod.length, Math.max(missionRows.length, 1)),
       tone: 'success',
     },
@@ -1794,38 +1794,38 @@ export async function getR3DashboardSummary(
     metrics: [
       {
         key: 'planned_visits',
-        label: 'Inspections prevues',
+        label: 'Inspections prévues',
         value: plannedVisits.length,
-        helper: 'Visites planifiees assignees a R3',
+        helper: 'Visites planifiées assignées à R3',
         tone: plannedVisits.length > 0 ? 'info' : 'success',
       },
       {
         key: 'open_missions',
         label: 'Missions en cours',
         value: openMissions.length,
-        helper: 'Missions non cloturees',
+        helper: 'Missions non clôturées',
         tone: openMissions.length > 0 ? 'warning' : 'success',
       },
       {
         key: 'reports_due',
-        label: 'Avis a remettre',
+        label: 'Avis à remettre',
         value: reportsDue.length,
         helper: 'Visites tenues sans avis R3',
         tone: reportsDue.length > 0 ? 'danger' : 'success',
       },
       {
         key: 'closed_period',
-        label: 'Cloturees periode',
+        label: 'Clôturées période',
         value: closedThisPeriod.length,
-        helper: 'Avis soumis sur la periode',
+        helper: 'Avis soumis sur la période',
         tone: 'success',
       },
     ],
     flow: [
       {
         key: 'planned',
-        label: 'Planifiee',
-        description: 'Visite programmee',
+        label: 'Planifiée',
+        description: 'Visite programmée',
         count: plannedVisits.length,
         tone: 'info',
       },
@@ -1839,15 +1839,15 @@ export async function getR3DashboardSummary(
       {
         key: 'submitted',
         label: 'Avis soumis',
-        description: 'Decision R3 enregistree',
+        description: 'Décision R3 enregistrée',
         count: items.filter((item) => item.inspectionVerdict !== null).length,
         tone: 'success',
       },
       {
         key: 'closed',
-        label: 'Cloturee',
-        description: 'Phase M6 terminee',
-        count: items.filter((item) => item.statusLabel === 'Cloturee').length,
+        label: 'Clôturée',
+        description: 'Phase M6 terminée',
+        count: items.filter((item) => item.statusLabel === 'Clôturée').length,
         tone: 'success',
       },
     ],
@@ -1857,9 +1857,9 @@ export async function getR3DashboardSummary(
     alerts: [
       {
         key: 'overdue_visits',
-        title: 'Visites depassees',
+        title: 'Visites dépassées',
         value: overdueVisits,
-        helper: 'Visites planifiees dont la date est passee',
+        helper: 'Visites planifiées dont la date est passée',
         tone: overdueVisits > 0 ? 'warning' : 'info',
         href: '/mes-inspections',
       },
@@ -1874,10 +1874,10 @@ export async function getR3DashboardSummary(
       {
         key: 'payment_blocked',
         title: 'Paiements bloquants',
-        value: items.filter((item) => item.paymentStatus !== 'validated' && item.statusLabel !== 'Cloturee')
+        value: items.filter((item) => item.paymentStatus !== 'validated' && item.statusLabel !== 'Clôturée')
           .length,
         helper: 'R3 attend la validation S5 avant action finale',
-        tone: items.some((item) => item.paymentStatus !== 'validated' && item.statusLabel !== 'Cloturee')
+        tone: items.some((item) => item.paymentStatus !== 'validated' && item.statusLabel !== 'Clôturée')
           ? 'warning'
           : 'info',
         href: '/mes-inspections',

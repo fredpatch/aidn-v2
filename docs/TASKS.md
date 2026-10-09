@@ -1487,11 +1487,37 @@ ni contrat d'API modifié.
       affiché) ; admin 154/154, typecheck, lint (0 erreur), build admin
 - [ ] Données d'API encore sans accents tant que A2 n'est pas fait (ex.
       libellés du tableau de bord, messages d'erreur `error.ts`)
-- [ ] **A2 (API)** : `shared/utils/error.ts`, `dashboard.service.ts`,
-      `analytics.service.ts`, `meetings.service.ts`, `email.templates.ts`,
-      `account-requests.service.ts` ; à part : les graines
-      (`system-parameters.seed.ts`) ne mettent pas à jour les lignes déjà en
-      base
+- [x] **A2 (API)** : voir la section A2
+
+### A2 (2026-10-09) - accents dans les textes de l'API
+
+Même méthode qu'A1, sur `apps/api/src/modules` et `apps/api/src/shared`
+(25 fichiers) : messages d'erreur (`error.ts`), tableaux de bord, analytique,
+réunions, courriels, contrôleurs. Codes d'erreur, actions d'audit, valeurs
+d'énumération, routes et clés inchangés.
+
+- [x] Contrôles propres à l'API : aucun texte d'API comparé côté admin /
+      portail (seulement des codes d'erreur) ; les comparaisons internes sur
+      un libellé (`dashboard.service.ts` : `statusLabel === 'Clôturée'`)
+      restent cohérentes, producteur et consommateurs convertis ensemble ;
+      PDF (invitation, rapport) déclarés en UTF-8, courriels UTF-8 par défaut
+      (nodemailer) ; aucun texte modifié n'atteint un en-tête HTTP (noms de
+      fichiers inchangés, `file-delivery.ts` encode déjà en RFC 5987)
+- [x] Corrigé pendant la vérification : un attribut HTML d'un gabarit
+      (`role="alert"`), trois journaux techniques en anglais et une variable
+      (`role` dans `users.service.ts`, signalée par le typecheck) avaient été
+      modifiés à tort par la transformation - rétablis. A1 revérifié : aucune
+      modification de ce type
+- [x] Deux libellés admin oubliés par A1 (« Avis à remettre », « Preuve à
+      valider »)
+- [x] Tests : 2 assertions API ajustées ; API 366/366 (PostgreSQL réel),
+      admin 154/154, portail 94/94, typecheck, lint (0 erreur), build complet
+- [ ] Hors périmètre : graines (`seeding/`, ex. descriptions des paramètres
+      système) et scripts de démo - une graine ne met pas à jour les lignes
+      déjà en base, il faudrait une migration de données
+- [ ] À suivre (dette) : `dashboard.service.ts` filtre les missions R3 sur le
+      libellé affiché (`statusLabel === 'Clôturée'`) au lieu d'un statut ;
+      fragile si le libellé change
 
 ## Sprint 7 - Documents (transverse, M8)
 

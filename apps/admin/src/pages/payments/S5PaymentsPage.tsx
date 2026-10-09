@@ -885,7 +885,7 @@ function S5ActionPanel({
           <div>
             <h3 className="flex items-center gap-2 text-sm font-semibold text-anac-navy">
               <ShieldCheck size={16} className="text-anac-warning" aria-hidden="true" />
-              Preuve a valider
+              Preuve à valider
             </h3>
             <p className="mt-1 text-xs leading-relaxed text-anac-muted">
               Contrôlez la preuve de paiement retournée par le postulant avant de débloquer la phase.

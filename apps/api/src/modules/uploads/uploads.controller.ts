@@ -23,7 +23,7 @@ function sourceAppFromOrigin(origin: string | undefined): 'admin' | 'portal' | '
 export async function upload(req: Request, res: Response): Promise<void> {
   const file = req.file;
   if (!file) {
-    res.status(400).json({ message: 'Aucun fichier recu.' });
+    res.status(400).json({ message: 'Aucun fichier reçu.' });
     return;
   }
 

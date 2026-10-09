@@ -106,7 +106,7 @@ export async function sendDossierRejectedEmail(params: {
   const { to, ...templateParams } = params;
   await sendEmail({
     to,
-    subject: "AIDN - Dossier rejete",
+    subject: "AIDN - Dossier rejeté",
     html: dossierRejectedEmailTemplate(templateParams),
   });
 }
@@ -119,7 +119,7 @@ export async function sendDocumentNeedsCorrectionEmail(params: {
   const { to, ...templateParams } = params;
   await sendEmail({
     to,
-    subject: "AIDN - Document a corriger",
+    subject: "AIDN - Document à corriger",
     html: documentNeedsCorrectionEmailTemplate(templateParams),
   });
 }

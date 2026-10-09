@@ -78,7 +78,7 @@ export async function login(params: {
     return {
       firstLogin: true,
       tokens: { accessToken: tempAccessToken, refreshToken: "" },
-      message: "OTP valide. Veuillez definir votre mot de passe.",
+      message: "OTP valide. Veuillez définir votre mot de passe.",
     };
   }
 
@@ -99,7 +99,7 @@ export async function login(params: {
     firstLogin: false,
     tokens: await buildTokens(user),
     user: await buildUserPublic(user),
-    message: "Connexion reussie.",
+    message: "Connexion réussie.",
   };
 }
 

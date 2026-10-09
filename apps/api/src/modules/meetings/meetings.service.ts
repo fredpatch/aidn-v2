@@ -60,25 +60,25 @@ function toMeetingView(row: typeof meetings.$inferSelect): MeetingView {
 }
 
 const PHASE_LABELS: Record<string, string> = {
-  M3: 'Preliminaire',
+  M3: 'Préliminaire',
   M4: 'Demande formelle',
-  M5: 'Evaluation approfondie',
-  M6: 'Demonstration / Inspection',
-  M7: 'Delivrance',
+  M5: 'Évaluation approfondie',
+  M6: 'Démonstration / Inspection',
+  M7: 'Délivrance',
 };
 
 const MEETING_TYPE_LABELS: Record<string, string> = {
-  preliminary: 'Reunion preliminaire',
-  formal: 'Reunion formelle',
+  preliminary: 'Réunion préliminaire',
+  formal: 'Réunion formelle',
   site_visit: 'Visite sur site',
 };
 
 const MEETING_STATUS_LABELS: Record<string, string> = {
-  scheduled: 'Planifiee',
+  scheduled: 'Planifiée',
   held: 'Tenue',
   no_show: 'Absence',
   rescheduled: 'Reprogrammee',
-  file_cancelled: 'Dossier annule',
+  file_cancelled: 'Dossier annulé',
 };
 
 function phaseHref(phaseCode: string, requestId: number): string {
@@ -95,9 +95,9 @@ function canManageMeeting(meetingType: string): boolean {
 
 function meetingActionLabel(row: typeof meetings.$inferSelect): string {
   if (!canManageMeeting(row.meetingType)) return 'Suivi inspection R3';
-  if (row.status === 'scheduled') return 'Resoudre la reunion';
+  if (row.status === 'scheduled') return 'Résoudre la réunion';
   if (row.status === 'held' && !row.crDocumentUrl) return 'Compte-rendu facultatif';
-  if (row.status === 'held' && row.crDocumentUrl) return 'Compte-rendu depose';
+  if (row.status === 'held' && row.crDocumentUrl) return 'Compte-rendu déposé';
   if (row.status === 'rescheduled') return 'Historique conserve';
   return 'Consulter';
 }
@@ -219,31 +219,31 @@ export async function listMeetingCockpit(params: {
     metrics: [
       {
         key: 'scheduled',
-        label: 'Reunions prevues',
+        label: 'Réunions prévues',
         value: items.filter((item) => item.status === 'scheduled').length,
-        helper: 'Creneaux planifies sur la periode',
+        helper: 'Créneaux planifiés sur la période',
         tone: 'info',
       },
       {
         key: 'today',
         label: "Aujourd'hui",
         value: todayMeetings.length,
-        helper: 'Reunions au calendrier du jour',
+        helper: 'Réunions au calendrier du jour',
         tone: todayMeetings.length > 0 ? 'warning' : 'success',
       },
       {
         key: 'missing_reports',
         label: 'Comptes-rendus manquants',
         value: missingReports.length,
-        helper: 'Facultatif - reunions tenues sans compte-rendu',
+        helper: 'Facultatif - réunions tenues sans compte-rendu',
         // K6 - optional document: information, never an alert (Fred).
         tone: 'info',
       },
       {
         key: 'held',
-        label: 'Reunions tenues',
+        label: 'Réunions tenues',
         value: heldThisPeriod.length,
-        helper: 'Reunions marquees tenues',
+        helper: 'Réunions marquées tenues',
         tone: 'success',
       },
     ],
@@ -469,7 +469,7 @@ export async function markMeetingStatus(
         .update(requests)
         .set({
           status: 'rejected',
-          rejectionReason: 'Dossier annule suite a absence non justifiee (reunion).',
+          rejectionReason: 'Dossier annulé suite à absence non justifiée (réunion).',
         })
         .where(eq(requests.id, phase.requestId));
     }

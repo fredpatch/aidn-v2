@@ -41,37 +41,37 @@ export const ANALYTICS_REPORTS = [
   {
     key: 'full_report',
     title: 'Rapport analytique complet',
-    description: 'Synthese complete des delais, SLA, blocages, inspections et paiements.',
+    description: 'Synthèse complète des délais, SLA, blocages, inspections et paiements.',
     available: true,
   },
   {
     key: 'processing_delay',
-    title: 'Rapport delais de traitement',
-    description: 'Analyse detaillee des delais par phase et par dossier.',
+    title: 'Rapport délais de traitement',
+    description: 'Analyse détaillée des délais par phase et par dossier.',
     available: true,
   },
   {
     key: 'sla',
     title: 'Rapport SLA',
-    description: 'Respect des SLA et dossiers hors delai.',
+    description: 'Respect des SLA et dossiers hors délai.',
     available: true,
   },
   {
     key: 'bottlenecks',
-    title: "Rapport goulots d'etranglement",
+    title: "Rapport goulots d'étranglement",
     description: 'Identification des retards et points de blocage.',
     available: true,
   },
   {
     key: 'inspections',
     title: 'Rapport inspections',
-    description: 'Durees des inspections et delais associes.',
+    description: 'Durées des inspections et délais associes.',
     available: true,
   },
   {
     key: 's5',
-    title: 'Rapport S5 / delais paiement',
-    description: 'Paiements en attente et impact sur les delais.',
+    title: 'Rapport S5 / délais paiement',
+    description: 'Paiements en attente et impact sur les délais.',
     available: true,
   },
 ];
@@ -125,7 +125,7 @@ function percent(part: number, total: number): string {
 function requestTypeLabel(type: string): string {
   const labels: Record<string, string> = {
     recognition: 'Reconnaissance',
-    issuance: 'Delivrance',
+    issuance: 'Délivrance',
     modification: 'Modification',
     renewal: 'Renouvellement',
   };
@@ -373,16 +373,16 @@ export async function getAnalyticsOverview(filters: AnalyticsFilters): Promise<A
   const metrics: AnalyticsMetric[] = [
     buildMetric(
       'average_processing_duration',
-      'Delai moyen de traitement',
+      'Délai moyen de traitement',
       formatDays(averageGlobalDuration),
-      'Depot initial -> cloture delivrance',
+      'Dépôt initial -> clôture délivrance',
       averageGlobalDuration === null ? 'neutral' : averageGlobalDuration > 45 ? 'warning' : 'info',
       completedDurations.length,
-      completedDurations.length < 5 ? 'Echantillon faible' : undefined
+      completedDurations.length < 5 ? 'Échantillon faible' : undefined
     ),
     buildMetric(
       'outside_sla',
-      'Dossiers hors delai',
+      'Dossiers hors délai',
       String(outsideSla.length),
       'Phases ouvertes au-dela de leur cible',
       outsideSla.length > 0 ? 'danger' : 'success',
@@ -392,22 +392,22 @@ export async function getAnalyticsOverview(filters: AnalyticsFilters): Promise<A
       'sla_compliance',
       'Taux de respect SLA',
       percent(closedPhaseWithinSla.length, closedPhaseRows.length),
-      'Phases cloturees dans le delai cible',
+      'Phases clôturées dans le délai cible',
       closedPhaseRows.length === 0 ? 'neutral' : 'success',
       closedPhaseRows.length,
-      closedPhaseRows.length < 5 ? 'Echantillon faible' : undefined
+      closedPhaseRows.length < 5 ? 'Échantillon faible' : undefined
     ),
     buildMetric(
       'dg_wait',
       'Temps moyen en attente DG',
       formatDays(average(dgWaitingDurations)),
-      'Courriers en depot ou en signature',
+      'Courriers en dépôt ou en signature',
       dgWaiting.length > 0 ? 'warning' : 'success',
       dgWaiting.length
     ),
     buildMetric(
       'inactivity',
-      "Temps d'inactivite moyen",
+      "Temps d'inactivité moyen",
       formatDays(average(inactiveRequests.map((request) => daysBetween(request.updatedAt, new Date())))),
       'Dossiers actifs sans action depuis plus de 15 jours',
       inactiveRequests.length > 0 ? 'warning' : 'success',
@@ -415,9 +415,9 @@ export async function getAnalyticsOverview(filters: AnalyticsFilters): Promise<A
     ),
     buildMetric(
       'median_processing_duration',
-      'Mediane de traitement',
+      'Médiane de traitement',
       formatDays(medianGlobalDuration),
-      'Mediane des dossiers clotures',
+      'Médiane des dossiers clôturés',
       'neutral',
       completedDurations.length
     ),
@@ -442,9 +442,9 @@ export async function getAnalyticsOverview(filters: AnalyticsFilters): Promise<A
     phaseStats,
     agingDistribution: agingBuckets,
     slaDistribution: [
-      { label: 'Dans les delais', value: closedPhaseWithinSla.length, color: '#16A34A' },
+      { label: 'Dans les délais', value: closedPhaseWithinSla.length, color: '#16A34A' },
       {
-        label: 'Hors delai',
+        label: 'Hors délai',
         value: Math.max(0, closedPhaseRows.length - closedPhaseWithinSla.length),
         color: '#DC2626',
       },
@@ -452,7 +452,7 @@ export async function getAnalyticsOverview(filters: AnalyticsFilters): Promise<A
     blockingPoints: [
       {
         key: 'delayed_phases',
-        label: 'Phases en depassement',
+        label: 'Phases en dépassement',
         value: String(outsideSla.length),
         helper: 'Phases ouvertes au-dela du SLA',
         tone: outsideSla.length > 0 ? 'danger' : 'info',
@@ -462,7 +462,7 @@ export async function getAnalyticsOverview(filters: AnalyticsFilters): Promise<A
         key: 'dg_waiting',
         label: 'Dossiers en attente DG',
         value: String(dgWaiting.length),
-        helper: `Delai moyen: ${formatDays(average(dgWaitingDurations))}`,
+        helper: `Délai moyen: ${formatDays(average(dgWaitingDurations))}`,
         tone: dgWaiting.length > 0 ? 'warning' : 'info',
         href: '/courriers',
       },
@@ -470,16 +470,16 @@ export async function getAnalyticsOverview(filters: AnalyticsFilters): Promise<A
         key: 'inactive',
         label: 'Dossiers sans action depuis 15+ jours',
         value: String(inactiveRequests.length),
-        helper: 'Basee sur la derniere mise a jour du dossier',
+        helper: 'Basée sur la dernière mise à jour du dossier',
         tone: inactiveRequests.length > 0 ? 'warning' : 'info',
         href: '/demandes',
       },
       {
         key: 'missing_reports',
-        label: 'Reunions sans compte-rendu',
+        label: 'Réunions sans compte-rendu',
         value: String(missingReports.length),
         // K6 - optional document: information, never an alert (Fred).
-        helper: 'Facultatif - reunions preliminaires et formelles tenues sans CR',
+        helper: 'Facultatif - réunions préliminaires et formelles tenues sans CR',
         tone: 'info',
         href: '/reunions',
       },

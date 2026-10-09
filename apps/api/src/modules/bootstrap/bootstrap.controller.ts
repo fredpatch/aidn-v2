@@ -20,7 +20,7 @@ export async function init(req: Request, res: Response): Promise<void> {
     const alreadyInitialised = await bootstrapService.isInitialised();
     if (alreadyInitialised) {
       res.status(403).json({
-        message: "Le systeme est deja initialise.",
+        message: "Le système est déjà initialise.",
         code: "SYSTEM_ALREADY_INITIALISED",
       });
       return;
@@ -47,24 +47,24 @@ export async function init(req: Request, res: Response): Promise<void> {
     }
 
     if (password.length < 8) {
-      res.status(400).json({ message: "Le mot de passe doit contenir au moins 8 caracteres." });
+      res.status(400).json({ message: "Le mot de passe doit contenir au moins 8 caractères." });
       return;
     }
 
     await bootstrapService.initialiseSuperAdmin({ employeeCode, fullName, email, password });
 
     res.status(201).json({
-      message: "Super Admin cree avec succes. Vous pouvez maintenant vous connecter.",
+      message: "Super Admin créé avec succès. Vous pouvez maintenant vous connecter.",
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "UNKNOWN_ERROR";
 
     if (message === "SYSTEM_ALREADY_INITIALISED") {
-      res.status(403).json({ message: "Le systeme est deja initialise.", code: message });
+      res.status(403).json({ message: "Le système est déjà initialise.", code: message });
       return;
     }
     if (message === "EMPLOYEE_CODE_EXISTS") {
-      res.status(409).json({ message: "Ce matricule est deja utilise.", code: message });
+      res.status(409).json({ message: "Ce matricule est déjà utilise.", code: message });
       return;
     }
 

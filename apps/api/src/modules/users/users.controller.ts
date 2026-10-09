@@ -42,7 +42,7 @@ export async function create(req: Request, res: Response): Promise<void> {
   try {
     const { employeeCode, fullName, email, roles } = req.body ?? {};
     if (!employeeCode || !fullName || !email || !Array.isArray(roles) || roles.length === 0) {
-      res.status(400).json({ message: "employeeCode, fullName, email et roles (non vide) sont requis." });
+      res.status(400).json({ message: "employeeCode, fullName, email et rôles (non vide) sont requis." });
       return;
     }
 
@@ -87,7 +87,7 @@ export async function updateRoles(req: Request, res: Response): Promise<void> {
   try {
     const { roles } = req.body ?? {};
     if (!Array.isArray(roles) || roles.length === 0) {
-      res.status(400).json({ message: "roles (non vide) est requis." });
+      res.status(400).json({ message: "rôles (non vide) est requis." });
       return;
     }
 

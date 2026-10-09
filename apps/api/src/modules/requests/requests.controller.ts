@@ -29,7 +29,7 @@ export async function submit(req: Request, res: Response): Promise<void> {
       applicantId = req.applicant.applicantId;
     } else if (req.user) {
       if (!hasIntakeStaffRole(req.user.roles)) {
-        res.status(403).json({ message: 'Acces refuse pour ce role.' });
+        res.status(403).json({ message: 'Accès refusé pour ce rôle.' });
         return;
       }
       if (!bodyApplicantId) {
@@ -39,7 +39,7 @@ export async function submit(req: Request, res: Response): Promise<void> {
       applicantId = Number(bodyApplicantId);
       submittedByUserId = req.user.userId;
     } else {
-      res.status(401).json({ message: 'Non authentifie.' });
+      res.status(401).json({ message: 'Non authentifié.' });
       return;
     }
 
@@ -144,7 +144,7 @@ export async function returnSignedFromDg(req: Request, res: Response): Promise<v
 export async function cancel(req: Request, res: Response): Promise<void> {
   try {
     if (req.user && !hasIntakeStaffRole(req.user.roles)) {
-      res.status(403).json({ message: 'Acces refuse pour ce role.' });
+      res.status(403).json({ message: 'Accès refusé pour ce rôle.' });
       return;
     }
 

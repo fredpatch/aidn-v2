@@ -16,9 +16,9 @@ export type ResettableScope = (typeof RESETTABLE_SCOPES)[number];
 
 export const SCOPE_LABELS: Record<ResettableScope, string> = {
   requests_and_workflow:
-    'Demandes & circuit complet (demandes, circuit DG, phases, reunions, declarations, paiements, certificats)',
+    'Demandes & circuit complet (demandes, circuit DG, phases, réunions, déclarations, paiements, certificats)',
   organisations_and_applicants:
-    'Organisations & comptes postulants (entraine aussi la suppression des demandes liees)',
+    'Organisations & comptes postulants (entraîne aussi la suppression des demandes liées)',
   notifications: 'Notifications',
   audit_logs: "Journal d'audit",
   reports: 'Rapports (dashboard/IA)',
@@ -26,21 +26,21 @@ export const SCOPE_LABELS: Record<ResettableScope, string> = {
 
 export const SCOPE_DESCRIPTIONS: Record<ResettableScope, string> = {
   requests_and_workflow:
-    'Supprime les demandes de test et tout le graphe workflow associe. Les modeles et utilisateurs restent conserves.',
+    'Supprime les demandes de test et tout le graphe workflow associé. Les modèles et utilisateurs restent conserves.',
   organisations_and_applicants:
-    'Supprime les organisations, postulants et demandes de comptes creees pendant les essais.',
+    'Supprime les organisations, postulants et demandes de comptes créées pendant les essais.',
   notifications:
-    "Vide le centre de notifications et l'historique fonctionnel lie aux essais.",
+    "Vide le centre de notifications et l'historique fonctionnel lié aux essais.",
   audit_logs:
-    'Vide le journal technique. Une nouvelle trace de nettoyage est recreree apres la suppression.',
+    'Vide le journal technique. Une nouvelle trace de nettoyage est recreree après la suppression.',
   reports:
-    'Supprime les rapports generes et les historiques de generation de test.',
+    'Supprime les rapports générés et les historiques de génération de test.',
 };
 
 export const SCOPE_WARNINGS: Partial<Record<ResettableScope, string>> = {
-  requests_and_workflow: 'Ce scope entraine la suppression de donnees liees par cascade.',
-  organisations_and_applicants: 'Ce scope peut entrainer la suppression de demandes liees.',
-  audit_logs: 'Le journal existant sera efface avant la creation de la trace de nettoyage.',
+  requests_and_workflow: 'Ce scope entraîne la suppression de données liées par cascade.',
+  organisations_and_applicants: 'Ce scope peut entraîner la suppression de demandes liées.',
+  audit_logs: 'Le journal existant sera efface avant la création de la trace de nettoyage.',
 };
 
 export interface DevToolsScopeMeta {

@@ -28,7 +28,7 @@ export async function generate(req: Request, res: Response): Promise<void> {
       return;
     }
     console.error('[reports/generate]', error);
-    res.status(500).json({ message: 'Generation du rapport impossible.' });
+    res.status(500).json({ message: 'Génération du rapport impossible.' });
   }
 }
 

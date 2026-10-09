@@ -119,7 +119,7 @@ describe('K7c closed dossier in the staff work lists (real PostgreSQL)', { skip 
     assert.equal(l.m5.nextAction, 'validate_payment');
     assert.equal(l.m7.nextAction, 'send_invoice');
     assert.equal(l.meeting.canManage, true);
-    assert.equal(l.meeting.actionLabel, 'Resoudre la reunion');
+    assert.equal(l.meeting.actionLabel, 'Résoudre la réunion');
     assert.deepEqual(l.courrier.availableActions, ['print', 'confirm_signature_circuit']);
     assert.equal(l.mission.missionStatus, 'to_hold');
     assert.equal(l.mission.nextAction, 'mark_held');

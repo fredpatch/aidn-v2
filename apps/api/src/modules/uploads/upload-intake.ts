@@ -29,7 +29,7 @@ const REJECTIONS: Record<UploadRejectionCode, string> = {
   // FILE-CONTENT-VALIDATION - declared extension/MIME disagree with the
   // file's actual content, or the content doesn't match the format its
   // declared MIME claims.
-  UPLOAD_CONTENT_TYPE_MISMATCH: 'Le contenu du fichier ne correspond pas au type declare. Merci de verifier le fichier.',
+  UPLOAD_CONTENT_TYPE_MISMATCH: 'Le contenu du fichier ne correspond pas au type déclaré. Merci de vérifier le fichier.',
 };
 
 /** Response for an upload refused before registration; null = not ours. */

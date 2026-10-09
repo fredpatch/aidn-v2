@@ -42,7 +42,7 @@ function actorFrom(req: Request, res: Response): FileActor | null {
     });
   } else {
     // Same shape as authenticate(): lets the apps refresh an expired session.
-    res.status(401).json({ message: 'Session expiree.', code: 'TOKEN_EXPIRED' });
+    res.status(401).json({ message: 'Session expirée.', code: 'TOKEN_EXPIRED' });
   }
   return null;
 }

@@ -91,7 +91,7 @@ async function findOrganisationCandidates(
         ?.toLowerCase()
         .includes(originalApprovalNumber.trim().toLowerCase())
     ) {
-      matchReason = "Numero d'agrement proche";
+      matchReason = "Numéro d'agrément proche";
     }
 
     return {

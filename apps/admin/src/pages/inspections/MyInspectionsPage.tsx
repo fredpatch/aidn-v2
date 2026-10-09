@@ -138,7 +138,7 @@ export default function MyInspectionsPage() {
     },
     {
       key: 'reports',
-      label: 'Avis a remettre',
+      label: 'Avis à remettre',
       value: data.filter((item) => item.missionStatus === 'report_due').length,
       helper: 'Visites tenues sans avis',
       icon: FileText,

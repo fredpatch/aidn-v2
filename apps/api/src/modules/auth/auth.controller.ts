@@ -63,7 +63,7 @@ export async function setPassword(req: Request, res: Response): Promise<void> {
     res.cookie(ACCESS_TOKEN_COOKIE, tokens.accessToken, accessCookieOptions);
     res.cookie(REFRESH_TOKEN_COOKIE, tokens.refreshToken, refreshCookieOptions);
 
-    res.json({ message: "Mot de passe defini avec succes.", user });
+    res.json({ message: "Mot de passe défini avec succès.", user });
   } catch (error) {
     handleAuthError(res, error);
   }
@@ -80,7 +80,7 @@ export async function refresh(req: Request, res: Response): Promise<void> {
   try {
     const { accessToken } = await authService.refreshToken(refreshToken);
     res.cookie(ACCESS_TOKEN_COOKIE, accessToken, accessCookieOptions);
-    res.json({ message: "Token renouvele." });
+    res.json({ message: "Token renouvelé." });
   } catch (error) {
     clearAuthCookies(res);
     handleAuthError(res, error);
@@ -99,7 +99,7 @@ export async function logout(req: Request, res: Response): Promise<void> {
     console.error("[auth/logout] Audit error:", error);
   } finally {
     clearAuthCookies(res);
-    res.json({ message: "Deconnexion reussie." });
+    res.json({ message: "Déconnexion réussie." });
   }
 }
 

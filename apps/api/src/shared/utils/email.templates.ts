@@ -40,7 +40,7 @@ export function accountActivatedEmailTemplate(params: {
     "AIDN - Confirmation d'activation de votre compte",
     `
       <p>Bonjour ${params.fullName},</p>
-      <p>Votre compte (matricule <strong>${params.employeeCode}</strong>) a ete active le ${params.dateTime}.</p>
+      <p>Votre compte (matricule <strong>${params.employeeCode}</strong>) a été activé le ${params.dateTime}.</p>
       ${params.ip ? `<p style="color: #6b7a99; font-size: 12px;">Adresse IP : ${params.ip}</p>` : ''}
     `
   );
@@ -55,7 +55,7 @@ export function dgCircuitAlertEmailTemplate(params: {
     `
       <p>La demande <strong>${params.reference}</strong> est en attente de signature DG
       depuis ${params.daysStuck} jour(s).</p>
-      <p>Merci de verifier l'avancement du parapheur.</p>
+      <p>Merci de vérifier l'avancement du parapheur.</p>
     `
   );
 }
@@ -63,7 +63,7 @@ export function dgCircuitAlertEmailTemplate(params: {
 export function certificateReadyEmailTemplate(params: { reference: string }): string {
   return baseLayout(
     'AIDN - Votre certificat est disponible',
-    `<p>Votre certificat (reference <strong>${params.reference}</strong>) est pret. Merci de vous presenter a la Direction de la Navigabilite pour le retrait.</p>`
+    `<p>Votre certificat (référence <strong>${params.reference}</strong>) est prêt. Merci de vous présenter à la Direction de la Navigabilité pour le retrait.</p>`
   );
 }
 
@@ -72,8 +72,8 @@ export function dossierRejectedEmailTemplate(params: {
   reason: string;
 }): string {
   return baseLayout(
-    'AIDN - Dossier rejete',
-    `<p>Votre dossier (reference <strong>${params.reference}</strong>) a ete rejete.</p>
+    'AIDN - Dossier rejeté',
+    `<p>Votre dossier (référence <strong>${params.reference}</strong>) a été rejeté.</p>
      <p><strong>Motif :</strong> ${params.reason}</p>`
   );
 }
@@ -83,8 +83,8 @@ export function documentNeedsCorrectionEmailTemplate(params: {
   deadline: string;
 }): string {
   return baseLayout(
-    'AIDN - Document a corriger',
-    `<p>Un document de votre dossier (reference <strong>${params.reference}</strong>) necessite une correction.</p>
+    'AIDN - Document à corriger',
+    `<p>Un document de votre dossier (référence <strong>${params.reference}</strong>) nécessite une correction.</p>
      <p>Merci de le retransmettre avant le <strong>${params.deadline}</strong>.</p>`
   );
 }

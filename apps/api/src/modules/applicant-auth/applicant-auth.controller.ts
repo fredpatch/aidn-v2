@@ -40,7 +40,7 @@ export async function refresh(req: Request, res: Response): Promise<void> {
   try {
     const { accessToken } = await applicantAuthService.refreshToken(refreshToken);
     res.cookie(APPLICANT_ACCESS_TOKEN_COOKIE, accessToken, applicantAccessCookieOptions);
-    res.json({ message: "Token renouvele." });
+    res.json({ message: "Token renouvelé." });
   } catch (error) {
     clearApplicantAuthCookies(res);
     handleAuthError(res, error);
@@ -49,7 +49,7 @@ export async function refresh(req: Request, res: Response): Promise<void> {
 
 export async function logout(_req: Request, res: Response): Promise<void> {
   clearApplicantAuthCookies(res);
-  res.json({ message: "Deconnexion reussie." });
+  res.json({ message: "Déconnexion réussie." });
 }
 
 export async function me(req: Request, res: Response): Promise<void> {

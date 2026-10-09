@@ -10,7 +10,7 @@ export async function get(req: Request, res: Response): Promise<void> {
   try {
     const view = await evalService.getForPhase(Number(req.params.phaseId));
     if (!view) {
-      res.status(404).json({ message: 'Aucune declaration de pre-evaluation pour cette phase.' });
+      res.status(404).json({ message: 'Aucune déclaration de pré-évaluation pour cette phase.' });
       return;
     }
     res.json(view);

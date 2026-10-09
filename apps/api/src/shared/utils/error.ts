@@ -84,19 +84,19 @@ const UPLOAD_ATTACH_ERRORS: ErrorMap = {
 export const handleAuthError = createErrorHandler(
   {
     ACCOUNT_NOT_FOUND: { status: 401, message: 'Compte introuvable ou inactif.' },
-    ACCOUNT_LOCKED: { status: 423, message: 'Compte temporairement bloque. Reessayez plus tard.' },
+    ACCOUNT_LOCKED: { status: 423, message: 'Compte temporairement bloque. Réessayez plus tard.' },
     ACCOUNT_INACTIVE: { status: 401, message: 'Compte inactif.' },
     OTP_REQUIRED: { status: 400, message: 'Code OTP requis.' },
-    OTP_NOT_GENERATED: { status: 400, message: 'Aucun OTP genere pour ce compte.' },
+    OTP_NOT_GENERATED: { status: 400, message: 'Aucun OTP généré pour ce compte.' },
     OTP_EXPIRED: { status: 400, message: 'Code OTP expire.' },
     OTP_INVALID: { status: 401, message: 'Code OTP invalide.' },
     PASSWORD_REQUIRED: { status: 400, message: 'Mot de passe requis.' },
-    PASSWORD_NOT_SET: { status: 400, message: 'Mot de passe non defini.' },
+    PASSWORD_NOT_SET: { status: 400, message: 'Mot de passe non défini.' },
     PASSWORD_INVALID: { status: 401, message: 'Mot de passe invalide.' },
     PASSWORDS_DO_NOT_MATCH: { status: 400, message: 'Les mots de passe ne correspondent pas.' },
     PASSWORD_TOO_SHORT: {
       status: 400,
-      message: 'Le mot de passe doit contenir au moins 8 caracteres.',
+      message: 'Le mot de passe doit contenir au moins 8 caractères.',
     },
   },
   '[auth]'
@@ -105,30 +105,30 @@ export const handleAuthError = createErrorHandler(
 export const handleUsersError = createErrorHandler(
   {
     USER_NOT_FOUND: { status: 404, message: 'Utilisateur introuvable.' },
-    EMPLOYEE_CODE_EXISTS: { status: 409, message: 'Ce matricule est deja utilise.' },
-    EMAIL_EXISTS: { status: 409, message: 'Cet email est deja utilise.' },
+    EMPLOYEE_CODE_EXISTS: { status: 409, message: 'Ce matricule est déjà utilise.' },
+    EMAIL_EXISTS: { status: 409, message: 'Cet email est déjà utilise.' },
     SU_CANNOT_BE_DEACTIVATED: {
       status: 403,
-      message: 'Le Super Admin ne peut pas etre desactive.',
+      message: 'Le Super Admin ne peut pas être désactivé.',
     },
-    ROLES_REQUIRED: { status: 400, message: 'Selectionnez au moins un role.' },
-    INVALID_ROLE: { status: 400, message: 'Role invalide ou duplique.' },
+    ROLES_REQUIRED: { status: 400, message: 'Sélectionnez au moins un rôle.' },
+    INVALID_ROLE: { status: 400, message: 'Rôle invalide ou duplique.' },
     SU_ROLE_REQUIRES_SU: {
       status: 403,
-      message: 'Seul un Super Admin peut attribuer ou retirer le role Super Admin.',
+      message: 'Seul un Super Admin peut attribuer ou retirer le rôle Super Admin.',
     },
     LAST_SU_ROLE_REQUIRED: {
       status: 409,
-      message: 'Impossible de retirer le dernier role Super Admin.',
+      message: 'Impossible de retirer le dernier rôle Super Admin.',
     },
     INVALID_EMPLOYEE_CODE: { status: 400, message: 'Matricule invalide.' },
     PERSONNEL_ANAC_UNAVAILABLE: {
       status: 503,
-      message: "L'annuaire Personnel ANAC est momentanement indisponible.",
+      message: "L'annuaire Personnel ANAC est momentanément indisponible.",
     },
     PERSONNEL_ANAC_AUTH_INVALID: {
       status: 502,
-      message: "La configuration d'acces a l'annuaire Personnel ANAC est invalide.",
+      message: "La configuration d'accès à l'annuaire Personnel ANAC est invalide.",
     },
     PERSONNEL_NOT_FOUND: {
       status: 404,
@@ -136,11 +136,11 @@ export const handleUsersError = createErrorHandler(
     },
     PERSONNEL_ANAC_RATE_LIMITED: {
       status: 429,
-      message: "L'annuaire Personnel ANAC limite temporairement les requetes.",
+      message: "L'annuaire Personnel ANAC limite temporairement les requêtes.",
     },
     PERSONNEL_ANAC_UNKNOWN_ERROR: {
       status: 502,
-      message: "Erreur inattendue lors de l'appel a l'annuaire Personnel ANAC.",
+      message: "Erreur inattendue lors de l'appel à l'annuaire Personnel ANAC.",
     },
   },
   '[users]'
@@ -150,25 +150,25 @@ export const handlePersonnelAnacError = createErrorHandler(
   {
     PERSONNEL_SEARCH_TOO_SHORT: {
       status: 400,
-      message: 'Saisissez au moins 2 caracteres pour rechercher un agent ANAC.',
+      message: 'Saisissez au moins 2 caractères pour rechercher un agent ANAC.',
     },
     INVALID_EMPLOYEE_CODE: { status: 400, message: 'Matricule invalide.' },
     PERSONNEL_ANAC_UNAVAILABLE: {
       status: 503,
-      message: "L'annuaire Personnel ANAC est momentanement indisponible.",
+      message: "L'annuaire Personnel ANAC est momentanément indisponible.",
     },
     PERSONNEL_ANAC_AUTH_INVALID: {
       status: 502,
-      message: "La configuration d'acces a l'annuaire Personnel ANAC est invalide.",
+      message: "La configuration d'accès à l'annuaire Personnel ANAC est invalide.",
     },
     PERSONNEL_NOT_FOUND: { status: 404, message: 'Agent ANAC introuvable.' },
     PERSONNEL_ANAC_RATE_LIMITED: {
       status: 429,
-      message: "L'annuaire Personnel ANAC limite temporairement les requetes.",
+      message: "L'annuaire Personnel ANAC limite temporairement les requêtes.",
     },
     PERSONNEL_ANAC_UNKNOWN_ERROR: {
       status: 502,
-      message: "Erreur inattendue lors de l'appel a l'annuaire Personnel ANAC.",
+      message: "Erreur inattendue lors de l'appel à l'annuaire Personnel ANAC.",
     },
   },
   '[personnel-anac]'
@@ -186,26 +186,26 @@ export const handleAccountRequestsError = createErrorHandler(
     },
     ACCOUNT_REQUEST_ALREADY_PENDING: {
       status: 409,
-      message: 'Une demande de compte est deja en attente pour cet email.',
+      message: 'Une demande de compte est déjà en attente pour cet email.',
     },
     ACCOUNT_REQUEST_NOT_FOUND: { status: 404, message: 'Demande de compte introuvable.' },
     ACCOUNT_REQUEST_ALREADY_REVIEWED: {
       status: 409,
-      message: 'Cette demande de compte a deja ete traitee.',
+      message: 'Cette demande de compte a déjà été traitée.',
     },
     APPLICANT_EMAIL_EXISTS: {
       status: 409,
-      message: 'Un compte postulant existe deja pour cet email.',
+      message: 'Un compte postulant existe déjà pour cet email.',
     },
     APPLICANT_NOT_FOUND: { status: 404, message: 'Compte postulant introuvable.' },
     ORGANISATION_NOT_FOUND: { status: 404, message: 'Organisme introuvable.' },
     ORGANISATION_ALREADY_EXISTS: {
       status: 409,
-      message: 'Un organisme existe deja avec ce nom normalise. Selectionnez-le dans la revue.',
+      message: 'Un organisme existe déjà avec ce nom normalise. Selectionnez-le dans la revue.',
     },
     ORGANISATION_REVIEW_REQUIRED: {
       status: 400,
-      message: 'Selectionnez un organisme existant ou creez un nouvel organisme.',
+      message: 'Sélectionnez un organisme existant ou créez un nouvel organisme.',
     },
     REJECTION_REASON_REQUIRED: {
       status: 400,
@@ -213,7 +213,7 @@ export const handleAccountRequestsError = createErrorHandler(
     },
     PASSWORD_TOO_SHORT: {
       status: 400,
-      message: 'Le mot de passe doit contenir au moins 8 caracteres.',
+      message: 'Le mot de passe doit contenir au moins 8 caractères.',
     },
   },
   '[account-requests]'
@@ -223,12 +223,12 @@ export const handleRequestsError = createErrorHandler(
   {
     REQUEST_ALREADY_ACTIVE: {
       status: 409,
-      message: 'Une demande est deja active pour cet organisme.',
+      message: 'Une demande est déjà active pour cet organisme.',
     },
     REQUEST_NOT_FOUND: { status: 404, message: 'Demande introuvable.' },
     REQUEST_NOT_CANCELLABLE: {
       status: 409,
-      message: 'Cette demande ne peut plus etre annulee (deja signee ou au-dela).',
+      message: 'Cette demande ne peut plus être annulée (déjà signée ou au-dela).',
     },
     APPLICANT_NOT_FOUND: { status: 404, message: 'Postulant introuvable.' },
     DG_CIRCUIT_NOT_FOUND: { status: 404, message: 'Circuit DG introuvable pour cette demande.' },
@@ -248,28 +248,28 @@ export const handlePhasesError = createErrorHandler(
     REQUEST_NOT_FOUND: { status: 404, message: 'Demande introuvable.' },
     REQUEST_NOT_READY_FOR_PHASE: {
       status: 409,
-      message: "La demande doit etre en attente de traitement avant d'ouvrir cette phase.",
+      message: "La demande doit être en attente de traitement avant d'ouvrir cette phase.",
     },
     PHASE_ALREADY_OPEN: {
       status: 409,
-      message: 'Cette phase est deja ouverte pour cette demande.',
+      message: 'Cette phase est déjà ouverte pour cette demande.',
     },
     PHASE_NOT_FOUND: { status: 404, message: 'Phase introuvable.' },
-    PHASE_ALREADY_CLOSED: { status: 409, message: 'Cette phase est deja cloturee.' },
+    PHASE_ALREADY_CLOSED: { status: 409, message: 'Cette phase est déjà clôturée.' },
     MEETING_NOT_RESOLVED: {
       status: 409,
       message:
-        "La reunion doit d'abord etre resolue (tenue, absence, ou dossier annule) avant de cloturer la phase.",
+        "La réunion doit d'abord être résolue (tenue, absence, ou dossier annulé) avant de clôturer la phase.",
     },
     DECLARATION_NOT_SUBMITTED: {
       status: 409,
       message:
-        "Le postulant doit d'abord retourner sa declaration de pre-evaluation remplie avant de cloturer la phase.",
+        "Le postulant doit d'abord retourner sa déclaration de pré-évaluation remplie avant de clôturer la phase.",
     },
     PRELIMINARY_DG_RETURN_REQUIRED: {
       status: 409,
       message:
-        "La declaration de pre-evaluation doit d'abord revenir signee/visee par la DG (circuit courrier) avant de cloturer la phase.",
+        "La déclaration de pré-évaluation doit d'abord revenir signée/visée par la DG (circuit courrier) avant de clôturer la phase.",
     },
     ...UPLOAD_ATTACH_ERRORS,
   },
@@ -281,25 +281,25 @@ export const handleMeetingsError = createErrorHandler(
     PHASE_NOT_FOUND: { status: 404, message: 'Phase introuvable.' },
     PHASE_NOT_OPEN: {
       status: 409,
-      message: 'La phase doit etre ouverte pour planifier une reunion.',
+      message: 'La phase doit être ouverte pour planifier une réunion.',
     },
     MEETING_SLOT_CONFLICT: {
       status: 409,
-      message: 'Cet agent DN a deja une reunion planifiee active exactement a ce creneau.',
+      message: 'Cet agent DN a déjà une réunion planifiée active exactement à ce créneau.',
     },
     FORMAL_LETTER_RETURN_REQUIRED: {
       status: 409,
       message:
-        'La lettre de demande formelle doit revenir signee avant de planifier la reunion formelle.',
+        'La lettre de demande formelle doit revenir signée avant de planifier la réunion formelle.',
     },
-    MEETING_NOT_FOUND: { status: 404, message: 'Reunion introuvable.' },
+    MEETING_NOT_FOUND: { status: 404, message: 'Réunion introuvable.' },
     MEETING_NOT_SCHEDULED: {
       status: 409,
-      message: "Cette reunion n'est plus au statut planifie.",
+      message: "Cette réunion n'est plus au statut planifié.",
     },
     MEETING_NOT_HELD: {
       status: 409,
-      message: "Le compte-rendu ne peut etre envoye qu'une fois la reunion tenue.",
+      message: "Le compte-rendu ne peut être envoyé qu'une fois la réunion tenue.",
     },
     ...UPLOAD_ATTACH_ERRORS,
   },
@@ -309,24 +309,24 @@ export const handleMeetingsError = createErrorHandler(
 export const handlePreliminaryEvaluationError = createErrorHandler(
   {
     PHASE_NOT_FOUND: { status: 404, message: 'Phase introuvable.' },
-    WRONG_PHASE: { status: 400, message: 'Cette action ne concerne que la phase preliminaire.' },
-    PHASE_NOT_OPEN: { status: 409, message: 'La phase doit etre ouverte.' },
+    WRONG_PHASE: { status: 400, message: 'Cette action ne concerne que la phase préliminaire.' },
+    PHASE_NOT_OPEN: { status: 409, message: 'La phase doit être ouverte.' },
     TEMPLATE_NOT_CONFIGURED: {
       status: 409,
-      message: "Le modele de declaration de pre-evaluation n'a pas encore ete configure par la DN.",
+      message: "Le modèle de déclaration de pré-évaluation n'a pas encore été configuré par la DN.",
     },
     MEETING_NOT_HELD_YET: {
       status: 409,
       message:
-        "La reunion preliminaire doit d'abord etre marquee tenue avant de rendre la declaration disponible.",
+        "La réunion préliminaire doit d'abord être marquée tenue avant de rendre la déclaration disponible.",
     },
     NOT_YET_AVAILABLE: {
       status: 409,
-      message: "La declaration n'a pas encore ete mise a disposition par la DN.",
+      message: "La déclaration n'a pas encore été mise à disposition par la DN.",
     },
     DECLARATION_ALREADY_SUBMITTED: {
       status: 409,
-      message: 'La declaration de pre-evaluation a deja ete soumise.',
+      message: 'La déclaration de pré-évaluation a déjà été soumise.',
     },
     ...UPLOAD_ATTACH_ERRORS,
   },
@@ -336,34 +336,34 @@ export const handlePreliminaryEvaluationError = createErrorHandler(
 export const handleDevToolsError = createErrorHandler(
   {
     STATUS_NOT_FOUND: { status: 404, message: 'Statut introuvable.' },
-    DEV_RESET_DISABLED: { status: 403, message: 'Les outils de developpement sont desactives.' },
+    DEV_RESET_DISABLED: { status: 403, message: 'Les outils de développement sont désactivés.' },
     DEV_RESET_PRODUCTION_GUARD: {
       status: 403,
       message:
-        'Le nettoyage developpement est bloque en production sans activation explicite serveur.',
+        'Le nettoyage développement est bloque en production sans activation explicite serveur.',
     },
     INVALID_SESSION_DURATION: {
       status: 400,
-      message: 'La duree de maintenance doit etre comprise entre 15 et 480 minutes.',
+      message: 'La durée de maintenance doit être comprise entre 15 et 480 minutes.',
     },
     MAINTENANCE_SESSION_REQUIRED: {
       status: 409,
-      message: 'Demarrez une session de maintenance avant de nettoyer les donnees.',
+      message: 'Démarrez une session de maintenance avant de nettoyer les données.',
     },
     INVALID_CONFIRMATION: {
       status: 400,
       message: 'Confirmation invalide. Tapez NETTOYER pour continuer.',
     },
-    INVALID_SCOPE: { status: 400, message: 'Categorie de nettoyage invalide.' },
-    RESET_FAILED: { status: 500, message: 'La reinitialisation a echoue.' },
+    INVALID_SCOPE: { status: 400, message: 'Catégorie de nettoyage invalide.' },
+    RESET_FAILED: { status: 500, message: 'La réinitialisation a échoué.' },
   },
   '[dev-tools]'
 );
 
 export const handleSystemParametersError = createErrorHandler(
   {
-    PARAMETER_NOT_FOUND: { status: 404, message: 'Parametre introuvable.' },
-    INVALID_PARAMETER_VALUE: { status: 400, message: 'Valeur de parametre invalide.' },
+    PARAMETER_NOT_FOUND: { status: 404, message: 'Paramètre introuvable.' },
+    INVALID_PARAMETER_VALUE: { status: 400, message: 'Valeur de paramètre invalide.' },
   },
   '[system-parameters]'
 );
@@ -400,7 +400,7 @@ export const handleFormalRequestError = createErrorHandler(
     },
     FORMAL_DOCUMENT_APPLICANT_ONLY: {
       status: 403,
-      message: 'Les pieces du dossier formel doivent etre deposees par le postulant.',
+      message: 'Les pièces du dossier formel doivent être déposées par le postulant.',
     },
     DOCUMENTS_INCOMPLETE: {
       status: 409,
@@ -517,7 +517,7 @@ export const handleSiteInspectionError = createErrorHandler(
     },
     SITE_VISIT_NOT_ASSIGNED: {
       status: 403,
-      message: "Cette visite sur site n'est pas assignee a cet agent R3.",
+      message: "Cette visite sur site n'est pas assignée à cet agent R3.",
     },
     SITE_VISIT_NOT_HELD: {
       status: 409,

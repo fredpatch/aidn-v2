@@ -23,14 +23,14 @@ export async function list(_req: Request, res: Response): Promise<void> {
 export async function getByKey(req: Request, res: Response): Promise<void> {
   const key = req.params.key as string;
   if (!isValidKey(key)) {
-    res.status(400).json({ message: 'Cle de modele inconnue.' });
+    res.status(400).json({ message: 'Clé de modèle inconnue.' });
     return;
   }
 
   try {
     const template = await templatesService.getTemplateByKey(key);
     if (!template || !template.active || !template.fileUrl || !template.fileExists) {
-      res.status(404).json({ message: 'Modele non disponible.' });
+      res.status(404).json({ message: 'Modèle non disponible.' });
       return;
     }
     res.json(template);
@@ -44,7 +44,7 @@ export async function getByKey(req: Request, res: Response): Promise<void> {
 export async function listVersions(req: Request, res: Response): Promise<void> {
   const key = req.params.key as string;
   if (!isValidKey(key)) {
-    res.status(400).json({ message: 'Cle de modele inconnue.' });
+    res.status(400).json({ message: 'Clé de modèle inconnue.' });
     return;
   }
 
@@ -65,7 +65,7 @@ export async function upsert(req: Request, res: Response): Promise<void> {
     return;
   }
   if (!isValidKey(key)) {
-    res.status(400).json({ message: 'Cle de modele inconnue.' });
+    res.status(400).json({ message: 'Clé de modèle inconnue.' });
     return;
   }
 
