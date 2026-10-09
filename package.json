@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "description": "AIDN - Application Informatique de la Direction de la Navigabilite - ANAC Gabon",
   "private": true,
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "workspaces": [
     "apps/*",
     "packages/*"

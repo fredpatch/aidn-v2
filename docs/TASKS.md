@@ -1244,9 +1244,38 @@ sécurité.
 - [ ] K8b : contrainte d'unicité sur `certificates.request_id` (migration) -
       après passage d'une requête de contrôle des doublons sur chaque
       environnement
-- [ ] Lot CI : revue frontend en Node 22, tests non exclus du déclenchement,
-      typecheck / build bloquants, commentaire de revue réparé, exécution sur
-      `main`
+- [x] Lot CI : voir CI-1 ci-dessous
+- [ ] K8b repoussé (décision Fred) : défense en profondeur, pas de bug actuel
+      (la seule création de certificat est déjà protégée) ; à faire avant la
+      mise en production, avec la prochaine migration nécessaire
+
+### CI-1 (2026-10-08) - Node 22 partout, revue frontend fiabilisée
+
+- [x] **Constat** : seule la revue frontend tournait encore en Node 18 (fin de
+      vie avril 2025) ; images Docker (`node:22-*`) et Migration Integrity
+      déjà en Node 22. Audit des 789 paquets : aucun incompatible avec Node
+      22 ; 9 déjà incompatibles avec Node 18, dont `puppeteer@25` (Node
+      ≥ 22.12) et `node-cron@4` (≥ 20) côté API → Node 22.12 est le vrai
+      minimum
+- [x] `.nvmrc` (22) et `engines.node` `>=22.12.0` (racine, lockfile synchronisé :
+      seule l'entrée `engines` change) ; `frontend-review.yml` lit `.nvmrc`
+- [x] `frontend-review.yml` : les fichiers de test ne sont plus exclus du
+      déclenchement ; exécution aussi sur `main` (contrôles seulement, la revue
+      de PR reste réservée aux PR) ; typecheck et build **bloquants** ;
+      commentaire de revue réparé (sortie `review_report` jamais définie →
+      commentaire vide ; rapport transmis par variable d'environnement au lieu
+      d'être collé dans le script, ce qui cassait sur la première apostrophe -
+      reproduit hors ligne)
+- [x] Vérifié en Node 22.22 sur un clone neuf : `npm ci`, typecheck, lint,
+      portail 94/94, admin 125/125, build ; job Migration Integrity complet
+      (contrôles, 2 migrations, seeds, API 351/351) ; API construite lancée
+      par `node dist/server.js` (répond) ; PDF Puppeteer généré. `actionlint`
+      sans erreur sur les deux workflows
+- [ ] Non vérifiable ici : la première exécution GitHub Actions (à confirmer
+      par Fred) et l'étape de revue de PR (API GitHub)
+- [ ] Postes de dev : Node ≥ 22.12 requis (`npm` avertit sinon)
+- [ ] Optionnel : `@testing-library/jest-dom` reste en 6.9 (épinglé pour Node
+      18) ; la 6.10 est désormais possible
 
 ## Sprint 7 - Documents (transverse, M8)
 

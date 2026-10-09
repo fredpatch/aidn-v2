@@ -1,5 +1,7 @@
 name: Frontend Automated Review
 
+# CI-1 - also on main after each push (the checks, not the PR review), and a
+# PR that only changes tests runs them too (test files are no longer excluded).
 on:
   pull_request:
     types: [opened, synchronize, reopened]
@@ -7,9 +9,16 @@ on:
       - 'apps/admin/**'
       - 'apps/portal/**'
       - 'packages/**'
+      - '.github/workflows/frontend-review.yml'
       - '!**/*.md'
-      - '!**/*.test.ts'
-      - '!**/*.test.tsx'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/admin/**'
+      - 'apps/portal/**'
+      - 'packages/**'
+      - '.github/workflows/frontend-review.yml'
+      - '!**/*.md'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -34,7 +43,9 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          # CI-1 - same major as the Docker images and Migration Integrity;
+          # puppeteer and node-cron already require Node >= 22.12 / >= 20.
+          node-version-file: '.nvmrc'
           cache: 'npm'
 
       - name: Install dependencies
@@ -51,8 +62,8 @@ jobs:
         run: npm run test --workspace=apps/admin
 
       - name: Run typecheck
+        # Blocking since CI-1 (api, admin, portal, shared at 0 errors).
         run: npm run typecheck
-        continue-on-error: true
 
       - name: Run lint
         # Blocking since Batch K1: api, admin and portal are at 0 errors
@@ -60,10 +71,11 @@ jobs:
         run: npm run lint
 
       - name: Build affected packages
+        # Blocking since CI-1.
         run: npm run build
-        continue-on-error: true
 
       - name: Get PR diff
+        if: github.event_name == 'pull_request'
         id: diff
         run: |
           git diff origin/${{ github.base_ref }}...HEAD > /tmp/pr.diff
@@ -71,6 +83,7 @@ jobs:
           echo "diff_path=/tmp/pr.diff" >> $GITHUB_OUTPUT
 
       - name: Extract changed files
+        if: github.event_name == 'pull_request'
         id: files
         run: |
           git diff --name-only origin/${{ github.base_ref }}...HEAD > /tmp/changed-files.txt
@@ -78,6 +91,7 @@ jobs:
 
       - name: Run Frontend Review Agent
         id: review
+        if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -104,6 +118,9 @@ jobs:
             
             const report = await reviewAgent.review();
             
+            // CI-1 - the comment step reads the report from this output (it was
+            // never set, so the comment was always empty).
+            core.setOutput('review_report', JSON.stringify(report));
             core.setOutput('verdict', report.verdict);
             core.setOutput('blocking_issues', JSON.stringify(report.blockingIssues));
             core.setOutput('has_blocking', report.blockingIssues.length > 0 ? 'true' : 'false');
@@ -111,15 +128,18 @@ jobs:
             return report;
 
       - name: Comment PR with Review Report
-        if: always()
+        # CI-1 - only when the review ran; the report goes through an env var
+        # (pasting it into the script text broke on any quote it contained).
+        if: always() && github.event_name == 'pull_request' && steps.review.outputs.review_report != ''
         uses: actions/github-script@v7
+        env:
+          REVIEW_REPORT: ${{ steps.review.outputs.review_report }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const fs = require('fs');
             const ReviewReport = require('./.github/scripts/review-report-formatter.js');
-            
-            const report = JSON.parse('${{ steps.review.outputs.review_report }}' || '{}');
+
+            const report = JSON.parse(process.env.REVIEW_REPORT || '{}');
             const formatter = new ReviewReport();
             const comment = formatter.formatAsMarkdown(report);
             
@@ -131,13 +151,16 @@ jobs:
             });
 
       - name: Set PR status
-        if: always()
+        if: always() && github.event_name == 'pull_request' && steps.review.outputs.verdict != ''
         uses: actions/github-script@v7
+        env:
+          HAS_BLOCKING: ${{ steps.review.outputs.has_blocking }}
+          VERDICT: ${{ steps.review.outputs.verdict }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const hasBlocking = '${{ steps.review.outputs.has_blocking }}' === 'true';
-            const verdict = '${{ steps.review.outputs.verdict }}';
+            const hasBlocking = process.env.HAS_BLOCKING === 'true';
+            const verdict = process.env.VERDICT;
             
             let state = 'success';
             let description = `Frontend review completed: ${verdict}`;
