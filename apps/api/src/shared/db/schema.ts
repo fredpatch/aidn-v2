@@ -10,6 +10,7 @@ import {
   jsonb,
   index,
   uniqueIndex,
+  primaryKey,
 } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 
@@ -693,6 +694,22 @@ export const uploadAssets = pgTable(
 );
 
 // ── M13 - Audit log ──────────────────────────────────────────────────────────
+/** D3b - when each internal user last opened a dossier in the Demandes
+ *  reading pane (« non lues » per agent). Deleted with its request or user. */
+export const requestViews = pgTable(
+  'request_views',
+  {
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    requestId: integer('request_id')
+      .notNull()
+      .references(() => requests.id, { onDelete: 'cascade' }),
+    lastViewedAt: timestamp('last_viewed_at').notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.requestId] })]
+);
+
 export const auditLogs = pgTable(
   'audit_logs',
   {

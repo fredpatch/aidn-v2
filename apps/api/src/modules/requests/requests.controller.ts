@@ -87,8 +87,18 @@ export async function list(req: Request, res: Response): Promise<void> {
 
 export async function cockpit(req: Request, res: Response): Promise<void> {
   try {
-    const result = await requestsService.listRequestCockpit();
+    const result = await requestsService.listRequestCockpit(req.user!.userId);
     res.json(result);
+  } catch (error) {
+    handleRequestsError(res, error);
+  }
+}
+
+/** D3b - the reading pane opened this dossier (204, no body). */
+export async function markViewed(req: Request, res: Response): Promise<void> {
+  try {
+    await requestsService.markRequestViewed(Number(req.params.id), req.user!.userId);
+    res.status(204).end();
   } catch (error) {
     handleRequestsError(res, error);
   }

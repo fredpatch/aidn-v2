@@ -23,6 +23,7 @@ const item = (over: Partial<RequestCockpitItem>): RequestCockpitItem => ({
   createdAt: '2026-10-01T09:00:00.000Z',
   updatedAt: '2026-10-01T09:00:00.000Z',
   lastActivityAt: '2026-10-01T09:00:00.000Z',
+  unread: false,
   organisationName: 'OMA Test',
   organisationEmail: null,
   organisationPhone: null,

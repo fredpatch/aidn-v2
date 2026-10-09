@@ -179,10 +179,15 @@ describe('D3a audit -> request link (real PostgreSQL)', { skip }, () => {
     assert.equal(item.activity.length, 5);
     assert.equal(item.activity[0].title, 'Paiement validé');
     assert.equal(item.activity.at(-1).title, 'Phase ouverte (M5)');
+    // Read as UTC text in SQL: never through the test process's time zone.
     const latest = (
-      await one(`SELECT max(created_at) AS at FROM audit_logs WHERE request_id = $1`, [d.request])
+      await one(
+        `SELECT to_char(max(created_at), 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS at FROM audit_logs WHERE request_id = $1`,
+        [d.request]
+      )
     ).at;
-    assert.equal(item.lastActivityAt, new Date(latest).toISOString());
+    assert.equal(item.lastActivityAt, latest);
+    assert.equal(item.activity[0].createdAt, latest);
   });
 
   it('cockpit: a dossier with no linked event falls back to its submission date', async () => {

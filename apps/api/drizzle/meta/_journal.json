@@ -43,6 +43,13 @@
       "when": 1791550302582,
       "tag": "0005_d3a_audit_request",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791551383879,
+      "tag": "0006_d3b_request_views",
+      "breakpoints": true
     }
   ]
 }

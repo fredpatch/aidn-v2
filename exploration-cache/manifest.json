@@ -5,12 +5,12 @@
   "branch": "main",
   "lastUpdated": "2026-10-09T00:00:00+01:00",
   "currentSprint": "Post-M7 workflow hardening",
-  "currentSprintFocus": "D3a dossier-linked activity is implemented. Next: D3b request views/unread state, D3c admin unread/sort affordances, final role replay, analytics hardening, and notifications V1.",
-  "status": "Sprints 0-6 complete end-to-end. D3a links audit events to dossiers, backfills history with migration 0005, and exposes all-phase cockpit activity plus lastActivityAt.",
+  "currentSprintFocus": "D3b request views/unread state is implemented. Next: D3c admin unread/sort affordances, final role replay, analytics hardening, and notifications V1.",
+  "status": "Sprints 0-6 complete end-to-end. D3b adds per-agent request_views, unread calculation, a view-marking endpoint, and a UTC timestamp fix for D3a activity.",
   "activeSession": {
-    "task": "Commit and push D3a dossier-linked audit activity after docs/cache updates.",
+    "task": "Commit and push D3b request views/unread state after docs/cache updates.",
     "startedAt": "2026-10-09",
-    "nextAction": "Run verification, commit D3a, push main, then start D3b request_views/unread state."
+    "nextAction": "Run verification, commit D3b, push main, then start D3c admin unread/sort affordances."
   },
   "index": [
     {
@@ -22,14 +22,14 @@
     {
       "path": "changelog.md",
       "type": "history",
-      "tags": ["git", "history", "audit", "d3a", "activity"],
-      "summary": "Commit-level history including the 2026-10-09 D3a dossier-linked activity batch"
+      "tags": ["git", "history", "requests", "d3b", "unread"],
+      "summary": "Commit-level history including the 2026-10-09 D3b request views/unread batch"
     },
     {
       "path": "active-session/current-task.md",
       "type": "session",
-      "tags": ["current", "post-m7", "audit", "d3a", "activity"],
-      "summary": "Current state: D3a audit activity implemented; commit/push in progress"
+      "tags": ["current", "post-m7", "requests", "d3b", "unread"],
+      "summary": "Current state: D3b request views/unread implemented; commit/push in progress"
     },
     {
       "path": "active-session/next-actions.md",
@@ -66,6 +66,12 @@
       "type": "session-log",
       "tags": ["audit", "d3a", "activity", "migration", "session-log"],
       "summary": "D3a audit_logs.request_id, migration 0005, all-phase cockpit activity, and lastActivityAt"
+    },
+    {
+      "path": "sessions/2026-10-09-d3b-request-views.md",
+      "type": "session-log",
+      "tags": ["requests", "d3b", "unread", "migration", "session-log"],
+      "summary": "D3b request_views, per-agent unread state, mark-viewed endpoint, and UTC timestamp fix"
     },
     {
       "path": "docs/TASKS.md",

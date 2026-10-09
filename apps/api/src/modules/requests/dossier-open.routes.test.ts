@@ -77,6 +77,7 @@ const KNOWN_WRITE_ROUTES: Record<string, string> = {
   'requests POST /:id/return-signed-from-dg': 'guarded',
   'requests POST /:id/cancel': 'guarded',
   'requests POST /:id/replace-document': 'guarded',
+  'requests POST /:id/view': 'D3b consultation record (unread per agent): viewing stays allowed on a closed dossier',
 };
 
 function writeRoutes(): string[] {

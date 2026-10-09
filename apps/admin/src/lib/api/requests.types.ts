@@ -57,6 +57,8 @@ export interface RequestCockpitItem {
   activity: RequestCockpitActivity[];
   /** D3a - latest linked dossier event, or the submission date. */
   lastActivityAt: string;
+  /** D3b - open dossier with news since this agent last opened it. */
+  unread: boolean;
 }
 
 export interface RequestCockpitSummary {

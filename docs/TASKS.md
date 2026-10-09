@@ -1663,8 +1663,33 @@ rattachable reste NULL (aucune inférence).
       le dépôt, libellés complets). Migration rejouée sur base vierge. API
       316/316 (DB suites ignorées sans `DATABASE_URL`), admin 171/171,
       portail 94/94, typecheck, lint (0 erreur), build
-- [ ] D3b : `request_views` et « non lues » par agent
+- [x] D3b : voir section D3b
 - [ ] D3c : tri « Dernière activité », non lues en gras, repères (admin)
+
+### D3b (2026-10-09) - « Non lues » par agent (API + migration 0006)
+
+- [x] Table `request_views (user_id, request_id, last_viewed_at)`, clé
+      primaire composée, suppression en cascade avec la demande ou l'agent
+- [x] `POST /requests/:id/view` (rôles du cockpit : DN, superviseur DN, SU),
+      204 ; upsert sur l'horloge de la base, comme `audit_logs.created_at`.
+      Déclarée dans l'inventaire K7 comme consultation (autorisée sur un
+      dossier clos)
+- [x] Cockpit : `unread` pour l'agent connecté = dossier ouvert avec un
+      événement d'un autre que lui (ou le dépôt) après sa dernière ouverture,
+      ou jamais ouvert. Ses propres actions ne comptent pas ; un dossier clos
+      (K7) n'est jamais « non lu »
+- [x] **Correctif D3a** : `lastActivityAt` et les dates du fil d'activité
+      étaient lus dans le fuseau du serveur Node (agrégats SQL et requête
+      brute), pas en UTC comme les colonnes Drizzle : décalage d'une heure en
+      UTC+1. Décodage aligné sur la colonne ; test D3a renforcé (il échoue sur
+      l'ancien code en `TZ=Africa/Libreville`)
+- [x] Admin : types `unread`, client `markRequestViewed` (appel branché en D3c)
+- [x] Tests : `request-views.db.test.ts` (4, PostgreSQL réel, ignoré sans
+      `DATABASE_URL`). Vérification locale avant commit : API 316/316
+      (suites DB ignorées sans `DATABASE_URL`), admin 171/171, portail 94/94,
+      typecheck, lint (0 erreur), build
+- Au déploiement : tous les dossiers ouverts sont « non lus » pour chaque
+  agent jusqu'à leur première ouverture
 
 ## Sprint 7 - Documents (transverse, M8)
 

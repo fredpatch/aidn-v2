@@ -85,6 +85,8 @@ export interface RequestCockpitItem {
   activity: RequestCockpitActivity[];
   /** D3a - latest linked audit event, or the submission date. */
   lastActivityAt: string;
+  /** D3b - for the viewer: open dossier with news since they last opened it. */
+  unread: boolean;
 }
 
 export interface RequestCockpitSummary {

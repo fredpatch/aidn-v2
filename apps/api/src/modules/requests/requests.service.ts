@@ -10,6 +10,7 @@ import {
   applicants,
   organisations,
   phases,
+  requestViews,
 } from '../../shared/db/schema.js';
 import { logAudit } from '../auth/auth.service.js';
 import { generateRequestReference } from './requests.helpers.js';
@@ -31,7 +32,7 @@ import {
   type PreparedAttachment,
 } from '../uploads/upload-attachment.js';
 import { relocateDossierAssetAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
-import { assertDossierOpen } from './dossier-open.js';
+import { assertDossierOpen, dossierFlags } from './dossier-open.js';
 
 export type { SubmitRequestParams, RequestView } from './requests.types.js';
 
@@ -146,6 +147,13 @@ function activityLabel(
   if (known) return known;
   if (action.startsWith('MEETING_')) return { title: 'Réunion mise à jour', tone: 'info' };
   return { title: action.replaceAll('_', ' ').toLowerCase(), tone: 'info' };
+}
+
+/** A raw `timestamp` (no time zone) read through db.execute: decoded as UTC,
+ *  the same convention as drizzle's column decoder (never the server's zone). */
+function utcTimestamp(value: Date | string): Date {
+  if (value instanceof Date) return value;
+  return new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(value) ? value : `${value.replace(' ', 'T')}Z`);
 }
 
 function latestDate(a: Date, b: Date | undefined): Date {
@@ -360,7 +368,43 @@ export async function listRequests(filters: { status?: string }): Promise<Reques
   return withCircuit;
 }
 
-export async function listRequestCockpit(): Promise<RequestCockpitSummary> {
+/** D3b - the viewer opened this dossier in the reading pane (upsert). */
+export async function markRequestViewed(requestId: number, userId: number): Promise<void> {
+  if (!Number.isInteger(requestId) || requestId <= 0) throw new Error('REQUEST_NOT_FOUND');
+  const [request] = await db
+    .select({ id: requests.id })
+    .from(requests)
+    .where(eq(requests.id, requestId));
+  if (!request) throw new Error('REQUEST_NOT_FOUND');
+  // Database clock, like audit_logs.created_at: both sides of the unread
+  // comparison come from the same clock.
+  await db
+    .insert(requestViews)
+    .values({ userId, requestId, lastViewedAt: sql`now()` })
+    .onConflictDoUpdate({
+      target: [requestViews.userId, requestViews.requestId],
+      set: { lastViewedAt: sql`now()` },
+    });
+}
+
+/**
+ * D3b - « non lue » for one agent: something happened on an open dossier
+ * since this agent last opened it (or never opened it). The agent's own
+ * events do not count; the submission (applicant) does. A closed dossier
+ * (K7) is never unread: nothing is left to do on it.
+ */
+export function isUnread(params: {
+  closed: boolean;
+  createdAt: Date;
+  lastOthersActivityAt: Date | undefined;
+  lastViewedAt: Date | undefined;
+}): boolean {
+  if (params.closed) return false;
+  if (!params.lastViewedAt) return true;
+  return latestDate(params.createdAt, params.lastOthersActivityAt) > params.lastViewedAt;
+}
+
+export async function listRequestCockpit(viewerUserId?: number): Promise<RequestCockpitSummary> {
   const [
     requestRows,
     phaseRows,
@@ -369,6 +413,7 @@ export async function listRequestCockpit(): Promise<RequestCockpitSummary> {
     evaluationRows,
     activityResult,
     lastActivityRows,
+    viewRows,
   ] = await Promise.all([
     db
       .select({
@@ -401,11 +446,16 @@ export async function listRequestCockpit(): Promise<RequestCockpitSummary> {
     db
       .select({
         requestId: auditLogs.requestId,
-        lastActivityAt: sql<Date>`max(${auditLogs.createdAt})`.mapWith((value) => new Date(value)),
+        lastActivityAt: sql<Date>`max(${auditLogs.createdAt})`.mapWith(auditLogs.createdAt),
+        // D3b - same, without the viewer's own events (null when only theirs).
+        lastOthersActivityAt: sql<Date | null>`max(${auditLogs.createdAt}) filter (where ${auditLogs.userId} is distinct from ${viewerUserId ?? null})`.mapWith(auditLogs.createdAt),
       })
       .from(auditLogs)
       .where(isNotNull(auditLogs.requestId))
       .groupBy(auditLogs.requestId),
+    viewerUserId === undefined
+      ? Promise.resolve([] as Array<typeof requestViews.$inferSelect>)
+      : db.select().from(requestViews).where(eq(requestViews.userId, viewerUserId)),
   ]);
 
   const phaseRowsByRequestId = new Map<number, Array<typeof phases.$inferSelect>>();
@@ -439,7 +489,7 @@ export async function listRequestCockpit(): Promise<RequestCockpitSummary> {
       id: activity.id,
       title: label.title,
       actor: activity.actor ?? 'Système',
-      createdAt: new Date(activity.created_at).toISOString(),
+      createdAt: utcTimestamp(activity.created_at).toISOString(),
       tone: label.tone,
     });
     activitiesByRequestId.set(activity.request_id, list);
@@ -447,6 +497,10 @@ export async function listRequestCockpit(): Promise<RequestCockpitSummary> {
   const lastActivityByRequestId = new Map(
     lastActivityRows.map((row) => [row.requestId as number, row.lastActivityAt])
   );
+  const lastOthersActivityByRequestId = new Map(
+    lastActivityRows.map((row) => [row.requestId as number, row.lastOthersActivityAt ?? undefined])
+  );
+  const lastViewedByRequestId = new Map(viewRows.map((row) => [row.requestId, row.lastViewedAt]));
 
   function phasesForRequest(requestId: number): RequestCockpitPhase[] {
     const rows = phaseRowsByRequestId.get(requestId) ?? [];
@@ -632,6 +686,12 @@ export async function listRequestCockpit(): Promise<RequestCockpitSummary> {
         row.request.createdAt,
         lastActivityByRequestId.get(row.request.id)
       ).toISOString(),
+      unread: isUnread({
+        closed: dossierFlags(row.request.status).dossierClosed,
+        createdAt: row.request.createdAt,
+        lastOthersActivityAt: lastOthersActivityByRequestId.get(row.request.id),
+        lastViewedAt: lastViewedByRequestId.get(row.request.id),
+      }),
     };
   });
 

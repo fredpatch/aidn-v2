@@ -1,7 +1,27 @@
 # 📝 AIDN v2 - Changelog
 
-Commit-level history. Covers `be9fce9` through the 2026-10-09 D3a audit
-request activity batch.
+Commit-level history. Covers `be9fce9` through the 2026-10-09 D3b unread
+request views batch.
+
+## 2026-10-09 D3b: per-agent unread request state
+
+API, migration, and admin cockpit contract change.
+
+- Added `request_views` with composite primary key `(user_id, request_id)` and
+  cascade deletes on both the user and the dossier.
+- Added `POST /requests/:id/view` for DN, DN supervisor, and SU users; it
+  upserts `last_viewed_at` using the database clock and returns 204.
+- The cockpit now receives the viewer id, returns `unread`, and treats an open
+  dossier as unread when it has never been opened or when another actor has
+  activity after the viewer's last open. Closed dossiers are never unread.
+- Fixed the D3a raw-SQL timestamp decoding path so activity timestamps and
+  `lastActivityAt` stay UTC regardless of the Node process time zone.
+- Admin API/types now include `markRequestViewed` and `unread`; UI wiring is
+  left to D3c.
+- Verification tracked in `docs/TASKS.md`: API DB suites were exercised on a
+  real PostgreSQL database in UTC and `TZ=Africa/Libreville`; local full-suite
+  verification for this commit was run without `DATABASE_URL`, so DB suites
+  were skipped in this environment.
 
 ## 2026-10-09 D3a: dossier-linked activity
 

@@ -23,6 +23,8 @@ router.get(
   requestsController.cockpit
 );
 router.get("/:id", authenticate, requireRole("dn_agent", "dn_supervisor", "SU"), requestsController.get);
+// D3b - « non lues » per agent: same audience as the cockpit.
+router.post("/:id/view", authenticate, requireRole("dn_agent", "dn_supervisor", "SU"), requestsController.markViewed);
 
 // Physical signature circuit transitions are internal-staff actions only.
 router.post(
