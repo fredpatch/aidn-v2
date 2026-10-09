@@ -234,6 +234,14 @@ function average(values: Array<number | null>): number | null {
   return Math.round((valid.reduce((sum, value) => sum + value, 0) / valid.length) * 10) / 10;
 }
 
+const R3_MISSION_STATUS_LABELS: Record<R3DashboardMissionItem['missionStatus'], string> = {
+  closed: 'Clôturée',
+  verdict_submitted: 'Avis soumis',
+  awaiting_payment: 'Paiement attendu',
+  awaiting_verdict: 'Avis attendu',
+  scheduled: 'Prévue',
+};
+
 function percent(part: number, total: number): number {
   if (total <= 0) return 0;
   return Math.round((part / total) * 100);
@@ -1643,15 +1651,17 @@ export async function getR3DashboardSummary(
       visitHeld ? row.siteVisit.scheduledAt : row.siteVisit.scheduledAt,
       new Date()
     );
-    const statusLabel = closed
-      ? 'Clôturée'
+    // Debt fix: the status drives the filters below; the label is display only.
+    const missionStatus: R3DashboardMissionItem['missionStatus'] = closed
+      ? 'closed'
       : row.inspection
-        ? 'Avis soumis'
+        ? 'verdict_submitted'
         : !paymentValidated
-          ? 'Paiement attendu'
+          ? 'awaiting_payment'
           : visitHeld
-            ? 'Avis attendu'
-            : 'Prévue';
+            ? 'awaiting_verdict'
+            : 'scheduled';
+    const statusLabel = R3_MISSION_STATUS_LABELS[missionStatus];
     const nextAction = closed
       ? 'Consulter'
       : !paymentValidated
@@ -1680,6 +1690,7 @@ export async function getR3DashboardSummary(
       visitStatus: row.siteVisit.status,
       paymentStatus: row.payment?.status ?? null,
       inspectionVerdict: row.inspection?.verdict ?? null,
+      missionStatus,
       statusLabel,
       nextAction,
       waitingDays,
@@ -1695,7 +1706,7 @@ export async function getR3DashboardSummary(
   const reportsDue = items.filter(
     (item) => item.visitStatus === 'held' && item.inspectionVerdict === null
   );
-  const openMissions = items.filter((item) => item.statusLabel !== 'Clôturée');
+  const openMissions = items.filter((item) => item.missionStatus !== 'closed');
   const plannedVisits = items.filter((item) => item.visitStatus === 'scheduled');
   const closedThisPeriod = missionRows.filter(
     (row) => row.closedAt && row.closedAt >= start && row.closedAt < end
@@ -1753,7 +1764,7 @@ export async function getR3DashboardSummary(
     .filter((item): item is R3DashboardActivityItem => item !== null);
 
   const priorityActions = items
-    .filter((item) => item.statusLabel !== 'Clôturée')
+    .filter((item) => item.missionStatus !== 'closed')
     .sort((a, b) => {
       const priorityOrder = { haute: 0, moyenne: 1, basse: 2 };
       if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
@@ -1847,7 +1858,7 @@ export async function getR3DashboardSummary(
         key: 'closed',
         label: 'Clôturée',
         description: 'Phase M6 terminée',
-        count: items.filter((item) => item.statusLabel === 'Clôturée').length,
+        count: items.filter((item) => item.missionStatus === 'closed').length,
         tone: 'success',
       },
     ],
@@ -1874,10 +1885,10 @@ export async function getR3DashboardSummary(
       {
         key: 'payment_blocked',
         title: 'Paiements bloquants',
-        value: items.filter((item) => item.paymentStatus !== 'validated' && item.statusLabel !== 'Clôturée')
+        value: items.filter((item) => item.paymentStatus !== 'validated' && item.missionStatus !== 'closed')
           .length,
         helper: 'R3 attend la validation S5 avant action finale',
-        tone: items.some((item) => item.paymentStatus !== 'validated' && item.statusLabel !== 'Clôturée')
+        tone: items.some((item) => item.paymentStatus !== 'validated' && item.missionStatus !== 'closed')
           ? 'warning'
           : 'info',
         href: '/mes-inspections',

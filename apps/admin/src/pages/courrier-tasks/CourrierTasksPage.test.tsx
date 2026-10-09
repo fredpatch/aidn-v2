@@ -111,7 +111,7 @@ describe('<CourrierTasksPage> two panes (C2b)', () => {
     expect(screen.getByRole('searchbox', { name: 'Rechercher un courrier' })).toHaveFocus();
   });
 
-  it('phase not open (C2c): no action button, the reason is shown', async () => {
+  it('phase not open (C2c/C2d): only under « Tous », no action button, the reason is shown', async () => {
     vi.spyOn(api, 'get').mockResolvedValue({
       data: {
         items: [task(1, { availableActions: [], actionBlockedReason: 'phase_not_open' })],
@@ -120,6 +120,9 @@ describe('<CourrierTasksPage> two panes (C2b)', () => {
       },
     });
     renderWithProviders(<CourrierTasksPage />);
+    // C2d - out of « À imprimer » (empty), listed under « Tous »
+    expect(await screen.findByText('Aucun courrier dans cette vue')).toBeInTheDocument();
+    fireEvent.click(tab(/^Tous/));
     await screen.findAllByRole('option');
     expect(screen.queryByRole('button', { name: /Ouvrir \/ imprimer/ })).not.toBeInTheDocument();
     expect(

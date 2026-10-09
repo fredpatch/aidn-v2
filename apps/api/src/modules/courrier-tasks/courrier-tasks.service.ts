@@ -75,14 +75,31 @@ interface TaskContext {
   holidays: PublicHolidays;
   /** `${requestId}:${phaseCode}` of every open phase among the listed requests. */
   openPhases: Set<string>;
+  /** C2d - loaded in batch (no query per row): request with its organisation
+   *  and applicant names, and the current document of each circuit. */
+  requestsById: Map<number, RequestRow>;
+  documentsByCircuitId: Map<number, { fileUrl: string; mimeType: string }>;
 }
 
-async function loadTaskContext(requestIds: number[]): Promise<TaskContext> {
-  const [alertDays, holidays, openRows] = await Promise.all([
+interface RequestRow {
+  reference: string;
+  requestType: string;
+  status: string;
+  organisationName: string | null;
+  applicantName: string | null;
+}
+
+async function loadTaskContext(
+  rows: Array<typeof dgCircuitDocuments.$inferSelect>
+): Promise<TaskContext> {
+  const requestIds = [...new Set(rows.map((row) => row.requestId))];
+  const circuitIds = rows.map((row) => row.id);
+  const none = Promise.resolve([]);
+  const [alertDays, holidays, openRows, requestRows, documentRows] = await Promise.all([
     getIntegerValue(DG_CIRCUIT_ALERT_DAYS_KEY, DG_CIRCUIT_ALERT_DAYS_DEFAULT),
     getPublicHolidays(),
     requestIds.length === 0
-      ? Promise.resolve([])
+      ? none
       : db
           .select({ requestId: phases.requestId, phaseCode: phases.phaseCode })
           .from(phases)
@@ -93,12 +110,47 @@ async function loadTaskContext(requestIds: number[]): Promise<TaskContext> {
               eq(phases.status, 'open')
             )
           ),
+    requestIds.length === 0
+      ? none
+      : db
+          .select({
+            id: requests.id,
+            reference: requests.reference,
+            requestType: requests.requestType,
+            status: requests.status,
+            organisationName: organisations.name,
+            applicantName: applicants.fullName,
+          })
+          .from(requests)
+          .leftJoin(organisations, eq(organisations.id, requests.organisationId))
+          .leftJoin(applicants, eq(applicants.id, requests.applicantId))
+          .where(inArray(requests.id, requestIds)),
+    circuitIds.length === 0
+      ? none
+      : db
+          .select({
+            ownerId: documentVersions.ownerId,
+            fileUrl: documentVersions.fileUrl,
+            mimeType: documentVersions.mimeType,
+          })
+          .from(documentVersions)
+          .where(
+            and(
+              eq(documentVersions.ownerType, 'dg_circuit_document'),
+              inArray(documentVersions.ownerId, circuitIds),
+              eq(documentVersions.isCurrent, true)
+            )
+          ),
   ]);
   return {
     now: new Date(),
     alertDays,
     holidays,
     openPhases: new Set(openRows.map((row) => `${row.requestId}:${row.phaseCode}`)),
+    requestsById: new Map(requestRows.map((row) => [row.id, row])),
+    documentsByCircuitId: new Map(
+      documentRows.map((row) => [row.ownerId, { fileUrl: row.fileUrl, mimeType: row.mimeType }])
+    ),
   };
 }
 
@@ -116,40 +168,13 @@ function actionsForStatus(status: string): CourrierTaskView['availableActions'] 
   return [];
 }
 
-async function getCurrentCircuitDocument(circuitDocumentId: number): Promise<{
-  fileUrl: string;
-  mimeType: string;
-} | null> {
-  const [document] = await db
-    .select()
-    .from(documentVersions)
-    .where(
-      and(
-        eq(documentVersions.ownerType, 'dg_circuit_document'),
-        eq(documentVersions.ownerId, circuitDocumentId),
-        eq(documentVersions.isCurrent, true)
-      )
-    );
-
-  return document ? { fileUrl: document.fileUrl, mimeType: document.mimeType } : null;
-}
-
-async function buildTaskView(
+function buildTaskView(
   row: typeof dgCircuitDocuments.$inferSelect,
   ctx: TaskContext
-): Promise<CourrierTaskView | null> {
-  const [request] = await db.select().from(requests).where(eq(requests.id, row.requestId));
+): CourrierTaskView | null {
+  const request = ctx.requestsById.get(row.requestId);
   if (!request) return null;
-
-  const [organisation] = await db
-    .select()
-    .from(organisations)
-    .where(eq(organisations.id, request.organisationId));
-  const [applicant] = await db
-    .select()
-    .from(applicants)
-    .where(eq(applicants.id, request.applicantId));
-  const currentDocument = await getCurrentCircuitDocument(row.id);
+  const currentDocument = ctx.documentsByCircuitId.get(row.id);
   // K7c - closed dossier: no print, no signature circuit, no return; the
   // document stays viewable (fileUrl).
   const flags = dossierFlags(request.status);
@@ -171,8 +196,8 @@ async function buildTaskView(
     requestId: row.requestId,
     requestReference: request.reference,
     requestType: request.requestType,
-    organisationName: organisation?.name ?? '-',
-    applicantName: applicant?.fullName ?? '-',
+    organisationName: request.organisationName ?? '-',
+    applicantName: request.applicantName ?? '-',
     circuitDocumentId: row.id,
     circuitStatus: row.status,
     fileUrl: currentDocument?.fileUrl ?? null,
@@ -227,7 +252,9 @@ const ACTION_BUCKETS: readonly string[] = ['to_signature', 'in_signature'];
 
 function inBucket(task: CourrierTaskView, bucket: string): boolean {
   if (task.bucket !== bucket) return false;
-  return !(task.dossierClosed && ACTION_BUCKETS.includes(bucket));
+  // C2d - same for a courrier whose M3 / M4 phase is not open: no action possible.
+  const noAction = task.dossierClosed || task.actionBlockedReason !== null;
+  return !(noAction && ACTION_BUCKETS.includes(bucket));
 }
 
 export async function listCourrierTasks(filters: {
@@ -246,10 +273,10 @@ export async function listCourrierTasks(filters: {
   const managed = rows.filter((row) =>
     MANAGED_ENTITY_TYPES.includes(row.entityType as CourrierTaskSource)
   );
-  const ctx = await loadTaskContext([...new Set(managed.map((row) => row.requestId))]);
-  const tasks = (await Promise.all(managed.map((row) => buildTaskView(row, ctx)))).filter(
-    (task): task is CourrierTaskView => !!task
-  );
+  const ctx = await loadTaskContext(managed);
+  const tasks = managed
+    .map((row) => buildTaskView(row, ctx))
+    .filter((task): task is CourrierTaskView => !!task);
 
   const filtered = filters.bucket ? tasks.filter((task) => inBucket(task, filters.bucket!)) : tasks;
 
@@ -287,7 +314,7 @@ export async function confirmPrintedForSignature(
     details: { requestId: updated.requestId, entityType: updated.entityType },
   });
 
-  const task = await buildTaskView(updated, await loadTaskContext([updated.requestId]));
+  const task = await buildTaskView(updated, await loadTaskContext([updated]));
   if (!task) throw new Error('COURRIER_TASK_NOT_FOUND');
   return task;
 }
@@ -346,7 +373,7 @@ export async function returnSigned(
 
   await relocateDossierAssetAfterCommit(attachment.assetId, target);
 
-  const task = await buildTaskView(updated, await loadTaskContext([updated.requestId]));
+  const task = await buildTaskView(updated, await loadTaskContext([updated]));
   if (!task) throw new Error('COURRIER_TASK_NOT_FOUND');
   return task;
 }

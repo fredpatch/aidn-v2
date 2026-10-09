@@ -296,6 +296,7 @@ export interface R3DashboardMissionItem {
   visitStatus: string;
   paymentStatus: string | null;
   inspectionVerdict: string | null;
+  missionStatus: 'closed' | 'verdict_submitted' | 'awaiting_payment' | 'awaiting_verdict' | 'scheduled';
   statusLabel: string;
   nextAction: string;
   waitingDays: number | null;

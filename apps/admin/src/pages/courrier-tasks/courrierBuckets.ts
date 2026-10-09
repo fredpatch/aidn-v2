@@ -64,7 +64,9 @@ const ACTION_TABS: readonly CourrierTab[] = ['to_signature', 'in_signature'];
 export function inTab(task: CourrierTask, tab: CourrierTab): boolean {
   if (tab === 'all') return true;
   if (task.bucket !== tab) return false;
-  return !(task.dossierClosed && ACTION_TABS.includes(tab));
+  // C2d - a pending courrier whose phase is not open: same treatment.
+  const noAction = task.dossierClosed || task.actionBlockedReason === 'phase_not_open';
+  return !(noAction && ACTION_TABS.includes(tab));
 }
 
 export function countTabs(tasks: CourrierTask[]): Record<CourrierTab, number> {

@@ -1614,6 +1614,28 @@ puis admin.
 - Reste hors périmètre : N+1 de `buildTaskView` (requête, organisation,
   postulant, document par ligne), pagination serveur
 
+### C2d (2026-10-09) - Courriers : finition garde de phase, N+1, dette tableau de bord R3
+
+- [x] Garde de phase (finition C2c) : un courrier en attente dont la phase
+      M3 / M4 n'est pas ouverte sort de « À imprimer » / « En signature » et de
+      leurs compteurs (API `inBucket` + admin `inTab`), reste sous « Tous » ;
+      même traitement que K7d pour un dossier clos
+- [x] N+1 supprimé : `listCourrierTasks` charge en lot (4 requêtes au total,
+      quel que soit le nombre de lignes) les demandes avec organisation et
+      postulant (jointures), les documents courants, les phases ouvertes et
+      les paramètres. Réponse inchangée
+- [x] Dette tableau de bord R3 : les filtres et compteurs utilisaient le
+      libellé affiché (`statusLabel === 'Clôturée'`) ; nouveau champ stable
+      `missionStatus` (`closed` / `verdict_submitted` / `awaiting_payment` /
+      `awaiting_verdict` / `scheduled`), libellés dans une table ; mêmes
+      valeurs affichées
+- [x] Tests : API `courrier-tasks.db.test.ts` +2 (onglet et compteur, chargement
+      en lot) ; admin `courrierBuckets.test.ts` +1, `CourrierTasksPage.test.tsx`
+      adapté. API 372/372 (PostgreSQL réel), admin 171/171, typecheck, lint
+      (0 erreur, 4 avertissements déjà présents), build
+- Reste : pagination serveur de `GET /courrier-tasks` (pas nécessaire aux
+  volumes actuels)
+
 ## Sprint 7 - Documents (transverse, M8)
 
 - [ ] Upload multi-format (PDF/Word/PNG/JPG)

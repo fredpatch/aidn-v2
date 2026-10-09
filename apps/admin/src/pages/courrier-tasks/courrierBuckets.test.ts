@@ -67,6 +67,12 @@ describe('tabs (K7d)', () => {
     expect(inTab(legacy, 'all')).toBe(true);
   });
 
+  it('C2d: a courrier blocked by its phase leaves the action tab, stays under « Tous »', () => {
+    const blocked = task({ availableActions: [], actionBlockedReason: 'phase_not_open' });
+    expect(inTab(blocked, 'to_signature')).toBe(false);
+    expect(inTab(blocked, 'all')).toBe(true);
+  });
+
   it('counts follow the same rule', () => {
     const counts = countTabs([
       task({}),

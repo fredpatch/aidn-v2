@@ -117,4 +117,32 @@ describe('C2c courrier tasks: phase guard and signature delay (real PostgreSQL)'
     assert.equal(toPrint.signatureWorkingDays, null);
     assert.equal(toPrint.signatureLate, false);
   });
+
+  it('C2d: a courrier blocked by its phase leaves the action bucket and its count, stays in the full list', async () => {
+    const blocked = await letter('closed', 'submitted');
+    const open = await letter('open', 'submitted');
+    const toPrint = await service.listCourrierTasks({ bucket: 'to_signature' });
+    const ids = toPrint.items.map((item: { requestId: number }) => item.requestId);
+    assert.ok(ids.includes(open) && !ids.includes(blocked));
+    const all = await service.listCourrierTasks({});
+    assert.ok(all.items.some((item: { requestId: number }) => item.requestId === blocked));
+    assert.equal(all.counts.toSignature, toPrint.items.length);
+  });
+
+  it('C2d: one task carries its request, organisation, applicant and current document (batch load)', async () => {
+    const request = await letter('open', 'submitted');
+    const circuit = (
+      await one(`SELECT id FROM dg_circuit_documents WHERE request_id = $1`, [request])
+    ).id;
+    await pool.query(
+      `INSERT INTO document_versions (owner_type, owner_id, file_url, mime_type, is_current)
+       VALUES ('dg_circuit_document', $1, '/api/files/c2d.pdf', 'application/pdf', true)`,
+      [circuit]
+    );
+    const { task } = await taskOf(request);
+    assert.match(task.requestReference, /^DEM-C2C-/);
+    assert.match(task.organisationName, /^OMA C2c /);
+    assert.equal(task.applicantName, 'P');
+    assert.equal(task.fileUrl, '/api/files/c2d.pdf');
+  });
 });
