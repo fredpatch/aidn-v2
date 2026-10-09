@@ -1519,39 +1519,65 @@ d'énumération, routes et clés inchangés.
       libellé affiché (`statusLabel === 'Clôturée'`) au lieu d'un statut ;
       fragile si le libellé change
 
-### C1 (à faire) - Courriers à traiter : audit d'une vue 2 volets type Outlook
+### C1 (2026-10-09) - Courriers à traiter : audit d'une vue 2 volets type Outlook
 
 Demande de Fred (2026-10-09) : la section `Courriers à traiter` (route
 `courriers`) sert surtout au processus courrier (réception / assistant DG) et
 ressemble déjà à un traitement de messagerie Outlook. Évaluer si la vue de D1
 (Demandes) peut s'y appliquer **sans casser la logique métier existante**.
-Livrable : audit + recommandation + maquette ; **aucun code avant validation
-de Fred**.
+Audit seul, aucun code. Maquette « Courriers — maquette Outlook » validée par
+Fred (2026-10-09).
 
-Point de départ constaté : `pages/courrier-tasks/CourrierTasksPage.tsx`
-(1061 lignes), déjà liste + détail (`lg:grid-cols-[minmax(0,1fr)_460px]`),
-`BucketTabs`, pagination à 8 ; onglets `to_signature` / `in_signature` /
-`returned` (+ libellés hérités) ; API `GET /courrier-tasks` (paramètres),
-actions `POST …/confirm-printed-for-signature` et `POST …/return-signed`
-(scan du retour signé).
+- [x] Règles à préserver : rôles `reception` / `assistant_dg` / `SU` (route,
+      API, `canOperate`) ; `submitted` → `in_signature_circuit` (confirmation
+      dans la visionneuse après « Ouvrir / imprimer ») ; `in_signature_circuit`
+      → `pending_review` (modale + scan obligatoire, transaction, `intake_request`
+      passe la demande en `pending_review`) ; audit des deux transitions ; garde
+      `PHASE_NOT_OPEN` M3 / M4 (API seule) ; K7c (badge, `availableActions: []`,
+      document consultable, rechargement sur `DOSSIER_CLOSED`) ; K7d (clos hors
+      « À imprimer » / « En signature », visible sous « Tous »)
+- [x] Filtrage, tri, pagination : tout côté client (`GET /courrier-tasks` sans
+      paramètre, liste complète + `counts`) ; regroupement par jour possible
+      sans API ; la pagination (8) disparaît comme en D1
+- [x] Correspondance : onglets À imprimer / En signature / Retours signés /
+      Tous ; « Ancien signé » sous « Tous » seulement ; regroupement par date de
+      l'étape courante (dépôt, mise en signature, retour) ; tri plus ancien
+      d'abord sur les onglets d'action, plus récent sur Retours / Tous ; badge
+      J+n en signature ; volet avec une action principale + « Voir le
+      document » ; Entrée = focus sur l'action, jamais de transition
+- [x] Données : aucune donnée API manquante pour la phase frontend
+- [x] Réutilisation : extraire de D1 la liste seulement (`MessageList`
+      générique + utilitaires de regroupement par jour) ; volets de lecture
+      propres à chaque écran
+- [x] Recommandation : C2a (refactor D1, sans changement) → C2b (Courriers,
+      frontend seul) → C2c optionnel (API : seuil J+n depuis le SLA M12)
 
-- [ ] Inventaire des règles à préserver : transitions du circuit (imprimer →
-      en signature → retour signé scanné), rôles autorisés par action, K7c
-      (dossier clos : badge, pas d'« Ouvrir / imprimer », documents
-      consultables), éléments « dossier clos » hors des onglets d'action (K7d)
-- [ ] Filtrage, tri et pagination : côté client ou côté serveur (paramètres
-      de `GET /courrier-tasks`) - impact sur un regroupement par jour
-- [ ] Correspondance Outlook : onglets ↔ étapes du circuit, regroupement par
-      date (dépôt, mise en signature, retour), volet de lecture avec une seule
-      action, navigation clavier ; Entrée ne doit jamais déclencher seule une
-      transition du circuit (même règle qu'en D1)
-- [ ] Données manquantes éventuelles (date de dernière étape, délai en
-      signature) : frontend seul ou API
-- [ ] Réutilisation : extraire de D1 un gabarit commun liste + volet de
-      lecture (`RequestsList` / `RequestReadingPane` → composant partagé) ou
-      dupliquer ; décider avant d'implémenter
-- [ ] Recommandation par étapes (frontend seul d'abord), maquette à valider,
-      puis lots séparés API / frontend si nécessaire
+Hors C1 (constatés, non traités) :
+- Boutons d'action gouvernés par `bucket`, pas par `availableActions` ; la
+  garde de phase M3 / M4 n'est pas dans `availableActions` (bouton visible puis
+  `PHASE_NOT_OPEN`)
+- `listCourrierTasks` : 4 requêtes par ligne (N+1), pas de pagination serveur
+- `canViewDossier` (rôles DN) quasi mort : la route n'accepte que SU côté DN
+- Accents restants dans l'écran : « place dans », « des qu'il », « tache(s) »
+
+### C2a (à faire) - Liste type messagerie partagée (admin, refactor)
+
+- [ ] `components/common/MessageList.tsx` générique (`getId` number | string,
+      `renderRow`, en-têtes de groupe, listbox, focus itinérant, ↑/↓/Début/Fin,
+      Entrée → `onActivate`)
+- [ ] `lib/dayGroups.ts` : `dayGroupOf`, `formatRowDate`,
+      `groupByDay(items, getDate)`
+- [ ] D1 migré sans changement de comportement ; tests D1 inchangés et verts
+
+### C2b (à faire) - Courriers à traiter en 2 volets (admin, frontend seul)
+
+- [ ] `courrierBuckets.ts` (règles pures + tests) : onglets, K7d, tri, date
+      d'étape, délai
+- [ ] Liste + volet de lecture selon la maquette validée, `?id=`, clavier,
+      `/` recherche ; pagination retirée ; KPI en badges d'en-tête
+- [ ] Préserver K7c / K7d et les ancres de test (`/^Tous/`, « Sélectionnez un
+      courrier », « Dossier clos - consultation uniquement », « Ouvrir /
+      imprimer ») ; corriger les accents restants
 
 ## Sprint 7 - Documents (transverse, M8)
 
