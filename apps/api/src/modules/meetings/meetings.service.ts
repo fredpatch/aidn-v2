@@ -34,7 +34,7 @@ import type {
   MeetingView,
 } from './meetings.types.js';
 import { lacksMeetingReport } from './meeting-follow-up.js';
-import { assertMeetingDossierOpen, assertPhaseDossierOpen } from '../requests/dossier-open.js';
+import { assertMeetingDossierOpen, assertPhaseDossierOpen, dossierFlags } from '../requests/dossier-open.js';
 
 export type { ScheduleMeetingParams, MeetingView } from './meetings.types.js';
 
@@ -122,6 +122,8 @@ function toCockpitItem(row: {
   applicant: typeof applicants.$inferSelect;
   agent: typeof users.$inferSelect;
 }): MeetingCockpitItem {
+  // K7c - a closed dossier's meetings stay listed for history, without action.
+  const flags = dossierFlags(row.request.status);
   return {
     id: row.meeting.id,
     phaseId: row.phase.id,
@@ -145,8 +147,9 @@ function toCockpitItem(row: {
     crUploadedAt: row.meeting.crUploadedAt?.toISOString() ?? null,
     ticketUrl: `/api/meetings/${row.meeting.id}/ticket`,
     phaseHref: phaseHref(row.phase.phaseCode, row.request.id),
-    canManage: canManageMeeting(row.meeting.meetingType),
-    actionLabel: meetingActionLabel(row.meeting),
+    canManage: !flags.dossierClosed && canManageMeeting(row.meeting.meetingType),
+    actionLabel: flags.dossierClosed ? 'Dossier clos' : meetingActionLabel(row.meeting),
+    ...flags,
   };
 }
 

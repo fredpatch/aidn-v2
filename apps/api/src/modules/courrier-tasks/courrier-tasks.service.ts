@@ -23,7 +23,7 @@ import type {
   CourrierTaskSource,
   CourrierTaskView,
 } from './courrier-tasks.types.js';
-import { assertDossierOpen } from '../requests/dossier-open.js';
+import { assertDossierOpen, dossierFlags } from '../requests/dossier-open.js';
 
 const MANAGED_ENTITY_TYPES: CourrierTaskSource[] = [
   'intake_request',
@@ -98,6 +98,9 @@ async function buildTaskView(
     .from(applicants)
     .where(eq(applicants.id, request.applicantId));
   const currentDocument = await getCurrentCircuitDocument(row.id);
+  // K7c - closed dossier: no print, no signature circuit, no return; the
+  // document stays viewable (fileUrl).
+  const flags = dossierFlags(request.status);
 
   return {
     id: `${row.entityType}:${row.requestId}`,
@@ -116,7 +119,8 @@ async function buildTaskView(
     signatureSentAt: row.signatureSentAt,
     signedAt: row.signedAt,
     pendingReviewAt: row.pendingReviewAt,
-    availableActions: actionsForStatus(row.status),
+    availableActions: flags.dossierClosed ? [] : actionsForStatus(row.status),
+    ...flags,
   };
 }
 

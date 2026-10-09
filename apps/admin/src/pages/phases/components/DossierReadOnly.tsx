@@ -14,6 +14,7 @@ import { LockKeyhole } from 'lucide-react';
 import { fetchDossierState } from '../../../lib/api/phases.api';
 import type { DossierState } from '../../../lib/api/phases.types';
 import { queryKeys } from '../../../lib/react-query/queryKeys';
+import { CLOSED_DOSSIER_LABELS } from '../../../components/common/ClosedDossierBadge';
 
 const DossierStateContext = createContext<DossierState | null>(null);
 
@@ -48,18 +49,12 @@ export function useDossierReadOnly(): boolean {
   return useContext(DossierStateContext)?.closed ?? false;
 }
 
-const CLOSED_LABELS: Record<string, string> = {
-  rejected: 'rejeté',
-  cancelled: 'annulé',
-  completed: 'terminé',
-};
-
 function formatDay(value: string | null): string | null {
   return value ? new Date(value).toLocaleDateString('fr-FR') : null;
 }
 
 export function closedDossierTitle(state: DossierState): string {
-  const label = CLOSED_LABELS[state.status] ?? 'clos';
+  const label = CLOSED_DOSSIER_LABELS[state.status] ?? 'clos';
   const day = formatDay(state.closedAt);
   return `Dossier ${label}${day ? ` le ${day}` : ''} - consultation uniquement`;
 }

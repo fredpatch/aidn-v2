@@ -1161,6 +1161,8 @@ refusée.
       validé, certificat) - à passer sur chaque environnement
 - [x] K7b (admin) : pages de phase en lecture seule sur un dossier clos -
       voir ci-dessous
+- [x] K7c (API + admin) : files de travail (S5, Réunions, Courriers, Mes
+      inspections) conscientes du dossier clos - voir ci-dessous
 - [ ] Course résiduelle : les actions hors transaction lisent le statut puis
       écrivent (fenêtre de quelques millisecondes avec un rejet simultané)
 
@@ -1207,11 +1209,55 @@ sécurité.
       définitif via l'interface → bandeau, « Interrompue », rail clos, aucune
       action ; M3 et M7 du même dossier en lecture seule. HTTP : 401 sans
       session, 404 dossier inconnu
-- [ ] Hors K7b, non vérifié : les autres écrans (file S5, Réunions,
+- [x] Fait en K7c (2026-10-09) - Hors K7b, non vérifié : les autres écrans (file S5, Réunions,
       Courriers à traiter, Mes inspections) ne connaissent pas l'état clos ;
       s'ils proposent une action sur un dossier clos, l'API la refuse (409)
 - [ ] Hors K7b : informations clés en codes bruts (`rejected`, `held`) et
       « Avis R3 : Attendu » en orange sur un dossier clos
+
+### Files de travail et dossier clos K7c (2026-10-09) - API + admin
+
+Plan validé par Fred. Même règle que K7a / K7b : sur un dossier rejeté,
+annulé ou terminé, consultation et téléchargement seulement. Les dossiers clos
+restent listés (historique), sans action ; l'API reste le filet de sécurité.
+
+- [x] API (champs ajoutés, aucun contrat cassé) : chaque élément des files
+      porte `dossierStatus` et `dossierClosed` (`dossierFlags()` dans
+      `requests/dossier-open.ts`, à partir du `requests.status` déjà lu ;
+      aucune requête en plus) : files de paiement S5 M5 / M6 / M7,
+      `GET /meetings`, `GET /courrier-tasks`, `GET /site-inspection/my-queue`
+- [x] Actions calculées par l'API, sur un dossier clos : réunion
+      `canManage: false`, `actionLabel: 'Dossier clos'` ; courrier
+      `availableActions: []` ; mission R3 `missionStatus: 'closed'`,
+      `nextAction: 'consult'`, libellé « Dossier clos » (sort des files à
+      traiter). Paiements : `nextAction` inchangé, l'écran le remplace
+- [x] Admin : badge partagé `components/common/ClosedDossierBadge.tsx`
+      (« Dossier rejeté / annulé / terminé » ; libellés repris par
+      `DossierReadOnly`), sur la ligne et dans le panneau de détail des 4 écrans
+- [x] File S5 : plus de facture, validation ni rejet ; note « Dossier clos -
+      consultation uniquement » ; pièces (facture, preuve) consultables ;
+      colonne Action « Dossier clos - consultation »
+- [x] Réunions : plus de tenue, absence, report ni compte-rendu ; note dossier
+      clos ; le compte-rendu existant reste consultable
+- [x] Courriers : plus d'impression pour signature (« Ouvrir / imprimer »,
+      validé par Fred : étape du circuit), ni mise en signature, ni retour
+      signé ; le document reste consultable (« Ouvrir document », « Voir »)
+- [x] Mes inspections : plus de « Enregistrer la tenue » ni d'avis R3 ; motif
+      « Dossier clos » dans le panneau
+- [x] Rafraîchissement : une action refusée en `DOSSIER_CLOSED` recharge aussi
+      les files (MutationCache : files S5, file R3, réunions) ; S5 et Courriers
+      (appels hors React Query) ferment la fenêtre ouverte et rechargent
+- [x] Tests : API `closed-dossier-lists.db.test.ts` (PostgreSQL réel, 4 :
+      rejeté / annulé / terminé + dossier ouvert inchangé) ; admin
+      `closed-dossier-lists.test.tsx` (9 : 4 écrans clos / ouvert +
+      MutationCache). API 355/355, admin 134/134, portail 94/94 (Node 22),
+      typecheck, lint (0 erreur, 5 avertissements déjà présents), build
+- [ ] Non vérifié en navigateur sur base réelle (à faire par Fred)
+- [ ] Hors K7c : compteurs « Factures à envoyer » / « À imprimer » comptent
+      encore un élément en attente d'un dossier clos (il reste dans son onglet,
+      marqué clos)
+- [ ] Hors K7c : « Avis R3 : Attendu » encore affiché dans le panneau Mes
+      inspections d'un dossier clos (même sujet que les informations clés)
 
 ### Durcissement API K8a (2026-10-08) - rejet de paiement et référence de certificat
 

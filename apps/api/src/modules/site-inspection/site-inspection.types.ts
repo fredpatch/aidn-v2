@@ -56,6 +56,9 @@ export interface MyQueueItem {
   nextActionLabel: string;
   priority: 'haute' | 'moyenne' | 'basse';
   waitingDays: number | null;
+  /** K7c - closed dossier: missionStatus 'closed', nothing to do. */
+  dossierStatus: string;
+  dossierClosed: boolean;
 }
 
 export interface PaymentQueueItem {
@@ -66,4 +69,7 @@ export interface PaymentQueueItem {
   organisationName: string;
   payment: PaymentView;
   nextAction: 'send_invoice' | 'validate_payment' | 'waiting_for_proof' | 'done' | 'rejected';
+  /** K7c - closed dossier: listed for history, no action offered. */
+  dossierStatus: string;
+  dossierClosed: boolean;
 }

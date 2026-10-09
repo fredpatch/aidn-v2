@@ -44,6 +44,9 @@ export interface MeetingCockpitItem {
   phaseHref: string;
   canManage: boolean;
   actionLabel: string;
+  /** K7c - closed dossier: canManage is false, actionLabel 'Dossier clos'. */
+  dossierStatus: string;
+  dossierClosed: boolean;
 }
 
 export interface MeetingCockpitMetric {

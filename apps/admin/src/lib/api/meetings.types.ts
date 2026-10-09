@@ -41,6 +41,9 @@ export interface MeetingCockpitItem {
   phaseHref: string;
   canManage: boolean;
   actionLabel: string;
+  /** K7c - the dossier is closed: listed for history, no action offered. */
+  dossierStatus: string;
+  dossierClosed: boolean;
 }
 
 export interface MeetingCockpitSummary {

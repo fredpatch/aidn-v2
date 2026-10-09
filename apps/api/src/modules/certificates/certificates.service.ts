@@ -39,7 +39,7 @@ import {
   type CertificateTemplateData,
 } from './certificates.types.js';
 import { rejectPhasePayment, validatePhasePaymentInTx } from '../payments/payment-decisions.js';
-import { assertCertificateDossierOpen, assertDossierOpen } from '../requests/dossier-open.js';
+import { assertCertificateDossierOpen, assertDossierOpen, dossierFlags } from '../requests/dossier-open.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATES_DIR = path.join(__dirname, '../../templates/certificates');
@@ -188,6 +188,7 @@ export async function getPaymentQueue(): Promise<PaymentQueueItem[]> {
       requestId: requests.id,
       requestReference: requests.reference,
       requestType: requests.requestType,
+      requestStatus: requests.status,
       organisationName: organisations.name,
       payment: payments,
     })
@@ -206,6 +207,7 @@ export async function getPaymentQueue(): Promise<PaymentQueueItem[]> {
     organisationName: row.organisationName,
     payment: toPaymentView(row.payment),
     nextAction: nextPaymentAction(row.payment.status),
+    ...dossierFlags(row.requestStatus),
   }));
 }
 

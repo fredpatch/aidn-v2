@@ -28,6 +28,18 @@ export function isDossierClosed(requestStatus: string): boolean {
   return CLOSED_DOSSIER_STATUSES.includes(requestStatus);
 }
 
+/** K7c - fields every staff work list carries, so the screen can show the
+ *  dossier as closed and offer no action (the guards below stay the safety
+ *  net). Built from the requests.status the list already reads. */
+export interface DossierFlags {
+  dossierStatus: string;
+  dossierClosed: boolean;
+}
+
+export function dossierFlags(requestStatus: string): DossierFlags {
+  return { dossierStatus: requestStatus, dossierClosed: isDossierClosed(requestStatus) };
+}
+
 function refuseIfClosed(row: { status: string } | undefined): void {
   if (row && isDossierClosed(row.status)) throw new Error('DOSSIER_CLOSED');
 }

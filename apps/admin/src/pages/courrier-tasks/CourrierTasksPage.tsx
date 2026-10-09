@@ -11,6 +11,7 @@ import {
   FileText,
   FileUp,
   Inbox,
+  LockKeyhole,
   Printer,
   Search,
   Send,
@@ -23,6 +24,7 @@ import { Modal } from '../../components/ui/modal';
 import { BucketTabs } from '../../components/common/BucketTabs';
 import { EmptyState } from '../../components/common/EmptyState';
 import { StatusBadge } from '../../components/common/StatusBadge';
+import { ClosedDossierBadge } from '../../components/common/ClosedDossierBadge';
 import { Pagination, paginate } from '../../components/ui/pagination';
 import {
   Select,
@@ -48,6 +50,7 @@ import {
   type CourrierTaskBucket,
 } from '../../lib/api/courrier-tasks';
 import { apiErrorMessage } from '../../lib/axios';
+import { isDossierClosedError } from '../../lib/react-query/queryClient';
 import { uploadFile } from '../../lib/uploads';
 import { cn } from '../../lib/utils';
 
@@ -129,6 +132,7 @@ function statusIcon(bucket: CourrierTaskBucket) {
 }
 
 function nextActionLabel(task: CourrierTask): string {
+  if (task.dossierClosed) return 'Dossier clos - consultation';
   if (task.bucket === 'to_signature') return 'Imprimer puis mettre en signature';
   if (task.bucket === 'in_signature') return 'Scanner le retour signe';
   if (task.bucket === 'returned') return 'Transmis a la DN';
@@ -283,6 +287,11 @@ export default function CourrierTasksPage() {
       await loadTasks();
     } catch (err) {
       setActionError(apiErrorMessage(err, 'Confirmation impossible.'));
+      // K7c - dossier closed meanwhile: reload so the task shows it, no action.
+      if (isDossierClosedError(err)) {
+        setPrintTask(null);
+        await loadTasks();
+      }
     } finally {
       setBusyId(null);
     }
@@ -303,6 +312,11 @@ export default function CourrierTasksPage() {
       await loadTasks();
     } catch (err) {
       setActionError(apiErrorMessage(err, 'Retour signe impossible.'));
+      if (isDossierClosedError(err)) {
+        setReturnTask(null);
+        setReturnFile(null);
+        await loadTasks();
+      }
     } finally {
       setBusyId(null);
     }
@@ -635,6 +649,11 @@ function CourrierTaskTable({
                   <StatusIcon size={12} aria-hidden="true" />
                   {BUCKET_LABELS[task.bucket]}
                 </span>
+                {task.dossierClosed && (
+                  <div className="mt-1">
+                    <ClosedDossierBadge status={task.dossierStatus} pill={false} />
+                  </div>
+                )}
               </TableCell>
               <TableCell className="text-xs font-medium text-anac-blue">
                 {nextActionLabel(task)}
@@ -692,6 +711,7 @@ function CourrierDetailPanel({
               icon={statusIcon(task.bucket)}
               pill={false}
             />
+            {task.dossierClosed && <ClosedDossierBadge status={task.dossierStatus} pill={false} />}
           </div>
           <h2 className="text-lg font-semibold leading-tight text-anac-navy">
             {SOURCE_LABELS[task.source]}
@@ -776,6 +796,23 @@ function CourrierActionPanel({
   onPrint: (task: CourrierTask) => void;
   onReturn: (task: CourrierTask) => void;
 }) {
+  // K7c - closed dossier: no print, no signature circuit, no return (the API
+  // sends no availableActions); the document stays viewable below.
+  if (task.dossierClosed) {
+    return (
+      <section className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+          <LockKeyhole size={16} className="text-slate-500" aria-hidden="true" />
+          Dossier clos - consultation uniquement
+        </h3>
+        <p className="mt-1 text-xs leading-relaxed text-slate-600">
+          Le courrier et son document restent consultables. Aucune action du circuit signature
+          n&apos;est possible sur ce dossier.
+        </p>
+      </section>
+    );
+  }
+
   if (task.bucket === 'to_signature') {
     return (
       <section className="rounded-lg border border-anac-info/20 bg-anac-info/5 p-4">

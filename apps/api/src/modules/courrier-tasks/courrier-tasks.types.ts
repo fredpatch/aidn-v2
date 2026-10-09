@@ -26,6 +26,9 @@ export interface CourrierTaskView {
   signedAt: Date | null;
   pendingReviewAt: Date | null;
   availableActions: CourrierTaskAction[];
+  /** K7c - closed dossier: availableActions is empty. */
+  dossierStatus: string;
+  dossierClosed: boolean;
 }
 
 export interface CourrierTaskListResponse {

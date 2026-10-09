@@ -9,6 +9,7 @@ import {
   Eye,
   FileText,
   FileUp,
+  LockKeyhole,
   Search,
   Send,
   ShieldCheck,
@@ -26,6 +27,7 @@ import {
 } from '../../components/common/DossierRejectionConfirm';
 import { EmptyState } from '../../components/common/EmptyState';
 import { StatusBadge } from '../../components/common/StatusBadge';
+import { ClosedDossierBadge } from '../../components/common/ClosedDossierBadge';
 import { Pagination, paginate } from '../../components/ui/pagination';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
@@ -55,6 +57,7 @@ import { PAYMENT_REJECTION_REASON_MAX_LENGTH } from '@aidn/shared';
 import { apiErrorMessage } from '../../lib/axios';
 import { uploadFile } from '../../lib/uploads';
 import { queryKeys } from '../../lib/react-query/queryKeys';
+import { isDossierClosedError } from '../../lib/react-query/queryClient';
 import { cn } from '../../lib/utils';
 
 type S5PaymentQueueItem = (
@@ -347,6 +350,18 @@ export default function S5PaymentsPage() {
     await Promise.all([deepQueue.refetch(), siteQueue.refetch(), certificateQueue.refetch()]);
   }
 
+  /** K7c - dossier closed meanwhile (409 DOSSIER_CLOSED): close the dialog
+   *  and reload, so the row shows the dossier as closed with no action. */
+  async function onActionError(err: unknown, fallback: string) {
+    setActionError(apiErrorMessage(err, fallback));
+    if (isDossierClosedError(err)) {
+      setInvoiceTask(null);
+      setInvoiceFile(null);
+      setRejectTask(null);
+      await refreshQueues();
+    }
+  }
+
   async function handleUploadInvoice() {
     if (!invoiceTask || !invoiceFile) {
       setActionError('Selectionnez la facture recue par S5.');
@@ -364,7 +379,7 @@ export default function S5PaymentsPage() {
       setInvoiceFile(null);
       await refreshQueues();
     } catch (err) {
-      setActionError(apiErrorMessage(err, "Impossible d'enregistrer la facture."));
+      await onActionError(err, "Impossible d'enregistrer la facture.");
     } finally {
       setBusyKey(null);
     }
@@ -380,7 +395,7 @@ export default function S5PaymentsPage() {
       setBucket('validated');
       await refreshQueues();
     } catch (err) {
-      setActionError(apiErrorMessage(err, 'Validation du paiement impossible.'));
+      await onActionError(err, 'Validation du paiement impossible.');
     } finally {
       setBusyKey(null);
     }
@@ -401,7 +416,7 @@ export default function S5PaymentsPage() {
       setRejectTask(null);
       await refreshQueues();
     } catch (err) {
-      setActionError(apiErrorMessage(err, 'Rejet du paiement impossible.'));
+      await onActionError(err, 'Rejet du paiement impossible.');
     } finally {
       setBusyKey(null);
     }
@@ -685,9 +700,14 @@ function S5PaymentTable({
               <TableCell className="text-xs text-anac-muted">{formatDate(item.payment.proofUploadedAt)}</TableCell>
               <TableCell>
                 <StatusBadge label={STATUS_LABELS[item.payment.status] ?? item.payment.status} tone={statusClass(item.payment.status)} icon={statusIcon(item.payment.status)} pill={false} />
+                {item.dossierClosed && (
+                  <div className="mt-1">
+                    <ClosedDossierBadge status={item.dossierStatus} pill={false} />
+                  </div>
+                )}
               </TableCell>
               <TableCell className="text-xs font-medium text-anac-blue">
-                {NEXT_ACTION_LABELS[item.nextAction]}
+                {item.dossierClosed ? 'Dossier clos - consultation' : NEXT_ACTION_LABELS[item.nextAction]}
               </TableCell>
             </TableRow>
           );
@@ -732,6 +752,7 @@ function S5DetailPanel({
             {item.requestReference}
           </span>
           <StatusBadge label={STATUS_LABELS[item.payment.status] ?? item.payment.status} tone={statusClass(item.payment.status)} icon={statusIcon(item.payment.status)} pill={false} />
+          {item.dossierClosed && <ClosedDossierBadge status={item.dossierStatus} pill={false} />}
         </div>
         <h2 className="text-lg font-semibold leading-tight text-anac-navy">
           Paiement - {PHASE_LABELS[item.phaseCode]}
@@ -813,6 +834,23 @@ function S5ActionPanel({
   onValidate: (item: S5PaymentQueueItem) => void;
   onReject: (item: S5PaymentQueueItem) => void;
 }) {
+  // K7c - closed dossier: no invoice, no validation, no rejection; the
+  // payment documents stay viewable below.
+  if (item.dossierClosed) {
+    return (
+      <section className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-slate-800">
+          <LockKeyhole size={16} className="text-slate-500" aria-hidden="true" />
+          Dossier clos - consultation uniquement
+        </h3>
+        <p className="mt-1 text-xs leading-relaxed text-slate-600">
+          Le paiement et ses pieces restent consultables. Aucune action S5 n&apos;est possible sur
+          ce dossier.
+        </p>
+      </section>
+    );
+  }
+
   if (item.payment.status === 'awaiting_invoice') {
     return (
       <section className="rounded-lg border border-anac-info/20 bg-anac-info/5 p-4">

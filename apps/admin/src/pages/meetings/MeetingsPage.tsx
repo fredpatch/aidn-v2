@@ -22,6 +22,7 @@ import {
 import { Button, buttonVariants } from '../../components/ui/button';
 import { EmptyState } from '../../components/common/EmptyState';
 import { StatusBadge } from '../../components/common/StatusBadge';
+import { ClosedDossierBadge } from '../../components/common/ClosedDossierBadge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { apiErrorMessage } from '../../lib/axios';
@@ -571,7 +572,10 @@ function MeetingsTable({
             <TableCell>{formatDateTime(item.scheduledAt)}</TableCell>
             <TableCell>{item.dnAgentName}</TableCell>
             <TableCell>
-              <StatusBadge label={item.statusLabel} tone={STATUS_STYLES[item.status] ?? STATUS_STYLES.scheduled} />
+              <div className="flex flex-wrap items-center gap-1.5">
+                <StatusBadge label={item.statusLabel} tone={STATUS_STYLES[item.status] ?? STATUS_STYLES.scheduled} />
+                {item.dossierClosed && <ClosedDossierBadge status={item.dossierStatus} />}
+              </div>
             </TableCell>
             <TableCell className="text-xs font-semibold text-anac-blue">{item.actionLabel}</TableCell>
           </TableRow>
@@ -710,8 +714,10 @@ function SelectedMeetingPanel({
   }
 
   const busy = statusMutation.isPending || rescheduleMutation.isPending || reportMutation.isPending;
-  const canResolve = item.canManage && item.status === 'scheduled';
-  const canReport = item.canManage && item.status === 'held';
+  // K7c - the API already sends canManage false on a closed dossier.
+  const canManage = item.canManage && !item.dossierClosed;
+  const canResolve = canManage && item.status === 'scheduled';
+  const canReport = canManage && item.status === 'held';
 
   return (
     <section className="rounded-lg border border-anac-border bg-white shadow-[0_8px_22px_rgba(17,34,83,0.04)]">
@@ -724,6 +730,7 @@ function SelectedMeetingPanel({
                   Details de la reunion selectionnee
                 </p>
                 <StatusBadge label={item.statusLabel} tone={STATUS_STYLES[item.status] ?? STATUS_STYLES.scheduled} />
+                {item.dossierClosed && <ClosedDossierBadge status={item.dossierStatus} />}
               </div>
               <h2 className="mt-2 text-lg font-semibold text-anac-navy">{item.meetingTypeLabel}</h2>
               <p className="mt-1 text-sm text-anac-muted">
@@ -793,7 +800,7 @@ function SelectedMeetingPanel({
               </div>
             ) : null}
 
-            {item.canManage && item.status === 'scheduled' ? (
+            {canResolve ? (
               <form
                 onSubmit={rescheduleForm.handleSubmit(onReschedule)}
                 className="rounded-lg border border-anac-border p-3"
@@ -846,7 +853,16 @@ function SelectedMeetingPanel({
               </form>
             ) : null}
 
-            {!item.canManage ? (
+            {item.dossierClosed ? (
+              <div className="space-y-2 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-3 text-xs text-slate-600">
+                <p>Dossier clos : la reunion reste consultable, aucune action n&apos;est possible.</p>
+                {item.crDocumentUrl ? (
+                  <FileLink address={item.crDocumentUrl} className="block font-semibold text-anac-blue underline">
+                    Consulter le compte-rendu
+                  </FileLink>
+                ) : null}
+              </div>
+            ) : !item.canManage ? (
               <div className="rounded-lg border border-anac-border bg-slate-50 p-3 text-xs text-anac-muted">
                 Cette visite est suivie ici en lecture. Les actions R3 restent disponibles dans Mes
                 inspections.

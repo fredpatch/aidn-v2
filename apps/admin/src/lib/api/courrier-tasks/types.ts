@@ -26,6 +26,9 @@ export interface CourrierTask {
   signedAt: string | null;
   pendingReviewAt: string | null;
   availableActions: CourrierTaskAction[];
+  /** K7c - the dossier is closed: listed for history, no action offered. */
+  dossierStatus: string;
+  dossierClosed: boolean;
 }
 
 export interface CourrierTaskListResponse {

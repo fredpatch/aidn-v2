@@ -66,5 +66,8 @@ export interface PaymentQueueItem {
   organisationName: string;
   payment: PaymentView;
   nextAction: 'send_invoice' | 'validate_payment' | 'waiting_for_proof' | 'done' | 'rejected';
+  /** K7c - the dossier is closed: listed for history, no action offered. */
+  dossierStatus: string;
+  dossierClosed: boolean;
 }
 

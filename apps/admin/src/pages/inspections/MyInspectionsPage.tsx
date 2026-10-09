@@ -17,6 +17,7 @@ import {
 import { Button, buttonVariants } from '../../components/ui/button';
 import { EmptyState } from '../../components/common/EmptyState';
 import { StatusBadge } from '../../components/common/StatusBadge';
+import { ClosedDossierBadge } from '../../components/common/ClosedDossierBadge';
 import { apiErrorMessage } from '../../lib/axios';
 import { markSiteVisitHeld, submitVerdict, fetchMyQueue } from '../../lib/api/site-inspection.api';
 import type { MyQueueItem } from '../../lib/api/site-inspection.types';
@@ -64,6 +65,7 @@ function MissionBadges({ item }: { item: MyQueueItem }) {
       {item.missionStatus !== 'closed' && (
         <StatusBadge label={PRIORITY_LABELS[item.priority]} tone={PRIORITY_STYLES[item.priority]} />
       )}
+      {item.dossierClosed && <ClosedDossierBadge status={item.dossierStatus} />}
     </div>
   );
 }
@@ -452,8 +454,9 @@ function InspectionDetailPanel({
     );
   }
 
-  const canMarkHeld = item.nextAction === 'mark_held' && !!item.siteVisit;
-  const canSubmitVerdict = item.nextAction === 'submit_verdict';
+  // K7c - the API already sends nextAction 'consult' on a closed dossier.
+  const canMarkHeld = !item.dossierClosed && item.nextAction === 'mark_held' && !!item.siteVisit;
+  const canSubmitVerdict = !item.dossierClosed && item.nextAction === 'submit_verdict';
   const busy = markHeldMutation.isPending || verdictMutation.isPending;
 
   return (
@@ -657,6 +660,9 @@ function verdictLabel(verdict: string): string {
 }
 
 function blockedReason(item: MyQueueItem): string {
+  if (item.dossierClosed) {
+    return 'Dossier clos : la mission reste consultable, aucune action R3 n est possible.';
+  }
   if (item.nextAction === 'wait_payment') {
     return 'Le paiement doit etre valide par S5 avant la tenue operationnelle et l avis R3.';
   }

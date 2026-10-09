@@ -11,7 +11,8 @@ const item = (over: Partial<MyQueueItem>): MyQueueItem => ({
   requestType: 'issuance', organisationName: 'OMA K', payment: null,
   siteVisit: { id: 1, r3AgentId: 5, scheduledAt: AT, location: 'Hangar', status: 'scheduled' },
   inspection: null, missionStatus: 'to_hold', statusLabel: 'Prevue', nextAction: 'mark_held',
-  nextActionLabel: 'Marquer tenue', priority: 'haute', waitingDays: 0, ...over,
+  nextActionLabel: 'Marquer tenue', priority: 'haute', waitingDays: 0,
+  dossierStatus: 'in_progress', dossierClosed: false, ...over,
 });
 
 function renderQueue(items: MyQueueItem[]) {

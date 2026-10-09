@@ -21,7 +21,7 @@ import type {
   PaymentQueueItem,
 } from './site-inspection.types.js';
 import { rejectPhasePayment, validatePhasePayment } from '../payments/payment-decisions.js';
-import { assertDossierOpen, assertMeetingDossierOpen, assertPhaseDossierOpen } from '../requests/dossier-open.js';
+import { assertDossierOpen, assertMeetingDossierOpen, assertPhaseDossierOpen, dossierFlags } from '../requests/dossier-open.js';
 
 function toPaymentView(row: typeof payments.$inferSelect): PaymentView {
   return {
@@ -72,6 +72,7 @@ function daysBetween(a: Date | null, b: Date | null): number | null {
 }
 
 function missionState(params: {
+  dossierClosed: boolean;
   phaseStatus: string;
   payment: typeof payments.$inferSelect | null;
   siteVisit: typeof meetings.$inferSelect;
@@ -81,6 +82,18 @@ function missionState(params: {
   'missionStatus' | 'statusLabel' | 'nextAction' | 'nextActionLabel' | 'priority' | 'waitingDays'
 > {
   const waitingDays = daysBetween(params.siteVisit.scheduledAt, new Date());
+  // K7c - a closed dossier (rejected, cancelled, completed) leaves the R3's
+  // to-do list: nothing to hold or to report on, only to consult.
+  if (params.dossierClosed) {
+    return {
+      missionStatus: 'closed',
+      statusLabel: 'Dossier clos',
+      nextAction: 'consult',
+      nextActionLabel: 'Consulter',
+      priority: 'basse',
+      waitingDays,
+    };
+  }
   if (params.inspection || params.phaseStatus === 'closed') {
     return {
       missionStatus: 'closed',
@@ -252,6 +265,7 @@ export async function getPaymentQueue(): Promise<PaymentQueueItem[]> {
       requestId: requests.id,
       requestReference: requests.reference,
       requestType: requests.requestType,
+      requestStatus: requests.status,
       organisationName: organisations.name,
       payment: payments,
     })
@@ -270,6 +284,7 @@ export async function getPaymentQueue(): Promise<PaymentQueueItem[]> {
     organisationName: row.organisationName,
     payment: toPaymentView(row.payment),
     nextAction: nextPaymentAction(row.payment.status),
+    ...dossierFlags(row.requestStatus),
   }));
 }
 
@@ -452,6 +467,7 @@ export async function getMyQueue(r3AgentId: number): Promise<MyQueueItem[]> {
       requestId: requests.id,
       requestReference: requests.reference,
       requestType: requests.requestType,
+      requestStatus: requests.status,
       organisationName: organisations.name,
       payment: payments,
       siteVisit: meetings,
@@ -475,7 +491,9 @@ export async function getMyQueue(r3AgentId: number): Promise<MyQueueItem[]> {
     .orderBy(desc(meetings.scheduledAt));
 
   return rows.map((row) => {
+    const flags = dossierFlags(row.requestStatus);
     const state = missionState({
+      dossierClosed: flags.dossierClosed,
       phaseStatus: row.phaseStatus,
       payment: row.payment,
       siteVisit: row.siteVisit,
@@ -493,6 +511,7 @@ export async function getMyQueue(r3AgentId: number): Promise<MyQueueItem[]> {
       payment: row.payment ? toPaymentView(row.payment) : null,
       siteVisit: toSiteVisitView(row.siteVisit),
       inspection: row.inspection ? toInspectionView(row.inspection) : null,
+      ...flags,
       ...state,
     };
   });

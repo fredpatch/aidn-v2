@@ -28,7 +28,7 @@ import type {
   PaymentQueueItem,
 } from './deep-evaluation.types.js';
 import { rejectPhasePayment, validatePhasePayment } from '../payments/payment-decisions.js';
-import { assertDossierOpen, assertEvaluationDossierOpen, assertPhaseDossierOpen } from '../requests/dossier-open.js';
+import { assertDossierOpen, assertEvaluationDossierOpen, assertPhaseDossierOpen, dossierFlags } from '../requests/dossier-open.js';
 
 function toPaymentView(row: typeof payments.$inferSelect): PaymentView {
   return {
@@ -189,6 +189,7 @@ export async function getPaymentQueue(): Promise<PaymentQueueItem[]> {
       requestId: requests.id,
       requestReference: requests.reference,
       requestType: requests.requestType,
+      requestStatus: requests.status,
       organisationName: organisations.name,
       payment: payments,
     })
@@ -207,6 +208,7 @@ export async function getPaymentQueue(): Promise<PaymentQueueItem[]> {
     organisationName: row.organisationName,
     payment: toPaymentView(row.payment),
     nextAction: nextPaymentAction(row.payment.status),
+    ...dossierFlags(row.requestStatus),
   }));
 }
 
