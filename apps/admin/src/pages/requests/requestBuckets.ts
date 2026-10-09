@@ -17,8 +17,9 @@ export {
   type DayGroupKey,
 } from '../../lib/dayGroups';
 
-export type RequestBucket = 'all' | 'todo' | 'waiting_dg' | 'closed';
-export type RequestSortKey = 'newest' | 'oldest' | 'reference';
+/** `unread` (D3c) is a view across the others, not an exclusive bucket. */
+export type RequestBucket = 'all' | 'unread' | 'todo' | 'waiting_dg' | 'closed';
+export type RequestSortKey = 'activity' | 'newest' | 'oldest' | 'reference';
 
 /** Closed dossier (K7): only viewing and downloading remain possible. */
 export const CLOSED_REQUEST_STATUSES = ['completed', 'rejected', 'cancelled'];
@@ -28,12 +29,14 @@ export const WAITING_DG_CIRCUIT_STATUSES = ['submitted', 'in_signature_circuit',
 
 export const REQUEST_BUCKETS: Array<{ key: RequestBucket; label: string }> = [
   { key: 'all', label: 'Toutes' },
+  { key: 'unread', label: 'Non lues' },
   { key: 'todo', label: 'À traiter' },
   { key: 'waiting_dg', label: 'Attente DG' },
   { key: 'closed', label: 'Clôturées' },
 ];
 
 export const REQUEST_SORT_OPTIONS: Array<{ key: RequestSortKey; label: string }> = [
+  { key: 'activity', label: 'Dernière activité' },
   { key: 'newest', label: 'Date de dépôt (récentes)' },
   { key: 'oldest', label: 'Date de dépôt (anciennes)' },
   { key: 'reference', label: 'Référence' },
@@ -51,7 +54,7 @@ export function isClosedRequest(item: Pick<RequestCockpitItem, 'status'>): boole
  */
 export function bucketOf(
   item: Pick<RequestCockpitItem, 'status' | 'circuitStatus'>
-): Exclude<RequestBucket, 'all'> {
+): Exclude<RequestBucket, 'all' | 'unread'> {
   if (isClosedRequest(item)) return 'closed';
   if (WAITING_DG_CIRCUIT_STATUSES.includes(item.circuitStatus ?? '')) return 'waiting_dg';
   return 'todo';
@@ -76,17 +79,55 @@ export function nextActionKind(
   return 'readonly';
 }
 
+/** D3c - the API never reports a closed dossier unread; checked again here. */
+export function isUnreadRequest(item: Pick<RequestCockpitItem, 'status' | 'unread'>): boolean {
+  return item.unread && !isClosedRequest(item);
+}
+
+export function inBucket(item: RequestCockpitItem, bucket: RequestBucket): boolean {
+  if (bucket === 'all') return true;
+  if (bucket === 'unread') return isUnreadRequest(item);
+  return bucketOf(item) === bucket;
+}
+
 export function countBuckets(
-  items: Array<Pick<RequestCockpitItem, 'status' | 'circuitStatus'>>
+  items: Array<Pick<RequestCockpitItem, 'status' | 'circuitStatus' | 'unread'>>
 ): Record<RequestBucket, number> {
   const counts: Record<RequestBucket, number> = {
     all: items.length,
+    unread: 0,
     todo: 0,
     waiting_dg: 0,
     closed: 0,
   };
-  for (const item of items) counts[bucketOf(item)] += 1;
+  for (const item of items) {
+    counts[bucketOf(item)] += 1;
+    if (isUnreadRequest(item)) counts.unread += 1;
+  }
   return counts;
+}
+
+/**
+ * D3c - flags shown on a row, derived only from what the cockpit already
+ * returns (no new data): submitted documents awaiting review, and a signed
+ * return that lets the DN open the preliminary phase. None on a closed dossier.
+ */
+export function requestFlags(
+  item: Pick<RequestCockpitItem, 'status' | 'documentSummary' | 'canStartPreliminary'>
+): string[] {
+  if (isClosedRequest(item)) return [];
+  const flags: string[] = [];
+  const pending = item.documentSummary.pending;
+  if (pending > 0) {
+    flags.push(`${pending} document${pending > 1 ? 's' : ''} en attente de revue`);
+  }
+  if (item.canStartPreliminary) flags.push('Retour signé reçu : phase préliminaire à ouvrir');
+  return flags;
+}
+
+/** Date a row is sorted, grouped and dated on. */
+export function rowDateOf(item: RequestCockpitItem, sort: RequestSortKey): string {
+  return sort === 'activity' ? item.lastActivityAt : item.createdAt;
 }
 
 export function filterRequests(
@@ -95,7 +136,7 @@ export function filterRequests(
 ): RequestCockpitItem[] {
   const needle = normalizeSearch(search);
   return items
-    .filter((item) => bucket === 'all' || bucketOf(item) === bucket)
+    .filter((item) => inBucket(item, bucket))
     .filter(
       (item) =>
         !needle ||
@@ -104,6 +145,7 @@ export function filterRequests(
         ).includes(needle)
     )
     .sort((a, b) => {
+      if (sort === 'activity') return dateMs(b.lastActivityAt) - dateMs(a.lastActivityAt);
       if (sort === 'oldest') return dateMs(a.createdAt) - dateMs(b.createdAt);
       if (sort === 'reference') return a.reference.localeCompare(b.reference);
       return dateMs(b.createdAt) - dateMs(a.createdAt);
@@ -123,7 +165,7 @@ export function groupRequestsByDay(
   now: Date = new Date()
 ): RequestDayGroup[] {
   if (sort === 'reference') return flatGroup(items);
-  return groupByDay(items, (item) => item.createdAt, now);
+  return groupByDay(items, (item) => rowDateOf(item, sort), now);
 }
 
 function dateMs(value: string): number {

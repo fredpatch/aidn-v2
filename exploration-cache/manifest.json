@@ -5,12 +5,12 @@
   "branch": "main",
   "lastUpdated": "2026-10-09T00:00:00+01:00",
   "currentSprint": "Post-M7 workflow hardening",
-  "currentSprintFocus": "D3b request views/unread state is implemented. Next: D3c admin unread/sort affordances, final role replay, analytics hardening, and notifications V1.",
-  "status": "Sprints 0-6 complete end-to-end. D3b adds per-agent request_views, unread calculation, a view-marking endpoint, and a UTC timestamp fix for D3a activity.",
+  "currentSprintFocus": "D3c admin unread/activity affordances are implemented. Next: screen verification, final role replay, analytics hardening, and notifications V1.",
+  "status": "Sprints 0-6 complete end-to-end. D3c adds the Non lues view, default last-activity sorting, delayed read marking, row flags, and a reading-pane activity date.",
   "activeSession": {
-    "task": "Commit and push D3b request views/unread state after docs/cache updates.",
+    "task": "Commit and push D3c admin unread/activity affordances after docs/cache updates.",
     "startedAt": "2026-10-09",
-    "nextAction": "Run verification, commit D3b, push main, then start D3c admin unread/sort affordances."
+    "nextAction": "Run verification, commit D3c, push main, then do screen verification."
   },
   "index": [
     {
@@ -22,14 +22,14 @@
     {
       "path": "changelog.md",
       "type": "history",
-      "tags": ["git", "history", "requests", "d3b", "unread"],
-      "summary": "Commit-level history including the 2026-10-09 D3b request views/unread batch"
+      "tags": ["git", "history", "requests", "d3c", "unread"],
+      "summary": "Commit-level history including the 2026-10-09 D3c admin unread/activity batch"
     },
     {
       "path": "active-session/current-task.md",
       "type": "session",
-      "tags": ["current", "post-m7", "requests", "d3b", "unread"],
-      "summary": "Current state: D3b request views/unread implemented; commit/push in progress"
+      "tags": ["current", "post-m7", "requests", "d3c", "unread"],
+      "summary": "Current state: D3c admin unread/activity affordances implemented; commit/push in progress"
     },
     {
       "path": "active-session/next-actions.md",
@@ -72,6 +72,12 @@
       "type": "session-log",
       "tags": ["requests", "d3b", "unread", "migration", "session-log"],
       "summary": "D3b request_views, per-agent unread state, mark-viewed endpoint, and UTC timestamp fix"
+    },
+    {
+      "path": "sessions/2026-10-09-d3c-admin-unread.md",
+      "type": "session-log",
+      "tags": ["admin", "requests", "d3c", "unread", "session-log"],
+      "summary": "D3c admin Non lues tab, activity sort, delayed read marking, and row flags"
     },
     {
       "path": "docs/TASKS.md",

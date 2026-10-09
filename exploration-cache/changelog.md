@@ -1,7 +1,24 @@
 # 📝 AIDN v2 - Changelog
 
-Commit-level history. Covers `be9fce9` through the 2026-10-09 D3b unread
-request views batch.
+Commit-level history. Covers `be9fce9` through the 2026-10-09 D3c admin
+unread/activity batch.
+
+## 2026-10-09 D3c: admin unread and activity affordances
+
+Admin UI change, using the D3a/D3b API contract.
+
+- The Demandes cockpit now defaults to `Dernière activité`, sorting, grouping,
+  and row dates from `lastActivityAt`.
+- Added the `Non lues` tab as a cross-cutting view: open unread dossiers only,
+  never closed dossiers.
+- Unread rows get a blue dot, bold organization/date, and screen-reader text.
+- The reading pane calls `POST /requests/:id/view` only after a dossier remains
+  selected for one second; moving quickly through rows does not mark each row
+  read. The cockpit is refreshed only when an unread row was actually marked.
+- Added row flags from existing cockpit data: pending documents to review and a
+  signed-return/preliminary-phase cue. Closed dossiers show no flags.
+- The reading pane now shows `Dernière activité` instead of the older updated
+  date.
 
 ## 2026-10-09 D3b: per-agent unread request state
 

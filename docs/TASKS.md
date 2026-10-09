@@ -1664,7 +1664,7 @@ rattachable reste NULL (aucune inférence).
       316/316 (DB suites ignorées sans `DATABASE_URL`), admin 171/171,
       portail 94/94, typecheck, lint (0 erreur), build
 - [x] D3b : voir section D3b
-- [ ] D3c : tri « Dernière activité », non lues en gras, repères (admin)
+- [x] D3c : voir section D3c
 
 ### D3b (2026-10-09) - « Non lues » par agent (API + migration 0006)
 
@@ -1690,6 +1690,26 @@ rattachable reste NULL (aucune inférence).
       typecheck, lint (0 erreur), build
 - Au déploiement : tous les dossiers ouverts sont « non lus » pour chaque
   agent jusqu'à leur première ouverture
+
+### D3c (2026-10-09) - Demandes : non lues, dernière activité, repères (admin)
+
+Option B de la maquette « Demandes — maquette Outlook », validée par Fred.
+
+- [x] Onglet « Non lues » (après « Toutes ») : vue transverse, pas un onglet
+      exclusif ; jamais un dossier clos. Ligne non lue : pastille bleue,
+      organisation et date en gras (« (non lue) » pour les lecteurs d'écran)
+- [x] Tri « Dernière activité » par défaut ; regroupement par jour et date de
+      ligne sur `lastActivityAt` (date de dépôt pour les tris par dépôt)
+- [x] Repères (drapeau + infobulle), uniquement depuis les données du cockpit :
+      documents soumis en attente de revue, retour signé reçu / phase
+      préliminaire à ouvrir. Aucun sur un dossier clos
+- [x] Marquage lu : `POST /requests/:id/view` quand un dossier reste 1 s dans
+      le volet (le défilement ↑/↓ ne marque rien) ; liste rechargée seulement
+      si l'état lu change ; un échec n'interrompt rien (le dossier reste non lu)
+- [x] Volet : « Dernière activité » remplace « Dernière mise à jour »
+- [x] Tests : `requestBuckets.test.ts` +3, `RequestsPage.test.tsx` +2.
+      Admin 176/176, typecheck, lint (0 erreur), build
+- [ ] Vérification à l'écran par Fred
 
 ## Sprint 7 - Documents (transverse, M8)
 

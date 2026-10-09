@@ -137,7 +137,7 @@ export function RequestReadingPane({
             <Info label="Phase actuelle" value={item.currentPhaseLabel} />
             <Info label="Circuit signature" value={item.circuitStatusLabel} />
             <Info label="Date de dépôt" value={formatDateTime(item.createdAt)} />
-            <Info label="Dernière mise à jour" value={formatDate(item.updatedAt)} />
+            <Info label="Dernière activité" value={formatDateTime(item.lastActivityAt)} />
           </Section>
         </div>
 

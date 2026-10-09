@@ -1,6 +1,6 @@
-import { useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowDownAZ, Search } from 'lucide-react';
 import { BucketTabs } from '../../components/common/BucketTabs';
 import { StatusBadge } from '../../components/common/StatusBadge';
@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../../components/ui/select';
-import { fetchRequestCockpit } from '../../lib/api/requests.api';
+import { fetchRequestCockpit, markRequestViewed } from '../../lib/api/requests.api';
 import type { RequestCockpitItem } from '../../lib/api/requests.types';
 import { queryKeys } from '../../lib/react-query/queryKeys';
 import { RequestReadingPane } from './RequestReadingPane';
@@ -33,12 +33,16 @@ import {
  * Bucket rules live in requestBuckets.ts. The selected dossier is kept in
  * `?id=` so the view survives a reload or a shared link.
  */
+/** D3c - time a dossier stays selected before it is marked read. */
+export const VIEW_DELAY_MS = 1000;
+
 export default function RequestsPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [bucket, setBucket] = useState<RequestBucket>('all');
   const [search, setSearch] = useState('');
-  const [sort, setSort] = useState<RequestSortKey>('newest');
+  const [sort, setSort] = useState<RequestSortKey>('activity');
+  const queryClient = useQueryClient();
   const [actionError, setActionError] = useState<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const startButtonRef = useRef<HTMLButtonElement>(null);
@@ -60,6 +64,25 @@ export default function RequestsPage() {
   // Never show a dossier that is not in the current list: fall back to the
   // first visible row, or to the empty state.
   const selected = filtered.find((item) => item.id === requestedId) ?? filtered[0] ?? null;
+
+  // D3c - a dossier counts as read once it stays in the reading pane for
+  // VIEW_DELAY_MS: moving through the list with ↑/↓ does not mark every row.
+  // The list is refreshed only when the read state actually changes.
+  const selectedId = selected?.id ?? null;
+  const selectedUnread = selected?.unread ?? false;
+  useEffect(() => {
+    if (selectedId === null) return;
+    const timer = window.setTimeout(() => {
+      markRequestViewed(selectedId)
+        .then(() => {
+          if (selectedUnread) {
+            return queryClient.invalidateQueries({ queryKey: queryKeys.requests.cockpit() });
+          }
+        })
+        .catch(() => undefined); // non-blocking: the dossier just stays « non lu »
+    }, VIEW_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [selectedId, selectedUnread, queryClient]);
 
   function select(item: RequestCockpitItem) {
     setActionError(null);
@@ -176,6 +199,7 @@ export default function RequestsPage() {
             <div className="min-h-0 flex-1 overflow-y-auto">
               <RequestsList
                 groups={groups}
+                sort={sort}
                 selectedId={selected?.id ?? null}
                 loading={query.isLoading}
                 error={!!query.error}

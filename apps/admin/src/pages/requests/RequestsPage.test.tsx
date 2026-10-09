@@ -2,7 +2,7 @@
  *  shows a listed dossier, ?id= selection, keyboard navigation, and no
  *  workflow action on a closed dossier (K7). */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, screen, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { Route, Routes } from 'react-router-dom';
 import { api } from '../../lib/axios';
 import type { RequestCockpitItem, RequestCockpitSummary } from '../../lib/api/requests.types';
@@ -189,5 +189,36 @@ describe('<RequestsPage> (D1)', () => {
     const row = (await screen.findAllByRole('option'))[0];
     fireEvent.keyDown(row, { key: '/' });
     expect(screen.getByRole('searchbox', { name: 'Rechercher une demande' })).toHaveFocus();
+  });
+
+  it('D3c: unread row is bold with a dot; « Non lues » tab; read after staying selected', async () => {
+    cockpit = {
+      ...cockpit,
+      items: ITEMS.map((i) => (i.id === 1 ? { ...i, unread: true } : i)),
+    };
+    const post = vi.spyOn(api, 'post').mockResolvedValue({ data: null });
+    const get = vi.mocked(api.get);
+    renderPage();
+    const first = (await screen.findAllByRole('option'))[0];
+    expect(within(first).getByText('(non lue)')).toBeInTheDocument();
+    expect(tab(/^Non lues/)).toHaveTextContent('1');
+
+    const callsBefore = get.mock.calls.length;
+    await waitFor(() => expect(post).toHaveBeenCalledWith('/requests/1/view'), { timeout: 2500 });
+    // the read state changed: the cockpit is fetched again
+    await waitFor(() => expect(get.mock.calls.length).toBeGreaterThan(callsBefore));
+  });
+
+  it('D3c: moving quickly through the list marks nothing read', async () => {
+    const post = vi.spyOn(api, 'post').mockResolvedValue({ data: null });
+    renderPage();
+    const rows = await screen.findAllByRole('option');
+    rows[0].focus();
+    fireEvent.keyDown(rows[0], { key: 'ArrowDown' });
+    fireEvent.keyDown(screen.getAllByRole('option')[1], { key: 'ArrowDown' });
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(post).not.toHaveBeenCalled();
+    await waitFor(() => expect(post).toHaveBeenCalledTimes(1), { timeout: 2500 });
+    expect(post).toHaveBeenCalledWith('/requests/3/view');
   });
 });

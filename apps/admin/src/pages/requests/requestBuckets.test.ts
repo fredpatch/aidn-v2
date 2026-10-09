@@ -9,6 +9,8 @@ import {
   filterRequests,
   groupRequestsByDay,
   nextActionKind,
+  requestFlags,
+  rowDateOf,
 } from './requestBuckets';
 
 const item = (over: Partial<RequestCockpitItem>): RequestCockpitItem => ({
@@ -63,15 +65,15 @@ describe('bucketOf', () => {
     expect(bucketOf(item({ status: 'in_progress' }))).toBe('todo');
   });
 
-  it('counts are exclusive: the buckets add up to « Toutes »', () => {
+  it('counts are exclusive: the buckets add up to « Toutes » (« Non lues » is a view across them)', () => {
     const counts = countBuckets([
-      item({ status: 'pending_review', circuitStatus: 'pending_review' }),
+      item({ status: 'pending_review', circuitStatus: 'pending_review', unread: true }),
       item({ status: 'in_progress' }),
       item({ status: 'submitted', circuitStatus: 'in_signature_circuit' }),
-      item({ status: 'rejected' }),
+      item({ status: 'rejected', unread: true }),
       item({ status: 'completed' }),
     ]);
-    expect(counts).toEqual({ all: 5, todo: 2, waiting_dg: 1, closed: 2 });
+    expect(counts).toEqual({ all: 5, unread: 1, todo: 2, waiting_dg: 1, closed: 2 });
     expect(counts.todo + counts.waiting_dg + counts.closed).toBe(counts.all);
   });
 });
@@ -161,5 +163,54 @@ describe('nextActionKind', () => {
         item({ status: 'submitted', circuitStatus: 'submitted', nextActionHref: null })
       )
     ).toBe('readonly');
+  });
+});
+
+describe('D3c unread, last activity and flags', () => {
+  it('« Non lues » lists open unread dossiers only (never a closed one)', () => {
+    const items = [
+      item({ id: 1, unread: true }),
+      item({ id: 2, unread: false }),
+      item({ id: 3, unread: true, status: 'rejected' }),
+    ];
+    expect(
+      filterRequests(items, { bucket: 'unread', search: '', sort: 'activity' }).map((i) => i.id)
+    ).toEqual([1]);
+  });
+
+  it('« Dernière activité » sorts and groups on lastActivityAt', () => {
+    const now = new Date(2026, 9, 9, 12, 0);
+    const old = item({
+      id: 1,
+      createdAt: new Date(2026, 9, 9, 8).toISOString(),
+      lastActivityAt: new Date(2026, 8, 1).toISOString(),
+    });
+    const busy = item({
+      id: 2,
+      createdAt: new Date(2026, 8, 1).toISOString(),
+      lastActivityAt: new Date(2026, 9, 9, 9).toISOString(),
+    });
+    const sorted = filterRequests([old, busy], { bucket: 'all', search: '', sort: 'activity' });
+    expect(sorted.map((i) => i.id)).toEqual([2, 1]);
+    expect(groupRequestsByDay(sorted, 'activity', now).map((g) => g.label)).toEqual([
+      "Aujourd'hui",
+      'Plus ancien',
+    ]);
+    expect(rowDateOf(busy, 'activity')).toBe(busy.lastActivityAt);
+    expect(rowDateOf(busy, 'newest')).toBe(busy.createdAt);
+  });
+
+  it('flags come from the cockpit data only; none on a closed dossier', () => {
+    const docs = { completed: 1, missing: 0, pending: 3, total: 4 };
+    expect(requestFlags(item({ documentSummary: docs }))).toEqual([
+      '3 documents en attente de revue',
+    ]);
+    expect(
+      requestFlags(item({ documentSummary: { ...docs, pending: 1 }, canStartPreliminary: true }))
+    ).toEqual([
+      '1 document en attente de revue',
+      'Retour signé reçu : phase préliminaire à ouvrir',
+    ]);
+    expect(requestFlags(item({ documentSummary: docs, status: 'cancelled' }))).toEqual([]);
   });
 });
