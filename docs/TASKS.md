@@ -1386,6 +1386,55 @@ validations simultanées.
 - [ ] Optionnel : `@testing-library/jest-dom` reste en 6.9 (épinglé pour Node
       18) ; la 6.10 est désormais possible
 
+### D1 (2026-10-09) - Demandes : vue 2 volets inspirée d'Outlook (admin)
+
+Audit UX validé par Fred (maquette « Demandes — maquette Outlook ») :
+inspiré d'Outlook, pas un clone. Deux volets (pas de 3e volet « dossiers »),
+lignes denses groupées par jour, volet de lecture avec barre d'action.
+Frontend seul : aucun changement d'API ni du contrat cockpit.
+
+- [x] Onglets **exclusifs**, par priorité (`pages/requests/requestBuckets.ts`) :
+      1) Clôturées = `completed`, `rejected`, `cancelled` (K7) ;
+      2) En attente DG = circuit `submitted` / `in_signature_circuit` / `signed` ;
+      3) À traiter = le reste. Avant : « Nouvelles » ⊂ « À examiner », et
+      rejet / annulation absents de « Clôturées ». Les pastilles d'en-tête
+      utilisent les mêmes compteurs (`metrics` de l'API n'est plus affiché,
+      champ conservé)
+- [x] Mise en page : liste 340-400 px + volet de lecture fluide ; tient en
+      1366 px barre latérale ouverte (avant : débordement horizontal entre
+      1280 et ~1580 px, colonnes minimales 520 + 720 px) ; volets empilés
+      sous `lg`. Liste défilante (plus de pagination à 5)
+- [x] Groupes par jour de dépôt (Aujourd'hui / Hier / Cette semaine / Plus
+      ancien, semaine à partir du lundi) ; pas de groupe en tri par référence
+- [x] Sélection dans `?id=` ; le volet n'affiche jamais un dossier absent de
+      la liste (repli sur la première ligne visible, sinon état vide). Avant :
+      repli sur `items[0]` même hors vue
+- [x] Clavier (limité à la page, aucun écouteur global) : ↑/↓/Début/Fin
+      (focus itinérant, `role="listbox"` / `aria-selected`), Entrée ouvre la
+      page de phase, `/` place le curseur dans la recherche. Sur un dossier
+      prêt à ouvrir, Entrée **met seulement le focus** sur « Ouvrir la phase
+      préliminaire » (changement d'état : confirmation par une 2e Entrée)
+- [x] Volet de lecture (`RequestReadingPane.tsx`) : une seule action (Ouvrir
+      la phase préliminaire / Traiter / Consulter le dossier / libellé en
+      lecture seule) ; dossier clos : badge, aucune action de workflow
+- [x] Documents : une case par document (évalué / en attente de revue /
+      manquant) au lieu du graphique en anneau ; total lu de l'API
+- [x] Nettoyage : une seule recherche, contrôles morts retirés (« Filtres »,
+      « Nouvelle demande », « ⋮ », « Notes internes ») ; libellés accentués
+      côté admin
+- [x] Tests : `requestBuckets.test.ts` (9), `RequestsPage.test.tsx` (7) ;
+      admin 154/154, typecheck, lint (0 erreur, 5 avertissements existants),
+      build admin
+- [ ] Vérification visuelle en 1366 et 1920 px (à faire par Fred)
+- [ ] **D2 (API)** : lien de consultation pour un dossier rejeté / annulé
+      (`nextActionHref` null → aucun bouton aujourd'hui, alors que la
+      consultation reste permise), accents des libellés API
+      (`Preliminaire`, `Termine`, `Rejete`…), N+1 de `resolveRequestStatus`
+- [ ] **D3 (API, option B)** : `lastActivityAt` par dossier (tri et groupes
+      « Dernière activité »), fil d'activité toutes phases (aujourd'hui M1
+      seul, 120 lignes globales), table `request_views` pour « Non lues »,
+      drapeaux dérivés
+
 ## Sprint 7 - Documents (transverse, M8)
 
 - [ ] Upload multi-format (PDF/Word/PNG/JPG)
