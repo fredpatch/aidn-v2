@@ -537,48 +537,57 @@ export const payments = pgTable(
 );
 
 // ── M7 - Certificates ────────────────────────────────────────────────────────
-export const certificates = pgTable('certificates', {
-  id: serial('id').primaryKey(),
-  requestId: integer('request_id')
-    .notNull()
-    .references(() => requests.id),
-  reference: varchar('reference', { length: 30 }).notNull().unique(), // CERT-YYYY-XXXX
-  certificateType: certificateTypeEnum('certificate_type').notNull(),
-  typeOverriddenBy: integer('type_overridden_by').references(() => users.id),
-  status: certificateStatusEnum('status').notNull().default('in_preparation'),
-  // createdAt is the point zero of the time-to-deliver KPI: set at payment validation.
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  printedAt: timestamp('printed_at'),
-  signedAt: timestamp('signed_at'),
-  signedFileUrl: text('signed_file_url'),
-  archivedAt: timestamp('archived_at'),
-  notifiedAt: timestamp('notified_at'), // time-to-collect KPI starts here
-  collectedAt: timestamp('collected_at'), // time-to-collect KPI ends here
-  // ── Fields DN enters before generating the filled certificate document.
-  // None of this is derived/computed - the approval numbering scheme and
-  // validity-period rule aren't defined yet, so DN handles them manually
-  // until a real generation pattern is confirmed (see project decisions).
-  approvalReferenceNumber: varchar('approval_reference_number', { length: 100 }),
-  expiresAt: timestamp('expires_at'),
-  initialIssueDate: timestamp('initial_issue_date'),
-  currentIssueDate: timestamp('current_issue_date'),
-  // DN override of the default DG name (system_parameters key
-  // certificate_dg_full_name) - null means "use the default".
-  dgFullNameOverride: text('dg_full_name_override'),
-  // "Classe(s) et Qualification(s)" table on the certificate. Fixed shape,
-  // NOT a variable-length list - the template always shows exactly these 4
-  // categories (locked with Fred: DN doesn't add/remove rows, only fills
-  // qualification/limitations text per category, "Nil" when not applicable).
-  // Each category has a French qualification, an English translation, and
-  // a limitations string - the Class column itself is static template text,
-  // not stored here.
-  scopeDetails: jsonb('scope_details').$type<{
-    aeronefs: { qualification: string; qualificationEn: string; limitations: string };
-    moteurs: { qualification: string; qualificationEn: string; limitations: string };
-    composants: { qualification: string; qualificationEn: string; limitations: string };
-    specialisee: { qualification: string; qualificationEn: string; limitations: string };
-  }>(),
-});
+export const certificates = pgTable(
+  'certificates',
+  {
+    id: serial('id').primaryKey(),
+    requestId: integer('request_id')
+      .notNull()
+      .references(() => requests.id),
+    reference: varchar('reference', { length: 30 }).notNull().unique(), // CERT-YYYY-XXXX
+    certificateType: certificateTypeEnum('certificate_type').notNull(),
+    typeOverriddenBy: integer('type_overridden_by').references(() => users.id),
+    status: certificateStatusEnum('status').notNull().default('in_preparation'),
+    // createdAt is the point zero of the time-to-deliver KPI: set at payment validation.
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    printedAt: timestamp('printed_at'),
+    signedAt: timestamp('signed_at'),
+    signedFileUrl: text('signed_file_url'),
+    archivedAt: timestamp('archived_at'),
+    notifiedAt: timestamp('notified_at'), // time-to-collect KPI starts here
+    collectedAt: timestamp('collected_at'), // time-to-collect KPI ends here
+    // ── Fields DN enters before generating the filled certificate document.
+    // None of this is derived/computed - the approval numbering scheme and
+    // validity-period rule aren't defined yet, so DN handles them manually
+    // until a real generation pattern is confirmed (see project decisions).
+    approvalReferenceNumber: varchar('approval_reference_number', { length: 100 }),
+    expiresAt: timestamp('expires_at'),
+    initialIssueDate: timestamp('initial_issue_date'),
+    currentIssueDate: timestamp('current_issue_date'),
+    // DN override of the default DG name (system_parameters key
+    // certificate_dg_full_name) - null means "use the default".
+    dgFullNameOverride: text('dg_full_name_override'),
+    // "Classe(s) et Qualification(s)" table on the certificate. Fixed shape,
+    // NOT a variable-length list - the template always shows exactly these 4
+    // categories (locked with Fred: DN doesn't add/remove rows, only fills
+    // qualification/limitations text per category, "Nil" when not applicable).
+    // Each category has a French qualification, an English translation, and
+    // a limitations string - the Class column itself is static template text,
+    // not stored here.
+    scopeDetails: jsonb('scope_details').$type<{
+      aeronefs: { qualification: string; qualificationEn: string; limitations: string };
+      moteurs: { qualification: string; qualificationEn: string; limitations: string };
+      composants: { qualification: string; qualificationEn: string; limitations: string };
+      specialisee: { qualification: string; qualificationEn: string; limitations: string };
+    }>(),
+  },
+  (t) => [
+    // K8b - one certificate per request, guaranteed by the database (the
+    // app already checks it in validatePayment, serialised by the payment
+    // lock since K5). Run db:check:certificates before migration 0004.
+    uniqueIndex('certificates_request_id_idx').on(t.requestId),
+  ]
+);
 
 // ── M8 - Document versions & trash (reused across every upload point) ──────
 export const documentVersions = pgTable(

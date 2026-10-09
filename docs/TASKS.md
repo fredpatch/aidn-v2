@@ -1317,13 +1317,44 @@ seulement).
 - [x] HTTP réel (M6) : action inconnue, motif d'espaces, motif de 1001
       caractères → 400 avec message ; motif valide entouré d'espaces → 200,
       stocké rogné
-- [ ] K8b : contrainte d'unicité sur `certificates.request_id` (migration) -
+- [x] K8b (2026-10-09) : contrainte d'unicité sur `certificates.request_id` (migration) -
       après passage d'une requête de contrôle des doublons sur chaque
       environnement
 - [x] Lot CI : voir CI-1 ci-dessous
-- [ ] K8b repoussé (décision Fred) : défense en profondeur, pas de bug actuel
+- [x] Fait en K8b (Fred, 2026-10-09 : migration 0004 seule, sans attendre) - K8b repoussé (décision Fred) : défense en profondeur, pas de bug actuel
       (la seule création de certificat est déjà protégée) ; à faire avant la
       mise en production, avec la prochaine migration nécessaire
+
+### K8b (2026-10-09) - un certificat par demande, garanti par la base (API)
+
+Plan validé par Fred : migration 0004 seule (aucune autre migration en
+attente). Défense en profondeur : `validatePayment` (M7) vérifiait déjà
+l'absence de certificat, et le verrou du paiement (K5) sérialise deux
+validations simultanées.
+
+- [x] Migration `0004_k8b_one_certificate_per_request` : index unique
+      `certificates_request_id_idx` (une seule instruction `CREATE UNIQUE
+      INDEX`, générée par `db:generate`). `db:migrate` applique les migrations
+      dans une transaction : en cas de doublon, rien n'est appliqué
+- [x] Contrôle préalable en lecture seule : `npm run db:check:certificates --
+      --check` (`scripts/check-certificate-duplicates.ts`, requête dans
+      `certificates/certificate-duplicates.ts`) liste chaque demande ayant
+      plusieurs certificats ; code de sortie 1 si un doublon existe. Ne
+      supprime rien : le certificat à garder est une décision métier
+- [x] Erreur propre : si l'index refuse un second certificat (23505 sur
+      `certificates_request_id_idx`), réponse `CERTIFICATE_ALREADY_EXISTS`
+      (409) au lieu d'une 500 ; une collision de référence reste une autre
+      erreur. La vérification applicative existante est conservée
+- [x] Tests `certificate-per-request.db.test.ts` (PostgreSQL réel, 5) : index
+      qui refuse le doublon, conversion de l'erreur (y compris enveloppée),
+      seconde validation M7 → 409 sans écriture, contrôle qui signale un
+      doublon (index retiré dans une transaction annulée), script `--check`
+- [x] Vérifié à la main sur une base jetable avec un doublon : contrôle en
+      code 1, `db:migrate` en échec (« could not create unique index …
+      is duplicated »), 0004 non enregistrée, index absent
+- [ ] **Ordre de déploiement (Fred, chaque environnement)** : 1)
+      `npm run db:check:certificates -- --check` ; 2) si doublon : choisir le
+      certificat à garder et corriger à la main ; 3) `npm run db:migrate`
 
 ### CI-1 (2026-10-08) - Node 22 partout, revue frontend fiabilisée
 

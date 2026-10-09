@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "certificates_request_id_idx" ON "certificates" USING btree ("request_id");

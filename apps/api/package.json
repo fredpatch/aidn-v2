@@ -12,6 +12,7 @@
     "db:migrate": "npx tsx src/scripts/migrate.ts",
     "db:status": "npx tsx src/scripts/db-status.ts",
     "db:check:site-inspections": "npx tsx src/scripts/check-site-inspection-integrity.ts",
+    "db:check:certificates": "npx tsx src/scripts/check-certificate-duplicates.ts",
     "db:reset:dev": "npx tsx src/scripts/db-reset-dev.ts",
     "db:check:committed": "npx tsx src/scripts/check-migrations-committed.ts",
     "db:check:replayable": "npx tsx src/scripts/check-migrations-replayable.ts",

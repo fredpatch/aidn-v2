@@ -230,6 +230,19 @@ export async function uploadPaymentProof(
   return toPaymentView(await attachPaymentProof(phaseId, requestId, applicantId, 'M7', attachment));
 }
 
+/** K8b - the database refuses a second certificate for a request (unique
+ *  violation 23505 on certificates_request_id_idx): same answer as the check
+ *  in validatePayment, not a 500. A reference collision
+ *  (certificates_reference_unique) is another error and is rethrown as is. */
+export function rethrowOneCertificatePerRequest(error: unknown): never {
+  for (let e = error as { code?: string; constraint?: string; cause?: unknown } | undefined; e; e = e.cause as typeof e) {
+    if (e.code === '23505' && e.constraint === 'certificates_request_id_idx') {
+      throw new Error('CERTIFICATE_ALREADY_EXISTS');
+    }
+  }
+  throw error;
+}
+
 // ── Validate proof - this is where the certificate row is created ────────
 // Per the M7 spec: "À la validation de la preuve de paiement, le certificat
 // est créé en base (statut initial En préparation)". createdAt is the point
@@ -270,7 +283,7 @@ export async function validatePayment(
       tx
     );
     return { payment, certificate };
-  });
+  }).catch(rethrowOneCertificatePerRequest);
 
   return { payment: toPaymentView(payment), certificate: await toCertificateView(certificate) };
 }

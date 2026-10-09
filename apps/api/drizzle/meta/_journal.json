@@ -29,6 +29,13 @@
       "when": 1791194929217,
       "tag": "0003_parallel_shocker",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791529052933,
+      "tag": "0004_k8b_one_certificate_per_request",
+      "breakpoints": true
     }
   ]
 }
