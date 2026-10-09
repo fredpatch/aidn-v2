@@ -1519,6 +1519,40 @@ d'énumération, routes et clés inchangés.
       libellé affiché (`statusLabel === 'Clôturée'`) au lieu d'un statut ;
       fragile si le libellé change
 
+### C1 (à faire) - Courriers à traiter : audit d'une vue 2 volets type Outlook
+
+Demande de Fred (2026-10-09) : la section `Courriers à traiter` (route
+`courriers`) sert surtout au processus courrier (réception / assistant DG) et
+ressemble déjà à un traitement de messagerie Outlook. Évaluer si la vue de D1
+(Demandes) peut s'y appliquer **sans casser la logique métier existante**.
+Livrable : audit + recommandation + maquette ; **aucun code avant validation
+de Fred**.
+
+Point de départ constaté : `pages/courrier-tasks/CourrierTasksPage.tsx`
+(1061 lignes), déjà liste + détail (`lg:grid-cols-[minmax(0,1fr)_460px]`),
+`BucketTabs`, pagination à 8 ; onglets `to_signature` / `in_signature` /
+`returned` (+ libellés hérités) ; API `GET /courrier-tasks` (paramètres),
+actions `POST …/confirm-printed-for-signature` et `POST …/return-signed`
+(scan du retour signé).
+
+- [ ] Inventaire des règles à préserver : transitions du circuit (imprimer →
+      en signature → retour signé scanné), rôles autorisés par action, K7c
+      (dossier clos : badge, pas d'« Ouvrir / imprimer », documents
+      consultables), éléments « dossier clos » hors des onglets d'action (K7d)
+- [ ] Filtrage, tri et pagination : côté client ou côté serveur (paramètres
+      de `GET /courrier-tasks`) - impact sur un regroupement par jour
+- [ ] Correspondance Outlook : onglets ↔ étapes du circuit, regroupement par
+      date (dépôt, mise en signature, retour), volet de lecture avec une seule
+      action, navigation clavier ; Entrée ne doit jamais déclencher seule une
+      transition du circuit (même règle qu'en D1)
+- [ ] Données manquantes éventuelles (date de dernière étape, délai en
+      signature) : frontend seul ou API
+- [ ] Réutilisation : extraire de D1 un gabarit commun liste + volet de
+      lecture (`RequestsList` / `RequestReadingPane` → composant partagé) ou
+      dupliquer ; décider avant d'implémenter
+- [ ] Recommandation par étapes (frontend seul d'abord), maquette à valider,
+      puis lots séparés API / frontend si nécessaire
+
 ## Sprint 7 - Documents (transverse, M8)
 
 - [ ] Upload multi-format (PDF/Word/PNG/JPG)
