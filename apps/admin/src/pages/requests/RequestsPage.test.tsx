@@ -103,12 +103,12 @@ const pane = () => screen.getByRole('article');
 const tab = (name: RegExp) => screen.getByRole('button', { name });
 
 describe('<RequestsPage> (D1)', () => {
-  it('tabs are exclusive: a rejected dossier is under « Clôturées », not « À traiter » or « En attente DG »', async () => {
+  it('tabs are exclusive: a rejected dossier is under « Clôturées », not « À traiter » or « Attente DG »', async () => {
     renderPage();
     await screen.findByRole('listbox');
     expect(tab(/^Toutes/)).toHaveTextContent('4');
     expect(tab(/^À traiter/)).toHaveTextContent('2');
-    expect(tab(/^En attente DG/)).toHaveTextContent('0');
+    expect(tab(/^Attente DG/)).toHaveTextContent('0');
     expect(tab(/^Clôturées/)).toHaveTextContent('2');
 
     fireEvent.click(tab(/^Clôturées/));
@@ -132,7 +132,7 @@ describe('<RequestsPage> (D1)', () => {
       await within(await screen.findByRole('article')).findByRole('heading', { name: 'DEM-D1-01' })
     ).toBeInTheDocument();
 
-    fireEvent.click(tab(/^En attente DG/));
+    fireEvent.click(tab(/^Attente DG/));
     expect(screen.getByText('Aucune demande dans cette vue')).toBeInTheDocument();
     expect(within(pane()).getByText('Aucune demande sélectionnée')).toBeInTheDocument();
     expect(within(pane()).queryByRole('heading', { name: /DEM-D1/ })).not.toBeInTheDocument();

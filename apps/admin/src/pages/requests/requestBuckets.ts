@@ -19,7 +19,7 @@ export const WAITING_DG_CIRCUIT_STATUSES = ['submitted', 'in_signature_circuit',
 export const REQUEST_BUCKETS: Array<{ key: RequestBucket; label: string }> = [
   { key: 'all', label: 'Toutes' },
   { key: 'todo', label: 'À traiter' },
-  { key: 'waiting_dg', label: 'En attente DG' },
+  { key: 'waiting_dg', label: 'Attente DG' },
   { key: 'closed', label: 'Clôturées' },
 ];
 

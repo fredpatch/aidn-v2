@@ -143,6 +143,7 @@ export default function RequestsPage() {
         <section className="grid items-start gap-4 lg:grid-cols-[minmax(340px,400px)_minmax(0,1fr)]">
           <div className="flex min-w-0 flex-col overflow-hidden rounded-lg border border-anac-border bg-white shadow-[0_8px_22px_rgba(17,34,83,0.04)] lg:sticky lg:top-4 lg:max-h-[calc(100vh-8rem)]">
             <BucketTabs
+              size="compact"
               value={bucket}
               items={REQUEST_BUCKETS.map((b) => ({
                 key: b.key,
