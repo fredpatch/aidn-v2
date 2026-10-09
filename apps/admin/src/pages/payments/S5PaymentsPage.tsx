@@ -130,7 +130,12 @@ function formatDateTime(value: string | null | undefined): string {
   return new Date(value).toLocaleString('fr-FR');
 }
 
+const PENDING_PAYMENT_STATUSES = ['awaiting_invoice', 'awaiting_proof', 'pending_validation'];
+
 function bucketForItem(item: S5PaymentQueueItem): PaymentBucket {
+  // K7d - a payment still pending on a closed dossier needs no S5 action: it
+  // leaves the action tabs and their counters, and stays under "Tous".
+  if (item.dossierClosed && PENDING_PAYMENT_STATUSES.includes(item.payment.status)) return 'all';
   if (item.payment.status === 'awaiting_invoice') return 'to_invoice';
   if (item.payment.status === 'awaiting_proof') return 'waiting_proof';
   if (item.payment.status === 'pending_validation') return 'proof_received';

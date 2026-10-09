@@ -10,6 +10,7 @@ import PaymentCard from './components/PaymentCard';
 import ScopeDetailsCard from './components/ScopeDetailsCard';
 import { buildChecklist, certificateWorkflowSummary, formatDate } from './helpers';
 import { useCertificateBundle } from './hooks/useCertificateBundle';
+import { CERTIFICATE_STATUS_LABELS, PAYMENT_STATUS_LABELS } from './constants';
 
 const DN_ROLES = ['dn_agent', 'dn_supervisor', 'SU'];
 const S5_ROLES = ['s5_agent', 'SU'];
@@ -103,7 +104,10 @@ export default function CertificatesPhasePage() {
   const keyInfo = [
     { label: 'Responsable', value: action.owner },
     { label: "Date d'ouverture", value: formatDate(bundle?.phase?.openedAt) },
-    { label: 'Paiement', value: bundle?.payment?.status ?? 'Facture attendue' },
+    {
+      label: 'Paiement',
+      value: bundle?.payment ? PAYMENT_STATUS_LABELS[bundle.payment.status] ?? bundle.payment.status : 'Facture attendue',
+    },
     { label: 'Certificat', value: bundle?.certificate?.reference ?? 'Non cree' },
     {
       label: 'Cycle',
@@ -111,7 +115,9 @@ export default function CertificatesPhasePage() {
         ? 'Retire'
         : bundle?.certificate?.notifiedAt
           ? 'Postulant notifie'
-          : bundle?.certificate?.status ?? 'Non demarre',
+          : bundle?.certificate
+            ? CERTIFICATE_STATUS_LABELS[bundle.certificate.status] ?? bundle.certificate.status
+            : 'Non demarre',
       tone: bundle?.certificate?.collectedAt ? 'success' : 'muted',
     },
   ] as const;

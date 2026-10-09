@@ -131,6 +131,13 @@ function statusIcon(bucket: CourrierTaskBucket) {
   return Inbox;
 }
 
+/** K7d - same rule as the API counts: a courrier pending on a closed dossier
+ *  leaves "A imprimer" / "En signature" and stays under "Tous". */
+function inActionBucket(task: CourrierTask, bucket: CourrierTaskBucket): boolean {
+  if (task.bucket !== bucket) return false;
+  return !(task.dossierClosed && (bucket === 'to_signature' || bucket === 'in_signature'));
+}
+
 function nextActionLabel(task: CourrierTask): string {
   if (task.dossierClosed) return 'Dossier clos - consultation';
   if (task.bucket === 'to_signature') return 'Imprimer puis mettre en signature';
@@ -233,7 +240,7 @@ export default function CourrierTasksPage() {
   const filteredTasks = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     return tasks
-      .filter((task) => bucket === 'all' || task.bucket === bucket)
+      .filter((task) => bucket === 'all' || inActionBucket(task, bucket))
       .filter((task) => {
         if (!normalizedQuery) return true;
         const haystack = [

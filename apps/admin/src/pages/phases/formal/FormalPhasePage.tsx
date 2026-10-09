@@ -16,6 +16,7 @@ import {
   formatDate,
 } from './helpers';
 import { useFormalBundle } from './hooks/useFormalBundle';
+import { MEETING_STATUS_LABELS } from './constants';
 
 export default function FormalPhasePage() {
   const { requestId } = useParams<{ requestId: string }>();
@@ -50,10 +51,11 @@ export default function FormalPhasePage() {
       label: 'Circuit signature',
       value: letterReturned ? 'Retour signe' : 'En attente',
       tone: letterReturned ? 'success' : 'warning',
+      closedValue: letterReturned ? undefined : 'Non retourné',
     },
     {
       label: 'Reunion formelle',
-      value: bundle?.meeting?.status ?? 'Non planifiee',
+      value: bundle?.meeting ? MEETING_STATUS_LABELS[bundle.meeting.status] ?? bundle.meeting.status : 'Non planifiee',
       tone: bundle?.meeting && bundle.meeting.status !== 'scheduled' ? 'success' : 'muted',
     },
   ] as const;

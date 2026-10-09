@@ -45,7 +45,10 @@ describe('<S5PaymentsPage> (K7c)', () => {
   it('closed dossier: badge, "Dossier clos" note, no validate / reject, documents still listed', async () => {
     responses['/deep-evaluation/payment-queue'] = [payment(closed)];
     renderWithProviders(<S5PaymentsPage />);
+    // K7d - a pending payment of a closed dossier is no longer in the action tabs
     fireEvent.click(await screen.findByRole('button', { name: /Preuve recue/ }));
+    expect(await screen.findByText('Aucun paiement dans cette vue')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /^Tous/ }));
     expect((await screen.findAllByText('Dossier rejeté')).length).toBeGreaterThan(0);
     expect(screen.getByText('Dossier clos - consultation')).toBeInTheDocument();
     expect(screen.getByText('Dossier clos - consultation uniquement')).toBeInTheDocument();
@@ -112,6 +115,9 @@ describe('<CourrierTasksPage> (K7c)', () => {
   it('closed dossier: badge, no print, the document stays viewable', async () => {
     responses['/courrier-tasks'] = tasks(task({ ...closed, availableActions: [] }));
     renderWithProviders(<CourrierTasksPage />);
+    // K7d - not in "A imprimer" any more (default tab), still under "Tous"
+    expect(await screen.findByText('Selectionnez un courrier')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /^Tous/ }));
     expect(await screen.findByText('Dossier clos - consultation uniquement')).toBeInTheDocument();
     expect(screen.getAllByText('Dossier rejeté').length).toBeGreaterThan(0);
     expect(screen.queryByRole('button', { name: /Ouvrir \/ imprimer/ })).not.toBeInTheDocument();

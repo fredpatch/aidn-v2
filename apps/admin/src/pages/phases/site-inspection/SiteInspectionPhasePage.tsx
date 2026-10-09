@@ -9,6 +9,7 @@ import SiteVisitCard from './components/SiteVisitCard';
 import VerdictCard from './components/VerdictCard';
 import { buildChecklist, formatDate, siteInspectionWorkflowSummary } from './helpers';
 import { useSiteInspectionBundle } from './hooks/useSiteInspectionBundle';
+import { PAYMENT_STATUS_LABELS, SITE_VISIT_STATUS_LABELS } from './constants';
 
 const DN_ROLES = ['dn_agent', 'dn_supervisor', 'SU'];
 const S5_ROLES = ['s5_agent', 'SU'];
@@ -161,16 +162,20 @@ export default function SiteInspectionPhasePage() {
   const keyInfo = [
     { label: 'Responsable', value: action.owner },
     { label: "Date d'ouverture", value: formatDate(bundle?.phase?.openedAt) },
-    { label: 'Paiement', value: bundle?.payment?.status ?? 'Facture attendue' },
+    {
+      label: 'Paiement',
+      value: bundle?.payment ? PAYMENT_STATUS_LABELS[bundle.payment.status] ?? bundle.payment.status : 'Facture attendue',
+    },
     {
       label: 'Visite',
-      value: bundle?.siteVisit?.status ?? 'Non planifiee',
+      value: bundle?.siteVisit ? SITE_VISIT_STATUS_LABELS[bundle.siteVisit.status] ?? bundle.siteVisit.status : 'Non planifiee',
       tone: bundle?.siteVisit?.status === 'held' ? 'success' : 'muted',
     },
     {
       label: 'Avis R3',
       value: bundle?.inspection ? 'Soumis' : 'Attendu',
       tone: bundle?.inspection ? 'success' : 'warning',
+      closedValue: bundle?.inspection ? undefined : 'Non rendu',
     },
   ] as const;
 

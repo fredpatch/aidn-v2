@@ -15,6 +15,7 @@ import {
   formatDate,
 } from './helpers';
 import { useDeepEvaluationBundle } from './hooks/useDeepEvaluationBundle';
+import { PAYMENT_STATUS_LABELS } from './constants';
 
 const DN_ROLES = ['dn_agent', 'dn_supervisor', 'SU'];
 const S5_ROLES = ['s5_agent', 'SU'];
@@ -110,7 +111,10 @@ export default function DeepEvaluationPhasePage() {
   const keyInfo = [
     { label: 'Responsable', value: action.owner },
     { label: "Date d'ouverture", value: formatDate(bundle?.phase?.openedAt) },
-    { label: 'Paiement', value: bundle?.payment?.status ?? 'Facture attendue' },
+    {
+      label: 'Paiement',
+      value: bundle?.payment ? PAYMENT_STATUS_LABELS[bundle.payment.status] ?? bundle.payment.status : 'Facture attendue',
+    },
     {
       label: 'Documents valides',
       value: bundle ? `${bundle.completionRate.validated}/${bundle.completionRate.total}` : '-',

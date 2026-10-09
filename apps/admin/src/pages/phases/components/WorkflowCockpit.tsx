@@ -32,6 +32,9 @@ export interface WorkflowKeyInfoItem {
   label: string;
   value: ReactNode;
   tone?: 'default' | 'success' | 'warning' | 'danger' | 'muted';
+  /** K7d - shown instead of value on a closed dossier (e.g. "Non rendu"
+   *  rather than "Attendu": nothing is awaited any more). */
+  closedValue?: ReactNode;
 }
 
 export interface WorkflowQuickLink {
@@ -189,8 +192,16 @@ function WorkflowCockpitView({
       }
     : action;
   // "Responsable" is the owner of the next action: none on a closed dossier.
-  const visibleKeyInfo = dossierClosed
-    ? keyInfo.filter((info) => info.label !== 'Responsable')
+  // K7d - nothing is awaited either: closedValue replaces the value, and a
+  // warning tone (something pending) turns neutral.
+  const visibleKeyInfo: readonly WorkflowKeyInfoItem[] = dossierClosed
+    ? keyInfo
+        .filter((info) => info.label !== 'Responsable')
+        .map((info) => ({
+          ...info,
+          value: info.closedValue ?? info.value,
+          tone: info.tone === 'warning' ? 'muted' : info.tone,
+        }))
     : keyInfo;
   const completedCount = checklist.filter((item) => item.done).length;
   const ActionIcon = actionToneStyles[railAction.tone].icon;

@@ -1163,6 +1163,8 @@ refusée.
       voir ci-dessous
 - [x] K7c (API + admin) : files de travail (S5, Réunions, Courriers, Mes
       inspections) conscientes du dossier clos - voir ci-dessous
+- [x] K7d (admin + API) : informations clés lisibles, rien « en attente »
+      sur un dossier clos, compteurs sans les dossiers clos - voir ci-dessous
 - [ ] Course résiduelle : les actions hors transaction lisent le statut puis
       écrivent (fenêtre de quelques millisecondes avec un rejet simultané)
 
@@ -1212,7 +1214,7 @@ sécurité.
 - [x] Fait en K7c (2026-10-09) - Hors K7b, non vérifié : les autres écrans (file S5, Réunions,
       Courriers à traiter, Mes inspections) ne connaissent pas l'état clos ;
       s'ils proposent une action sur un dossier clos, l'API la refuse (409)
-- [ ] Hors K7b : informations clés en codes bruts (`rejected`, `held`) et
+- [x] Fait en K7d (2026-10-09) - Hors K7b : informations clés en codes bruts (`rejected`, `held`) et
       « Avis R3 : Attendu » en orange sur un dossier clos
 
 ### Files de travail et dossier clos K7c (2026-10-09) - API + admin
@@ -1253,11 +1255,39 @@ restent listés (historique), sans action ; l'API reste le filet de sécurité.
       MutationCache). API 355/355, admin 134/134, portail 94/94 (Node 22),
       typecheck, lint (0 erreur, 5 avertissements déjà présents), build
 - [ ] Non vérifié en navigateur sur base réelle (à faire par Fred)
-- [ ] Hors K7c : compteurs « Factures à envoyer » / « À imprimer » comptent
+- [x] Fait en K7d - Hors K7c : compteurs « Factures à envoyer » / « À imprimer » comptent
       encore un élément en attente d'un dossier clos (il reste dans son onglet,
       marqué clos)
-- [ ] Hors K7c : « Avis R3 : Attendu » encore affiché dans le panneau Mes
+- [x] Fait en K7d - Hors K7c : « Avis R3 : Attendu » encore affiché dans le panneau Mes
       inspections d'un dossier clos (même sujet que les informations clés)
+
+### Informations clés et compteurs K7d (2026-10-09) - admin + API
+
+Plan validé par Fred (éléments en attente d'un dossier clos : sous « Tous »
+seulement).
+
+- [x] Informations clés des 5 pages de phase en libellés français, à partir des
+      tables existantes de chaque phase (`constants.ts`) : paiement M5 / M6 /
+      M7, réunion M3 / M4, visite M6, cycle du certificat M7 (code brut
+      seulement si une valeur inconnue arrive)
+- [x] Correctif : `deep-evaluation/constants.ts` utilisait la clé `pending` au
+      lieu de `awaiting_invoice` ; la carte paiement M5 affichait le code brut
+- [x] Dossier clos : `WorkflowKeyInfoItem.closedValue` remplace la valeur et
+      un ton « warning » devient neutre (`WorkflowCockpit`). « Avis R3 : Non
+      rendu » (M6), « Circuit signature : Non retourné » (M4) ; même « Avis
+      R3 : Non rendu » dans le panneau Mes inspections
+- [x] Compteurs : un élément encore en attente sur un dossier clos sort des
+      onglets d'action et de leurs compteurs, et reste sous « Tous » (badge
+      dossier clos). File S5 : facture attendue, preuve attendue, preuve à
+      valider (`bucketForItem`). Courriers : « À imprimer » et « En
+      signature » - API (`counts` et filtre `?bucket=`, le champ `bucket`
+      garde le statut du circuit) et filtre de l'écran. Paiements validés /
+      rejetés et retours signés restent dans leurs onglets
+- [x] Tests : admin `KeyInfo.test.tsx` (4 : valeur clos / ouvert, tables de
+      libellés complètes), `closed-dossier-lists.test.tsx` adapté (élément
+      clos absent de l'onglet d'action, présent sous « Tous ») ; API
+      `closed-dossier-lists.db.test.ts` +1 (filtre `to_signature`)
+- [ ] Non vérifié en navigateur sur base réelle (à faire par Fred)
 
 ### Durcissement API K8a (2026-10-08) - rejet de paiement et référence de certificat
 

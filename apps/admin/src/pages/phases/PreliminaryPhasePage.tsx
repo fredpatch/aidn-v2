@@ -15,6 +15,7 @@ import {
   preliminaryWorkflowSummary,
 } from './preliminary/helpers';
 import { usePreliminaryBundle } from './preliminary/hooks/usePreliminaryBundle';
+import { MEETING_STATUS_LABELS } from './preliminary/constants';
 
 export default function PreliminaryPhasePage() {
   const { requestId } = useParams<{ requestId: string }>();
@@ -62,7 +63,10 @@ export default function PreliminaryPhasePage() {
   const keyInfo = [
     { label: 'Responsable', value: action.owner },
     { label: "Date d'ouverture", value: formatDate(bundle?.phase?.openedAt) },
-    { label: 'Reunion', value: bundle?.meeting?.status ?? 'Non planifiee' },
+    {
+      label: 'Reunion',
+      value: bundle?.meeting ? MEETING_STATUS_LABELS[bundle.meeting.status] ?? bundle.meeting.status : 'Non planifiee',
+    },
     {
       label: 'Declaration',
       value: bundle?.evaluation?.submittedFileUrl

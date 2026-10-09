@@ -1,5 +1,5 @@
 export const PAYMENT_STATUS_LABELS: Record<string, string> = {
-  pending: 'En attente de facture',
+  awaiting_invoice: 'En attente de facture',
   awaiting_proof: 'Facture envoyée - en attente de preuve de paiement',
   pending_validation: 'Preuve soumise - en attente de validation',
   validated: 'Paiement validé',
@@ -7,7 +7,7 @@ export const PAYMENT_STATUS_LABELS: Record<string, string> = {
 };
 
 export const PAYMENT_STATUS_TONES: Record<string, string> = {
-  pending: 'bg-anac-muted/10 text-anac-muted',
+  awaiting_invoice: 'bg-anac-muted/10 text-anac-muted',
   awaiting_proof: 'bg-anac-info/10 text-anac-info',
   pending_validation: 'bg-anac-warning/10 text-anac-warning',
   validated: 'bg-anac-success/10 text-anac-success',

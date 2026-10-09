@@ -151,6 +151,16 @@ async function ensureTaskCanMutate(circuit: typeof dgCircuitDocuments.$inferSele
   if (phase.status !== 'open') throw new Error('PHASE_NOT_OPEN');
 }
 
+/** K7d - a courrier still to print or in signature on a closed dossier needs
+ *  no action: it leaves those buckets and their counts (bucket itself keeps
+ *  the circuit status; the full list still returns it). */
+const ACTION_BUCKETS: readonly string[] = ['to_signature', 'in_signature'];
+
+function inBucket(task: CourrierTaskView, bucket: string): boolean {
+  if (task.bucket !== bucket) return false;
+  return !(task.dossierClosed && ACTION_BUCKETS.includes(bucket));
+}
+
 export async function listCourrierTasks(filters: {
   bucket?: string;
   source?: string;
@@ -172,15 +182,15 @@ export async function listCourrierTasks(filters: {
     )
   ).filter((task): task is CourrierTaskView => !!task);
 
-  const filtered = filters.bucket ? tasks.filter((task) => task.bucket === filters.bucket) : tasks;
+  const filtered = filters.bucket ? tasks.filter((task) => inBucket(task, filters.bucket!)) : tasks;
 
   return {
     items: filtered,
     counts: {
-      toSignature: tasks.filter((task) => task.bucket === 'to_signature').length,
-      inSignature: tasks.filter((task) => task.bucket === 'in_signature').length,
-      returned: tasks.filter((task) => task.bucket === 'returned').length,
-      legacySigned: tasks.filter((task) => task.bucket === 'legacy_signed').length,
+      toSignature: tasks.filter((task) => inBucket(task, 'to_signature')).length,
+      inSignature: tasks.filter((task) => inBucket(task, 'in_signature')).length,
+      returned: tasks.filter((task) => inBucket(task, 'returned')).length,
+      legacySigned: tasks.filter((task) => inBucket(task, 'legacy_signed')).length,
     },
   };
 }

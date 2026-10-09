@@ -99,6 +99,17 @@ describe('K7c closed dossier in the staff work lists (real PostgreSQL)', { skip 
     });
   }
 
+  it('K7d: a courrier pending on a closed dossier leaves the action bucket, the full list keeps it', async () => {
+    const closedOne = await dossier('rejected');
+    const openOne = await dossier('in_progress');
+    const ids = (items: Array<{ requestId: number }>) => items.map((item) => item.requestId);
+    const toPrint = ids((await m.courrier.listCourrierTasks({ bucket: 'to_signature' })).items);
+    assert.ok(toPrint.includes(openOne.request));
+    assert.ok(!toPrint.includes(closedOne.request));
+    const all = ids((await m.courrier.listCourrierTasks({})).items);
+    assert.ok(all.includes(closedOne.request) && all.includes(openOne.request));
+  });
+
   it('open dossier: unchanged, every action still offered', async () => {
     const l = await lists(await dossier('in_progress'));
     for (const item of [l.m5, l.m6, l.m7, l.meeting, l.courrier, l.mission]) {

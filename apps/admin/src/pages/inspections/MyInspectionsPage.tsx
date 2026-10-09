@@ -485,7 +485,10 @@ function InspectionDetailPanel({
           <Info label="Type de demande" value={REQUEST_TYPE_LABELS[item.requestType] ?? item.requestType} />
           <Info label="Paiement" value={paymentLabel(item.payment?.status)} />
           <Info label="Visite" value={visitLabel(item.siteVisit?.status)} />
-          <Info label="Avis R3" value={item.inspection ? verdictLabel(item.inspection.verdict) : 'Attendu'} />
+          <Info
+            label="Avis R3"
+            value={item.inspection ? verdictLabel(item.inspection.verdict) : item.dossierClosed ? 'Non rendu' : 'Attendu'}
+          />
         </PanelBlock>
 
         <PanelBlock title="Avancement" icon={ClipboardCheck}>
