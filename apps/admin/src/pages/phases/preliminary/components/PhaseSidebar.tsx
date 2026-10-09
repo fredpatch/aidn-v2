@@ -78,7 +78,7 @@ export default function PhaseSidebar({
                     ? undefined
                     : phaseStatus
                       ? 'Consulter cette phase'
-                      : 'Consulter cette phase et la demarrer si les conditions sont remplies'
+                      : 'Consulter cette phase et la démarrer si les conditions sont remplies'
                 }
               >
                 {isCurrent ? (

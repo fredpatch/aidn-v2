@@ -47,7 +47,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     to: '/courriers',
-    label: 'Courriers a traiter',
+    label: 'Courriers à traiter',
     icon: FileText,
     roles: ['reception', 'assistant_dg', 'SU'],
   },
@@ -65,7 +65,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     to: '/reunions',
-    label: 'Reunions',
+    label: 'Réunions',
     icon: CalendarDays,
     roles: ['dn_agent', 'dn_supervisor', 'SU'],
   },
@@ -77,7 +77,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     to: '/modeles-documents',
-    label: 'Modeles de documents',
+    label: 'Modèles de documents',
     icon: FileText,
     roles: ['dn_agent', 'dn_supervisor', 'SU'],
   },
@@ -87,7 +87,7 @@ const NAV_ITEMS: NavItem[] = [
     icon: Users,
     roles: ['SU', 'dn_supervisor'],
   },
-  { to: '/parametres', label: 'Parametres', icon: Settings2, roles: ['SU'] },
+  { to: '/parametres', label: 'Paramètres', icon: Settings2, roles: ['SU'] },
 ];
 
 export default function AppShell() {
@@ -174,7 +174,7 @@ export default function AppShell() {
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className="flex items-center justify-center h-10 border-t border-white/10 text-white/40 hover:text-white hover:bg-white/10 transition-colors flex-shrink-0"
-          aria-label={sidebarOpen ? 'Reduire la barre laterale' : 'Agrandir la barre laterale'}
+          aria-label={sidebarOpen ? 'Réduire la barre latérale' : 'Agrandir la barre latérale'}
         >
           {sidebarOpen ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
         </button>
@@ -183,7 +183,7 @@ export default function AppShell() {
       <div className="flex flex-col flex-1 overflow-hidden min-w-0">
         <header className="bg-white border-b border-anac-border flex items-center justify-between px-6 h-[57px] flex-shrink-0">
           <h1 className="text-anac-navy font-semibold text-sm truncate">
-            Application Informatique de la Direction de la Navigabilite
+            Application Informatique de la Direction de la Navigabilité
           </h1>
 
           <div className="flex items-center gap-1 flex-shrink-0 ml-4">
@@ -211,7 +211,7 @@ export default function AppShell() {
               className="h-8 px-2.5 gap-1.5 text-anac-muted hover:text-anac-danger hover:bg-red-50"
             >
               {loggingOut ? <Loader2 size={14} className="animate-spin" /> : <LogOut size={14} />}
-              <span className="text-[11px]">Deconnexion</span>
+              <span className="text-[11px]">Déconnexion</span>
             </Button>
           </div>
         </header>

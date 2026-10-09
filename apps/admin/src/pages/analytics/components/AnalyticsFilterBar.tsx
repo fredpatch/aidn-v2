@@ -25,13 +25,13 @@ export function AnalyticsFilterBar({
       <div className="grid gap-2 md:grid-cols-[1.25fr_1fr_1fr_1fr_auto_auto]">
         <label className="flex h-10 items-center gap-2 rounded-md border border-anac-border bg-white px-3 text-[12px] text-anac-muted">
           <CalendarDays size={14} aria-hidden="true" />
-          <span>Periode</span>
+          <span>Période</span>
           <input
             type="date"
             value={filters.periodStart ?? ''}
             onChange={(event) => update('periodStart', event.target.value)}
             className="min-w-0 flex-1 bg-transparent text-anac-navy outline-none"
-            aria-label="Date de debut"
+            aria-label="Date de début"
           />
           <span>-</span>
           <input

@@ -25,7 +25,7 @@ export default function FormalLetterCard({ circuit }: FormalLetterCardProps) {
           </p>
           <p className="text-anac-muted text-xs">
             Apres depot, reception / assistant DG gere l&apos;impression, la mise en signature et le
-            scan du retour signe depuis l&apos;ecran Courriers a traiter.
+            scan du retour signe depuis l&apos;ecran Courriers à traiter.
           </p>
         </div>
       ) : (
@@ -47,7 +47,7 @@ export default function FormalLetterCard({ circuit }: FormalLetterCardProps) {
                   label="ouvrir la lettre"
                 />
                 {circuit.hasPreviousVersions &&
-                  ` - ${circuit.versionCount} versions conservees dans l'historique.`}
+                  ` - ${circuit.versionCount} versions conservées dans l'historique.`}
               </>
             ) : (
               'Document de circuit non disponible.'
@@ -63,19 +63,19 @@ export default function FormalLetterCard({ circuit }: FormalLetterCardProps) {
 
           {circuit.status === 'in_signature_circuit' && (
             <p className="text-anac-warning text-xs">
-              Lettre en signature. DN attend le scan du retour signe.
+              Lettre en signature. DN attend le scan du retour signé.
             </p>
           )}
 
           {circuit.status === 'signed' && (
             <p className="text-anac-warning text-xs">
-              Ancien statut intermediaire. Finalisez le retour depuis Courriers a traiter.
+              Ancien statut intermédiaire. Finalisez le retour depuis Courriers à traiter.
             </p>
           )}
 
           {circuit.status === 'pending_review' && (
             <p className="text-anac-success text-xs">
-              Retour signe recu. DN peut poursuivre le traitement formel.
+              Retour signé reçu. DN peut poursuivre le traitement formel.
             </p>
           )}
         </div>

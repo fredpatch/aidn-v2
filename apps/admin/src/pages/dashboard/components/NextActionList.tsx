@@ -10,7 +10,7 @@ export function NextActionList({ actions }: { actions: DashboardActionItem[] }) 
     <DashboardSection
       className="p-5"
       title="Prochaines actions requises"
-      description="Files DN, signature et paiement a traiter."
+      description="Files DN, signature et paiement à traiter."
       action={
         <Link to="/demandes" className="text-[12px] font-semibold text-anac-blue hover:underline">
           Tout voir

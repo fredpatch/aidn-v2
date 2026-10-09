@@ -102,12 +102,12 @@ const actionToneStyles = {
 };
 
 function phaseStatusLabel(status: string | undefined, isCurrent: boolean, dossierClosed: boolean): string {
-  if (status === 'closed') return 'Terminee';
+  if (status === 'closed') return 'Terminée';
   // K7b - a closed dossier stops its open phase; the rest never starts.
-  if (dossierClosed) return status === 'open' ? 'Interrompue' : 'Non demarree';
+  if (dossierClosed) return status === 'open' ? 'Interrompue' : 'Non démarrée';
   if (status === 'open') return 'En cours';
   if (isCurrent) return 'En cours';
-  return 'A venir';
+  return 'À venir';
 }
 
 function phaseDot(status: string | undefined, isCurrent: boolean, index: number, dossierClosed: boolean) {
@@ -211,7 +211,7 @@ function WorkflowCockpitView({
       <div className="border-b border-anac-border/80 bg-white/90 px-6 py-3 backdrop-blur">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <nav className="flex items-center gap-2 text-xs text-anac-muted" aria-label="Fil d'Ariane">
-            <span>Direction de la Navigabilite</span>
+            <span>Direction de la Navigabilité</span>
             <ChevronRight size={14} aria-hidden="true" />
             <span>{dossierReference ?? `Demande #${requestId ?? '-'}`}</span>
             <ChevronRight size={14} aria-hidden="true" />
@@ -260,7 +260,7 @@ function WorkflowCockpitView({
                     : 'bg-anac-blue/10 text-anac-blue'
                 )}
               >
-                {phaseStatus === 'closed' ? 'Cloturee' : dossierClosed ? 'Interrompue' : 'En cours'}
+                {phaseStatus === 'closed' ? 'Clôturée' : dossierClosed ? 'Interrompue' : 'En cours'}
               </span>
             )}
           </div>
@@ -458,7 +458,7 @@ function WorkflowCockpitView({
             <section className="rounded-lg border border-anac-border bg-white p-4 shadow-sm">
               <div className="mb-4 flex items-center gap-2">
                 <ShieldCheck size={16} className="text-anac-navy" />
-                <h2 className="text-sm font-semibold text-anac-navy">Informations cles</h2>
+                <h2 className="text-sm font-semibold text-anac-navy">Informations clés</h2>
               </div>
               <dl className="space-y-3">
                 {visibleKeyInfo.map((info) => (
@@ -475,7 +475,7 @@ function WorkflowCockpitView({
             <section className="rounded-lg border border-anac-border bg-white p-4 shadow-sm">
               <div className="mb-4 flex items-center gap-2">
                 <FileArchive size={16} className="text-anac-navy" />
-                <h2 className="text-sm font-semibold text-anac-navy">Acces rapide</h2>
+                <h2 className="text-sm font-semibold text-anac-navy">Accès rapide</h2>
               </div>
               <div className="space-y-1">
                 {(quickLinks ?? defaultQuickLinks).map((link) => (
@@ -503,6 +503,6 @@ function WorkflowCockpitView({
 const defaultQuickLinks: WorkflowQuickLink[] = [
   { label: 'Historique du dossier', icon: <History size={14} /> },
   { label: 'Courriers officiels', icon: <Mail size={14} /> },
-  { label: 'Documents lies', icon: <FileArchive size={14} /> },
+  { label: 'Documents liés', icon: <FileArchive size={14} /> },
   { label: "Journal d'audit", icon: <ShieldCheck size={14} /> },
 ];

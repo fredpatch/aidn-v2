@@ -4,16 +4,16 @@ import type { PhaseWorkflowSummaryState } from '../components/PhaseWorkflowSumma
 export function buildChecklist(bundle: CertificateBundle): ChecklistItem[] {
   const { payment, certificate } = bundle;
   return [
-    { label: 'Facture envoyee au postulant', done: !!payment?.invoiceFileUrl },
+    { label: 'Facture envoyée au postulant', done: !!payment?.invoiceFileUrl },
     { label: 'Preuve de paiement soumise', done: !!payment?.proofFileUrl },
-    { label: 'Paiement valide (certificat cree)', done: payment?.status === 'validated' },
+    { label: 'Paiement validé (certificat créé)', done: payment?.status === 'validated' },
     { label: 'Champs du certificat renseignes', done: !!certificate?.approvalReferenceNumber },
-    { label: 'Document genere', done: (certificate?.status ?? 'in_preparation') !== 'in_preparation' },
-    { label: 'Imprime', done: !!certificate?.printedAt },
-    { label: 'Retour signe enregistre', done: !!certificate?.signedAt && !!certificate?.signedFileUrl },
+    { label: 'Document généré', done: (certificate?.status ?? 'in_preparation') !== 'in_preparation' },
+    { label: 'Imprimé', done: !!certificate?.printedAt },
+    { label: 'Retour signé enregistré', done: !!certificate?.signedAt && !!certificate?.signedFileUrl },
     { label: 'Archive', done: !!certificate?.archivedAt },
     { label: 'Postulant notifie', done: !!certificate?.notifiedAt },
-    { label: 'Retire par le postulant (phase cloturee)', done: !!certificate?.collectedAt },
+    { label: 'Retire par le postulant (phase clôturée)', done: !!certificate?.collectedAt },
   ];
 }
 
@@ -22,15 +22,15 @@ export function certificateWorkflowSummary(bundle: CertificateBundle): PhaseWork
   const certificate = bundle.certificate;
   const paymentLabel =
     bundle.payment?.status === 'validated'
-      ? 'Valide'
+      ? 'Validé'
       : bundle.payment?.proofFileUrl
-        ? 'A valider'
+        ? 'À valider'
         : bundle.payment?.invoiceFileUrl
           ? 'Preuve attendue'
           : 'Facture attendue';
-  const certificateLabel = certificate?.reference ?? 'Non cree';
+  const certificateLabel = certificate?.reference ?? 'Non créé';
   const lifecycleLabel = !certificate
-    ? 'Non demarre'
+    ? 'Non démarré'
     : certificate.collectedAt
       ? 'Retire'
       : certificate.notifiedAt
@@ -38,11 +38,11 @@ export function certificateWorkflowSummary(bundle: CertificateBundle): PhaseWork
         : certificate.archivedAt
           ? 'Archive'
           : certificate.signedAt
-            ? 'Retour signe'
+            ? 'Retour signé'
             : certificate.printedAt
-              ? 'Imprime'
+              ? 'Imprimé'
               : certificate.status === 'in_preparation'
-                ? 'En preparation'
+                ? 'En préparation'
                 : certificate.status;
 
   const metrics = [
@@ -53,8 +53,8 @@ export function certificateWorkflowSummary(bundle: CertificateBundle): PhaseWork
 
   if (phaseStatus === 'closed') {
     return {
-      title: 'Phase cloturee',
-      description: 'Le cycle de delivrance est termine et reste disponible pour audit.',
+      title: 'Phase clôturée',
+      description: 'Le cycle de délivrance est terminé et reste disponible pour audit.',
       owner: 'DN',
       tone: 'muted',
       phaseStatus,
@@ -64,32 +64,32 @@ export function certificateWorkflowSummary(bundle: CertificateBundle): PhaseWork
 
   if (!bundle.payment?.invoiceFileUrl) {
     return {
-      title: 'Facture a envoyer',
-      description: 'S5 envoie la facture avant la creation du certificat.',
+      title: 'Facture à envoyer',
+      description: 'S5 envoie la facture avant la création du certificat.',
       owner: 'S5',
       tone: 'warning',
       phaseStatus,
-      blockReason: 'Le certificat est cree apres validation du paiement.',
+      blockReason: 'Le certificat est créé après validation du paiement.',
       metrics,
     };
   }
 
   if (bundle.payment.status !== 'validated') {
     return {
-      title: 'Paiement a valider',
-      description: 'S5 valide la preuve de paiement pour creer ou poursuivre le certificat.',
+      title: 'Paiement à valider',
+      description: 'S5 valide la preuve de paiement pour créer ou poursuivre le certificat.',
       owner: 'S5',
       tone: 'warning',
       phaseStatus,
-      blockReason: 'La delivrance ne peut pas avancer tant que le paiement n est pas valide.',
+      blockReason: 'La délivrance ne peut pas avancer tant que le paiement n’est pas validé.',
       metrics,
     };
   }
 
   if (!certificate) {
     return {
-      title: 'Certificat a creer',
-      description: 'Le certificat sera cree apres validation du paiement.',
+      title: 'Certificat a créer',
+      description: 'Le certificat sera créé après validation du paiement.',
       owner: 'S5',
       tone: 'info',
       phaseStatus,
@@ -99,8 +99,8 @@ export function certificateWorkflowSummary(bundle: CertificateBundle): PhaseWork
 
   if (!certificate.approvalReferenceNumber || !certificate.scopeDetails) {
     return {
-      title: 'Champs du certificat a completer',
-      description: 'Renseigner les references administratives et le perimetre avant generation.',
+      title: 'Champs du certificat à compléter',
+      description: 'Renseigner les références administratives et le périmètre avant génération.',
       owner: 'DN',
       tone: 'warning',
       phaseStatus,
@@ -110,8 +110,8 @@ export function certificateWorkflowSummary(bundle: CertificateBundle): PhaseWork
 
   if (certificate.status === 'in_preparation') {
     return {
-      title: 'Document a generer',
-      description: 'Generer le document de certificat apres verification des champs.',
+      title: 'Document a générer',
+      description: 'Générer le document de certificat après vérification des champs.',
       owner: 'DN',
       tone: 'info',
       phaseStatus,
@@ -121,8 +121,8 @@ export function certificateWorkflowSummary(bundle: CertificateBundle): PhaseWork
 
   if (!certificate.printedAt) {
     return {
-      title: 'Certificat a imprimer',
-      description: 'Marquer le certificat comme imprime lorsque le document physique est produit.',
+      title: 'Certificat à imprimer',
+      description: 'Marquer le certificat comme imprimé lorsque le document physique est produit.',
       owner: 'DN',
       tone: 'info',
       phaseStatus,
@@ -132,8 +132,8 @@ export function certificateWorkflowSummary(bundle: CertificateBundle): PhaseWork
 
   if (!certificate.signedAt || !certificate.signedFileUrl) {
     return {
-      title: 'Retour signe a enregistrer',
-      description: 'Scanner le certificat retourne signe avant archivage.',
+      title: 'Retour signé a enregistrer',
+      description: 'Scanner le certificat retourné signé avant archivage.',
       owner: 'DN',
       tone: 'warning',
       phaseStatus,
@@ -144,7 +144,7 @@ export function certificateWorkflowSummary(bundle: CertificateBundle): PhaseWork
   if (!certificate.archivedAt) {
     return {
       title: 'Archivage a effectuer',
-      description: 'Archiver le certificat signe avant notification du postulant.',
+      description: 'Archiver le certificat signé avant notification du postulant.',
       owner: 'DN',
       tone: 'info',
       phaseStatus,
@@ -175,8 +175,8 @@ export function certificateWorkflowSummary(bundle: CertificateBundle): PhaseWork
   }
 
   return {
-    title: 'Delivrance terminee',
-    description: 'Le certificat a ete retire par le postulant.',
+    title: 'Délivrance terminée',
+    description: 'Le certificat a été retire par le postulant.',
     owner: 'DN',
     tone: 'success',
     phaseStatus,

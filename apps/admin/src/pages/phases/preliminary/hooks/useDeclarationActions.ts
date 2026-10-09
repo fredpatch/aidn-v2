@@ -18,7 +18,7 @@ export function useDeclarationActions(
       }
     },
     onError: (err) =>
-      setActionError(apiErrorMessage(err, 'Impossible de rendre la declaration disponible.')),
+      setActionError(apiErrorMessage(err, 'Impossible de rendre la déclaration disponible.')),
   });
 
   async function makeAvailable(phaseId: number, returnDays?: number): Promise<boolean> {

@@ -9,14 +9,14 @@ export function ActivityTimeline({ activity }: { activity: DashboardActivityItem
   return (
     <DashboardSection
       className="p-5"
-      title="Activite recente"
+      title="Activité récente"
       action={<Activity size={16} className="text-anac-blue" aria-hidden="true" />}
     >
       <div className="mt-4 space-y-4">
         {activity.length === 0 ? (
           <EmptyDashboardState
-            title="Aucune activite metier recente"
-            description="Les connexions techniques ne sont pas affichees ici."
+            title="Aucune activité métier récente"
+            description="Les connexions techniques ne sont pas affichées ici."
           />
         ) : (
           activity.map((item) => (

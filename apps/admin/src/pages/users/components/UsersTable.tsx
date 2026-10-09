@@ -49,7 +49,7 @@ export function UsersTable({
         <TableRow>
           <TableHead>Utilisateur</TableHead>
           <TableHead>Matricule</TableHead>
-          <TableHead>Roles</TableHead>
+          <TableHead>Rôles</TableHead>
           <TableHead>Statut</TableHead>
           <TableHead className="text-right">Actions</TableHead>
         </TableRow>

@@ -149,12 +149,12 @@ export default function SiteInspectionPhasePage() {
         blockReason: summary.blockReason,
       }
     : {
-        title: 'Demarrer la phase',
-        description: 'Ouvrir la demonstration / inspection apres l evaluation approfondie.',
+        title: 'Démarrer la phase',
+        description: 'Ouvrir la démonstration / inspection après l’évaluation approfondie.',
         owner: 'DN',
         tone: 'info' as const,
         primaryAction: {
-          label: startingPhase ? 'Demarrage...' : 'Demarrer la phase',
+          label: startingPhase ? 'Démarrage...' : 'Démarrer la phase',
           onClick: startPhase,
           disabled: startingPhase,
         },
@@ -168,7 +168,7 @@ export default function SiteInspectionPhasePage() {
     },
     {
       label: 'Visite',
-      value: bundle?.siteVisit ? SITE_VISIT_STATUS_LABELS[bundle.siteVisit.status] ?? bundle.siteVisit.status : 'Non planifiee',
+      value: bundle?.siteVisit ? SITE_VISIT_STATUS_LABELS[bundle.siteVisit.status] ?? bundle.siteVisit.status : 'Non planifiée',
       tone: bundle?.siteVisit?.status === 'held' ? 'success' : 'muted',
     },
     {
@@ -183,7 +183,7 @@ export default function SiteInspectionPhasePage() {
     <WorkflowCockpit
       requestId={requestId}
       currentCode="M6"
-      title="Phase - Demonstration / Inspection"
+      title="Phase - Démonstration / Inspection"
       subtitle={`Demande #${requestId ?? '-'}`}
       phaseStatus={bundle?.phase?.status}
       onBack={() => navigate('/')}
@@ -203,12 +203,12 @@ export default function SiteInspectionPhasePage() {
           <div className="card">
             <p className="mb-3 text-sm text-anac-muted">
               {dossierClosed
-                ? "Phase non demarree - dossier clos."
-                : "La phase d'evaluation approfondie doit etre cloturee avant de demarrer la demonstration/inspection."}
+                ? "Phase non démarrée - dossier clos."
+                : "La phase d'évaluation approfondie doit être clôturée avant de démarrer la demonstration/inspection."}
             </p>
             {!dossierClosed && (
               <Button onClick={startPhase} disabled={startingPhase}>
-                {startingPhase ? 'Demarrage...' : 'Demarrer la Phase - Demonstration/Inspection'}
+                {startingPhase ? 'Démarrage...' : 'Démarrer la Phase - Demonstration/Inspection'}
               </Button>
             )}
           </div>

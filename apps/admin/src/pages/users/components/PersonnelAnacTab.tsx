@@ -57,7 +57,7 @@ export function PersonnelAnacTab({
     event.preventDefault();
     setError(null);
     if (query.trim().length < 2) {
-      setError('Saisissez au moins 2 caracteres.');
+      setError('Saisissez au moins 2 caractères.');
       return;
     }
 
@@ -88,7 +88,7 @@ export function PersonnelAnacTab({
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Nom, prenom ou matricule Personnel ANAC..."
+            placeholder="Nom, prénom ou matricule Personnel ANAC..."
             className="pl-9"
           />
         </div>
@@ -156,7 +156,7 @@ export function PersonnelAnacTab({
                         hasAccount ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
                       }`}
                     >
-                      {hasAccount ? 'Compte cree' : 'A activer'}
+                      {hasAccount ? 'Compte créé' : 'À activer'}
                     </span>
                   </TableCell>
                   <TableCell className="text-right">
@@ -167,7 +167,7 @@ export function PersonnelAnacTab({
                       disabled={hasAccount}
                       onClick={() => onCreate(personnel)}
                     >
-                      {hasAccount ? 'Deja actif' : 'Activer'}
+                      {hasAccount ? 'Déjà actif' : 'Activer'}
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -187,7 +187,7 @@ export function PersonnelAnacTab({
       )}
       {mode === 'search' && (
         <div className="border-t border-anac-border px-4 py-3 text-xs text-anac-muted">
-          {results.length} resultat{results.length > 1 ? 's' : ''} de recherche
+          {results.length} résultat{results.length > 1 ? 's' : ''} de recherche
         </div>
       )}
     </>

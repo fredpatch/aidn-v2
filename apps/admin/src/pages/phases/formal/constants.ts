@@ -1,23 +1,23 @@
 export const FORMAL_SLOT_LABELS: Record<string, string> = {
-  form_dn_air_r2_3_f_e_010: "Formulaire DN-AIR-R2-3-F-E-010 - Demande d'agrement d'OMA",
+  form_dn_air_r2_3_f_e_010: "Formulaire DN-AIR-R2-3-F-E-010 - Demande d'agrément d'OMA",
   form_dn_air_r2_3_f_e_012_personnel:
     "Formulaires DN-AIR-R2-3-F-E-012 - Acceptation du personnel d'encadrement",
   certification_personnel_list: 'Liste du personnel de certification',
-  maintenance_procedures_manual: 'Manuel des Procedures de Maintenance (MPM)',
-  quality_manual: 'Manuel Qualite (ou integre au MPM)',
+  maintenance_procedures_manual: 'Manuel des Procédures de Maintenance (MPM)',
+  quality_manual: 'Manuel Qualité (ou intégré au MPM)',
   sms_manual: 'Manuel SGS',
-  capability_list: 'Liste des capacites (ou integree au MPM)',
-  training_program: 'Manuel ou programme de formation (ou integre au MPM)',
+  capability_list: 'Liste des capacités (ou intégrée au MPM)',
+  training_program: 'Manuel ou programme de formation (ou intégré au MPM)',
   subcontractor_contracts: "Copies des contrats avec les sous-traitants ou lettres d'intention",
-  technical_documents: 'Documents techniques relatifs a la capacite de la structure',
-  compliance_statement_011: 'Etat de conformite - Formulaire DN-AIR-R2-3-F-E-011',
+  technical_documents: 'Documents techniques relatifs à la capacité de la structure',
+  compliance_statement_011: 'État de conformité - Formulaire DN-AIR-R2-3-F-E-011',
 };
 
 export const CIRCUIT_STATUS_LABELS: Record<string, string> = {
-  submitted: 'Deposee - a mettre en signature',
+  submitted: 'Déposée - a mettre en signature',
   in_signature_circuit: 'En signature',
-  signed: 'Signee',
-  pending_review: 'Retour signe recu',
+  signed: 'Signée',
+  pending_review: 'Retour signé reçu',
 };
 
 export const CIRCUIT_STATUS_TONES: Record<string, string> = {
@@ -28,11 +28,11 @@ export const CIRCUIT_STATUS_TONES: Record<string, string> = {
 };
 
 export const MEETING_STATUS_LABELS: Record<string, string> = {
-  scheduled: 'Planifiee',
+  scheduled: 'Planifiée',
   held: 'Tenue',
-  no_show: 'Absence constatee',
+  no_show: 'Absence constatée',
   rescheduled: 'Reprogrammee',
-  file_cancelled: 'Dossier annule',
+  file_cancelled: 'Dossier annulé',
 };
 
 export const MEETING_STATUS_TONES: Record<string, string> = {

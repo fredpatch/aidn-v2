@@ -1459,10 +1459,39 @@ du cockpit inchangé (mêmes champs).
       lien de phase, annulé sans phase → `null`, M7 clôturée → `completed`,
       libellés ; API 366/366, admin 154/154, typecheck, lint (0 erreur),
       build API
-- [ ] Hors périmètre, à planifier : les mêmes libellés sans accents existent
-      ailleurs (admin : `MyInspectionsPage`, `CourrierTasksPage`,
-      `MeetingsPage`, `preliminary/constants.ts`, formulaires M4 ; API :
-      `meetings.service.ts`, `dashboard.service.ts`) - un passage dédié
+- [ ] Hors périmètre : les mêmes libellés sans accents existent ailleurs →
+      passage accents A1 (admin, fait) et A2 (API, à faire)
+
+### A1 (2026-10-09) - accents et apostrophes dans l'interface admin
+
+Constat (scan) : ~590 lignes de texte d'interface sans accents dans ~90
+fichiers (admin ~355, API ~230 ; portail déjà propre). Découpé en A1 (admin)
+et A2 (API). A1 : texte affiché seulement - aucun code, valeur, clé, route
+ni contrat d'API modifié.
+
+- [x] 67 fichiers source admin : chaînes et texte JSX uniquement (hors
+      `${…}` / `{…}`, identifiants, chemins, classes). Deux passes :
+      dictionnaire de mots du métier (participes en contexte : « retour
+      signé », « paiement validé »… ; les verbes restent : « S5 valide la
+      preuve », « le serveur refuse ») puis dictionnaire français
+      (`pyspellchecker`) pour les mots sans ambiguïté ; cas ambigus tranchés
+      à la main (« À activer », « mise à disposition », « Dossier réservé à
+      la DN », « Conforme avec réserves », « modèle »…). Apostrophes
+      manquantes corrigées (« n’est », « l’avis », « l’évaluation »)
+- [x] Laissés tels quels : « Email » (usage courant), exemple d'adresse
+      `prenom.nom@anac.ga`, SQL de la page Paramètres
+- [x] Contrôle : aucune modification hors chaîne (script de garde), valeurs
+      de code (`value`, statuts, routes) inchangées, messages d'erreur
+      seulement affichés
+- [x] Tests : 6 fichiers de test ajustés à la main (assertions sur le texte
+      affiché) ; admin 154/154, typecheck, lint (0 erreur), build admin
+- [ ] Données d'API encore sans accents tant que A2 n'est pas fait (ex.
+      libellés du tableau de bord, messages d'erreur `error.ts`)
+- [ ] **A2 (API)** : `shared/utils/error.ts`, `dashboard.service.ts`,
+      `analytics.service.ts`, `meetings.service.ts`, `email.templates.ts`,
+      `account-requests.service.ts` ; à part : les graines
+      (`system-parameters.seed.ts`) ne mettent pas à jour les lignes déjà en
+      base
 
 ## Sprint 7 - Documents (transverse, M8)
 

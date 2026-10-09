@@ -4,7 +4,7 @@ const PERIOD_OPTIONS: Array<{ value: DashboardPeriod; label: string }> = [
   { value: 'this_month', label: 'Ce mois' },
   { value: 'last_30_days', label: '30 derniers jours' },
   { value: 'quarter', label: 'Trimestre' },
-  { value: 'year', label: 'Annee' },
+  { value: 'year', label: 'Année' },
 ];
 
 interface PeriodFilterProps {

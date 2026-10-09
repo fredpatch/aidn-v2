@@ -52,7 +52,7 @@ export function StatusBadge({ user }: { user: UserView }) {
       </span>
       {user.firstLogin && (
         <span className="rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700">
-          Premiere connexion
+          Première connexion
         </span>
       )}
     </div>

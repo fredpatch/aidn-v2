@@ -88,12 +88,12 @@ export function useUsersCockpit() {
     onSuccess: (result) => {
       setActionMessage(
         result.emailSent
-          ? 'OTP reinitialise et transmis par email.'
-          : "OTP reinitialise, mais l'email n'a pas pu etre envoye."
+          ? 'OTP réinitialisé et transmis par email.'
+          : "OTP réinitialisé, mais l'email n'a pas pu être envoyé."
       );
       invalidateUsers();
     },
-    onError: (error) => setActionMessage(apiErrorMessage(error, 'Reinitialisation impossible.')),
+    onError: (error) => setActionMessage(apiErrorMessage(error, 'Réinitialisation impossible.')),
   });
 
   const activationMutation = useMutation({
@@ -110,12 +110,12 @@ export function useUsersCockpit() {
   const rolesMutation = useMutation({
     mutationFn: ({ id, roles }: { id: number; roles: string[] }) => updateUserRoles(id, roles),
     onSuccess: (updated) => {
-      setActionMessage('Roles mis a jour.');
+      setActionMessage('Rôles mis à jour.');
       setSelectedUserId(updated.id);
       invalidateUsers();
     },
     onError: (error) =>
-      setActionMessage(apiErrorMessage(error, 'Modification des roles impossible.')),
+      setActionMessage(apiErrorMessage(error, 'Modification des rôles impossible.')),
   });
 
   const createMutation = useMutation({
@@ -123,8 +123,8 @@ export function useUsersCockpit() {
     onSuccess: (result) => {
       setActionMessage(
         result.emailSent
-          ? 'Compte cree et OTP transmis par email.'
-          : "Compte cree, mais l'email OTP n'a pas pu etre envoye."
+          ? 'Compte créé et OTP transmis par email.'
+          : "Compte créé, mais l'email OTP n'a pas pu être envoyé."
       );
       setTab('users');
       setCreateDrawer(null);
@@ -132,7 +132,7 @@ export function useUsersCockpit() {
       invalidateUsers();
     },
     onError: (error) =>
-      setActionMessage(apiErrorMessage(error, "Impossible de creer l'utilisateur.")),
+      setActionMessage(apiErrorMessage(error, "Impossible de créer l'utilisateur.")),
   });
 
   return {

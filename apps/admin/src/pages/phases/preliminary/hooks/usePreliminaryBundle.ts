@@ -32,7 +32,7 @@ export function usePreliminaryBundle(
         setActionError('Identifiant de demande manquant.');
         return;
       }
-      setActionError(apiErrorMessage(err, 'Impossible de demarrer la phase.'));
+      setActionError(apiErrorMessage(err, 'Impossible de démarrer la phase.'));
     },
   });
 

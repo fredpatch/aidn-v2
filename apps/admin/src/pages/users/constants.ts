@@ -1,5 +1,5 @@
 export const ROLE_LABELS: Record<string, string> = {
-  reception: 'Reception',
+  reception: 'Réception',
   assistant_dg: 'Assistant DG',
   dn_agent: 'Agent DN',
   dn_supervisor: 'Superviseur DN',
@@ -9,7 +9,7 @@ export const ROLE_LABELS: Record<string, string> = {
 };
 
 export const ROLE_GROUP_LABELS: Record<string, string> = {
-  reception: 'Reception',
+  reception: 'Réception',
   assistant_dg: 'Circuit DG',
   dn_agent: 'DN',
   dn_supervisor: 'DN',

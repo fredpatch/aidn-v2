@@ -94,7 +94,7 @@ export default function AnalyticsPage() {
           <p className="text-[12px] font-medium text-anac-muted">Analytique & rapports</p>
           <h1 className="mt-2 text-2xl font-semibold text-anac-navy">Analytique & rapports</h1>
           <p className="mt-1 text-sm text-anac-muted">
-            Suivez les delais de traitement, les retards et le respect des SLA a chaque etape.
+            Suivez les délais de traitement, les retards et le respect des SLA à chaque étape.
           </p>
         </div>
 
@@ -133,13 +133,13 @@ export default function AnalyticsPage() {
         <DurationTrendChart points={data.durationTrend} />
         <PhaseDurationChart phases={data.phaseStats} />
         <DistributionChart
-          title="Repartition par anciennete"
+          title="Répartition par ancienneté"
           subtitle="Dossiers actifs"
           items={data.agingDistribution}
         />
         <DistributionChart
           title="Respect des SLA"
-          subtitle="Phases cloturees sur la periode"
+          subtitle="Phases clôturées sur la période"
           items={data.slaDistribution}
         />
       </div>
@@ -152,7 +152,7 @@ export default function AnalyticsPage() {
         <DelayedDossiersTable dossiers={data.delayedDossiers} />
         <section className="rounded-lg border border-anac-border bg-white p-4 shadow-sm">
           <h2 className="text-sm font-semibold text-anac-navy">Temps moyen par phase</h2>
-          <p className="text-[11px] text-anac-muted">Lecture operationnelle des phases sur la periode.</p>
+          <p className="text-[11px] text-anac-muted">Lecture opérationnelle des phases sur la période.</p>
           <div className="mt-3 divide-y divide-anac-border">
             {data.phaseStats.map((phase) => (
               <div key={phase.phaseCode} className="grid grid-cols-[1fr_auto_auto] gap-3 py-2 text-[12px]">

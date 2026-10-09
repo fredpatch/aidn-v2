@@ -60,7 +60,7 @@ export default function UsersPage() {
     <main className="mx-auto flex w-full max-w-[1500px] flex-col gap-5 px-4 py-6 lg:px-8">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-medium text-anac-muted">Direction de la Navigabilite</p>
+          <p className="text-xs font-medium text-anac-muted">Direction de la Navigabilité</p>
           <h1 className="mt-2 text-2xl font-semibold text-anac-navy">Utilisateurs</h1>
           <p className="mt-1 text-sm text-anac-muted">
             Comptes internes AIDN et activation depuis l&apos;annuaire Personnel ANAC.
@@ -93,14 +93,14 @@ export default function UsersPage() {
           tone="blue"
         />
         <UserMetricCard
-          label="Premiere connexion"
+          label="Première connexion"
           value={summaryQuery.data?.firstLoginPending ?? 0}
           help="OTP ou mot de passe initial attendu"
           icon={KeyRound}
           tone="amber"
         />
         <UserMetricCard
-          label="Roles attribues"
+          label="Rôles attribues"
           value={summaryQuery.data?.rolesAssigned ?? 0}
           help="Multi-role supporte"
           icon={ShieldCheck}
@@ -109,7 +109,7 @@ export default function UsersPage() {
         <UserMetricCard
           label="Comptes suspendus"
           value={summaryQuery.data?.inactive ?? 0}
-          help="Acces AIDN bloque"
+          help="Accès AIDN bloque"
           icon={Lock}
           tone="green"
         />
@@ -162,13 +162,13 @@ export default function UsersPage() {
                   />
                 </div>
                 <div className="flex h-11 items-center gap-2 rounded-lg border border-anac-border bg-white px-3 text-sm text-anac-muted md:w-40">
-                  <span className="shrink-0 text-xs">Role</span>
+                  <span className="shrink-0 text-xs">Rôle</span>
                   <Select value={roleFilter} onValueChange={setRoleFilter}>
                     <SelectTrigger className="h-auto border-0 bg-transparent p-0 text-anac-navy shadow-none focus:ring-0">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Tous les roles</SelectItem>
+                      <SelectItem value="all">Tous les rôles</SelectItem>
                       {ALL_ROLES.map((role) => (
                         <SelectItem key={role} value={role}>
                           {ROLE_LABELS[role]}
@@ -187,7 +187,7 @@ export default function UsersPage() {
                       <SelectItem value="all">Tous les statuts</SelectItem>
                       <SelectItem value="active">Actifs</SelectItem>
                       <SelectItem value="inactive">Suspendus</SelectItem>
-                      <SelectItem value="first_login">Premiere connexion</SelectItem>
+                      <SelectItem value="first_login">Première connexion</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

@@ -48,10 +48,10 @@ export default function DashboardPage() {
     <div className="mx-auto max-w-[1580px] space-y-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-[12px] font-medium text-anac-muted">Direction de la Navigabilite</p>
+          <p className="text-[12px] font-medium text-anac-muted">Direction de la Navigabilité</p>
           <h1 className="mt-2 text-2xl font-semibold text-anac-navy">Tableau de bord</h1>
           <p className="mt-1 text-sm text-anac-muted">
-            Pilotage des delais, volumes, paiements et points de blocage.
+            Pilotage des délais, volumes, paiements et points de blocage.
           </p>
         </div>
 

@@ -118,8 +118,8 @@ describe('<WorkflowCockpit> on a closed dossier (K7b)', () => {
     expect(screen.getByText('Dossier rejeté le 02/10/2026 - consultation uniquement')).toBeInTheDocument();
     const roadmap = screen.getByRole('list', { name: 'Progression du dossier' });
     expect(within(roadmap).getByText('Interrompue')).toBeInTheDocument();
-    expect(within(roadmap).getByText('Non demarree')).toBeInTheDocument();
-    expect(within(roadmap).getAllByText('Terminee')).toHaveLength(3);
+    expect(within(roadmap).getByText('Non démarrée')).toBeInTheDocument();
+    expect(within(roadmap).getAllByText('Terminée')).toHaveLength(3);
     expect(screen.getAllByText('Interrompue')).toHaveLength(2); // roadmap + header badge
     expect(screen.getByText('Dossier clos')).toBeInTheDocument();
     expect(screen.queryByText('Valider le paiement')).not.toBeInTheDocument();
@@ -282,7 +282,7 @@ describe('phase cards on a closed dossier: documents stay, actions go (K7b)', ()
       />
     );
     expect(screen.queryByRole('button', { name: /Planifier/ })).not.toBeInTheDocument();
-    expect(screen.getByText('Aucune reunion planifiee - dossier clos.')).toBeInTheDocument();
+    expect(screen.getByText('Aucune réunion planifiée - dossier clos.')).toBeInTheDocument();
   });
 
   it('M3 declaration not made available: no action', () => {
@@ -357,7 +357,7 @@ describe('phase cards on a closed dossier: documents stay, actions go (K7b)', ()
       rejected,
       <LifecycleCard requestId="9" certificate={certificate} paymentValidated setActionError={noop} />
     );
-    expect(screen.getByRole('button', { name: 'Consulter le certificat signe retourne' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Consulter le certificat signé retourné' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Marquer comme archive' })).not.toBeInTheDocument();
     expect(screen.getByText('Aucune action - dossier clos.')).toBeInTheDocument();
   });

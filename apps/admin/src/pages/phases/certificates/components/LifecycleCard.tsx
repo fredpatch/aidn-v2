@@ -48,7 +48,7 @@ export default function LifecycleCard({
 
   async function handleSignedReturn() {
     if (!signedReturnFile) {
-      setActionError('Joignez le certificat signe retourne avant de continuer.');
+      setActionError('Joignez le certificat signé retourné avant de continuer.');
       return;
     }
     const ok = await registerSignedReturn(certificate.id, signedReturnFile);
@@ -60,7 +60,7 @@ export default function LifecycleCard({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Printer size={16} className="text-anac-navy" />
-          <span className="font-medium text-sm">Generation et cycle de delivrance</span>
+          <span className="font-medium text-sm">Génération et cycle de délivrance</span>
         </div>
         <PhaseStatusBadge
           status={certificate.status}
@@ -72,22 +72,22 @@ export default function LifecycleCard({
       {certificate.status === 'in_preparation' && (
         <div className="space-y-2">
           {readOnly ? null : !paymentValidated ? (
-            <p className="text-anac-muted text-xs">Le paiement doit etre valide au prealable.</p>
+            <p className="text-anac-muted text-xs">Le paiement doit être validé au préalable.</p>
           ) : !scopeFilled || !certificate.approvalReferenceNumber ? (
             <p className="text-anac-muted text-xs">
-              Renseignez la reference et les 4 categories de qualification avant de generer.
+              Renseignez la référence et les 4 catégories de qualification avant de générer.
             </p>
           ) : (
             <Button size="sm" onClick={handleGenerate} disabled={busy}>
-              {busy ? 'Generation...' : 'Generer le certificat'}
+              {busy ? 'Génération...' : 'Générer le certificat'}
             </Button>
           )}
           {generatedDocumentUrl && (
             <p className="text-xs">
               <DocumentPreviewLink
-                title="Certificat genere"
+                title="Certificat généré"
                 url={generatedDocumentUrl}
-                label="Consulter le document genere"
+                label="Consulter le document généré"
               />
             </p>
           )}
@@ -98,7 +98,7 @@ export default function LifecycleCard({
               onClick={() => advance(certificate.id, 'printed')}
               disabled={busy}
             >
-              Marquer comme imprime
+              Marquer comme imprimé
             </Button>
           )}
         </div>
@@ -106,12 +106,12 @@ export default function LifecycleCard({
 
       {certificate.status === 'printed' && (
         <div className="space-y-3">
-          <p className="text-xs text-anac-muted">Imprime le {formatDateTime(certificate.printedAt)}.</p>
+          <p className="text-xs text-anac-muted">Imprimé le {formatDateTime(certificate.printedAt)}.</p>
           {!readOnly && (
             <>
               <p className="text-xs text-anac-muted">
-                Le certificat imprime doit revenir signe avant archivage. Scannez le document
-                retourne, puis enregistrez le retour.
+                Le certificat imprimé doit revenir signé avant archivage. Scannez le document
+                retourné, puis enregistrez le retour.
               </p>
               <input
                 type="file"
@@ -119,7 +119,7 @@ export default function LifecycleCard({
                 onChange={(event) => setSignedReturnFile(event.target.files?.[0] ?? null)}
               />
               <Button size="sm" onClick={handleSignedReturn} disabled={busy || !signedReturnFile}>
-                Enregistrer le certificat signe retourne
+                Enregistrer le certificat signé retourné
               </Button>
             </>
           )}
@@ -128,13 +128,13 @@ export default function LifecycleCard({
 
       {certificate.status === 'signed' && (
         <div className="space-y-2">
-          <p className="text-xs text-anac-muted">Signe le {formatDateTime(certificate.signedAt)}.</p>
+          <p className="text-xs text-anac-muted">Signé le {formatDateTime(certificate.signedAt)}.</p>
           {certificate.signedFileUrl && (
             <p className="text-xs">
               <DocumentPreviewLink
-                title="Certificat signe retourne"
+                title="Certificat signé retourné"
                 url={certificate.signedFileUrl}
-                label="Consulter le certificat signe retourne"
+                label="Consulter le certificat signé retourné"
               />
             </p>
           )}
@@ -153,7 +153,7 @@ export default function LifecycleCard({
           </p>
           {!readOnly && (
             <Button size="sm" onClick={() => advance(certificate.id, 'notify')} disabled={busy}>
-              Notifier le postulant (pret pour retrait)
+              Notifier le postulant (prêt pour retrait)
             </Button>
           )}
         </div>
@@ -176,16 +176,16 @@ export default function LifecycleCard({
       {certificate.status === 'collected' && (
         <div className="space-y-1 text-xs">
           <p className="text-anac-success">
-            Retire le {formatDateTime(certificate.collectedAt)} - phase cloturee automatiquement.
+            Retire le {formatDateTime(certificate.collectedAt)} - phase clôturée automatiquement.
           </p>
           {certificate.daysToDeliver !== null && (
             <p className="text-anac-muted">
-              Delai de delivrance (paiement vers notification) : {certificate.daysToDeliver} jour(s).
+              Délai de délivrance (paiement vers notification) : {certificate.daysToDeliver} jour(s).
             </p>
           )}
           {certificate.daysToCollect !== null && (
             <p className="text-anac-muted">
-              Delai de retrait (notification vers retrait) : {certificate.daysToCollect} jour(s).
+              Délai de retrait (notification vers retrait) : {certificate.daysToCollect} jour(s).
             </p>
           )}
         </div>

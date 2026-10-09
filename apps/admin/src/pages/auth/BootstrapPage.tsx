@@ -22,10 +22,10 @@ const bootstrapSchema = z
     email: z.string().min(1, "L'email est requis").email('Adresse email invalide'),
     password: z
       .string()
-      .min(8, 'Minimum 8 caracteres')
+      .min(8, 'Minimum 8 caractères')
       .regex(/[A-Z]/, 'Au moins une majuscule')
       .regex(/[0-9]/, 'Au moins un chiffre')
-      .regex(/[^A-Za-z0-9]/, 'Au moins un caractere special'),
+      .regex(/[^A-Za-z0-9]/, 'Au moins un caractère spécial'),
     confirmation: z.string().min(1, 'La confirmation est requise'),
   })
   .refine((d) => d.password === d.confirmation, {
@@ -65,7 +65,7 @@ export default function BootstrapPage() {
       setSuccess(true);
       await refreshBootstrapStatus();
     } catch (err) {
-      setServerError(apiErrorMessage(err, "Erreur lors de l'initialisation. Veuillez reessayer."));
+      setServerError(apiErrorMessage(err, "Erreur lors de l'initialisation. Veuillez réessayer."));
     }
   }
 
@@ -96,7 +96,7 @@ export default function BootstrapPage() {
               </motion.div>
 
               <div>
-                <h2 className="text-[15px] font-bold text-anac-navy">Super Admin cree</h2>
+                <h2 className="text-[15px] font-bold text-anac-navy">Super Admin créé</h2>
                 <p className="text-anac-muted text-[11px] mt-1 leading-relaxed">
                   Vous pouvez maintenant vous connecter avec ces identifiants.
                 </p>
@@ -149,7 +149,7 @@ export default function BootstrapPage() {
           </motion.div>
           <h1 className="text-xl font-bold text-anac-navy tracking-tight">AIDN</h1>
           <p className="text-anac-muted text-[11px] mt-0.5 leading-relaxed">
-            Application Informatique de la Direction de la Navigabilite
+            Application Informatique de la Direction de la Navigabilité
           </p>
         </div>
 
@@ -229,7 +229,7 @@ export default function BootstrapPage() {
                     id={passwordId}
                     {...form.register('password')}
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="Minimum 8 caracteres"
+                    placeholder="Minimum 8 caractères"
                     autoComplete="new-password"
                     aria-invalid={!!errors.password}
                     className={cn(errCls(!!errors.password), 'pr-10')}
@@ -268,7 +268,7 @@ export default function BootstrapPage() {
                     Creation...
                   </>
                 ) : (
-                  'Creer le Super Admin'
+                  'Créer le Super Admin'
                 )}
               </Button>
             </form>

@@ -21,9 +21,9 @@ interface DeclarationCardProps {
  *  traiter", never here. */
 function circuitStatusLabel(status: string | undefined): string {
   if (!status) return 'En attente du formulaire du postulant';
-  if (status === 'submitted') return 'Formulaire recu - en attente de mise en circuit';
+  if (status === 'submitted') return 'Formulaire reçu - en attente de mise en circuit';
   if (status === 'in_signature_circuit') return 'Formulaire en circuit de signature';
-  if (status === 'pending_review') return 'Retour signe recu - traitement DN possible';
+  if (status === 'pending_review') return 'Retour signé reçu - traitement DN possible';
   return status;
 }
 
@@ -52,12 +52,12 @@ export default function DeclarationCard({
     <div className="card space-y-3">
       <div className="flex items-center gap-2">
         <FileText size={16} className="text-anac-navy" />
-        <span className="font-medium text-sm">Declaration de pre-evaluation</span>
+        <span className="font-medium text-sm">Déclaration de pre-evaluation</span>
       </div>
 
       {!evaluation?.madeAvailableAt ? (
         readOnly ? (
-          <ClosedDossierNote>Declaration non mise a disposition - dossier clos.</ClosedDossierNote>
+          <ClosedDossierNote>Déclaration non mise à disposition - dossier clos.</ClosedDossierNote>
         ) : !meetingHeld ? (
           <p className="text-anac-muted text-sm">
             Disponible une fois la reunion preliminaire marquee &quot;Tenue&quot;.
@@ -65,7 +65,7 @@ export default function DeclarationCard({
         ) : (
           <div className="space-y-2">
             <div>
-              <label className="label">Delai de retour (jours, optionnel - 15 par defaut)</label>
+              <label className="label">Délai de retour (jours, optionnel - 15 par défaut)</label>
               <input
                 type="number"
                 className="input"
@@ -88,7 +88,7 @@ export default function DeclarationCard({
           {evaluation.submittedFileUrl ? (
             <>
               <p className="text-anac-success">
-                Recue le {formatDate(evaluation.submittedAt)} -{' '}
+                Reçue le {formatDate(evaluation.submittedAt)} -{' '}
                 <DocumentPreviewLink
                   title="Formulaire soumis par le postulant"
                   url={evaluation.submittedFileUrl}
@@ -101,7 +101,7 @@ export default function DeclarationCard({
                   <>
                     {' - '}
                     <DocumentPreviewLink
-                      title="Retour signe / vise DG"
+                      title="Retour signé / visé DG"
                       url={circuit.fileUrl}
                       className="underline text-anac-blue"
                     />

@@ -28,11 +28,11 @@ type StatusFilter = 'all' | MyQueueItem['missionStatus'];
 type VerdictValue = 'compliant' | 'non_compliant' | 'compliant_with_reserves';
 
 const STATUS_LABELS: Record<MyQueueItem['missionStatus'], string> = {
-  planned: 'Planifiee',
+  planned: 'Planifiée',
   payment_pending: 'Paiement attendu',
-  to_hold: 'Prevue',
+  to_hold: 'Prévue',
   report_due: 'Avis attendu',
-  closed: 'Cloturee',
+  closed: 'Clôturée',
 };
 
 const STATUS_STYLES: Record<MyQueueItem['missionStatus'], string> = {
@@ -72,14 +72,14 @@ function MissionBadges({ item }: { item: MyQueueItem }) {
 
 const REQUEST_TYPE_LABELS: Record<string, string> = {
   recognition: 'Reconnaissance',
-  issuance: 'Delivrance',
+  issuance: 'Délivrance',
   modification: 'Modification',
   renewal: 'Renouvellement',
 };
 
 const VERDICT_LABELS: Record<VerdictValue, string> = {
   compliant: 'Conforme',
-  compliant_with_reserves: 'Conforme avec reserves',
+  compliant_with_reserves: 'Conforme avec réserves',
   non_compliant: 'Non conforme',
 };
 
@@ -122,9 +122,9 @@ export default function MyInspectionsPage() {
   }> = [
     {
       key: 'planned',
-      label: 'Inspections prevues',
+      label: 'Inspections prévues',
       value: data.filter((item) => item.missionStatus === 'to_hold').length,
-      helper: 'Visites planifiees a tenir',
+      helper: 'Visites planifiées à tenir',
       icon: CalendarDays,
       tone: 'success',
     },
@@ -132,7 +132,7 @@ export default function MyInspectionsPage() {
       key: 'ongoing',
       label: 'En cours',
       value: data.filter((item) => ['payment_pending', 'to_hold', 'report_due'].includes(item.missionStatus)).length,
-      helper: 'Missions non cloturees',
+      helper: 'Missions non clôturées',
       icon: ClipboardList,
       tone: 'info',
     },
@@ -146,9 +146,9 @@ export default function MyInspectionsPage() {
     },
     {
       key: 'closed',
-      label: 'Cloturees',
+      label: 'Clôturées',
       value: data.filter((item) => item.missionStatus === 'closed').length,
-      helper: 'Avis R3 deja soumis',
+      helper: 'Avis R3 déjà soumis',
       icon: CheckCircle2,
       tone: 'success',
     },
@@ -163,12 +163,12 @@ export default function MyInspectionsPage() {
         <section className="min-w-0 space-y-5">
           <header className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-medium text-anac-muted">Direction de la Navigabilite</p>
+              <p className="text-xs font-medium text-anac-muted">Direction de la Navigabilité</p>
               <h1 className="mt-2 text-2xl font-semibold leading-tight text-anac-navy">
                 Mes inspections
               </h1>
               <p className="mt-1 text-sm text-anac-muted">
-                Suivez vos missions R3, les visites planifiees et les avis a remettre.
+                Suivez vos missions R3, les visites planifiées et les avis a remettre.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -183,7 +183,7 @@ export default function MyInspectionsPage() {
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   className="h-9 w-[280px] rounded-md border border-anac-border bg-white pl-9 pr-3 text-sm outline-none transition focus:border-anac-blue focus:ring-2 focus:ring-anac-blue/15"
-                  placeholder="Rechercher dossier, operateur, lieu..."
+                  placeholder="Rechercher dossier, opérateur, lieu..."
                 />
               </label>
               <select
@@ -291,7 +291,7 @@ function CalendarStrip({
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h2 className="text-sm font-semibold text-anac-navy">Prochaines inspections</h2>
-          <p className="text-xs text-anac-muted">Volume de missions assignees sur les 7 prochains jours.</p>
+          <p className="text-xs text-anac-muted">Volume de missions assignées sur les 7 prochains jours.</p>
         </div>
         {selectedDay ? (
           <button className="text-xs font-semibold text-anac-blue" onClick={() => onSelect(selectedDay)}>
@@ -351,7 +351,7 @@ function InspectionTable({
       </div>
 
       {isLoading ? (
-        <EmptyState title="Chargement des inspections" description="Recuperation de vos missions R3." className="min-h-[150px]" />
+        <EmptyState title="Chargement des inspections" description="Récupération de vos missions R3." className="min-h-[150px]" />
       ) : error ? (
         <EmptyState title="Chargement impossible" description="Impossible de charger la file de dossiers." danger className="min-h-[150px]" />
       ) : items.length === 0 ? (
@@ -361,10 +361,10 @@ function InspectionTable({
           <table className="w-full min-w-[920px] text-sm">
             <thead className="border-b border-anac-border bg-slate-50 text-left text-[11px] uppercase tracking-wide text-anac-muted">
               <tr>
-                <th className="px-4 py-3 font-semibold">Reference dossier</th>
-                <th className="px-4 py-3 font-semibold">Operateur</th>
+                <th className="px-4 py-3 font-semibold">Référence dossier</th>
+                <th className="px-4 py-3 font-semibold">Opérateur</th>
                 <th className="px-4 py-3 font-semibold">Type</th>
-                <th className="px-4 py-3 font-semibold">Date planifiee</th>
+                <th className="px-4 py-3 font-semibold">Date planifiée</th>
                 <th className="px-4 py-3 font-semibold">Lieu</th>
                 <th className="px-4 py-3 font-semibold">Statut</th>
                 <th className="px-4 py-3 font-semibold">Action</th>
@@ -449,7 +449,7 @@ function InspectionDetailPanel({
   if (!item) {
     return (
       <aside className="rounded-lg border border-anac-border bg-white p-5 shadow-sm">
-        <EmptyState title="Aucune mission selectionnee" description="Selectionnez une inspection dans la liste." className="min-h-[150px]" />
+        <EmptyState title="Aucune mission sélectionnée" description="Sélectionnez une inspection dans la liste." className="min-h-[150px]" />
       </aside>
     );
   }
@@ -464,7 +464,7 @@ function InspectionDetailPanel({
       <div className="border-b border-anac-border p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold text-anac-muted">Inspection selectionnee</p>
+            <p className="text-xs font-semibold text-anac-muted">Inspection sélectionnée</p>
             <h2 className="mt-2 text-xl font-semibold text-anac-navy">{item.requestReference}</h2>
             <p className="mt-1 text-sm text-anac-muted">{item.organisationName}</p>
           </div>
@@ -481,7 +481,7 @@ function InspectionDetailPanel({
       </div>
 
       <div className="space-y-4 p-5">
-        <PanelBlock title="Details de la mission" icon={ClipboardList}>
+        <PanelBlock title="Détails de la mission" icon={ClipboardList}>
           <Info label="Type de demande" value={REQUEST_TYPE_LABELS[item.requestType] ?? item.requestType} />
           <Info label="Paiement" value={paymentLabel(item.payment?.status)} />
           <Info label="Visite" value={visitLabel(item.siteVisit?.status)} />
@@ -492,7 +492,7 @@ function InspectionDetailPanel({
         </PanelBlock>
 
         <PanelBlock title="Avancement" icon={ClipboardCheck}>
-          <ProgressStep label="Paiement valide" done={item.payment?.status === 'validated'} />
+          <ProgressStep label="Paiement validé" done={item.payment?.status === 'validated'} />
           <ProgressStep label="Visite tenue" done={item.siteVisit?.status === 'held'} />
           <ProgressStep label="Avis R3 soumis" done={!!item.inspection} />
         </PanelBlock>
@@ -547,7 +547,7 @@ function InspectionDetailPanel({
               onClick={() => item.siteVisit && markHeldMutation.mutate(item.siteVisit.id)}
               disabled={busy}
             >
-              {busy ? 'Mise a jour...' : 'Enregistrer la tenue'}
+              {busy ? 'Mise à jour...' : 'Enregistrer la tenue'}
             </Button>
           ) : null}
           <Link
@@ -641,20 +641,20 @@ function formatDateTime(value: string | null | undefined): string {
 }
 
 function paymentLabel(status: string | undefined): string {
-  if (status === 'validated') return 'Valide';
+  if (status === 'validated') return 'Validé';
   if (status === 'awaiting_invoice') return 'Facture attendue';
   if (status === 'awaiting_proof') return 'Preuve attendue';
   if (status === 'pending_validation') return 'Validation S5 attendue';
-  if (status === 'rejected') return 'Rejete';
+  if (status === 'rejected') return 'Rejeté';
   return 'Non initialise';
 }
 
 function visitLabel(status: string | undefined): string {
-  if (status === 'scheduled') return 'Planifiee';
+  if (status === 'scheduled') return 'Planifiée';
   if (status === 'held') return 'Tenue';
   if (status === 'rescheduled') return 'Reprogrammee';
   if (status === 'no_show') return 'Absence';
-  if (status === 'file_cancelled') return 'Dossier annule';
+  if (status === 'file_cancelled') return 'Dossier annulé';
   return '-';
 }
 
@@ -664,13 +664,13 @@ function verdictLabel(verdict: string): string {
 
 function blockedReason(item: MyQueueItem): string {
   if (item.dossierClosed) {
-    return 'Dossier clos : la mission reste consultable, aucune action R3 n est possible.';
+    return 'Dossier clos : la mission reste consultable, aucune action R3 n’est possible.';
   }
   if (item.nextAction === 'wait_payment') {
-    return 'Le paiement doit etre valide par S5 avant la tenue operationnelle et l avis R3.';
+    return 'Le paiement doit être validé par S5 avant la tenue opérationnelle et l’avis R3.';
   }
   if (item.missionStatus === 'to_hold') {
-    return 'La visite doit etre marquee tenue avant de soumettre un avis.';
+    return 'La visite doit être marquée tenue avant de soumettre un avis.';
   }
-  return 'Aucune action R3 immediate sur cette mission.';
+  return 'Aucune action R3 immédiate sur cette mission.';
 }

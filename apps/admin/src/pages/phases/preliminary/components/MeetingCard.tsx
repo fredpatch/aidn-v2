@@ -66,7 +66,7 @@ export default function MeetingCard({
     const result = await schedule({ phaseId, dnAgentId, dateTime: values.dateTime, location: values.location });
     if (result?.softOverlapWarning) {
       setWarning(
-        'Attention : vous avez deja une autre reunion ce jour-la, a un horaire different.'
+        'Attention : vous avez déjà une autre réunion ce jour-là, à un horaire différent.'
       );
     }
     if (result) {
@@ -87,7 +87,7 @@ export default function MeetingCard({
   async function handleSendReport() {
     if (!meeting) return;
     if (!reportFile) {
-      setActionError('Merci de selectionner un fichier pour le compte-rendu.');
+      setActionError('Merci de sélectionner un fichier pour le compte-rendu.');
       return;
     }
 
@@ -102,7 +102,7 @@ export default function MeetingCard({
     <div className="card space-y-3">
       <div className="flex items-center gap-2">
         <CalendarClock size={16} className="text-anac-navy" />
-        <span className="font-medium text-sm">Reunion preliminaire</span>
+        <span className="font-medium text-sm">Réunion préliminaire</span>
       </div>
 
       {warning && <p className="text-anac-warning text-xs">{warning}</p>}
@@ -122,9 +122,9 @@ export default function MeetingCard({
             />
             {meeting.crDocumentUrl && (
               <p className="text-sm">
-                Compte-rendu envoye le {formatDate(meeting.crUploadedAt)} -{' '}
+                Compte-rendu envoyé le {formatDate(meeting.crUploadedAt)} -{' '}
                 <DocumentPreviewLink
-                  title="Compte-rendu de reunion preliminaire"
+                  title="Compte-rendu de réunion préliminaire"
                   url={meeting.crDocumentUrl}
                 />
               </p>
@@ -132,7 +132,7 @@ export default function MeetingCard({
             <ClosedDossierNote />
           </div>
         ) : (
-          <ClosedDossierNote>Aucune reunion planifiee - dossier clos.</ClosedDossierNote>
+          <ClosedDossierNote>Aucune réunion planifiée - dossier clos.</ClosedDossierNote>
         )
       ) : !meeting ? (
         scheduling ? (
@@ -166,7 +166,7 @@ export default function MeetingCard({
           </form>
         ) : (
           <Button size="sm" onClick={() => setScheduling(true)}>
-            Planifier la reunion
+            Planifier la réunion
           </Button>
         )
       ) : rescheduling ? (
@@ -215,7 +215,7 @@ export default function MeetingCard({
                 href={`/api/meetings/${meeting.id}/ticket`}
                 target="_blank"
                 rel="noreferrer"
-                title="Ticket de reunion preliminaire"
+                title="Ticket de réunion préliminaire"
                 className="btn-secondary text-xs inline-flex items-center gap-1 px-2 py-1 rounded"
               >
                 Voir le ticket
@@ -262,9 +262,9 @@ export default function MeetingCard({
             <div className="pt-1 space-y-2">
               {meeting.crDocumentUrl ? (
                 <p className="text-sm">
-                  Compte-rendu envoye le {formatDate(meeting.crUploadedAt)} -{' '}
+                  Compte-rendu envoyé le {formatDate(meeting.crUploadedAt)} -{' '}
                   <DocumentPreviewLink
-                    title="Compte-rendu de reunion preliminaire"
+                    title="Compte-rendu de réunion préliminaire"
                     url={meeting.crDocumentUrl}
                   />
                   {' - '}

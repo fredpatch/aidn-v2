@@ -52,9 +52,9 @@ function hasAnyRole(userRoles: string[] | undefined, allowedRoles: InternalRole[
 function AccessDenied() {
   return (
     <div className="mx-auto max-w-xl rounded-lg border border-anac-border bg-white p-6">
-      <h1 className="text-lg font-semibold text-anac-navy">Acces refuse</h1>
+      <h1 className="text-lg font-semibold text-anac-navy">Accès refusé</h1>
       <p className="mt-2 text-sm text-anac-muted">
-        Votre role ne permet pas de consulter cet espace de traitement.
+        Votre rôle ne permet pas de consulter cet espace de traitement.
       </p>
     </div>
   );

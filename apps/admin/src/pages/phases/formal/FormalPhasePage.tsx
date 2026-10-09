@@ -49,13 +49,13 @@ export default function FormalPhasePage() {
     { label: 'Documents soumis', value: `${bundle?.completionRate ?? 0}/11` },
     {
       label: 'Circuit signature',
-      value: letterReturned ? 'Retour signe' : 'En attente',
+      value: letterReturned ? 'Retour signé' : 'En attente',
       tone: letterReturned ? 'success' : 'warning',
       closedValue: letterReturned ? undefined : 'Non retourné',
     },
     {
-      label: 'Reunion formelle',
-      value: bundle?.meeting ? MEETING_STATUS_LABELS[bundle.meeting.status] ?? bundle.meeting.status : 'Non planifiee',
+      label: 'Réunion formelle',
+      value: bundle?.meeting ? MEETING_STATUS_LABELS[bundle.meeting.status] ?? bundle.meeting.status : 'Non planifiée',
       tone: bundle?.meeting && bundle.meeting.status !== 'scheduled' ? 'success' : 'muted',
     },
   ] as const;
@@ -75,7 +75,7 @@ export default function FormalPhasePage() {
         blockReason,
         primaryAction: !bundle?.phase
           ? {
-              label: startingPhase ? 'Demarrage...' : 'Demarrer la phase',
+              label: startingPhase ? 'Démarrage...' : 'Démarrer la phase',
               onClick: startPhase,
               disabled: startingPhase,
             }
@@ -94,12 +94,12 @@ export default function FormalPhasePage() {
           <div className="card">
             <p className="mb-3 text-sm text-anac-muted">
               {dossierClosed
-                ? 'Phase non demarree - dossier clos.'
-                : 'La phase preliminaire doit etre cloturee avant de demarrer la demande formelle.'}
+                ? 'Phase non démarrée - dossier clos.'
+                : 'La phase préliminaire doit être clôturée avant de démarrer la demande formelle.'}
             </p>
             {!dossierClosed && (
               <Button onClick={startPhase} disabled={startingPhase}>
-                {startingPhase ? 'Demarrage...' : 'Demarrer la Phase - Demande Formelle'}
+                {startingPhase ? 'Démarrage...' : 'Démarrer la Phase - Demande Formelle'}
               </Button>
             )}
           </div>
@@ -134,7 +134,7 @@ export default function FormalPhasePage() {
             {!dossierClosed && bundle.phase.status === 'open' && canClose && !canManageFormal && (
               <div className="card">
                 <p className="text-sm text-anac-muted">
-                  La phase est prete a etre cloturee. Action reservee a la DN.
+                  La phase est prête a être clôturée. Action réservée à la DN.
                 </p>
               </div>
             )}

@@ -61,7 +61,7 @@ export default function DeepEvaluationPhasePage() {
           </button>
 
           <div>
-            <h1 className="text-xl font-semibold text-anac-navy">Paiement - Evaluation approfondie</h1>
+            <h1 className="text-xl font-semibold text-anac-navy">Paiement - Évaluation approfondie</h1>
             <p className="text-sm text-anac-muted">Demande #{requestId}</p>
           </div>
 
@@ -98,12 +98,12 @@ export default function DeepEvaluationPhasePage() {
         blockReason: summary.blockReason,
       }
     : {
-        title: 'Demarrer la phase',
-        description: 'Ouvrir l evaluation approfondie apres la cloture de la demande formelle.',
+        title: 'Démarrer la phase',
+        description: 'Ouvrir l’évaluation approfondie après la clôture de la demande formelle.',
         owner: 'DN',
         tone: 'info' as const,
         primaryAction: {
-          label: startingPhase ? 'Demarrage...' : 'Demarrer la phase',
+          label: startingPhase ? 'Démarrage...' : 'Démarrer la phase',
           onClick: startPhase,
           disabled: startingPhase,
         },
@@ -116,21 +116,21 @@ export default function DeepEvaluationPhasePage() {
       value: bundle?.payment ? PAYMENT_STATUS_LABELS[bundle.payment.status] ?? bundle.payment.status : 'Facture attendue',
     },
     {
-      label: 'Documents valides',
+      label: 'Documents validés',
       value: bundle ? `${bundle.completionRate.validated}/${bundle.completionRate.total}` : '-',
       tone:
         bundle && bundle.completionRate.total > 0 && bundle.completionRate.validated === bundle.completionRate.total
           ? 'success'
           : 'warning',
     },
-    { label: 'A corriger', value: String(bundle?.completionRate.needsAction ?? 0) },
+    { label: 'À corriger', value: String(bundle?.completionRate.needsAction ?? 0) },
   ] as const;
 
   return (
     <WorkflowCockpit
       requestId={requestId}
       currentCode="M5"
-      title="Phase - Evaluation Approfondie"
+      title="Phase - Évaluation Approfondie"
       subtitle={`Demande #${requestId ?? '-'}`}
       phaseStatus={bundle?.phase?.status}
       onBack={() => navigate('/')}
@@ -150,12 +150,12 @@ export default function DeepEvaluationPhasePage() {
           <div className="card">
             <p className="mb-3 text-sm text-anac-muted">
               {dossierClosed
-                ? 'Phase non demarree - dossier clos.'
-                : "La phase de demande formelle doit etre cloturee avant de demarrer l'evaluation approfondie."}
+                ? 'Phase non démarrée - dossier clos.'
+                : "La phase de demande formelle doit être clôturée avant de démarrer l'évaluation approfondie."}
             </p>
             {!dossierClosed && (
               <Button onClick={startPhase} disabled={startingPhase}>
-                {startingPhase ? 'Demarrage...' : 'Demarrer la Phase - Evaluation Approfondie'}
+                {startingPhase ? 'Démarrage...' : 'Démarrer la Phase - Évaluation Approfondie'}
               </Button>
             )}
           </div>

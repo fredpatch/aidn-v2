@@ -62,15 +62,15 @@ const SOURCE_LABELS: Record<string, string> = {
 
 const BUCKET_LABELS: Record<CourrierTaskBucket | 'all', string> = {
   all: 'Tous',
-  to_signature: 'A imprimer',
+  to_signature: 'À imprimer',
   in_signature: 'En signature',
-  returned: 'Retour signe',
-  legacy_signed: 'Ancien signe',
+  returned: 'Retour signé',
+  legacy_signed: 'Ancien signé',
 };
 
 const REQUEST_TYPE_LABELS: Record<string, string> = {
   recognition: 'Reconnaissance',
-  issuance: 'Delivrance',
+  issuance: 'Délivrance',
   modification: 'Modification',
   renewal: 'Renouvellement',
 };
@@ -141,15 +141,15 @@ function inActionBucket(task: CourrierTask, bucket: CourrierTaskBucket): boolean
 function nextActionLabel(task: CourrierTask): string {
   if (task.dossierClosed) return 'Dossier clos - consultation';
   if (task.bucket === 'to_signature') return 'Imprimer puis mettre en signature';
-  if (task.bucket === 'in_signature') return 'Scanner le retour signe';
-  if (task.bucket === 'returned') return 'Transmis a la DN';
+  if (task.bucket === 'in_signature') return 'Scanner le retour signé';
+  if (task.bucket === 'returned') return 'Transmis à la DN';
   return 'Consultation historique';
 }
 
 function currentDocumentLabel(task: CourrierTask): string {
-  if (task.bucket === 'to_signature') return 'Document source a imprimer';
+  if (task.bucket === 'to_signature') return 'Document source à imprimer';
   if (task.bucket === 'in_signature') return 'Courrier actuellement en signature';
-  if (task.bucket === 'returned') return 'Retour signe scanne';
+  if (task.bucket === 'returned') return 'Retour signé scanné';
   return 'Document archive';
 }
 
@@ -306,7 +306,7 @@ export default function CourrierTasksPage() {
 
   async function handleReturnSigned() {
     if (!returnTask || !returnFile) {
-      setActionError('Selectionnez le document signe.');
+      setActionError('Sélectionnez le document signé.');
       return;
     }
     setActionError(null);
@@ -318,7 +318,7 @@ export default function CourrierTasksPage() {
       setReturnFile(null);
       await loadTasks();
     } catch (err) {
-      setActionError(apiErrorMessage(err, 'Retour signe impossible.'));
+      setActionError(apiErrorMessage(err, 'Retour signé impossible.'));
       if (isDossierClosedError(err)) {
         setReturnTask(null);
         setReturnFile(null);
@@ -347,9 +347,9 @@ export default function CourrierTasksPage() {
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <CourrierMetricCard
-            label="A imprimer"
+            label="À imprimer"
             value={counts.toSignature}
-            helper="Courriers deposes a ouvrir et confirmer"
+            helper="Courriers déposés à ouvrir et confirmer"
             icon={Printer}
             tone="blue"
           />
@@ -361,14 +361,14 @@ export default function CourrierTasksPage() {
             tone="warning"
           />
           <CourrierMetricCard
-            label="Retours signes"
+            label="Retours signés"
             value={counts.returned}
-            helper="Prets pour traitement DN"
+            helper="Prêts pour traitement DN"
             icon={CheckCircle2}
             tone="success"
           />
           <CourrierMetricCard
-            label="Delai moyen"
+            label="Délai moyen"
             value={averageWaitingDays(tasks)}
             helper="Courriers actuellement en signature"
             icon={CalendarClock}
@@ -456,8 +456,8 @@ export default function CourrierTasksPage() {
           primaryActionDisabled={!printTask || busyId !== null || !canOperate}
           actionHint={
             printTask
-              ? 'Imprimez le document, verifiez le contenu, puis confirmez sa mise en signature.'
-              : 'Previsualisation integree du document courant.'
+              ? 'Imprimez le document, vérifiez le contenu, puis confirmez sa mise en signature.'
+              : 'Prévisualisation intégrée du document courant.'
           }
           onPrimaryAction={() => printTask && handleConfirmPrinted(printTask)}
         />
@@ -484,12 +484,12 @@ function CourrierHeader() {
   return (
     <header className="flex flex-wrap items-start justify-between gap-4">
       <div>
-        <p className="text-xs font-medium text-anac-muted">Direction de la Navigabilite</p>
+        <p className="text-xs font-medium text-anac-muted">Direction de la Navigabilité</p>
         <h1 className="mt-2 text-2xl font-semibold leading-tight text-anac-navy">
           Courriers officiels - Circuit signature
         </h1>
         <p className="mt-1 text-sm text-anac-muted">
-          Suivez les courriers emis, leur mise en signature et le retour scanne vers la DN.
+          Suivez les courriers émis, leur mise en signature et le retour scanné vers la DN.
         </p>
       </div>
     </header>
@@ -566,7 +566,7 @@ function CourrierToolbar({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="waiting">Attente la plus longue</SelectItem>
-          <SelectItem value="newest">Plus recents</SelectItem>
+          <SelectItem value="newest">Plus récents</SelectItem>
           <SelectItem value="oldest">Plus anciens</SelectItem>
         </SelectContent>
       </Select>
@@ -594,7 +594,7 @@ function CourrierTaskTable({
       <EmptyState
         icon={CheckCircle2}
         title="Aucun courrier dans cette vue"
-        description="Les courriers reapparaitront ici des qu'une action sera attendue."
+        description="Les courriers réapparaîtront ici des qu'une action sera attendue."
       />
     );
   }
@@ -603,10 +603,10 @@ function CourrierTaskTable({
     <Table className="min-w-[820px]">
       <TableHeader>
         <TableRow>
-          <TableHead>Reference dossier</TableHead>
+          <TableHead>Référence dossier</TableHead>
           <TableHead>Demandeur</TableHead>
           <TableHead>Type de courrier</TableHead>
-          <TableHead>Depot</TableHead>
+          <TableHead>Dépôt</TableHead>
           <TableHead>Attente</TableHead>
           <TableHead>Statut circuit</TableHead>
           <TableHead>Action</TableHead>
@@ -697,8 +697,8 @@ function CourrierDetailPanel({
       <aside className="grid min-h-[420px] place-items-center p-6">
         <EmptyState
           icon={FileText}
-          title="Selectionnez un courrier"
-          description="Le detail du circuit, les documents et les actions apparaitront ici."
+          title="Sélectionnez un courrier"
+          description="Le détail du circuit, les documents et les actions apparaîtront ici."
         />
       </aside>
     );
@@ -729,7 +729,7 @@ function CourrierDetailPanel({
           type="button"
           className="grid h-8 w-8 flex-shrink-0 place-items-center rounded text-anac-muted hover:bg-anac-gray hover:text-anac-navy focus:outline-none focus-visible:ring-2 focus-visible:ring-anac-sky"
           onClick={onCloseSelection}
-          aria-label="Fermer le detail"
+          aria-label="Fermer le détail"
         >
           <X size={16} aria-hidden="true" />
         </button>
@@ -767,7 +767,7 @@ function CourrierDetailPanel({
               </Link>
             ) : (
               <div className="rounded-lg border border-anac-border bg-anac-gray px-3 py-2 text-xs text-anac-muted">
-                Dossier reserve a la DN / SU.
+                Dossier réservé à la DN / SU.
               </div>
             )}
             {task.fileUrl ? (
@@ -845,7 +845,7 @@ function CourrierActionPanel({
         </div>
         {!canOperate ? (
           <p className="mt-3 text-xs font-medium text-anac-muted">
-            Consultation seule: action reservee a la reception / assistant DG.
+            Consultation seule: action réservée à la réception / assistant DG.
           </p>
         ) : null}
       </section>
@@ -862,18 +862,18 @@ function CourrierActionPanel({
               Retour DG attendu
             </h3>
             <p className="mt-1 text-xs leading-relaxed text-anac-muted">
-              Le courrier est en signature depuis {waitingLabel(task)}. Scannez le retour signe des
+              Le courrier est en signature depuis {waitingLabel(task)}. Scannez le retour signé des
               qu&apos;il revient.
             </p>
           </div>
           <Button size="sm" disabled={busy || !canOperate} onClick={() => onReturn(task)}>
             <FileUp size={14} aria-hidden="true" />
-            Scanner retour signe
+            Scanner retour signé
           </Button>
         </div>
         {!canOperate ? (
           <p className="mt-3 text-xs font-medium text-anac-muted">
-            Consultation seule: action reservee a la reception / assistant DG.
+            Consultation seule: action réservée à la réception / assistant DG.
           </p>
         ) : null}
       </section>
@@ -884,10 +884,10 @@ function CourrierActionPanel({
     <section className="rounded-lg border border-anac-success/20 bg-anac-success/5 p-4">
       <h3 className="flex items-center gap-2 text-sm font-semibold text-anac-navy">
         <CheckCircle2 size={16} className="text-anac-success" aria-hidden="true" />
-        Circuit pret pour la DN
+        Circuit prêt pour la DN
       </h3>
       <p className="mt-1 text-xs leading-relaxed text-anac-muted">
-        Le retour signe a ete enregistre. Le dossier peut continuer dans le workflow DN.
+        Le retour signé a été enregistré. Le dossier peut continuer dans le workflow DN.
       </p>
     </section>
   );
@@ -932,7 +932,7 @@ function CourrierDocumentPanel({
 function CourrierTimeline({ task }: { task: CourrierTask }) {
   const steps = [
     {
-      label: 'Depose',
+      label: 'Déposé',
       date: task.depositedAt,
       done: true,
       current: task.bucket === 'to_signature',
@@ -944,7 +944,7 @@ function CourrierTimeline({ task }: { task: CourrierTask }) {
       current: task.bucket === 'in_signature',
     },
     {
-      label: 'Retour scanne',
+      label: 'Retour scanné',
       date: task.pendingReviewAt ?? task.signedAt,
       done: !!(task.pendingReviewAt ?? task.signedAt),
       current: task.bucket === 'returned',
@@ -989,14 +989,14 @@ function CourrierTimeline({ task }: { task: CourrierTask }) {
 function CourrierInfo({ task }: { task: CourrierTask }) {
   return (
     <div>
-      <h3 className="mb-4 text-sm font-semibold text-anac-navy">Informations cles</h3>
+      <h3 className="mb-4 text-sm font-semibold text-anac-navy">Informations clés</h3>
       <dl className="space-y-3">
         <Info label="Type de courrier" value={SOURCE_LABELS[task.source]} />
         <Info
           label="Nature de demande"
           value={REQUEST_TYPE_LABELS[task.requestType] ?? task.requestType}
         />
-        <Info label="Reference dossier" value={task.requestReference} />
+        <Info label="Référence dossier" value={task.requestReference} />
         <Info label="Demandeur" value={task.organisationName} />
         <Info label="Postulant" value={task.applicantName} />
       </dl>
@@ -1031,7 +1031,7 @@ function ReturnSignedModal({
 }) {
   return (
     <Modal
-      title="Scanner le retour signe"
+      title="Scanner le retour signé"
       subtitle={`${SOURCE_LABELS[task.source]} - ${task.requestReference}`}
       onClose={onClose}
       footer={
@@ -1047,7 +1047,7 @@ function ReturnSignedModal({
       }
     >
       <div className="space-y-2">
-        <label className="label">Document signe</label>
+        <label className="label">Document signé</label>
         <input
           type="file"
           accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"

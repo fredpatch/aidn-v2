@@ -8,7 +8,7 @@ export function StatusDistributionCard({ items }: { items: DashboardStatusStat[]
   return (
     <DashboardSection
       className="p-5"
-      title="Repartition des dossiers"
+      title="Répartition des dossiers"
       description="Par statut courant."
     >
       <div className="mt-5 space-y-3">

@@ -27,8 +27,8 @@ export function Pagination({
           size="sm"
           disabled={page <= 1}
           onClick={() => onPageChange(page - 1)}
-          aria-label="Page precedente"
-          title="Page precedente"
+          aria-label="Page précédente"
+          title="Page précédente"
           className="h-8 w-8 px-0"
         >
           <ChevronLeft size={14} />

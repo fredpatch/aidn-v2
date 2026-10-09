@@ -9,14 +9,14 @@ export function UpcomingMeetingsCard({ meetings }: { meetings: DashboardMeetingI
   return (
     <DashboardSection
       className="p-5"
-      title="Reunions planifiees"
+      title="Réunions planifiées"
       action={<CalendarDays size={16} className="text-anac-blue" aria-hidden="true" />}
     >
       <div className="mt-4 space-y-3">
         {meetings.length === 0 ? (
           <EmptyDashboardState
-            title="Aucune reunion prevue"
-            description="Aucun rendez-vous planifie sur les 7 prochains jours."
+            title="Aucune réunion prévue"
+            description="Aucun rendez-vous planifié sur les 7 prochains jours."
           />
         ) : (
           meetings.map((meeting) => (
@@ -42,7 +42,7 @@ export function UpcomingMeetingsCard({ meetings }: { meetings: DashboardMeetingI
                     : 'bg-blue-50 text-anac-blue'
                 )}
               >
-                {meeting.tag === 'today' ? "Aujourd'hui" : 'Prevue'}
+                {meeting.tag === 'today' ? "Aujourd'hui" : 'Prévue'}
               </span>
             </div>
           ))

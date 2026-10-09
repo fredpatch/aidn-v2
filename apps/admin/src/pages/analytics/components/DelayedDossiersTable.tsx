@@ -9,20 +9,20 @@ export function DelayedDossiersTable({ dossiers }: { dossiers: AnalyticsDelayedD
   return (
     <AnalyticsSection
       title="Dossiers les plus en retard"
-      subtitle="Phases ouvertes ayant depasse leur cible SLA"
+      subtitle="Phases ouvertes ayant dépassé leur cible SLA"
       className="overflow-hidden"
     >
       {dossiers.length === 0 ? (
-        <div className="p-6 text-sm text-anac-muted">Aucun dossier hors delai dans cette vue.</div>
+        <div className="p-6 text-sm text-anac-muted">Aucun dossier hors délai dans cette vue.</div>
       ) : (
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Dossier</TableHead>
               <TableHead>Organisation</TableHead>
-              <TableHead>Etape actuelle</TableHead>
+              <TableHead>Étape actuelle</TableHead>
               <TableHead>Retard</TableHead>
-              <TableHead>Derniere action</TableHead>
+              <TableHead>Dernière action</TableHead>
               <TableHead>Action</TableHead>
             </TableRow>
           </TableHeader>

@@ -37,8 +37,8 @@ export default function PreliminaryPhasePage() {
   const canClose = canClosePreliminaryPhase(bundle);
   const meetingResolved = isMeetingResolved(bundle);
   const blockReason = !meetingResolved
-    ? 'La cloture sera disponible une fois la reunion resolue.'
-    : 'La cloture sera disponible une fois la declaration retournee par le postulant.';
+    ? 'La clôture sera disponible une fois la réunion résolue.'
+    : 'La clôture sera disponible une fois la déclaration retournée par le postulant.';
   const summary = bundle ? preliminaryWorkflowSummary(bundle, canClose ? null : blockReason) : null;
   const checklist = bundle ? buildChecklist(bundle) : [];
   const action = summary
@@ -50,12 +50,12 @@ export default function PreliminaryPhasePage() {
         blockReason: summary.blockReason,
       }
     : {
-        title: 'Demarrer la phase',
-        description: 'Ouvrir la phase preliminaire pour commencer le traitement operationnel.',
+        title: 'Démarrer la phase',
+        description: 'Ouvrir la phase préliminaire pour commencer le traitement opérationnel.',
         owner: 'DN',
         tone: 'info' as const,
         primaryAction: {
-          label: startingPhase ? 'Demarrage...' : 'Demarrer la phase',
+          label: startingPhase ? 'Démarrage...' : 'Démarrer la phase',
           onClick: startPhase,
           disabled: startingPhase,
         },
@@ -64,13 +64,13 @@ export default function PreliminaryPhasePage() {
     { label: 'Responsable', value: action.owner },
     { label: "Date d'ouverture", value: formatDate(bundle?.phase?.openedAt) },
     {
-      label: 'Reunion',
-      value: bundle?.meeting ? MEETING_STATUS_LABELS[bundle.meeting.status] ?? bundle.meeting.status : 'Non planifiee',
+      label: 'Réunion',
+      value: bundle?.meeting ? MEETING_STATUS_LABELS[bundle.meeting.status] ?? bundle.meeting.status : 'Non planifiée',
     },
     {
-      label: 'Declaration',
+      label: 'Déclaration',
       value: bundle?.evaluation?.submittedFileUrl
-        ? 'Retournee'
+        ? 'Retournée'
         : bundle?.evaluation?.madeAvailableAt
           ? 'En attente'
           : '-',
@@ -78,7 +78,7 @@ export default function PreliminaryPhasePage() {
     },
     {
       label: 'Compte-rendu',
-      value: bundle?.meeting?.crDocumentUrl ? 'Depose' : 'Facultatif',
+      value: bundle?.meeting?.crDocumentUrl ? 'Déposé' : 'Facultatif',
       tone: bundle?.meeting?.crDocumentUrl ? 'success' : 'muted',
     },
   ] as const;
@@ -87,7 +87,7 @@ export default function PreliminaryPhasePage() {
     <WorkflowCockpit
       requestId={requestId}
       currentCode="M3"
-      title="Phase - Preliminaire"
+      title="Phase - Préliminaire"
       subtitle={`Demande #${requestId ?? '-'}`}
       phaseStatus={bundle?.phase?.status}
       onBack={() => navigate('/')}
@@ -107,12 +107,12 @@ export default function PreliminaryPhasePage() {
           <div className="card">
             <p className="mb-3 text-sm text-anac-muted">
               {dossierClosed
-                ? 'Phase non demarree - dossier clos.'
-                : 'Cette demande est en attente de traitement. Demarrez la phase preliminaire pour commencer.'}
+                ? 'Phase non démarrée - dossier clos.'
+                : 'Cette demande est en attente de traitement. Démarrez la phase préliminaire pour commencer.'}
             </p>
             {!dossierClosed && (
               <Button onClick={startPhase} disabled={startingPhase}>
-                {startingPhase ? 'Demarrage...' : 'Demarrer la Phase Preliminaire'}
+                {startingPhase ? 'Démarrage...' : 'Démarrer la Phase Préliminaire'}
               </Button>
             )}
           </div>

@@ -22,7 +22,7 @@ export function useMeetingActions(
         await queryClient.invalidateQueries({ queryKey: queryKeys.preliminary.bundle(requestId) });
       }
     },
-    onError: (err) => setActionError(apiErrorMessage(err, 'Impossible de planifier la reunion.')),
+    onError: (err) => setActionError(apiErrorMessage(err, 'Impossible de planifier la réunion.')),
   });
 
   const rescheduleMutation = useMutation({

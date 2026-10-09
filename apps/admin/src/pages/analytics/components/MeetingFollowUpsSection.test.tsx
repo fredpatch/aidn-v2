@@ -86,7 +86,7 @@ describe('<BlockingPointGrid> meeting cards (K6)', () => {
         ]}
       />
     );
-    expect(screen.getByRole('link', { name: /Voir les reunions/ })).toHaveAttribute('href', '#suivi-reunions');
+    expect(screen.getByRole('link', { name: /Voir les réunions/ })).toHaveAttribute('href', '#suivi-reunions');
     expect(screen.getByRole('link', { name: /Voir les visites/ })).toHaveAttribute('href', '#suivi-reunions');
     expect(screen.getByRole('link', { name: /Voir la liste/ })).toHaveAttribute('href', '/demandes');
     expect(screen.getAllByRole('link')).toHaveLength(3);

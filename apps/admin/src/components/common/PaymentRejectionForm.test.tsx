@@ -36,7 +36,7 @@ type CardProps = {
 };
 
 const CARDS: Array<[string, ComponentType<CardProps>, string, string]> = [
-  ['M5', DeepEvaluationPaymentCard, "Paiement - Frais d'etude de dossier", '/deep-evaluation'],
+  ['M5', DeepEvaluationPaymentCard, "Paiement - Frais d'étude de dossier", '/deep-evaluation'],
   ['M6', SiteInspectionPaymentCard, 'Paiement - Frais de démonstration/inspection', '/site-inspection'],
   ['M7', CertificatesPaymentCard, 'Paiement - Frais de délivrance', '/certificates'],
 ];

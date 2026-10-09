@@ -73,12 +73,12 @@ export default function R3DashboardPage() {
       <main className="mx-auto max-w-[1480px] space-y-5 px-6 py-6">
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-medium text-anac-muted">Direction de la Navigabilite</p>
+            <p className="text-xs font-medium text-anac-muted">Direction de la Navigabilité</p>
             <h1 className="mt-2 text-2xl font-semibold leading-tight text-anac-navy">
               Tableau de bord - Inspections R3
             </h1>
             <p className="mt-1 text-sm text-anac-muted">
-              Suivez les visites assignees, les avis a remettre et les blocages de mission.
+              Suivez les visites assignées, les avis a remettre et les blocages de mission.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -107,9 +107,9 @@ export default function R3DashboardPage() {
           <R3FlowSummary flow={data.flow} updatedAt={data.updatedAt} />
           <R3MissionList
             title="3. Prochaines visites"
-            description="Visites planifiees assignees a R3."
+            description="Visites planifiées assignées à R3."
             items={data.upcomingVisits}
-            empty="Aucune visite a venir."
+            empty="Aucune visite à venir."
           />
         </section>
 
@@ -119,7 +119,7 @@ export default function R3DashboardPage() {
         >
           <R3MissionList
             title="4. Avis R3 a remettre"
-            description="Visites tenues qui attendent une decision R3."
+            description="Visites tenues qui attendent une décision R3."
             items={data.reportsDue}
             empty="Aucun avis R3 en attente."
           />
@@ -157,7 +157,7 @@ function R3PriorityActions({ items }: { items: R3DashboardMissionItem[] }) {
   return (
     <DashboardSection
       title="1. Actions prioritaires"
-      description="Tenues, avis et missions bloquees qui demandent votre attention."
+      description="Tenues, avis et missions bloquées qui demandent votre attention."
       className="p-4"
       action={<Link to="/mes-inspections" className="text-xs font-semibold text-anac-blue">Voir tout</Link>}
     >
@@ -166,7 +166,7 @@ function R3PriorityActions({ items }: { items: R3DashboardMissionItem[] }) {
           <EmptyDashboardState
             icon={<CheckCircle2 size={16} aria-hidden="true" />}
             title="Aucune action prioritaire"
-            description="Les missions R3 urgentes apparaitront ici."
+            description="Les missions R3 urgentes apparaîtront ici."
           />
         ) : (
           items.map((item) => <R3ActionRow key={item.id} item={item} />)
@@ -230,7 +230,7 @@ function R3FlowSummary({ flow, updatedAt }: { flow: R3DashboardFlowStep[]; updat
         })}
       </div>
       <p className="mt-5 border-t border-anac-border pt-3 text-[11px] text-anac-muted">
-        Derniere mise a jour : {formatDateTime(updatedAt)}
+        Dernière mise à jour : {formatDateTime(updatedAt)}
       </p>
     </DashboardSection>
   );
@@ -291,7 +291,7 @@ function R3Alerts({ alerts }: { alerts: R3DashboardAlert[] }) {
   return (
     <DashboardSection
       title="5. Alertes et blocages"
-      description="Retards ou dependances qui empechent la mission R3."
+      description="Retards ou dépendances qui empêchent la mission R3."
       className="p-4"
       action={<Link to="/mes-inspections" className="text-xs font-semibold text-anac-blue">Voir tout</Link>}
     >
@@ -319,13 +319,13 @@ function R3Alerts({ alerts }: { alerts: R3DashboardAlert[] }) {
 
 function R3Activity({ activity }: { activity: R3DashboardActivityItem[] }) {
   return (
-    <DashboardSection title="6. Activite recente" description="Evenements metier R3." className="p-4">
+    <DashboardSection title="6. Activité récente" description="Événements métier R3." className="p-4">
       <div className="mt-4 space-y-3">
         {activity.length === 0 ? (
           <EmptyDashboardState
             icon={<FileText size={16} aria-hidden="true" />}
-            title="Aucune activite recente"
-            description="Les visites tenues et avis soumis apparaitront ici."
+            title="Aucune activité récente"
+            description="Les visites tenues et avis soumis apparaîtront ici."
           />
         ) : (
           activity.map((item) => (
@@ -350,7 +350,7 @@ function R3Activity({ activity }: { activity: R3DashboardActivityItem[] }) {
 
 function R3Progress({ items, updatedAt }: { items: R3DashboardProgressMetric[]; updatedAt: string }) {
   return (
-    <DashboardSection title="7. Progression periode" className="p-4">
+    <DashboardSection title="7. Progression période" className="p-4">
       <div className="grid gap-5" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
         {items.map((item) => (
           <div key={item.label}>
@@ -375,7 +375,7 @@ function R3Progress({ items, updatedAt }: { items: R3DashboardProgressMetric[]; 
         ))}
       </div>
       <p className="mt-5 border-t border-anac-border pt-3 text-[11px] text-anac-muted">
-        Donnees mises a jour le {formatDateTime(updatedAt)}.
+        Données mises à jour le {formatDateTime(updatedAt)}.
       </p>
     </DashboardSection>
   );

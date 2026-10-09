@@ -68,18 +68,18 @@ export const KPI_EXPLANATIONS = [
 export const REQUEST_TYPE_OPTIONS = [
   { value: '', label: 'Tous les types' },
   { value: 'recognition', label: 'Reconnaissance' },
-  { value: 'issuance', label: 'Delivrance' },
+  { value: 'issuance', label: 'Délivrance' },
   { value: 'modification', label: 'Modification' },
   { value: 'renewal', label: 'Renouvellement' },
 ] as const;
 
 export const STATUS_OPTIONS = [
   { value: '', label: 'Tous les statuts' },
-  { value: 'submitted', label: 'Depose' },
+  { value: 'submitted', label: 'Déposé' },
   { value: 'in_progress', label: 'En cours' },
-  { value: 'completed', label: 'Termine' },
-  { value: 'cancelled', label: 'Annule' },
-  { value: 'rejected', label: 'Rejete' },
+  { value: 'completed', label: 'Terminé' },
+  { value: 'cancelled', label: 'Annulé' },
+  { value: 'rejected', label: 'Rejeté' },
 ] as const;
 
 export const METRIC_ICONS: Record<string, React.ElementType> = {

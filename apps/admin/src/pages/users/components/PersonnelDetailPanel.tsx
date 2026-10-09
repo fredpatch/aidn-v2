@@ -16,9 +16,9 @@ export function PersonnelDetailPanel({
   if (!personnel) {
     return (
       <aside className="w-full min-w-0 rounded-lg border border-anac-border bg-white p-6 text-center shadow-sm md:sticky md:top-20">
-        <p className="font-semibold text-anac-navy">Aucun agent selectionne</p>
+        <p className="font-semibold text-anac-navy">Aucun agent sélectionné</p>
         <p className="mt-1 text-sm text-anac-muted">
-          Selectionnez un agent Personnel ANAC pour consulter la fiche.
+          Sélectionnez un agent Personnel ANAC pour consulter la fiche.
         </p>
       </aside>
     );
@@ -42,7 +42,7 @@ export function PersonnelDetailPanel({
               personnel.hasAccount ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'
             }`}
           >
-            {personnel.hasAccount ? 'Compte cree' : 'A activer'}
+            {personnel.hasAccount ? 'Compte créé' : 'À activer'}
           </span>
         </div>
       </div>
@@ -50,11 +50,11 @@ export function PersonnelDetailPanel({
       <div className="grid grid-cols-1 gap-2.5 p-3">
         <DetailSection title="Fiche Personnel ANAC">
           <InfoRow label="Nom" value={personnel.lastName ?? '-'} />
-          <InfoRow label="Prenom" value={personnel.firstName ?? '-'} />
+          <InfoRow label="Prénom" value={personnel.firstName ?? '-'} />
           <InfoRow label="Organisation" value={personnel.organisationLabel ?? 'Non renseigne'} />
           <InfoRow
             label="Compte AIDN"
-            value={personnel.hasAccount ? 'Deja cree' : 'A activer'}
+            value={personnel.hasAccount ? 'Déjà créé' : 'À activer'}
             strong
           />
         </DetailSection>

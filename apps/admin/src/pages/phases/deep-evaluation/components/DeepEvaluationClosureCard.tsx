@@ -18,7 +18,7 @@ export default function DeepEvaluationClosureCard({
 
   return (
     <CollapsibleCard
-      title="Cloturer la phase - Evaluation approfondie"
+      title="Clôturer la phase - Évaluation approfondie"
       icon={<LockKeyhole size={16} className="text-anac-navy" />}
       defaultOpen
       resetKey={busy}

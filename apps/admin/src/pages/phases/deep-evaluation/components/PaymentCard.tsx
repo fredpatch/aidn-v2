@@ -14,7 +14,7 @@ import type { PaymentView } from '../types';
 import PhaseStatusBadge from '../../preliminary/components/PhaseStatusBadge';
 import { ClosedDossierNote, useDossierReadOnly } from '../../components/DossierReadOnly';
 
-const PAYMENT_LABEL = "Paiement - Frais d'etude de dossier";
+const PAYMENT_LABEL = "Paiement - Frais d'étude de dossier";
 
 interface PaymentCardProps {
   requestId: string | undefined;
@@ -95,9 +95,9 @@ export default function PaymentCard({
           )
         ) : (
           <p className="text-xs text-anac-muted">
-            Envoyee le {formatDate(payment.invoiceUploadedAt)} -{' '}
+            Envoyée le {formatDate(payment.invoiceUploadedAt)} -{' '}
             <DocumentPreviewLink
-              title="Facture evaluation approfondie"
+              title="Facture évaluation approfondie"
               url={payment.invoiceFileUrl}
             />
           </p>
@@ -120,7 +120,7 @@ export default function PaymentCard({
               <p className="text-xs text-anac-muted">
                 Soumise le {formatDate(payment.proofUploadedAt)} -{' '}
                 <DocumentPreviewLink
-                  title="Preuve de paiement evaluation approfondie"
+                  title="Preuve de paiement évaluation approfondie"
                   url={payment.proofFileUrl}
                 />
               </p>
@@ -157,13 +157,13 @@ export default function PaymentCard({
 
               {payment.status === 'validated' && (
                 <p className="text-anac-success text-xs">
-                  Valide le {formatDate(payment.validatedAt)}.
+                  Validé le {formatDate(payment.validatedAt)}.
                 </p>
               )}
 
               {payment.status === 'awaiting_proof' && payment.rejectionReason && (
                 <div className="text-xs space-y-1">
-                  <p className="text-anac-danger">Preuve rejetee : {payment.rejectionReason}</p>
+                  <p className="text-anac-danger">Preuve rejetée : {payment.rejectionReason}</p>
                   <p className="text-anac-muted">
                     En attente d&apos;une nouvelle preuve du postulant.
                   </p>

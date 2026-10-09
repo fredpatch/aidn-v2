@@ -54,7 +54,7 @@ export default function CertificatesPhasePage() {
           </button>
 
           <div>
-            <h1 className="text-xl font-semibold text-anac-navy">Paiement - Delivrance</h1>
+            <h1 className="text-xl font-semibold text-anac-navy">Paiement - Délivrance</h1>
             <p className="text-sm text-anac-muted">Demande #{requestId}</p>
           </div>
 
@@ -91,12 +91,12 @@ export default function CertificatesPhasePage() {
         blockReason: summary.blockReason,
       }
     : {
-        title: 'Demarrer la phase',
-        description: 'Ouvrir la delivrance apres la cloture de la demonstration / inspection.',
+        title: 'Démarrer la phase',
+        description: 'Ouvrir la délivrance après la clôture de la démonstration / inspection.',
         owner: 'DN',
         tone: 'info' as const,
         primaryAction: {
-          label: startingPhase ? 'Demarrage...' : 'Demarrer la phase',
+          label: startingPhase ? 'Démarrage...' : 'Démarrer la phase',
           onClick: startPhase,
           disabled: startingPhase,
         },
@@ -108,7 +108,7 @@ export default function CertificatesPhasePage() {
       label: 'Paiement',
       value: bundle?.payment ? PAYMENT_STATUS_LABELS[bundle.payment.status] ?? bundle.payment.status : 'Facture attendue',
     },
-    { label: 'Certificat', value: bundle?.certificate?.reference ?? 'Non cree' },
+    { label: 'Certificat', value: bundle?.certificate?.reference ?? 'Non créé' },
     {
       label: 'Cycle',
       value: bundle?.certificate?.collectedAt
@@ -117,7 +117,7 @@ export default function CertificatesPhasePage() {
           ? 'Postulant notifie'
           : bundle?.certificate
             ? CERTIFICATE_STATUS_LABELS[bundle.certificate.status] ?? bundle.certificate.status
-            : 'Non demarre',
+            : 'Non démarré',
       tone: bundle?.certificate?.collectedAt ? 'success' : 'muted',
     },
   ] as const;
@@ -126,7 +126,7 @@ export default function CertificatesPhasePage() {
     <WorkflowCockpit
       requestId={requestId}
       currentCode="M7"
-      title="Phase - Delivrance"
+      title="Phase - Délivrance"
       subtitle={`Demande #${requestId ?? '-'}`}
       phaseStatus={bundle?.phase?.status}
       onBack={() => navigate('/')}
@@ -146,12 +146,12 @@ export default function CertificatesPhasePage() {
           <div className="card">
             <p className="mb-3 text-sm text-anac-muted">
               {dossierClosed
-                ? 'Phase non demarree - dossier clos.'
-                : 'La phase de demonstration/inspection doit etre cloturee avant de demarrer la delivrance.'}
+                ? 'Phase non démarrée - dossier clos.'
+                : 'La phase de demonstration/inspection doit être clôturée avant de démarrer la délivrance.'}
             </p>
             {!dossierClosed && (
               <Button onClick={startPhase} disabled={startingPhase}>
-                {startingPhase ? 'Demarrage...' : 'Demarrer la Phase - Delivrance'}
+                {startingPhase ? 'Démarrage...' : 'Démarrer la Phase - Délivrance'}
               </Button>
             )}
           </div>

@@ -47,9 +47,9 @@ export function UserDetailPanel({
   if (!user) {
     return (
       <aside className="w-full min-w-0 rounded-lg border border-anac-border bg-white p-6 text-center shadow-sm md:sticky md:top-20">
-        <p className="font-semibold text-anac-navy">Aucun utilisateur selectionne</p>
+        <p className="font-semibold text-anac-navy">Aucun utilisateur sélectionné</p>
         <p className="mt-1 text-sm text-anac-muted">
-          Selectionnez une ligne pour afficher le detail.
+          Sélectionnez une ligne pour afficher le détail.
         </p>
       </aside>
     );
@@ -70,16 +70,16 @@ export function UserDetailPanel({
       </div>
 
       <div className="grid grid-cols-2 gap-2.5 p-3">
-        <DetailSection title="Informations cles">
-          <CompactStat label="Creation" value={formatDateTime(user.createdAt)} />
+        <DetailSection title="Informations clés">
+          <CompactStat label="Création" value={formatDateTime(user.createdAt)} />
           <CompactStat label="Compte" value={user.active ? 'Actif' : 'Suspendu'} strong />
           <CompactStat
-            label="Premiere connexion"
-            value={user.firstLogin ? 'En attente' : 'Terminee'}
+            label="Première connexion"
+            value={user.firstLogin ? 'En attente' : 'Terminée'}
           />
         </DetailSection>
 
-        <DetailSection title="Roles attribues">
+        <DetailSection title="Rôles attribues">
           <RoleBadgeList roles={user.roles} />
           <div className="mt-3">
             <p className="mb-2 text-xs font-medium text-anac-muted">Groupes / permissions</p>
@@ -88,7 +88,7 @@ export function UserDetailPanel({
         </DetailSection>
 
         {canEditRoles && (
-          <DetailSection title="Modifier les roles">
+          <DetailSection title="Modifier les rôles">
             <RoleSelector roles={roles} onToggle={toggleRole} suLocked={suLocked} />
             <div className="mt-2 flex justify-end">
               <Button
@@ -115,7 +115,7 @@ export function UserDetailPanel({
               className="text-xs min-w-12 h-8"
             >
               {busy ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />}
-              Reinitialiser OTP
+              Réinitialiser OTP
             </Button>
             <Button
               type="button"
@@ -125,7 +125,7 @@ export function UserDetailPanel({
               className="text-xs min-w-12 h-8"
             >
               <Lock size={14} />
-              {user.active ? 'Suspendre le compte' : 'Reactiver le compte'}
+              {user.active ? 'Suspendre le compte' : 'Réactiver le compte'}
             </Button>
             <Button type="button" variant="secondary" disabled className="text-xs min-w-12 h-8">
               <MoreVertical size={14} />
@@ -134,15 +134,15 @@ export function UserDetailPanel({
           </div>
           {!canManageAccounts && (
             <p className="mt-2 text-xs text-anac-muted">
-              Les actions de cycle de vie restent reservees au Super Admin.
+              Les actions de cycle de vie restent réservées au Super Admin.
             </p>
           )}
         </DetailSection>
 
-        <DetailSection title="Activite recente">
+        <DetailSection title="Activité récente">
           <div className="grid grid-cols-2 gap-2">
-            <TimelineItem icon={Activity} title="Log connexion" meta="A venir" />
-            <TimelineItem icon={ShieldCheck} title="Log roles" meta="A venir" />
+            <TimelineItem icon={Activity} title="Log connexion" meta="À venir" />
+            <TimelineItem icon={ShieldCheck} title="Log rôles" meta="À venir" />
           </div>
         </DetailSection>
       </div>

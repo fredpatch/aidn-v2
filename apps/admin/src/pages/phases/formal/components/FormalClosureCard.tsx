@@ -18,7 +18,7 @@ export default function FormalClosureCard({
 
   return (
     <CollapsibleCard
-      title="Cloturer la phase - Demande formelle"
+      title="Clôturer la phase - Demande formelle"
       icon={<LockKeyhole size={16} className="text-anac-navy" />}
       defaultOpen
       resetKey={busy}

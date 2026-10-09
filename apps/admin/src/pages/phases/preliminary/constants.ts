@@ -1,18 +1,18 @@
 export const PHASE_ROADMAP = [
-  { code: 'M3', label: 'Phase Preliminaire', path: 'phase-preliminaire' },
+  { code: 'M3', label: 'Phase Préliminaire', path: 'phase-preliminaire' },
   { code: 'M4', label: 'Demande Formelle', path: 'phase-formelle' },
-  { code: 'M5', label: 'Evaluation Approfondie', path: 'evaluation-approfondie' },
-  { code: 'M6', label: 'Demonstration / Inspection', path: 'demonstration-inspection' },
-  { code: 'M7', label: 'Delivrance', path: 'delivrance' },
+  { code: 'M5', label: 'Évaluation Approfondie', path: 'evaluation-approfondie' },
+  { code: 'M6', label: 'Démonstration / Inspection', path: 'demonstration-inspection' },
+  { code: 'M7', label: 'Délivrance', path: 'delivrance' },
 ] as const;
 
 
 export const MEETING_STATUS_LABELS: Record<string, string> = {
-  scheduled: 'Planifiee',
+  scheduled: 'Planifiée',
   held: 'Tenue',
-  no_show: 'Absence constatee',
+  no_show: 'Absence constatée',
   rescheduled: 'Reprogrammee',
-  file_cancelled: 'Dossier annule',
+  file_cancelled: 'Dossier annulé',
 };
 
 export const MEETING_STATUS_TONES: Record<string, string> = {

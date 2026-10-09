@@ -69,7 +69,7 @@ export default function DocumentEvaluationsCard({
 
   return (
     <CollapsibleCard
-      title="Evaluation des documents"
+      title="Évaluation des documents"
       icon={<CheckCircle2 size={16} className="text-anac-navy" />}
       defaultOpen={!allDocumentsValidated}
       resetKey={`${completionRate.validated}-${completionRate.pending}-${completionRate.needsAction}`}
@@ -78,7 +78,7 @@ export default function DocumentEvaluationsCard({
           <span className="text-anac-success font-medium">{completionRate.validated} valides</span>
           {completionRate.needsAction > 0 && (
             <span className="text-anac-danger font-medium">
-              {completionRate.needsAction} a traiter
+              {completionRate.needsAction} à traiter
             </span>
           )}
           {completionRate.pending > 0 && (
@@ -99,8 +99,8 @@ export default function DocumentEvaluationsCard({
                       {evaluation.label}
                     </p>
                     <p className="mt-1 text-[10px] font-medium text-anac-muted">
-                      {evaluation.resubmittedFileUrl ? 'Version corrigee' : 'Version courante'} -
-                      Evaluation DN
+                      {evaluation.resubmittedFileUrl ? 'Version corrigée' : 'Version courante'} -
+                      Évaluation DN
                     </p>
                   </div>
 
@@ -126,7 +126,7 @@ export default function DocumentEvaluationsCard({
                       setViewerFile({
                         evaluationId: evaluation.id,
                         title: `${evaluation.label}${
-                          evaluation.resubmittedFileUrl ? ' - version corrigee' : ''
+                          evaluation.resubmittedFileUrl ? ' - version corrigée' : ''
                         }`,
                         url: evaluation.currentFileUrl ?? '',
                       })
@@ -134,7 +134,7 @@ export default function DocumentEvaluationsCard({
                   >
                     <Eye size={12} aria-hidden="true" />
                     Previsualiser le document
-                    {evaluation.resubmittedFileUrl ? ' (version corrigee)' : ''}
+                    {evaluation.resubmittedFileUrl ? ' (version corrigée)' : ''}
                   </button>
                 )}
 
@@ -204,7 +204,7 @@ export default function DocumentEvaluationsCard({
                   </Button>
                 </div>
                 <div>
-                  <label className="label">Delai de correction (jours, optionnel)</label>
+                  <label className="label">Délai de correction (jours, optionnel)</label>
                   <input
                     type="number"
                     className="input h-7 text-xs w-24"
@@ -250,7 +250,7 @@ export default function DocumentEvaluationsCard({
                 className="input h-8 w-20 text-xs"
                 value={correctionDays}
                 placeholder="Jours"
-                title="Delai de correction"
+                title="Délai de correction"
                 onChange={(event) => setCorrectionDays(event.target.value)}
               />
               <Button

@@ -9,7 +9,7 @@ export function WorkflowPhaseSummary({ phases }: { phases: DashboardPhaseStat[] 
     <DashboardSection
       className="p-5"
       title="Vue d'ensemble du workflow"
-      description="Repartition par phase ouverte et duree moyenne."
+      description="Répartition par phase ouverte et durée moyenne."
     >
       <div className="mt-7 grid grid-cols-1 gap-4 sm:grid-cols-5">
         {phases.map((phase, index) => (
@@ -43,7 +43,7 @@ export function WorkflowPhaseSummary({ phases }: { phases: DashboardPhaseStat[] 
                 </p>
                 <p className="text-[11px] text-anac-blue">
                   {phase.averageDurationDays === null
-                    ? phase.durationLabel ?? 'Duree non disponible'
+                    ? phase.durationLabel ?? 'Durée non disponible'
                     : `${phase.averageDurationDays} j moyen`}
                 </p>
                 {phase.slaLabel ? (
@@ -53,7 +53,7 @@ export function WorkflowPhaseSummary({ phases }: { phases: DashboardPhaseStat[] 
                       SLA_STYLES[phase.slaStatus ?? 'unknown']
                     )}
                   >
-                    {phase.slaBreachCount ? `${phase.slaBreachCount} hors delai` : phase.slaLabel}
+                    {phase.slaBreachCount ? `${phase.slaBreachCount} hors délai` : phase.slaLabel}
                   </span>
                 ) : null}
               </div>

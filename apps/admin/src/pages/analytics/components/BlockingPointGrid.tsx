@@ -6,7 +6,7 @@ import { MEETING_FOLLOW_UPS_ANCHOR } from './MeetingFollowUpsSection';
 
 /** K6 - these two cards point to their list further down this page. */
 const IN_PAGE_LINKS: Record<string, string> = {
-  missing_reports: 'Voir les reunions',
+  missing_reports: 'Voir les réunions',
   missing_r3_opinions: 'Voir les visites',
 };
 
@@ -21,7 +21,7 @@ export function BlockingPointGrid({ points }: { points: AnalyticsBlockingPoint[]
     <section className="rounded-lg border border-anac-border bg-white p-4 shadow-sm">
       <div>
         <h2 className="text-sm font-semibold text-anac-navy">Points de blocage</h2>
-        <p className="text-[11px] text-anac-muted">Alertes detectees impactant les delais.</p>
+        <p className="text-[11px] text-anac-muted">Alertes détectées impactant les délais.</p>
       </div>
       <div className="mt-3 grid gap-3 md:grid-cols-3 xl:grid-cols-6">
         {points.map((point) => {

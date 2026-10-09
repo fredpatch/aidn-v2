@@ -70,7 +70,7 @@ export default function FormalMeetingCard({
     setWarning(null);
     const result = await schedule({ phaseId, dnAgentId, dateTime: values.dateTime, location: values.location });
     if (result?.softOverlapWarning) {
-      setWarning('Attention : vous avez deja une autre reunion ce jour-la, a un horaire different.');
+      setWarning('Attention : vous avez déjà une autre réunion ce jour-là, à un horaire différent.');
     }
     if (result) {
       setScheduling(false);
@@ -89,7 +89,7 @@ export default function FormalMeetingCard({
 
   async function handleSendReport() {
     if (!meeting || !reportFile) {
-      setActionError('Merci de selectionner un fichier pour le compte-rendu.');
+      setActionError('Merci de sélectionner un fichier pour le compte-rendu.');
       return;
     }
     const ok = await sendReport(meeting.id, reportFile);
@@ -102,7 +102,7 @@ export default function FormalMeetingCard({
   function handleCancelFile() {
     if (!meeting) return;
     const confirmed = window.confirm(
-      "Annuler ce dossier mettra fin a la demande formelle. Cette action sera inscrite dans l'historique. Confirmer l'annulation ?"
+      "Annuler ce dossier mettra fin à la demande formelle. Cette action sera inscrite dans l'historique. Confirmer l'annulation ?"
     );
     if (confirmed) {
       markStatus(meeting.id, 'file_cancelled');
@@ -115,7 +115,7 @@ export default function FormalMeetingCard({
 
   return (
     <CollapsibleCard
-      title="Reunion formelle"
+      title="Réunion formelle"
       icon={<CalendarClock size={16} className="text-anac-navy" />}
       defaultOpen={shouldOpen}
       resetKey={meeting?.status ?? 'missing'}
@@ -137,9 +137,9 @@ export default function FormalMeetingCard({
             />
             {meeting.crDocumentUrl && (
               <p className="text-sm">
-                Compte-rendu envoye le {formatDate(meeting.crUploadedAt)} -{' '}
+                Compte-rendu envoyé le {formatDate(meeting.crUploadedAt)} -{' '}
                 <DocumentPreviewLink
-                  title="Compte-rendu de reunion formelle"
+                  title="Compte-rendu de réunion formelle"
                   url={meeting.crDocumentUrl}
                 />
               </p>
@@ -147,12 +147,12 @@ export default function FormalMeetingCard({
             <ClosedDossierNote />
           </div>
         ) : (
-          <ClosedDossierNote>Aucune reunion planifiee - dossier clos.</ClosedDossierNote>
+          <ClosedDossierNote>Aucune réunion planifiée - dossier clos.</ClosedDossierNote>
         )
       ) : !letterReturned && !meeting ? (
         <p className="text-anac-muted text-sm">
-          La reunion formelle sera planifiable une fois la lettre de demande officielle revenue
-          signee et scannee dans AIDN.
+          La réunion formelle sera planifiable une fois la lettre de demande officielle revenue
+          signée et scannée dans AIDN.
         </p>
       ) : !meeting ? (
         scheduling ? (
@@ -187,9 +187,9 @@ export default function FormalMeetingCard({
         ) : (
           <div className="space-y-2">
             <Button size="sm" onClick={() => setScheduling(true)} disabled={!canManage}>
-              Planifier la reunion formelle
+              Planifier la réunion formelle
             </Button>
-            {!canManage && <p className="text-anac-muted text-xs">Action reservee a la DN.</p>}
+            {!canManage && <p className="text-anac-muted text-xs">Action réservée à la DN.</p>}
           </div>
         )
       ) : rescheduling ? (
@@ -238,7 +238,7 @@ export default function FormalMeetingCard({
                 href={`/api/meetings/${meeting.id}/ticket`}
                 target="_blank"
                 rel="noreferrer"
-                title="Ticket de reunion formelle"
+                title="Ticket de réunion formelle"
                 className="btn-secondary text-xs inline-flex items-center gap-1 px-2 py-1 rounded"
               >
                 Voir le ticket
@@ -285,9 +285,9 @@ export default function FormalMeetingCard({
             <div className="pt-1 space-y-2">
               {meeting.crDocumentUrl ? (
                 <p className="text-sm">
-                  Compte-rendu envoye le {formatDate(meeting.crUploadedAt)} -{' '}
+                  Compte-rendu envoyé le {formatDate(meeting.crUploadedAt)} -{' '}
                   <DocumentPreviewLink
-                    title="Compte-rendu de reunion formelle"
+                    title="Compte-rendu de réunion formelle"
                     url={meeting.crDocumentUrl}
                   />
                   {' - '}
@@ -331,12 +331,12 @@ export default function FormalMeetingCard({
                 </Button>
               )}
               <p className="text-anac-muted text-xs">
-                Le compte-rendu est facultatif pour la cloture de la phase.
+                Le compte-rendu est facultatif pour la clôture de la phase.
               </p>
             </div>
           )}
           {!canManage && meeting.status === 'scheduled' && (
-            <p className="text-anac-muted text-xs">Action reservee a la DN.</p>
+            <p className="text-anac-muted text-xs">Action réservée à la DN.</p>
           )}
         </div>
       )}

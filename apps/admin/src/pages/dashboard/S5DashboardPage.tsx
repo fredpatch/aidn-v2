@@ -72,7 +72,7 @@ export default function S5DashboardPage() {
       <main className="mx-auto max-w-[1480px] space-y-5 px-6 py-6">
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-medium text-anac-muted">Direction de la Navigabilite</p>
+            <p className="text-xs font-medium text-anac-muted">Direction de la Navigabilité</p>
             <h1 className="mt-2 text-2xl font-semibold leading-tight text-anac-navy">
               Tableau de bord - Facturation S5
             </h1>
@@ -146,7 +146,7 @@ function S5PriorityActions({ items }: { items: S5DashboardPaymentItem[] }) {
           <EmptyDashboardState
             icon={<CheckCircle2 size={16} aria-hidden="true" />}
             title="Aucune action prioritaire"
-            description="Les actions S5 urgentes apparaitront ici."
+            description="Les actions S5 urgentes apparaîtront ici."
           />
         ) : (
           items.map((item) => <S5ActionRow key={item.id} item={item} />)
@@ -201,7 +201,7 @@ function S5FlowSummary({ flow, updatedAt }: { flow: S5DashboardFlowStep[]; updat
         })}
       </div>
       <p className="mt-5 border-t border-anac-border pt-3 text-[11px] text-anac-muted">
-        Derniere mise a jour : {formatDateTime(updatedAt)}
+        Dernière mise à jour : {formatDateTime(updatedAt)}
       </p>
     </DashboardSection>
   );
@@ -210,7 +210,7 @@ function S5FlowSummary({ flow, updatedAt }: { flow: S5DashboardFlowStep[]; updat
 function S5RecentInvoices({ items }: { items: S5DashboardPaymentItem[] }) {
   return (
     <DashboardSection
-      title="3. Factures recues a transmettre"
+      title="3. Factures reçues à transmettre"
       description="Dossiers en attente d'enregistrement de facture."
       className="p-4"
       action={<Link to="/paiements-s5" className="text-xs font-semibold text-anac-blue">Voir tout</Link>}
@@ -224,11 +224,11 @@ function S5ProofsToApprove({ items }: { items: S5DashboardPaymentItem[] }) {
   return (
     <DashboardSection
       title="4. Preuves de paiement a approuver"
-      description="Preuves retournees par les postulants."
+      description="Preuves retournées par les postulants."
       className="p-4"
       action={<Link to="/paiements-s5" className="text-xs font-semibold text-anac-blue">Voir tout</Link>}
     >
-      <CompactPaymentList items={items} empty="Aucune preuve a valider." />
+      <CompactPaymentList items={items} empty="Aucune preuve à valider." />
     </DashboardSection>
   );
 }
@@ -263,7 +263,7 @@ function CompactPaymentList({ items, empty }: { items: S5DashboardPaymentItem[];
 
 function S5Alerts({ alerts }: { alerts: S5DashboardAlert[] }) {
   return (
-    <DashboardSection title="5. Alertes et blocages" description="Retards et rejets a surveiller." className="p-4">
+    <DashboardSection title="5. Alertes et blocages" description="Retards et rejets à surveiller." className="p-4">
       <div className="mt-4 space-y-2">
         {alerts.map((alert) => {
           const Icon = alert.tone === 'danger' ? XCircle : alert.tone === 'warning' ? AlertTriangle : Clock3;
@@ -298,13 +298,13 @@ function S5Alerts({ alerts }: { alerts: S5DashboardAlert[] }) {
 
 function S5Activity({ activity }: { activity: S5DashboardActivityItem[] }) {
   return (
-    <DashboardSection title="6. Activite recente" description="Evenements de paiement S5." className="p-4">
+    <DashboardSection title="6. Activité récente" description="Événements de paiement S5." className="p-4">
       <div className="mt-4 space-y-3">
         {activity.length === 0 ? (
           <EmptyDashboardState
             icon={<Clock3 size={16} aria-hidden="true" />}
-            title="Aucune activite recente"
-            description="Les validations, rejets et transmissions S5 apparaitront ici."
+            title="Aucune activité récente"
+            description="Les validations, rejets et transmissions S5 apparaîtront ici."
           />
         ) : (
           activity.map((item) => (
@@ -328,8 +328,8 @@ function S5Activity({ activity }: { activity: S5DashboardActivityItem[] }) {
 function S5MonthlyProgress({ items, updatedAt }: { items: S5DashboardProgressMetric[]; updatedAt: string }) {
   return (
     <DashboardSection
-      title="7. Progression de la periode"
-      description="Indicateurs bases sur les actions S5 enregistrees."
+      title="7. Progression de la période"
+      description="Indicateurs bases sur les actions S5 enregistrées."
       className="p-4"
     >
       <div className="mt-5 grid gap-6 lg:grid-cols-[1fr_1fr_1fr_280px]">
@@ -337,10 +337,10 @@ function S5MonthlyProgress({ items, updatedAt }: { items: S5DashboardProgressMet
           <ProgressItem key={item.label} item={item} />
         ))}
         <div className="rounded-lg border border-blue-100 bg-blue-50 p-4 text-xs text-anac-blue">
-          <p className="font-semibold">Donnees mises a jour</p>
+          <p className="font-semibold">Données mises à jour</p>
           <p className="mt-2 text-[11px] leading-relaxed">{formatDateTime(updatedAt)}</p>
           <p className="mt-2 text-[11px] leading-relaxed">
-            Les montants ne sont pas affiches tant que le modele paiement ne stocke pas les montants factures.
+            Les montants ne sont pas affichés tant que le modèle paiement ne stocke pas les montants factures.
           </p>
         </div>
       </div>

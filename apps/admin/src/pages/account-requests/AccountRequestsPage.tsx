@@ -234,12 +234,12 @@ export default function AccountRequestsPage() {
           {
             label: 'Demandes en attente',
             value: requests.length,
-            helper: 'A valider par DN/SU',
+            helper: 'À valider par DN/SU',
             icon: Clock3,
             tone: 'warning' as const,
           },
           {
-            label: 'Correspondances detectees',
+            label: 'Correspondances détectées',
             value: requests.filter((request) => request.candidates.length > 0).length,
             helper: 'Organismes similaires proposes',
             icon: Building2,
@@ -248,12 +248,12 @@ export default function AccountRequestsPage() {
           {
             label: 'Sans correspondance',
             value: requests.filter((request) => request.candidates.length === 0).length,
-            helper: 'Creation organisme probable',
+            helper: 'Création organisme probable',
             icon: AlertTriangle,
             tone: 'danger' as const,
           },
           {
-            label: 'Age moyen',
+            label: 'Âge moyen',
             value: averageRequestAge === null ? '-' : `${averageRequestAge} j`,
             helper: 'Depuis soumission portail',
             icon: FileClock,
@@ -264,28 +264,28 @@ export default function AccountRequestsPage() {
           {
             label: 'Comptes actifs',
             value: activeAccounts,
-            helper: 'Acces portail autorise',
+            helper: 'Accès portail autorise',
             icon: UserCheck,
             tone: 'success' as const,
           },
           {
             label: 'Comptes suspendus',
             value: suspendedAccounts,
-            helper: 'Acces portail bloque',
+            helper: 'Accès portail bloque',
             icon: LockKeyhole,
             tone: suspendedAccounts > 0 ? ('warning' as const) : ('success' as const),
           },
           {
             label: 'Nouveaux ce mois',
             value: newAccountsThisMonth,
-            helper: 'Comptes approuves recemment',
+            helper: 'Comptes approuvés récemment',
             icon: UserCog,
             tone: 'info' as const,
           },
           {
-            label: 'Derniere connexion',
+            label: 'Dernière connexion',
             value: '-',
-            helper: 'Suivi prevu ulterieurement',
+            helper: 'Suivi prévu ultérieurement',
             icon: Activity,
             tone: 'info' as const,
           },
@@ -355,7 +355,7 @@ export default function AccountRequestsPage() {
               setActionError(null);
             }}
           >
-            Comptes approuves
+            Comptes approuvés
           </TabButton>
         </nav>
 
@@ -380,7 +380,7 @@ export default function AccountRequestsPage() {
         >
           <div className="min-w-0 overflow-hidden rounded-lg border border-anac-border bg-white shadow-sm">
             {loading ? (
-              <EmptyState title="Chargement" description="Recuperation des comptes postulants." className="min-h-[220px]" />
+              <EmptyState title="Chargement" description="Récupération des comptes postulants." className="min-h-[220px]" />
             ) : error ? (
               <EmptyState title="Chargement impossible" description={error} danger className="min-h-[220px]" />
             ) : tab === 'pending' ? (
@@ -411,7 +411,7 @@ export default function AccountRequestsPage() {
                   }}
                 />
                 <Pagination
-                  label={`${filteredAccounts.length} compte(s) approuve(s)`}
+                  label={`${filteredAccounts.length} compte(s) approuvé(s)`}
                   page={pagedAccounts.page}
                   totalPages={pagedAccounts.totalPages}
                   onPageChange={setPage}
@@ -513,7 +513,7 @@ function PendingRequestsTable({
     return (
       <EmptyState
         title="Aucune demande en attente"
-        description="Les demandes envoyees depuis le portail apparaitront ici."
+        description="Les demandes envoyées depuis le portail apparaîtront ici."
         className="min-h-[220px]"
       />
     );
@@ -552,7 +552,7 @@ function PendingRequestsTable({
               <TableCell>
                 <p className="font-semibold text-anac-navy">{request.organisationNameInput}</p>
                 <p className="text-xs text-anac-muted">
-                  {request.originalApprovalNumber ?? 'Agrement non renseigne'}
+                  {request.originalApprovalNumber ?? 'Agrément non renseigne'}
                 </p>
               </TableCell>
               <TableCell>{request.contactFullName}</TableCell>
@@ -587,8 +587,8 @@ function ApplicantAccountsTable({
   if (accounts.length === 0) {
     return (
       <EmptyState
-        title="Aucun compte approuve"
-        description="Les comptes approuves apparaitront ici apres validation."
+        title="Aucun compte approuvé"
+        description="Les comptes approuvés apparaîtront ici après validation."
         className="min-h-[220px]"
       />
     );
@@ -602,7 +602,7 @@ function ApplicantAccountsTable({
             {accounts.length} compte(s) approuve(s)
           </h2>
           <p className="text-xs text-anac-muted">
-            Selectionnez un compte pour consulter son profil.
+            Sélectionnez un compte pour consulter son profil.
           </p>
         </div>
         <button className="inline-flex items-center gap-2 rounded-md border border-anac-border px-3 py-1.5 text-xs font-semibold text-anac-navy">
@@ -697,7 +697,7 @@ function PendingRequestPanel({
     setSearchError(null);
     if (query.length < 2) {
       setSearchResults([]);
-      setSearchError('Saisissez au moins 2 caracteres.');
+      setSearchError('Saisissez au moins 2 caractères.');
       return;
     }
 
@@ -726,8 +726,8 @@ function PendingRequestPanel({
     return (
       <aside className="rounded-lg border border-anac-border bg-white p-5 shadow-sm">
         <EmptyState
-          title="Aucune demande selectionnee"
-          description="Selectionnez une demande dans la liste."
+          title="Aucune demande sélectionnée"
+          description="Sélectionnez une demande dans la liste."
           className="min-h-[220px]"
         />
       </aside>
@@ -744,7 +744,7 @@ function PendingRequestPanel({
       <div className="border-b border-anac-border p-5">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold text-anac-muted">Details de la demande</p>
+            <p className="text-xs font-semibold text-anac-muted">Détails de la demande</p>
             <h2 className="mt-2 text-xl font-semibold text-anac-navy">
               {request.organisationNameInput}
             </h2>
@@ -758,7 +758,7 @@ function PendingRequestPanel({
 
       <div className="space-y-4 p-5">
         <PanelBlock title="Informations sur la demande" icon={FileClock}>
-          <Info label="Type de demande" value="Creation de compte" />
+          <Info label="Type de demande" value="Création de compte" />
           <Info label="Soumise le" value={formatDateTime(request.submittedAt)} />
           <Info label="Statut actuel" value="En attente" />
         </PanelBlock>
@@ -766,27 +766,27 @@ function PendingRequestPanel({
         <PanelBlock title="Organisation" icon={Building2}>
           <Info label="Raison sociale" value={request.organisationNameInput} />
           <Info label="Email organisme" value={request.requestedEmail} />
-          <Info label="Telephone" value={request.phone ?? '-'} />
-          <Info label="Agrement" value={request.originalApprovalNumber ?? 'Non renseigne'} />
+          <Info label="Téléphone" value={request.phone ?? '-'} />
+          <Info label="Agrément" value={request.originalApprovalNumber ?? 'Non renseigne'} />
           <p className="pt-2 text-xs leading-relaxed text-anac-muted">{request.legalAddress}</p>
         </PanelBlock>
 
         <PanelBlock title="Contact demandeur" icon={UserRound}>
           <Info label="Nom complet" value={request.contactFullName} />
           <Info label="Email" value={request.contactEmail} />
-          <Info label="Telephone" value={request.contactPhone ?? '-'} />
+          <Info label="Téléphone" value={request.contactPhone ?? '-'} />
         </PanelBlock>
 
         <PanelBlock title="Correspondance organisme" icon={ShieldCheck}>
           <p className="text-xs text-anac-muted">
-            Liez a un organisme existant si le nom soumis est une variante ou un sigle.
+            Liez à un organisme existant si le nom soumis est une variante ou un sigle.
           </p>
           <form onSubmit={handleSearchSubmit} className="mt-3 flex gap-2">
             <input
               className="h-9 min-w-0 flex-1 rounded-md border border-anac-border px-3 text-sm outline-none focus:border-anac-blue focus:ring-2 focus:ring-anac-blue/15"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Nom, sigle, email ou agrement"
+              placeholder="Nom, sigle, email ou agrément"
             />
             <Button type="submit" size="sm" variant="secondary" disabled={searching}>
               {searching ? '...' : 'Chercher'}
@@ -825,7 +825,7 @@ function PendingRequestPanel({
           </div>
           {selectedCandidate ? (
             <p className="text-xs text-anac-success">
-              Approbation preparee avec liaison a {selectedCandidate.name}.
+              Approbation préparée avec liaison à {selectedCandidate.name}.
             </p>
           ) : null}
         </PanelBlock>
@@ -867,7 +867,7 @@ function PendingRequestPanel({
             disabled={busy}
             onClick={() => onApprove(request.id, { createOrganisation: true, contactOrder })}
           >
-            Approuver et creer un nouvel organisme
+            Approuver et créer un nouvel organisme
           </Button>
         </div>
 
@@ -910,8 +910,8 @@ function ApprovedAccountPanel({
     return (
       <aside className="rounded-lg border border-anac-border bg-white p-5 shadow-sm">
         <EmptyState
-          title="Aucun compte selectionne"
-          description="Selectionnez un compte dans la liste."
+          title="Aucun compte sélectionné"
+          description="Sélectionnez un compte dans la liste."
           className="min-h-[220px]"
         />
       </aside>
@@ -927,7 +927,7 @@ function ApprovedAccountPanel({
               {initials(account.organisationName)}
             </div>
             <div>
-              <p className="text-xs font-semibold text-anac-muted">Details du compte</p>
+              <p className="text-xs font-semibold text-anac-muted">Détails du compte</p>
               <h2 className="mt-1 text-base font-semibold text-anac-navy">
                 {account.organisationName}
               </h2>
@@ -982,7 +982,7 @@ function ApprovedAccountPanel({
             disabled={busy}
             onClick={() => onToggle(account.id, !account.active)}
           >
-            {account.active ? 'Suspendre le compte' : 'Reactiver le compte'}
+            {account.active ? 'Suspendre le compte' : 'Réactiver le compte'}
           </Button>
         </section>
 
@@ -998,18 +998,18 @@ function ApprovedAccountPanel({
             />
             <CompactInfo label="Statut" value={account.active ? 'Actif' : 'Suspension'} />
             <CompactInfo label="Approbation" value={formatShortDate(account.createdAt)} />
-            <CompactInfo label="Connexion" value="A venir" />
+            <CompactInfo label="Connexion" value="À venir" />
           </div>
         </section>
 
         <section className="rounded-lg border border-anac-border p-3">
           <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-anac-navy">
-            <ShieldCheck size={14} aria-hidden="true" />A venir
+            <ShieldCheck size={14} aria-hidden="true" />À venir
           </h3>
           <div className="grid grid-cols-2 gap-2">
-            <FuturePill label="Portee d'acces" />
-            <FuturePill label="Dossiers lies" />
-            <FuturePill label="Activite" />
+            <FuturePill label="Portée d'accès" />
+            <FuturePill label="Dossiers liés" />
+            <FuturePill label="Activité" />
             <FuturePill label="Permissions" />
           </div>
         </section>

@@ -46,7 +46,7 @@ describe('<S5PaymentsPage> (K7c)', () => {
     responses['/deep-evaluation/payment-queue'] = [payment(closed)];
     renderWithProviders(<S5PaymentsPage />);
     // K7d - a pending payment of a closed dossier is no longer in the action tabs
-    fireEvent.click(await screen.findByRole('button', { name: /Preuve recue/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /Preuve reçue/ }));
     expect(await screen.findByText('Aucun paiement dans cette vue')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /^Tous/ }));
     expect((await screen.findAllByText('Dossier rejeté')).length).toBeGreaterThan(0);
@@ -60,7 +60,7 @@ describe('<S5PaymentsPage> (K7c)', () => {
   it('open dossier: actions unchanged', async () => {
     responses['/deep-evaluation/payment-queue'] = [payment({})];
     renderWithProviders(<S5PaymentsPage />);
-    fireEvent.click(await screen.findByRole('button', { name: /Preuve recue/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /Preuve reçue/ }));
     expect(await screen.findByRole('button', { name: /Valider le paiement/ })).toBeInTheDocument();
     expect(screen.queryByText(/Dossier rejeté/)).not.toBeInTheDocument();
   });
@@ -86,7 +86,7 @@ describe('<MeetingsPage> (K7c)', () => {
     fireEvent.click(await screen.findByText('Liste'));
     fireEvent.click(await screen.findByText('DEM-K7C-01'));
     expect(screen.getAllByText('Dossier rejeté').length).toBeGreaterThan(0);
-    expect(screen.getByText(/la reunion reste consultable, aucune action/)).toBeInTheDocument();
+    expect(screen.getByText(/la réunion reste consultable, aucune action/)).toBeInTheDocument();
     expect(screen.getByText('Consulter le compte-rendu')).toBeInTheDocument();
     expect(screen.queryByText(/Remplacer le compte-rendu/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Les actions R3 restent disponibles/)).not.toBeInTheDocument();
@@ -116,7 +116,7 @@ describe('<CourrierTasksPage> (K7c)', () => {
     responses['/courrier-tasks'] = tasks(task({ ...closed, availableActions: [] }));
     renderWithProviders(<CourrierTasksPage />);
     // K7d - not in "A imprimer" any more (default tab), still under "Tous"
-    expect(await screen.findByText('Selectionnez un courrier')).toBeInTheDocument();
+    expect(await screen.findByText('Sélectionnez un courrier')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /^Tous/ }));
     expect(await screen.findByText('Dossier clos - consultation uniquement')).toBeInTheDocument();
     expect(screen.getAllByText('Dossier rejeté').length).toBeGreaterThan(0);
@@ -150,7 +150,7 @@ describe('<MyInspectionsPage> (K7c)', () => {
     renderMissions([mission({ ...closed, missionStatus: 'closed', statusLabel: 'Dossier clos', nextAction: 'consult', nextActionLabel: 'Consulter', priority: 'basse' })]);
     fireEvent.click(screen.getAllByText('DEM-K7C-01')[0]);
     expect(screen.getAllByText('Dossier rejeté').length).toBeGreaterThan(0);
-    expect(screen.getByText(/aucune action R3 n est possible/)).toBeInTheDocument();
+    expect(screen.getByText(/aucune action R3 n’est possible/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Enregistrer la tenue/ })).not.toBeInTheDocument();
   });
 

@@ -4,32 +4,32 @@ import type { PhaseWorkflowSummaryState } from '../components/PhaseWorkflowSumma
 export function buildChecklist(bundle: PreliminaryBundle): ChecklistItem[] {
   return [
     {
-      label: 'Reunion planifiee',
+      label: 'Réunion planifiée',
       done: !!bundle.meeting,
     },
     {
-      label: 'Reunion tenue ou absence constatee',
+      label: 'Réunion tenue ou absence constatée',
       done: !!bundle.meeting && bundle.meeting.status !== 'scheduled',
     },
     {
-      label: 'Compte-rendu envoye',
+      label: 'Compte-rendu envoyé',
       done: !!bundle.meeting?.crDocumentUrl,
       optional: true,
     },
     {
-      label: 'Declaration mise a disposition',
+      label: 'Déclaration mise à disposition',
       done: !!bundle.evaluation?.madeAvailableAt,
     },
     {
-      label: 'Declaration retournee par le postulant',
+      label: 'Déclaration retournée par le postulant',
       done: !!bundle.evaluation?.submittedFileUrl,
     },
     {
-      label: 'Retour signe / vise DG recu',
+      label: 'Retour signé / visé DG reçu',
       done: bundle.circuit?.status === 'pending_review',
     },
     {
-      label: 'Phase cloturee',
+      label: 'Phase clôturée',
       done: bundle.phase?.status === 'closed',
     },
   ];

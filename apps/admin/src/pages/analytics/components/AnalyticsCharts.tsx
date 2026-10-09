@@ -53,8 +53,8 @@ export function DurationTrendChart({ points }: { points: AnalyticsTrendPoint[] }
 
   return (
     <AnalyticsSection
-      title="Evolution du delai moyen de traitement"
-      subtitle="Dossiers clotures sur la periode selectionnee"
+      title="Évolution du délai moyen de traitement"
+      subtitle="Dossiers clôturés sur la période sélectionnée"
       className="p-0"
     >
       <div className="p-4">
@@ -65,7 +65,7 @@ export function DurationTrendChart({ points }: { points: AnalyticsTrendPoint[] }
               labels: points.map((point) => point.date.slice(5)),
               datasets: [
                 {
-                  label: 'Delai moyen',
+                  label: 'Délai moyen',
                   data: values,
                   borderColor: '#1D4ED8',
                   backgroundColor: 'rgba(29, 78, 216, 0.08)',
@@ -73,7 +73,7 @@ export function DurationTrendChart({ points }: { points: AnalyticsTrendPoint[] }
                   tension: 0.35,
                 },
                 {
-                  label: 'Mediane',
+                  label: 'Médiane',
                   data: medianValues,
                   borderColor: '#16A34A',
                   borderDash: [5, 5],
@@ -92,7 +92,7 @@ export function DurationTrendChart({ points }: { points: AnalyticsTrendPoint[] }
             }}
           />
         ) : (
-          <EmptyChart label="Aucun dossier cloture pour tracer une evolution." />
+          <EmptyChart label="Aucun dossier clôturé pour tracer une évolution." />
         )}
       </div>
     </AnalyticsSection>
@@ -112,7 +112,7 @@ export function PhaseDurationChart({ phases }: { phases: AnalyticsPhaseStat[] })
               labels: phases.map((phase) => PHASE_LABELS[phase.phaseCode]),
               datasets: [
                 {
-                  label: 'Duree moyenne',
+                  label: 'Durée moyenne',
                   data: phases.map((phase) => phase.averageClosedDurationDays ?? 0),
                   backgroundColor: phases.map((phase) =>
                     (phase.averageClosedDurationDays ?? 0) > phase.slaTargetDays ? '#DC2626' : '#2563EB'
@@ -134,7 +134,7 @@ export function PhaseDurationChart({ phases }: { phases: AnalyticsPhaseStat[] })
             }}
           />
         ) : (
-          <EmptyChart label="Aucune phase cloturee sur cette periode." />
+          <EmptyChart label="Aucune phase clôturée sur cette période." />
         )}
       </div>
     </AnalyticsSection>
@@ -179,7 +179,7 @@ export function DistributionChart({
           </div>
         ) : (
           <div className="flex h-[150px] items-center justify-center rounded-md bg-slate-50 text-xs text-anac-muted">
-            Aucune donnee
+            Aucune donnée
           </div>
         )}
         <div className="space-y-2 self-center">

@@ -73,7 +73,7 @@ export default function ReceptionDashboardPage() {
       <main className="mx-auto max-w-[1480px] space-y-5 px-6 py-6">
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-medium text-anac-muted">Direction de la Navigabilite</p>
+            <p className="text-xs font-medium text-anac-muted">Direction de la Navigabilité</p>
             <h1 className="mt-2 text-2xl font-semibold leading-tight text-anac-navy">
               Tableau de bord - Accueil & Circuit signature
             </h1>
@@ -100,19 +100,19 @@ export default function ReceptionDashboardPage() {
           <ReceptionPriorityActions items={data.priorityActions} />
           <ReceptionFlowSummary flow={data.flow} updatedAt={data.updatedAt} />
           <ReceptionQueueCard
-            title="3. Courriers a imprimer"
-            description="Documents deposes a ouvrir, imprimer et placer en signature."
+            title="3. Courriers à imprimer"
+            description="Documents déposés à ouvrir, imprimer et placer en signature."
             items={data.toPrint}
-            empty="Aucun courrier a imprimer."
+            empty="Aucun courrier à imprimer."
           />
         </section>
 
         <section className="grid gap-4 xl:grid-cols-[1.15fr_1fr_1.15fr]">
           <ReceptionQueueCard
-            title="4. Retours signes attendus"
+            title="4. Retours signés attendus"
             description="Courriers en signature dont le scan retour est attendu."
             items={data.waitingSignature}
-            empty="Aucun retour signe en attente."
+            empty="Aucun retour signé en attente."
           />
           <ReceptionAlerts alerts={data.alerts} />
           <ReceptionActivity activity={data.activity} />
@@ -148,7 +148,7 @@ function ReceptionPriorityActions({ items }: { items: ReceptionDashboardCourrier
   return (
     <DashboardSection
       title="1. Actions prioritaires"
-      description="Impression, mise en signature et scan retour a traiter."
+      description="Impression, mise en signature et scan retour à traiter."
       className="p-4"
       action={<Link to="/courriers" className="text-xs font-semibold text-anac-blue">Voir tout</Link>}
     >
@@ -157,7 +157,7 @@ function ReceptionPriorityActions({ items }: { items: ReceptionDashboardCourrier
           <EmptyDashboardState
             icon={<CheckCircle2 size={16} aria-hidden="true" />}
             title="Aucune action prioritaire"
-            description="Les actions d'accueil et signature urgentes apparaitront ici."
+            description="Les actions d'accueil et signature urgentes apparaîtront ici."
           />
         ) : (
           items.map((item) => <ReceptionActionRow key={item.id} item={item} />)
@@ -224,7 +224,7 @@ function ReceptionFlowSummary({
         })}
       </div>
       <p className="mt-5 border-t border-anac-border pt-3 text-[11px] text-anac-muted">
-        Derniere mise a jour : {formatDateTime(updatedAt)}
+        Dernière mise à jour : {formatDateTime(updatedAt)}
       </p>
     </DashboardSection>
   );
@@ -283,7 +283,7 @@ function ReceptionAlerts({ alerts }: { alerts: ReceptionDashboardAlert[] }) {
   return (
     <DashboardSection
       title="5. Alertes et blocages"
-      description="Retards qui bloquent l'entree ou la phase formelle."
+      description="Retards qui bloquent l'entrée ou la phase formelle."
       className="p-4"
       action={<Link to="/courriers" className="text-xs font-semibold text-anac-blue">Voir tout</Link>}
     >
@@ -311,13 +311,13 @@ function ReceptionAlerts({ alerts }: { alerts: ReceptionDashboardAlert[] }) {
 
 function ReceptionActivity({ activity }: { activity: ReceptionDashboardActivityItem[] }) {
   return (
-    <DashboardSection title="6. Activite recente" description="Evenements metier du circuit." className="p-4">
+    <DashboardSection title="6. Activité récente" description="Événements métier du circuit." className="p-4">
       <div className="mt-4 space-y-3">
         {activity.length === 0 ? (
           <EmptyDashboardState
             icon={<FileText size={16} aria-hidden="true" />}
-            title="Aucune activite recente"
-            description="Les actions du circuit signature apparaitront ici."
+            title="Aucune activité récente"
+            description="Les actions du circuit signature apparaîtront ici."
           />
         ) : (
           activity.map((item) => (
@@ -348,7 +348,7 @@ function ReceptionPeriodProgress({
   updatedAt: string;
 }) {
   return (
-    <DashboardSection title="7. Progression periode" className="p-4">
+    <DashboardSection title="7. Progression période" className="p-4">
       <div className="grid gap-5 lg:grid-cols-3">
         {items.map((item) => (
           <div key={item.label}>
@@ -373,7 +373,7 @@ function ReceptionPeriodProgress({
         ))}
       </div>
       <p className="mt-5 border-t border-anac-border pt-3 text-[11px] text-anac-muted">
-        Donnees mises a jour le {formatDateTime(updatedAt)}.
+        Données mises à jour le {formatDateTime(updatedAt)}.
       </p>
     </DashboardSection>
   );

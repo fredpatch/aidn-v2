@@ -50,7 +50,7 @@ export function PhaseClosureForm({
         <input type="file" onChange={(e) => setValue('file', e.target.files?.[0] ?? null)} />
       </div>
       <Button type="submit" disabled={busy}>
-        {busy ? 'Cloture...' : 'Cloturer la phase'}
+        {busy ? 'Clôture...' : 'Clôturer la phase'}
       </Button>
     </form>
   );

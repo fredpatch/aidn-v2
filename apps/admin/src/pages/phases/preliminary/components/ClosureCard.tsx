@@ -12,10 +12,10 @@ export default function ClosureCard({ phaseId, requestId, setActionError }: Clos
 
   return (
     <div className="card space-y-3">
-      <span className="font-medium text-sm">Cloturer la phase</span>
+      <span className="font-medium text-sm">Clôturer la phase</span>
       <PhaseClosureForm
         busy={busy}
-        description="Document et note sont tous les deux facultatifs - vous pouvez cloturer directement."
+        description="Document et note sont tous les deux facultatifs - vous pouvez clôturer directement."
         onClose={(values) => close({ phaseId, note: values.note, file: values.file ?? null })}
       />
     </div>

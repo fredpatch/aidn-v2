@@ -26,7 +26,7 @@ export function usePhaseCloseAction(
         await queryClient.invalidateQueries({ queryKey: queryKeys.preliminary.bundle(requestId) });
       }
     },
-    onError: (err) => setActionError(apiErrorMessage(err, 'Impossible de cloturer la phase.')),
+    onError: (err) => setActionError(apiErrorMessage(err, 'Impossible de clôturer la phase.')),
   });
 
   async function close(params: {

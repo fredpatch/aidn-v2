@@ -12,7 +12,7 @@ const createUserSchema = z.object({
   employeeCode: z.string(),
   fullName: z.string(),
   email: z.string(),
-  roles: z.array(z.string()).min(1, 'Selectionnez au moins un role.'),
+  roles: z.array(z.string()).min(1, 'Sélectionnez au moins un rôle.'),
 });
 
 type CreateUserFormValues = z.infer<typeof createUserSchema>;
@@ -66,7 +66,7 @@ export function CreateUserDrawer({
           <p className="text-lg font-semibold text-anac-navy">
             {prefill ? 'Activation depuis Personnel ANAC' : 'Nouvel utilisateur AIDN'}
           </p>
-          <p className="text-sm text-anac-muted">Un OTP sera envoye pour la premiere connexion.</p>
+          <p className="text-sm text-anac-muted">Un OTP sera envoyé pour la première connexion.</p>
         </div>
       </SheetHeader>
       <SheetBody>
@@ -85,7 +85,7 @@ export function CreateUserDrawer({
             <Input type="email" {...register('email')} required />
           </div>
           <div>
-            <Label>Roles</Label>
+            <Label>Rôles</Label>
             <RoleSelector roles={roles} onToggle={toggleRole} />
           </div>
           <div className="flex gap-2 pt-2">

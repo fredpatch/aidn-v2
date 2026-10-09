@@ -101,7 +101,7 @@ export default function PaymentCard({
           <p className="text-xs text-anac-muted">
             Envoyée le {formatDate(payment.invoiceUploadedAt)} -{' '}
             <DocumentPreviewLink
-              title="Facture de delivrance"
+              title="Facture de délivrance"
               url={payment.invoiceFileUrl}
             />
           </p>
@@ -124,7 +124,7 @@ export default function PaymentCard({
               <p className="text-xs text-anac-muted">
                 Soumise le {formatDate(payment.proofUploadedAt)} -{' '}
                 <DocumentPreviewLink
-                  title="Preuve de paiement delivrance"
+                  title="Preuve de paiement délivrance"
                   url={payment.proofFileUrl}
                 />
               </p>

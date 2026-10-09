@@ -17,7 +17,7 @@ function setup() {
   return { user: userEvent.setup(), post, setActionError };
 }
 
-const closeButton = () => screen.getByRole('button', { name: 'Cloturer la phase' });
+const closeButton = () => screen.getByRole('button', { name: 'Clôturer la phase' });
 
 describe('<ClosureCard> M3 - phase closure', () => {
   it('closes directly: note and document are both optional', async () => {
@@ -60,7 +60,7 @@ describe('<ClosureCard> M3 - phase closure', () => {
 
     expect(post).toHaveBeenCalledTimes(1);
     expect(post).not.toHaveBeenCalledWith(`/phases/${PHASE_ID}/close`, expect.anything());
-    expect(setActionError).toHaveBeenLastCalledWith('Impossible de cloturer la phase.');
+    expect(setActionError).toHaveBeenLastCalledWith('Impossible de clôturer la phase.');
     expect(screen.getByRole('textbox')).toHaveValue('Note à garder');
   });
 
@@ -70,11 +70,11 @@ describe('<ClosureCard> M3 - phase closure', () => {
     post.mockImplementationOnce(() => new Promise((resolve) => { release = () => resolve({ data: {} }); }));
     await user.click(closeButton());
 
-    const busy = screen.getByRole('button', { name: 'Cloture...' });
+    const busy = screen.getByRole('button', { name: 'Clôture...' });
     expect(busy).toBeDisabled();
     await user.click(busy);
     expect(post).toHaveBeenCalledTimes(1);
     release();
-    expect(await screen.findByRole('button', { name: 'Cloturer la phase' })).toBeEnabled();
+    expect(await screen.findByRole('button', { name: 'Clôturer la phase' })).toBeEnabled();
   });
 });

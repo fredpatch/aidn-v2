@@ -50,23 +50,23 @@ const WORK_HOURS = Array.from({ length: 10 }, (_, index) => index + 8);
 
 const TYPE_OPTIONS: Array<{ value: MeetingTypeFilter; label: string }> = [
   { value: 'all', label: 'Tous les types' },
-  { value: 'preliminary', label: 'Preliminaire' },
+  { value: 'preliminary', label: 'Préliminaire' },
   { value: 'formal', label: 'Formelle' },
   { value: 'site_visit', label: 'Visite sur site' },
 ];
 
 const STATUS_OPTIONS: Array<{ value: MeetingStatusFilter; label: string }> = [
   { value: 'all', label: 'Tous les statuts' },
-  { value: 'scheduled', label: 'Planifiees' },
+  { value: 'scheduled', label: 'Planifiées' },
   { value: 'held', label: 'Tenues' },
   { value: 'no_show', label: 'Absences' },
   { value: 'rescheduled', label: 'Reprogrammees' },
-  { value: 'file_cancelled', label: 'Dossiers annules' },
+  { value: 'file_cancelled', label: 'Dossiers annulés' },
 ];
 
 const PHASE_OPTIONS: Array<{ value: MeetingPhaseFilter; label: string }> = [
   { value: 'all', label: 'Toutes les phases' },
-  { value: 'M3', label: 'Preliminaire' },
+  { value: 'M3', label: 'Préliminaire' },
   { value: 'M4', label: 'Demande formelle' },
   { value: 'M6', label: 'Inspection' },
 ];
@@ -161,13 +161,13 @@ export default function MeetingsPage() {
               {query.isLoading ? (
                 <EmptyState
                   title="Chargement du calendrier"
-                  description="Recuperation des reunions planifiees."
+                  description="Récupération des réunions planifiées."
                   className="min-h-[360px]"
                 />
               ) : query.error ? (
                 <EmptyState
                   title="Chargement impossible"
-                  description="Impossible de charger les reunions."
+                  description="Impossible de charger les réunions."
                   danger
                   className="min-h-[360px]"
                 />
@@ -222,9 +222,9 @@ function MeetingsHeader({
   return (
     <header className="flex flex-wrap items-start justify-between gap-4">
       <div>
-        <p className="text-xs font-medium text-anac-muted">Direction de la Navigabilite</p>
+        <p className="text-xs font-medium text-anac-muted">Direction de la Navigabilité</p>
         <div className="mt-2 flex flex-wrap items-center gap-4">
-          <h1 className="text-2xl font-semibold leading-tight text-anac-navy">Reunions</h1>
+          <h1 className="text-2xl font-semibold leading-tight text-anac-navy">Réunions</h1>
           <div className="inline-flex rounded-lg border border-anac-border bg-white p-1">
             <ViewButton
               active={view === 'calendar'}
@@ -246,7 +246,7 @@ function MeetingsHeader({
         <Button
           type="button"
           disabled
-          title="La planification reste lancee depuis la phase du dossier."
+          title="La planification reste lancée depuis la phase du dossier."
         >
           Planifier depuis le dossier
         </Button>
@@ -338,7 +338,7 @@ function MeetingFilters({
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-anac-border px-4 py-3">
       <div className="flex flex-wrap items-center gap-2">
         <FilterSelect
-          label="Type de reunion"
+          label="Type de réunion"
           value={meetingType}
           onChange={onTypeChange}
           options={TYPE_OPTIONS}
@@ -358,7 +358,7 @@ function MeetingFilters({
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <label className="relative block">
-          <span className="sr-only">Rechercher une reunion</span>
+          <span className="sr-only">Rechercher une réunion</span>
           <Search
             size={14}
             className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-anac-muted"
@@ -375,7 +375,7 @@ function MeetingFilters({
             type="button"
             className="grid h-9 w-9 place-items-center text-anac-muted hover:bg-anac-gray"
             onClick={onPreviousWeek}
-            aria-label="Semaine precedente"
+            aria-label="Semaine précédente"
           >
             <ChevronLeft size={14} />
           </button>
@@ -442,8 +442,8 @@ function WeekCalendar({
   if (items.length === 0) {
     return (
       <EmptyState
-        title="Aucune reunion sur cette semaine"
-        description="Modifiez les filtres ou selectionnez une autre semaine."
+        title="Aucune réunion sur cette semaine"
+        description="Modifiez les filtres ou sélectionnez une autre semaine."
         className="min-h-[360px]"
       />
     );
@@ -539,7 +539,7 @@ function MeetingsTable({
   if (items.length === 0) {
     return (
       <EmptyState
-        title="Aucune reunion dans cette vue"
+        title="Aucune réunion dans cette vue"
         description="Modifiez les filtres ou revenez plus tard."
         className="min-h-[360px]"
       />
@@ -596,12 +596,12 @@ function UpcomingRail({
 }) {
   return (
     <aside className="bg-white p-3">
-      <h2 className="text-sm font-semibold text-anac-navy">Prochaines reunions</h2>
+      <h2 className="text-sm font-semibold text-anac-navy">Prochaines réunions</h2>
       <div className="mt-3 space-y-2">
         {items.length === 0 ? (
           <EmptyState
-            title="Aucune reunion prevue"
-            description="Aucun creneau planifie dans la periode."
+            title="Aucune réunion prévue"
+            description="Aucun créneau planifié dans la période."
             className="min-h-[140px]"
           />
         ) : (
@@ -662,7 +662,7 @@ function SelectedMeetingPanel({
       await refresh();
     },
     onError: (err) =>
-      setActionError(apiErrorMessage(err, 'Impossible de mettre a jour la reunion.')),
+      setActionError(apiErrorMessage(err, 'Impossible de mettre à jour la réunion.')),
   });
 
   const rescheduleMutation = useMutation({
@@ -673,7 +673,7 @@ function SelectedMeetingPanel({
       setActionError(null);
       await refresh();
     },
-    onError: (err) => setActionError(apiErrorMessage(err, 'Impossible de reporter la reunion.')),
+    onError: (err) => setActionError(apiErrorMessage(err, 'Impossible de reporter la réunion.')),
   });
 
   const reportMutation = useMutation({
@@ -705,8 +705,8 @@ function SelectedMeetingPanel({
     return (
       <section className="rounded-lg border border-anac-border bg-white p-6 shadow-sm">
         <EmptyState
-          title="Aucune reunion selectionnee"
-          description="Selectionnez un creneau dans le calendrier ou la liste."
+          title="Aucune réunion sélectionnée"
+          description="Sélectionnez un créneau dans le calendrier ou la liste."
           className="min-h-[140px]"
         />
       </section>
@@ -727,7 +727,7 @@ function SelectedMeetingPanel({
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <p className="text-xs font-semibold text-anac-muted">
-                  Details de la reunion selectionnee
+                  Détails de la réunion sélectionnée
                 </p>
                 <StatusBadge label={item.statusLabel} tone={STATUS_STYLES[item.status] ?? STATUS_STYLES.scheduled} />
                 {item.dossierClosed && <ClosedDossierBadge status={item.dossierStatus} />}
@@ -757,7 +757,7 @@ function SelectedMeetingPanel({
             <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-anac-muted">
               <li>Point d&apos;avancement du dossier {item.requestReference}</li>
               <li>Validation des actions ouvertes</li>
-              <li>Planning des prochaines etapes</li>
+              <li>Planning des prochaines étapes</li>
             </ul>
           </div>
         </div>
@@ -795,7 +795,7 @@ function SelectedMeetingPanel({
                   onClick={() => statusMutation.mutate({ id: item.id, status: 'no_show' })}
                 >
                   <XCircle size={14} />
-                  Absence constatee
+                  Absence constatée
                 </Button>
               </div>
             ) : null}
@@ -806,7 +806,7 @@ function SelectedMeetingPanel({
                 className="rounded-lg border border-anac-border p-3"
               >
                 <label className="text-xs font-semibold text-anac-muted" htmlFor="reschedule-at">
-                  Reporter la reunion
+                  Reporter la réunion
                 </label>
                 <input
                   id="reschedule-at"
@@ -855,7 +855,7 @@ function SelectedMeetingPanel({
 
             {item.dossierClosed ? (
               <div className="space-y-2 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-3 text-xs text-slate-600">
-                <p>Dossier clos : la reunion reste consultable, aucune action n&apos;est possible.</p>
+                <p>Dossier clos : la réunion reste consultable, aucune action n&apos;est possible.</p>
                 {item.crDocumentUrl ? (
                   <FileLink address={item.crDocumentUrl} className="block font-semibold text-anac-blue underline">
                     Consulter le compte-rendu
@@ -899,30 +899,30 @@ function fallbackMetrics(): MeetingCockpitMetric[] {
   return [
     {
       key: 'scheduled',
-      label: 'Reunions prevues',
+      label: 'Réunions prévues',
       value: '-',
-      helper: 'Creneaux planifies sur la periode',
+      helper: 'Créneaux planifiés sur la période',
       tone: 'info',
     },
     {
       key: 'today',
       label: "Aujourd'hui",
       value: '-',
-      helper: 'Reunions au calendrier du jour',
+      helper: 'Réunions au calendrier du jour',
       tone: 'info',
     },
     {
       key: 'missing_reports',
       label: 'Comptes-rendus manquants',
       value: '-',
-      helper: 'Reunions tenues sans compte-rendu',
+      helper: 'Réunions tenues sans compte-rendu',
       tone: 'info',
     },
     {
       key: 'held',
-      label: 'Reunions tenues',
+      label: 'Réunions tenues',
       value: '-',
-      helper: 'Reunions marquees tenues',
+      helper: 'Réunions marquées tenues',
       tone: 'info',
     },
   ];

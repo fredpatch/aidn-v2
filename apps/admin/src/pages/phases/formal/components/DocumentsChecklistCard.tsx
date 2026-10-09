@@ -41,7 +41,7 @@ export default function DocumentsChecklistCard({
       }
     >
       <p className="text-xs text-anac-muted">
-        Ces pieces sont deposees par le postulant depuis le portail. DN les consulte et poursuit la
+        Ces pièces sont déposées par le postulant depuis le portail. DN les consulte et poursuit la
         revue, sans joindre ni remplacer les fichiers a sa place.
       </p>
 
@@ -55,7 +55,7 @@ export default function DocumentsChecklistCard({
                   <div className="min-w-0">
                     <p className="text-xs leading-tight text-anac-navy">{doc.label}</p>
                     <p className="mt-1 text-[10px] font-medium text-anac-muted">
-                      {doc.status === 'submitted' ? 'Depose' : 'Manquant'} - Obligatoire
+                      {doc.status === 'submitted' ? 'Déposé' : 'Manquant'} - Obligatoire
                     </p>
                   </div>
                   <span
@@ -70,12 +70,12 @@ export default function DocumentsChecklistCard({
                     ) : (
                       <Circle size={12} aria-hidden="true" />
                     )}
-                    {doc.status === 'submitted' ? 'Depose' : 'Manquant'}
+                    {doc.status === 'submitted' ? 'Déposé' : 'Manquant'}
                   </span>
                 </div>
                 {doc.status === 'submitted' && doc.fileUrl && (
                   <p className="text-[10px] text-anac-muted mt-0.5">
-                    Version actuelle deposee le{' '}
+                    Version actuelle déposée le{' '}
                     {formatDate(doc.currentVersionUploadedAt ?? doc.submittedAt)} -{' '}
                     <DocumentPreviewLink
                       title={doc.label}
@@ -87,7 +87,7 @@ export default function DocumentsChecklistCard({
                 {doc.status === 'submitted' && (
                   <p className="text-[10px] text-anac-muted mt-0.5">
                     {doc.hasPreviousVersions
-                      ? `${doc.versionCount} versions conservees dans l'historique du dossier.`
+                      ? `${doc.versionCount} versions conservées dans l'historique du dossier.`
                       : 'Version initiale du dossier.'}
                   </p>
                 )}
@@ -98,7 +98,7 @@ export default function DocumentsChecklistCard({
                 )}
                 {doc.status === 'missing' && !phaseClosed && (
                   <p className="text-[10px] text-anac-muted mt-0.5">
-                    En attente de depot par le postulant.
+                    En attente de dépôt par le postulant.
                   </p>
                 )}
               </div>

@@ -50,7 +50,7 @@ async function setup() {
 }
 
 async function fillFinalRejection(user: ReturnType<typeof userEvent.setup>) {
-  await user.selectOptions(screen.getByLabelText('Action apres rejet'), 'reject_dossier');
+  await user.selectOptions(screen.getByLabelText('Action après rejet'), 'reject_dossier');
   await user.type(screen.getByLabelText('Motif'), REASON);
 }
 
@@ -91,7 +91,7 @@ describe('<RejectModal> S5 - final rejection of the dossier', () => {
     await back(user);
 
     expect(screen.getByRole('dialog', { name: 'Rejeter la preuve de paiement' })).toBeInTheDocument();
-    expect(screen.getByLabelText('Action apres rejet')).toHaveValue('reject_dossier');
+    expect(screen.getByLabelText('Action après rejet')).toHaveValue('reject_dossier');
     expect(screen.getByLabelText('Motif')).toHaveValue(REASON);
     expect(screen.getByRole('button', { name: 'Continuer…' })).toHaveFocus();
     expect(onSubmit).not.toHaveBeenCalled();

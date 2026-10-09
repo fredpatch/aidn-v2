@@ -81,33 +81,33 @@ const PAGE_SIZE = 20;
 type SortKey = 'waiting' | 'newest' | 'oldest';
 
 const STATUS_LABELS: Record<string, string> = {
-  awaiting_invoice: 'Facture a transmettre',
+  awaiting_invoice: 'Facture à transmettre',
   awaiting_proof: 'Preuve attendue',
-  pending_validation: 'Preuve a valider',
-  validated: 'Paiement valide',
-  rejected: 'Paiement rejete',
+  pending_validation: 'Preuve à valider',
+  validated: 'Paiement validé',
+  rejected: 'Paiement rejeté',
 };
 
 const NEXT_ACTION_LABELS: Record<S5PaymentQueueItem['nextAction'], string> = {
   send_invoice: 'Importer la facture transmise',
   waiting_for_proof: 'Attendre la preuve postulant',
   validate_payment: 'Valider ou rejeter la preuve',
-  done: 'Paiement termine',
-  rejected: 'Paiement a verifier',
+  done: 'Paiement terminé',
+  rejected: 'Paiement à vérifier',
 };
 
 const PHASE_LABELS: Record<S5PaymentQueueItem['phaseCode'], string> = {
-  M5: 'Evaluation approfondie',
-  M6: 'Demonstration / Inspection',
-  M7: 'Delivrance',
+  M5: 'Évaluation approfondie',
+  M6: 'Démonstration / Inspection',
+  M7: 'Délivrance',
 };
 
 const BUCKET_LABELS: Record<PaymentBucket, string> = {
-  to_invoice: 'Facture a envoyer',
+  to_invoice: 'Facture à envoyer',
   waiting_proof: 'Preuve attendue',
-  proof_received: 'Preuve recue',
+  proof_received: 'Preuve reçue',
   validated: 'Valides',
-  rejected: 'Rejetes',
+  rejected: 'Rejetés',
   all: 'Tous',
 };
 
@@ -369,7 +369,7 @@ export default function S5PaymentsPage() {
 
   async function handleUploadInvoice() {
     if (!invoiceTask || !invoiceFile) {
-      setActionError('Selectionnez la facture recue par S5.');
+      setActionError('Sélectionnez la facture reçue par S5.');
       return;
     }
     const key = `${invoiceTask.phaseCode}:${invoiceTask.phaseId}`;
@@ -445,30 +445,30 @@ export default function S5PaymentsPage() {
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <S5MetricCard
-            label="Factures a envoyer"
+            label="Factures à envoyer"
             value={counts.to_invoice}
-            helper="Factures recues par S5 a transmettre"
+            helper="Factures reçues par S5 à transmettre"
             icon={FileText}
             tone="blue"
           />
           <S5MetricCard
             label="Preuves attendues"
             value={counts.waiting_proof}
-            helper="Factures deja transmises au postulant"
+            helper="Factures déjà transmises au postulant"
             icon={Clock3}
             tone="warning"
           />
           <S5MetricCard
-            label="Preuves a valider"
+            label="Preuves à valider"
             value={counts.proof_received}
-            helper="Quittances retournees par le postulant"
+            helper="Quittances retournées par le postulant"
             icon={ShieldCheck}
             tone="purple"
           />
           <S5MetricCard
             label="Paiements valides"
             value={counts.validated}
-            helper="Phases debloquees par S5"
+            helper="Phases débloquées par S5"
             icon={CheckCircle2}
             tone="success"
           />
@@ -520,7 +520,7 @@ export default function S5PaymentsPage() {
         <DocumentViewer
           file={previewFile}
           onClose={() => setPreviewFile(null)}
-          actionHint="Previsualisation integree du document de paiement."
+          actionHint="Prévisualisation intégrée du document de paiement."
         />
 
         {invoiceTask ? (
@@ -553,10 +553,10 @@ export default function S5PaymentsPage() {
 function S5Header() {
   return (
     <header>
-      <p className="text-xs font-medium text-anac-muted">Direction de la Navigabilite</p>
+      <p className="text-xs font-medium text-anac-muted">Direction de la Navigabilité</p>
       <h1 className="mt-2 text-2xl font-semibold leading-tight text-anac-navy">Facturation S5</h1>
       <p className="mt-1 text-sm text-anac-muted">
-        Suivez les factures recues par S5, leur transmission au postulant et la validation des preuves de paiement.
+        Suivez les factures reçues par S5, leur transmission au postulant et la validation des preuves de paiement.
       </p>
     </header>
   );
@@ -632,7 +632,7 @@ function S5Toolbar({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="waiting">Attente la plus longue</SelectItem>
-          <SelectItem value="newest">Plus recents</SelectItem>
+          <SelectItem value="newest">Plus récents</SelectItem>
           <SelectItem value="oldest">Plus anciens</SelectItem>
         </SelectContent>
       </Select>
@@ -659,7 +659,7 @@ function S5PaymentTable({
       <EmptyState
         icon={CheckCircle2}
         title="Aucun paiement dans cette vue"
-        description="Les paiements reapparaitront ici des qu'une action S5 sera attendue."
+        description="Les paiements réapparaîtront ici des qu'une action S5 sera attendue."
       />
     );
   }
@@ -742,8 +742,8 @@ function S5DetailPanel({
       <aside className="grid min-h-[420px] place-items-center p-6">
         <EmptyState
           icon={CreditCard}
-          title="Selectionnez un paiement"
-          description="Le resume, les pieces et les actions S5 apparaitront ici."
+          title="Sélectionnez un paiement"
+          description="Le résumé, les pièces et les actions S5 apparaîtront ici."
         />
       </aside>
     );
@@ -776,7 +776,7 @@ function S5DetailPanel({
 
         <section className="grid gap-4 rounded-lg border border-anac-border bg-white p-4 md:grid-cols-2">
           <div>
-            <h3 className="mb-4 text-sm font-semibold text-anac-navy">Resume du paiement</h3>
+            <h3 className="mb-4 text-sm font-semibold text-anac-navy">Résumé du paiement</h3>
             <dl className="space-y-3">
               <Info label="Dossier" value={item.requestReference} />
               <Info label="Phase" value={PHASE_LABELS[item.phaseCode]} />
@@ -788,7 +788,7 @@ function S5DetailPanel({
         </section>
 
         <section className="rounded-lg border border-anac-border bg-white p-4">
-          <h3 className="mb-3 text-sm font-semibold text-anac-navy">Pieces de paiement</h3>
+          <h3 className="mb-3 text-sm font-semibold text-anac-navy">Pièces de paiement</h3>
           <div className="space-y-2">
             <PaymentDocumentRow
               label="Facture transmise"
@@ -812,7 +812,7 @@ function S5DetailPanel({
         </section>
 
         <section className="rounded-lg border border-anac-border bg-white p-4">
-          <h3 className="mb-3 text-sm font-semibold text-anac-navy">Acces rapide</h3>
+          <h3 className="mb-3 text-sm font-semibold text-anac-navy">Accès rapide</h3>
           <Link
             to={phasePath(item)}
             className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'gap-2')}
@@ -863,15 +863,15 @@ function S5ActionPanel({
           <div>
             <h3 className="flex items-center gap-2 text-sm font-semibold text-anac-navy">
               <FileUp size={16} className="text-anac-info" aria-hidden="true" />
-              Facture recue a transmettre
+              Facture reçue à transmettre
             </h3>
             <p className="mt-1 text-xs leading-relaxed text-anac-muted">
-              Importez la facture recue par S5. Cette action enregistre sa transmission au postulant et attend la preuve.
+              Importez la facture reçue par S5. Cette action enregistré sa transmission au postulant et attend la preuve.
             </p>
           </div>
           <Button size="sm" disabled={busy} onClick={() => onUploadInvoice(item)}>
             <Send size={14} aria-hidden="true" />
-            Joindre facture envoyee
+            Joindre facture envoyée
           </Button>
         </div>
       </section>
@@ -888,7 +888,7 @@ function S5ActionPanel({
               Preuve a valider
             </h3>
             <p className="mt-1 text-xs leading-relaxed text-anac-muted">
-              Controlez la preuve de paiement retournee par le postulant avant de debloquer la phase.
+              Contrôlez la preuve de paiement retournée par le postulant avant de débloquer la phase.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -914,7 +914,7 @@ function S5ActionPanel({
           Preuve postulant attendue
         </h3>
         <p className="mt-1 text-xs leading-relaxed text-anac-muted">
-          La facture a ete transmise. S5 attend maintenant la preuve de paiement du postulant.
+          La facture a été transmise. S5 attend maintenant la preuve de paiement du postulant.
         </p>
       </section>
     );
@@ -924,7 +924,7 @@ function S5ActionPanel({
     <section className="rounded-lg border border-anac-success/20 bg-anac-success/5 p-4">
       <h3 className="flex items-center gap-2 text-sm font-semibold text-anac-navy">
         <CheckCircle2 size={16} className="text-anac-success" aria-hidden="true" />
-        Paiement traite
+        Paiement traité
       </h3>
       <p className="mt-1 text-xs leading-relaxed text-anac-muted">
         Le paiement ne requiert plus d&apos;action S5 immediate.
@@ -942,13 +942,13 @@ function S5Timeline({ item }: { item: S5PaymentQueueItem }) {
       current: item.payment.status === 'awaiting_invoice',
     },
     {
-      label: 'Preuve recue',
+      label: 'Preuve reçue',
       date: item.payment.proofUploadedAt,
       done: !!item.payment.proofUploadedAt,
       current: item.payment.status === 'awaiting_proof',
     },
     {
-      label: 'Decision S5',
+      label: 'Décision S5',
       date: item.payment.validatedAt,
       done: item.payment.status === 'validated' || item.payment.status === 'rejected',
       current: item.payment.status === 'pending_validation',
@@ -1058,7 +1058,7 @@ function InvoiceModal({
       }
     >
       <div className="space-y-2">
-        <label className="label">Facture recue par S5</label>
+        <label className="label">Facture reçue par S5</label>
         <input
           type="file"
           accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
@@ -1066,7 +1066,7 @@ function InvoiceModal({
           onChange={(event) => onFileChange(event.target.files?.[0] ?? null)}
         />
         <p className="text-xs text-anac-muted">
-          Cette action enregistre la facture comme transmise au postulant.
+          Cette action enregistré la facture comme transmise au postulant.
         </p>
         {file ? <p className="text-xs font-medium text-anac-navy">{file.name}</p> : null}
       </div>
@@ -1166,7 +1166,7 @@ export function RejectModal({
       }
     >
       <div className="space-y-3">
-        <label className="label" htmlFor="rejection-action">Action apres rejet</label>
+        <label className="label" htmlFor="rejection-action">Action après rejet</label>
         <select
           id="rejection-action"
           value={action}

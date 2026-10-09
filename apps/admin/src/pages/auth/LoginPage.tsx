@@ -46,10 +46,10 @@ const setPasswordSchema = z
   .object({
     password: z
       .string()
-      .min(8, 'Minimum 8 caracteres')
+      .min(8, 'Minimum 8 caractères')
       .regex(/[A-Z]/, 'Au moins une majuscule')
       .regex(/[0-9]/, 'Au moins un chiffre')
-      .regex(/[^A-Za-z0-9]/, 'Au moins un caractere special'),
+      .regex(/[^A-Za-z0-9]/, 'Au moins un caractère spécial'),
     confirmation: z.string().min(1, 'La confirmation est requise'),
   })
   .refine((d) => d.password === d.confirmation, {
@@ -81,7 +81,7 @@ export default function LoginPage() {
   useEffect(() => {
     if (sessionStorage.getItem('session_expired')) {
       sessionStorage.removeItem('session_expired');
-      const message = 'Votre session a expire. Veuillez vous reconnecter.';
+      const message = 'Votre session a expiré. Veuillez vous reconnecter.';
       setServerError(message);
       notify.warning(message);
     }
@@ -123,13 +123,13 @@ export default function LoginPage() {
       if (result.firstLogin) {
         setDirection(1);
         setStep('set-password');
-        notify.info('Premiere connexion detectee. Definissez votre mot de passe.');
+        notify.info('Première connexion détectée. Définissez votre mot de passe.');
       } else {
         await refreshMe();
-        notify.success('Connexion reussie.');
+        notify.success('Connexion réussie.');
       }
     } catch (err) {
-      const message = apiErrorMessage(err, 'Identifiants invalides. Veuillez reessayer.');
+      const message = apiErrorMessage(err, 'Identifiants invalides. Veuillez réessayer.');
       setServerError(message);
       notify.error(message);
     }
@@ -143,9 +143,9 @@ export default function LoginPage() {
         confirmation: data.confirmation,
       });
       await refreshMe();
-      notify.success('Mot de passe defini. Connexion active.');
+      notify.success('Mot de passe défini. Connexion active.');
     } catch (err) {
-      const message = apiErrorMessage(err, 'Erreur lors de la definition du mot de passe.');
+      const message = apiErrorMessage(err, 'Erreur lors de la définition du mot de passe.');
       setServerError(message);
       notify.error(message);
     }
@@ -183,7 +183,7 @@ export default function LoginPage() {
           </motion.div>
           <h1 className="text-xl font-bold text-anac-navy tracking-tight">AIDN</h1>
           <p className="text-anac-muted text-[11px] mt-0.5 leading-relaxed">
-            Direction de la Navigabilite - ANAC Gabon
+            Direction de la Navigabilité - ANAC Gabon
           </p>
         </div>
 
@@ -257,7 +257,7 @@ export default function LoginPage() {
                       <ModeTab
                         active={firstLogin}
                         onClick={() => toggleMode(true)}
-                        label="Premiere connexion (OTP)"
+                        label="Première connexion (OTP)"
                       />
                     </div>
 
@@ -273,7 +273,7 @@ export default function LoginPage() {
                           <FormField
                             id={otpId}
                             label="Code OTP"
-                            hint="Code a 6 chiffres recu par e-mail"
+                            hint="Code a 6 chiffres reçu par e-mail"
                             error={
                               'otp' in loginErrors
                                 ? (loginErrors as { otp?: { message?: string } }).otp?.message
@@ -371,7 +371,7 @@ export default function LoginPage() {
                   <div className="flex items-start gap-2.5 bg-blue-50 border border-blue-200 rounded-lg px-3.5 py-3 mb-5">
                     <ShieldCheck size={14} className="text-blue-600 mt-0.5 shrink-0" />
                     <p className="text-blue-800 text-[11px] leading-relaxed">
-                      Code verifie. Choisissez votre mot de passe pour finaliser votre premiere
+                      Code vérifié. Choisissez votre mot de passe pour finaliser votre première
                       connexion.
                     </p>
                   </div>
@@ -391,7 +391,7 @@ export default function LoginPage() {
                           id={newPassId}
                           {...passwordForm.register('password')}
                           type={showNew ? 'text' : 'password'}
-                          placeholder="Minimum 8 caracteres"
+                          placeholder="Minimum 8 caractères"
                           autoComplete="new-password"
                           autoFocus
                           className={cn(errCls(!!passwordForm.formState.errors.password), 'pr-10')}
@@ -445,7 +445,7 @@ export default function LoginPage() {
                             Enregistrement...
                           </>
                         ) : (
-                          'Definir mon mot de passe'
+                          'Définir mon mot de passe'
                         )}
                       </Button>
                     </div>
