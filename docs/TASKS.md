@@ -1158,7 +1158,8 @@ refusée.
       tardive reçoit `DOSSIER_CLOSED` (au lieu de `PAYMENT_NOT_PENDING`)
 - [x] `k7-check-closed-dossiers.sql` (lecture seule) : dossiers clos ayant une
       activité après leur clôture (phase ouverte / clôturée, avis R3, paiement
-      validé, certificat) - à passer sur chaque environnement
+      validé, certificat) - à passer sur chaque environnement ; passé par
+      Fred sur chaque environnement (2026-10-09), rien à corriger
 - [x] K7b (admin) : pages de phase en lecture seule sur un dossier clos -
       voir ci-dessous
 - [x] K7c (API + admin) : files de travail (S5, Réunions, Courriers, Mes
@@ -1254,7 +1255,7 @@ restent listés (historique), sans action ; l'API reste le filet de sécurité.
       `closed-dossier-lists.test.tsx` (9 : 4 écrans clos / ouvert +
       MutationCache). API 355/355, admin 134/134, portail 94/94 (Node 22),
       typecheck, lint (0 erreur, 5 avertissements déjà présents), build
-- [ ] Non vérifié en navigateur sur base réelle (à faire par Fred)
+- [x] Vérifié par Fred (2026-10-09) sur base réelle
 - [x] Fait en K7d - Hors K7c : compteurs « Factures à envoyer » / « À imprimer » comptent
       encore un élément en attente d'un dossier clos (il reste dans son onglet,
       marqué clos)
@@ -1287,7 +1288,7 @@ seulement).
       libellés complètes), `closed-dossier-lists.test.tsx` adapté (élément
       clos absent de l'onglet d'action, présent sous « Tous ») ; API
       `closed-dossier-lists.db.test.ts` +1 (filtre `to_signature`)
-- [ ] Non vérifié en navigateur sur base réelle (à faire par Fred)
+- [x] Vérifié par Fred (2026-10-09) sur base réelle
 
 ### Durcissement API K8a (2026-10-08) - rejet de paiement et référence de certificat
 
@@ -1352,7 +1353,8 @@ validations simultanées.
 - [x] Vérifié à la main sur une base jetable avec un doublon : contrôle en
       code 1, `db:migrate` en échec (« could not create unique index …
       is duplicated »), 0004 non enregistrée, index absent
-- [ ] **Ordre de déploiement (Fred, chaque environnement)** : 1)
+- [x] Déployé par Fred (2026-10-09) sur chaque environnement, sans doublon ;
+      CI (Migration Integrity) au vert. **Ordre de déploiement** : 1)
       `npm run db:check:certificates -- --check` ; 2) si doublon : choisir le
       certificat à garder et corriger à la main ; 3) `npm run db:migrate`
 
