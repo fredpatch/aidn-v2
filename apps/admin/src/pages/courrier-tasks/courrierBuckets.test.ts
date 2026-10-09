@@ -10,7 +10,9 @@ import {
   filterCourriers,
   groupCourriersByDay,
   inTab,
+  isPhaseBlocked,
   isSignatureLate,
+  nextActionLabel,
   signatureWaitDays,
   stepDateOf,
 } from './courrierBuckets';
@@ -39,6 +41,9 @@ const task = (over: Partial<CourrierTask>): CourrierTask => ({
   availableActions: ['print', 'confirm_signature_circuit'],
   dossierStatus: 'in_progress',
   dossierClosed: false,
+  actionBlockedReason: null,
+  signatureWorkingDays: null,
+  signatureLate: false,
   ...over,
 });
 
@@ -111,22 +116,37 @@ describe('step date, sorting and grouping', () => {
   });
 });
 
-describe('signature wait and action', () => {
-  it('counts whole days since the signature was sent; late from 7 days, never on a closed dossier', () => {
-    const late = task({ bucket: 'in_signature', signatureSentAt: at(1) });
-    expect(signatureWaitDays(late, NOW)).toBe(8);
-    expect(isSignatureLate(late, NOW)).toBe(true);
-    expect(isSignatureLate(task({ ...late, ...closed }), NOW)).toBe(false);
-    expect(signatureWaitDays(task({}), NOW)).toBeNull();
-    expect(
-      averageSignatureWait([late, task({ bucket: 'in_signature', signatureSentAt: at(8) })], NOW)
-    ).toBe('4,5 j');
+describe('signature wait and action (C2c: from the API)', () => {
+  const inSign = (over: Partial<CourrierTask> = {}) =>
+    task({
+      bucket: 'in_signature',
+      signatureSentAt: at(1),
+      availableActions: ['upload_signed_return'],
+      ...over,
+    });
+
+  it('uses the working days and the late flag computed by the API; never late on a closed dossier', () => {
+    const late = inSign({ signatureWorkingDays: 6, signatureLate: true });
+    expect(signatureWaitDays(late)).toBe(6);
+    expect(isSignatureLate(late)).toBe(true);
+    expect(isSignatureLate(inSign({ signatureWorkingDays: 2 }))).toBe(false);
+    expect(isSignatureLate({ ...late, ...closed })).toBe(false);
+    expect(signatureWaitDays(task({ signatureWorkingDays: 4 }))).toBeNull();
+    expect(averageSignatureWait([late, inSign({ signatureWorkingDays: 3 })])).toBe('4,5 j ouvrés');
   });
 
-  it('print to sign, scan the return, nothing otherwise or on a closed dossier (K7c)', () => {
+  it('follows availableActions: print, scan the return, none on a closed dossier (K7c)', () => {
     expect(courrierActionKind(task({}))).toBe('print');
-    expect(courrierActionKind(task({ bucket: 'in_signature' }))).toBe('return');
-    expect(courrierActionKind(task({ bucket: 'returned' }))).toBe('none');
+    expect(courrierActionKind(inSign())).toBe('return');
+    expect(courrierActionKind(task({ bucket: 'returned', availableActions: [] }))).toBe('none');
     expect(courrierActionKind(task({ ...closed }))).toBe('none');
+  });
+
+  it('phase not open: no action, flagged blocked, labelled', () => {
+    const blocked = task({ availableActions: [], actionBlockedReason: 'phase_not_open' });
+    expect(courrierActionKind(blocked)).toBe('none');
+    expect(isPhaseBlocked(blocked)).toBe(true);
+    expect(nextActionLabel(blocked)).toBe('Phase non ouverte - aucune action');
+    expect(isPhaseBlocked({ ...blocked, ...closed })).toBe(false);
   });
 });

@@ -63,6 +63,7 @@ export default function CourrierTasksPage() {
   const dossierVisible = canViewDossier(user?.roles);
   const [searchParams, setSearchParams] = useSearchParams();
   const [tasks, setTasks] = useState<CourrierTask[]>([]);
+  const [signatureAlertDays, setSignatureAlertDays] = useState<number | null>(null);
   const [tab, setTab] = useState<CourrierTab>('to_signature');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<CourrierSortKey>(defaultSortFor('to_signature'));
@@ -84,6 +85,7 @@ export default function CourrierTasksPage() {
     try {
       const data = await fetchCourrierTasks();
       setTasks(data.items);
+      setSignatureAlertDays(data.signatureAlertDays ?? null);
     } catch (err) {
       setError(apiErrorMessage(err, 'Impossible de charger les courriers.'));
     } finally {
@@ -307,6 +309,7 @@ export default function CourrierTasksPage() {
             busy={busyId !== null && busyId === selected?.id}
             canOperate={canOperate}
             canViewDossier={dossierVisible}
+            signatureAlertDays={signatureAlertDays}
             actionButtonRef={actionButtonRef}
             previewButtonRef={previewButtonRef}
             onPrint={(task) => setPrintTask(task)}

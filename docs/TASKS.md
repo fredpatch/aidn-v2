@@ -1545,9 +1545,9 @@ Fred (2026-10-09).
 
 Hors C1 (constatés, non traités) :
 
-- Boutons d'action gouvernés par `bucket`, pas par `availableActions` ; la
-  garde de phase M3 / M4 n'est pas dans `availableActions` (bouton visible puis
-  `PHASE_NOT_OPEN`)
+- Fait en C2c - Boutons d'action gouvernés par `bucket`, pas par
+  `availableActions` ; la garde de phase M3 / M4 n'était pas dans
+  `availableActions` (bouton visible puis `PHASE_NOT_OPEN`)
 - `listCourrierTasks` : 4 requêtes par ligne (N+1), pas de pagination serveur
 - `canViewDossier` (rôles DN) quasi mort : la route n'accepte que SU côté DN
 - Accents restants dans l'écran : « place dans », « des qu'il », « tache(s) »
@@ -1586,6 +1586,33 @@ Outlook » validée. Aucun changement d'API ni de contrat.
       (5). Admin 168/168, typecheck, lint (0 erreur, 4 avertissements déjà
       présents), build complet
 - [ ] Vérification à l'écran par Fred
+
+### C2c + garde de phase (2026-10-09) - Courriers : délai en jours ouvrés et actions alignées sur l'API
+
+Demandé par Fred dans le même lot. API (champs ajoutés, aucun contrat cassé)
+puis admin.
+
+- [x] Garde de phase : `GET /courrier-tasks` applique la règle de
+      `ensureTaskCanMutate` ; un courrier en attente dont la phase M3 / M4
+      n'est pas ouverte (ou absente) renvoie `availableActions: []` et
+      `actionBlockedReason: 'phase_not_open'`. Phases ouvertes lues en une
+      requête pour toute la liste (pas de requête par ligne)
+- [x] Délai : `signatureWorkingDays` (jours ouvrés, heure de Libreville, jours
+      fériés `public_holidays` exclus) et `signatureLate` = même seuil et même
+      calcul que l'alerte Circuit DG (`dg_circuit_alert_days`, défaut 3) ;
+      `signatureAlertDays` dans la réponse. Remplace le seuil frontend de 7
+      jours calendaires de C2b
+- [x] Admin : l'action affichée suit `availableActions` (l'écran n'offre plus
+      ce que l'API refuse) ; « Phase non ouverte » + motif dans le volet ;
+      badge J+n et délai moyen en jours ouvrés ; seuil d'alerte rappelé
+- [x] Tests : API `courrier-tasks.db.test.ts` (4) ; fixture K7c dotée d'une
+      phase M4 ouverte (réaliste : sans elle l'action était déjà refusée) ;
+      admin `courrierBuckets.test.ts` et `CourrierTasksPage.test.tsx` adaptés
+      (+1 phase non ouverte). API 370/370 (PostgreSQL réel), admin 170/170,
+      typecheck, lint (0 erreur, 4 avertissements déjà présents), build
+- [ ] Vérification à l'écran par Fred
+- Reste hors périmètre : N+1 de `buildTaskView` (requête, organisation,
+  postulant, document par ligne), pagination serveur
 
 ## Sprint 7 - Documents (transverse, M8)
 

@@ -51,7 +51,7 @@ describe('K7c closed dossier in the staff work lists (real PostgreSQL)', { skip 
       [`DEM-K7C-${k}`, applicant, org, status]
     )).id;
     const phase: Record<string, number> = {};
-    for (const code of ['M3', 'M5', 'M6', 'M7']) {
+    for (const code of ['M3', 'M4', 'M5', 'M6', 'M7']) {
       phase[code] = (await one(`INSERT INTO phases (request_id, phase_code) VALUES ($1, $2) RETURNING id`, [request, code])).id;
     }
     await pool.query(`INSERT INTO payments (phase_id, status, invoice_file_url, proof_file_url) VALUES ($1, 'pending_validation', 'i', 'p'), ($2, 'validated', 'i', 'p'), ($3, 'awaiting_invoice', NULL, NULL)`, [phase.M5, phase.M6, phase.M7]);

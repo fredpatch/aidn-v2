@@ -107,7 +107,8 @@ const task = (over: Partial<CourrierTask>): CourrierTask => ({
   requestReference: 'DEM-K7C-01', requestType: 'issuance', organisationName: 'OMA K7c', applicantName: 'P',
   circuitDocumentId: 1, circuitStatus: 'submitted', fileUrl: '/api/files/lettre.pdf', mimeType: 'application/pdf',
   depositedAt: AT, signatureSentAt: null, signedAt: null, pendingReviewAt: null,
-  availableActions: ['print', 'confirm_signature_circuit'], ...open, ...over,
+  availableActions: ['print', 'confirm_signature_circuit'], actionBlockedReason: null,
+  signatureWorkingDays: null, signatureLate: false, ...open, ...over,
 });
 const tasks = (item: CourrierTask) => ({ items: [item], counts: { toSignature: 1, inSignature: 0, returned: 0, legacySigned: 0 } });
 

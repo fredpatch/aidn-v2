@@ -21,6 +21,7 @@ import {
   SOURCE_LABELS,
   STEP_LABELS,
   courrierActionKind,
+  isPhaseBlocked,
   signatureWaitDays,
   stepDateOf,
 } from './courrierBuckets';
@@ -54,6 +55,7 @@ export function CourrierReadingPane({
   busy,
   canOperate,
   canViewDossier,
+  signatureAlertDays,
   actionButtonRef,
   previewButtonRef,
   onPrint,
@@ -64,6 +66,8 @@ export function CourrierReadingPane({
   busy: boolean;
   canOperate: boolean;
   canViewDossier: boolean;
+  /** C2c - Circuit DG alert threshold from the API (working days). */
+  signatureAlertDays: number | null;
   actionButtonRef: RefObject<HTMLButtonElement>;
   previewButtonRef: RefObject<HTMLButtonElement>;
   onPrint: (task: CourrierTask) => void;
@@ -140,9 +144,11 @@ export function CourrierReadingPane({
           <span className="rounded-md border border-anac-border bg-white px-3 py-1.5 text-xs font-semibold text-anac-muted">
             {task.dossierClosed
               ? 'Dossier clos - consultation'
-              : task.bucket === 'returned'
-                ? 'Transmis à la DN'
-                : 'Consultation historique'}
+              : isPhaseBlocked(task)
+                ? 'Phase non ouverte'
+                : task.bucket === 'returned'
+                  ? 'Transmis à la DN'
+                  : 'Consultation historique'}
           </span>
         ) : null}
         {task.fileUrl ? (
@@ -166,7 +172,7 @@ export function CourrierReadingPane({
           </Link>
         ) : null}
         <p className="min-w-0 flex-1 text-right text-xs text-anac-muted">
-          {actionHint(task, canOperate)}
+          {actionHint(task, canOperate, signatureAlertDays)}
         </p>
       </div>
 
@@ -218,8 +224,12 @@ export function CourrierReadingPane({
   );
 }
 
-function actionHint(task: CourrierTask, canOperate: boolean): string {
+function actionHint(task: CourrierTask, canOperate: boolean, alertDays: number | null): string {
   if (task.dossierClosed) return 'Consultation et téléchargement uniquement.';
+  if (isPhaseBlocked(task)) {
+    const phase = task.source === 'pre_evaluation' ? 'M3' : 'M4';
+    return `La phase ${phase} de ce dossier n'est pas ouverte : aucune action du circuit possible.`;
+  }
   const kind = courrierActionKind(task);
   if (kind !== 'none' && !canOperate)
     return 'Consultation seule : action réservée à la réception / assistant DG.';
@@ -227,7 +237,8 @@ function actionHint(task: CourrierTask, canOperate: boolean): string {
     return 'Imprimez le courrier, puis confirmez sa mise en signature dans la visionneuse.';
   if (kind === 'return') {
     const days = signatureWaitDays(task);
-    const since = days === null ? '' : `En signature depuis ${days} j. `;
+    const threshold = alertDays === null ? '' : ` (alerte au-delà de ${alertDays})`;
+    const since = days === null ? '' : `En signature depuis ${days} j ouvrés${threshold}. `;
     return `${since}Scannez le retour signé dès qu'il revient.`;
   }
   if (task.bucket === 'returned') return 'Aucune action : le dossier poursuit dans le workflow DN.';

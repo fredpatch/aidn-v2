@@ -1,10 +1,6 @@
 export type CourrierTaskSource = 'intake_request' | 'formal_request_letter' | 'pre_evaluation';
 
-export type CourrierTaskBucket =
-  | 'to_signature'
-  | 'in_signature'
-  | 'returned'
-  | 'legacy_signed';
+export type CourrierTaskBucket = 'to_signature' | 'in_signature' | 'returned' | 'legacy_signed';
 
 export type CourrierTaskAction = 'print' | 'confirm_signature_circuit' | 'upload_signed_return';
 
@@ -29,6 +25,12 @@ export interface CourrierTask {
   /** K7c - the dossier is closed: listed for history, no action offered. */
   dossierStatus: string;
   dossierClosed: boolean;
+  /** C2c - pending courrier whose M3 / M4 phase is not open: no action. */
+  actionBlockedReason: 'phase_not_open' | null;
+  /** C2c - whole working days in signature (null outside the circuit). */
+  signatureWorkingDays: number | null;
+  /** C2c - beyond the Circuit DG alert threshold (working days). */
+  signatureLate: boolean;
 }
 
 export interface CourrierTaskListResponse {
@@ -39,4 +41,6 @@ export interface CourrierTaskListResponse {
     returned: number;
     legacySigned: number;
   };
+  /** C2c - Circuit DG alert threshold (`dg_circuit_alert_days`), working days. */
+  signatureAlertDays: number;
 }

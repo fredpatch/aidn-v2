@@ -1,4 +1,5 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, inArray } from 'drizzle-orm';
+import { subtractWorkingDays, workingDaysBetween, type PublicHolidays } from '@aidn/shared';
 import { db } from '../../shared/db/index.js';
 import {
   applicants,
@@ -24,6 +25,14 @@ import type {
   CourrierTaskView,
 } from './courrier-tasks.types.js';
 import { assertDossierOpen, dossierFlags } from '../requests/dossier-open.js';
+import {
+  getIntegerValue,
+  getPublicHolidays,
+} from '../system-parameters/system-parameters.service.js';
+
+/** Same key and default as the Circuit DG alert job (jobs/dg-circuit-alert.job.ts). */
+const DG_CIRCUIT_ALERT_DAYS_KEY = 'dg_circuit_alert_days';
+const DG_CIRCUIT_ALERT_DAYS_DEFAULT = 3;
 
 const MANAGED_ENTITY_TYPES: CourrierTaskSource[] = [
   'intake_request',
@@ -49,6 +58,48 @@ function moduleForEntityType(entityType: string): string {
   if (entityType === 'formal_request_letter') return 'M4';
   if (entityType === 'pre_evaluation') return 'M3';
   return 'M1';
+}
+
+/** Phase whose open status gates the circuit actions (ensureTaskCanMutate);
+ *  intake requests (M1) have none. */
+function phaseCodeFor(entityType: string): 'M3' | 'M4' | null {
+  if (entityType === 'formal_request_letter') return 'M4';
+  if (entityType === 'pre_evaluation') return 'M3';
+  return null;
+}
+
+/** C2c - read once per list (or per mutation), never per row. */
+interface TaskContext {
+  now: Date;
+  alertDays: number;
+  holidays: PublicHolidays;
+  /** `${requestId}:${phaseCode}` of every open phase among the listed requests. */
+  openPhases: Set<string>;
+}
+
+async function loadTaskContext(requestIds: number[]): Promise<TaskContext> {
+  const [alertDays, holidays, openRows] = await Promise.all([
+    getIntegerValue(DG_CIRCUIT_ALERT_DAYS_KEY, DG_CIRCUIT_ALERT_DAYS_DEFAULT),
+    getPublicHolidays(),
+    requestIds.length === 0
+      ? Promise.resolve([])
+      : db
+          .select({ requestId: phases.requestId, phaseCode: phases.phaseCode })
+          .from(phases)
+          .where(
+            and(
+              inArray(phases.requestId, requestIds),
+              inArray(phases.phaseCode, ['M3', 'M4']),
+              eq(phases.status, 'open')
+            )
+          ),
+  ]);
+  return {
+    now: new Date(),
+    alertDays,
+    holidays,
+    openPhases: new Set(openRows.map((row) => `${row.requestId}:${row.phaseCode}`)),
+  };
 }
 
 function bucketForStatus(status: string): CourrierTaskBucket {
@@ -84,7 +135,8 @@ async function getCurrentCircuitDocument(circuitDocumentId: number): Promise<{
 }
 
 async function buildTaskView(
-  row: typeof dgCircuitDocuments.$inferSelect
+  row: typeof dgCircuitDocuments.$inferSelect,
+  ctx: TaskContext
 ): Promise<CourrierTaskView | null> {
   const [request] = await db.select().from(requests).where(eq(requests.id, row.requestId));
   if (!request) return null;
@@ -101,6 +153,16 @@ async function buildTaskView(
   // K7c - closed dossier: no print, no signature circuit, no return; the
   // document stays viewable (fileUrl).
   const flags = dossierFlags(request.status);
+  // C2c - same guard as ensureTaskCanMutate: a pending courrier of an M3 / M4
+  // phase that is not open offers no action (the API would refuse it).
+  const statusActions = actionsForStatus(row.status);
+  const phaseCode = phaseCodeFor(row.entityType);
+  const phaseBlocked =
+    !flags.dossierClosed &&
+    statusActions.length > 0 &&
+    phaseCode !== null &&
+    !ctx.openPhases.has(`${row.requestId}:${phaseCode}`);
+  const inSignature = row.status === 'in_signature_circuit' && row.signatureSentAt !== null;
 
   return {
     id: `${row.entityType}:${row.requestId}`,
@@ -119,8 +181,16 @@ async function buildTaskView(
     signatureSentAt: row.signatureSentAt,
     signedAt: row.signedAt,
     pendingReviewAt: row.pendingReviewAt,
-    availableActions: flags.dossierClosed ? [] : actionsForStatus(row.status),
+    availableActions: flags.dossierClosed || phaseBlocked ? [] : statusActions,
     ...flags,
+    actionBlockedReason: phaseBlocked ? 'phase_not_open' : null,
+    signatureWorkingDays: inSignature
+      ? Math.floor(workingDaysBetween(row.signatureSentAt!, ctx.now, ctx.holidays))
+      : null,
+    // Exactly the alert job's cutoff: sent before it = more than N working days.
+    signatureLate:
+      inSignature &&
+      row.signatureSentAt! < subtractWorkingDays(ctx.now, ctx.alertDays, ctx.holidays),
   };
 }
 
@@ -139,8 +209,7 @@ async function getCircuitForTask(taskId: string) {
 async function ensureTaskCanMutate(circuit: typeof dgCircuitDocuments.$inferSelect): Promise<void> {
   // K7 - closed dossier: read-only (requests/dossier-open.ts), every circuit type.
   await assertDossierOpen(db, circuit.requestId);
-  const phaseCode =
-    circuit.entityType === 'formal_request_letter' ? 'M4' : circuit.entityType === 'pre_evaluation' ? 'M3' : null;
+  const phaseCode = phaseCodeFor(circuit.entityType);
   if (!phaseCode) return;
 
   const [phase] = await db
@@ -174,13 +243,13 @@ export async function listCourrierTasks(filters: {
           .orderBy(desc(dgCircuitDocuments.depositedAt))
       : await db.select().from(dgCircuitDocuments).orderBy(desc(dgCircuitDocuments.depositedAt));
 
-  const tasks = (
-    await Promise.all(
-      rows
-        .filter((row) => MANAGED_ENTITY_TYPES.includes(row.entityType as CourrierTaskSource))
-        .map(buildTaskView)
-    )
-  ).filter((task): task is CourrierTaskView => !!task);
+  const managed = rows.filter((row) =>
+    MANAGED_ENTITY_TYPES.includes(row.entityType as CourrierTaskSource)
+  );
+  const ctx = await loadTaskContext([...new Set(managed.map((row) => row.requestId))]);
+  const tasks = (await Promise.all(managed.map((row) => buildTaskView(row, ctx)))).filter(
+    (task): task is CourrierTaskView => !!task
+  );
 
   const filtered = filters.bucket ? tasks.filter((task) => inBucket(task, filters.bucket!)) : tasks;
 
@@ -192,6 +261,7 @@ export async function listCourrierTasks(filters: {
       returned: tasks.filter((task) => inBucket(task, 'returned')).length,
       legacySigned: tasks.filter((task) => inBucket(task, 'legacy_signed')).length,
     },
+    signatureAlertDays: ctx.alertDays,
   };
 }
 
@@ -217,7 +287,7 @@ export async function confirmPrintedForSignature(
     details: { requestId: updated.requestId, entityType: updated.entityType },
   });
 
-  const task = await buildTaskView(updated);
+  const task = await buildTaskView(updated, await loadTaskContext([updated.requestId]));
   if (!task) throw new Error('COURRIER_TASK_NOT_FOUND');
   return task;
 }
@@ -242,7 +312,9 @@ export async function returnSigned(
     if (circuit.status !== 'in_signature_circuit') throw new Error('INVALID_CIRCUIT_TRANSITION');
 
     await trashCurrentVersions(tx, 'dg_circuit_document', circuit.id);
-    await tx.insert(documentVersions).values(versionValues(attachment, 'dg_circuit_document', circuit.id));
+    await tx
+      .insert(documentVersions)
+      .values(versionValues(attachment, 'dg_circuit_document', circuit.id));
     await linkLockedAsset(tx, attachment.assetId, target);
 
     const now = new Date();
@@ -274,7 +346,7 @@ export async function returnSigned(
 
   await relocateDossierAssetAfterCommit(attachment.assetId, target);
 
-  const task = await buildTaskView(updated);
+  const task = await buildTaskView(updated, await loadTaskContext([updated.requestId]));
   if (!task) throw new Error('COURRIER_TASK_NOT_FOUND');
   return task;
 }

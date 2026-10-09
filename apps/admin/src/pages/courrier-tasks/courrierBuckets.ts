@@ -26,9 +26,6 @@ export const COURRIER_SORT_OPTIONS: Array<{ key: CourrierSortKey; label: string 
   { key: 'newest', label: "Plus récent d'abord" },
 ];
 
-/** Front-end threshold for the J+n badge; C2c may read the M12 SLA instead. */
-export const SIGNATURE_LATE_DAYS = 7;
-
 export const SOURCE_LABELS: Record<string, string> = {
   intake_request: 'Demande initiale',
   formal_request_letter: 'Lettre formelle',
@@ -99,33 +96,27 @@ export function stepDateOf(task: CourrierTask): string {
   return task.depositedAt;
 }
 
-function startOfDayMs(date: Date): number {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+/** Whole working days in signature, computed by the API (Libreville time,
+ *  public holidays excluded, same count as the Circuit DG alert). */
+export function signatureWaitDays(task: CourrierTask): number | null {
+  return task.bucket === 'in_signature' ? task.signatureWorkingDays : null;
 }
 
-/** Whole calendar days since the courrier went into signature (null outside it). */
-export function signatureWaitDays(task: CourrierTask, now: Date = new Date()): number | null {
-  if (task.bucket !== 'in_signature' || !task.signatureSentAt) return null;
-  const sent = new Date(task.signatureSentAt);
-  if (Number.isNaN(sent.getTime())) return null;
-  return Math.max(0, Math.round((startOfDayMs(now) - startOfDayMs(sent)) / 86_400_000));
+/** C2c - the API applies the Circuit DG threshold (`dg_circuit_alert_days`);
+ *  never flagged on a closed dossier (K7c: no action expected). */
+export function isSignatureLate(task: CourrierTask): boolean {
+  return !task.dossierClosed && task.signatureLate;
 }
 
-export function isSignatureLate(task: CourrierTask, now: Date = new Date()): boolean {
-  if (task.dossierClosed) return false;
-  const days = signatureWaitDays(task, now);
-  return days !== null && days >= SIGNATURE_LATE_DAYS;
-}
-
-/** Mean wait of the open courriers in signature, e.g. « 3,7 j » (null if none). */
-export function averageSignatureWait(tasks: CourrierTask[], now: Date = new Date()): string | null {
+/** Mean wait of the open courriers in signature, e.g. « 3,5 j ouvrés » (null if none). */
+export function averageSignatureWait(tasks: CourrierTask[]): string | null {
   const values = tasks
     .filter((task) => inTab(task, 'in_signature'))
-    .map((task) => signatureWaitDays(task, now))
+    .map(signatureWaitDays)
     .filter((value): value is number => value !== null);
   if (values.length === 0) return null;
   const avg = values.reduce((sum, value) => sum + value, 0) / values.length;
-  return `${avg.toLocaleString('fr-FR', { maximumFractionDigits: avg >= 10 ? 0 : 1 })} j`;
+  return `${avg.toLocaleString('fr-FR', { maximumFractionDigits: avg >= 10 ? 0 : 1 })} j ouvrés`;
 }
 
 /**
@@ -134,23 +125,33 @@ export function averageSignatureWait(tasks: CourrierTask[], now: Date = new Date
  * (the viewer's « Impression OK », the signed-return upload).
  * - print: to print then put in signature;
  * - return: in signature, the signed return is awaited;
- * - none: returned, history, or closed dossier (K7c: viewing only).
+ * - none: returned, history, closed dossier (K7c: viewing only), or a phase
+ *   not open (C2c: the API sends no action, it would refuse it).
+ * Driven by the API's `availableActions`, so the screen never offers what the
+ * API refuses.
  */
 export type CourrierActionKind = 'print' | 'return' | 'none';
 
 export function courrierActionKind(task: CourrierTask): CourrierActionKind {
   if (task.dossierClosed) return 'none';
-  if (task.bucket === 'to_signature') return 'print';
-  if (task.bucket === 'in_signature') return 'return';
+  if (task.bucket === 'to_signature' && task.availableActions.includes('print')) return 'print';
+  if (task.bucket === 'in_signature' && task.availableActions.includes('upload_signed_return'))
+    return 'return';
   return 'none';
 }
 
-export function nextActionLabel(task: CourrierTask, now: Date = new Date()): string {
+/** C2c - pending in the circuit but its M3 / M4 phase is not open. */
+export function isPhaseBlocked(task: CourrierTask): boolean {
+  return !task.dossierClosed && task.actionBlockedReason === 'phase_not_open';
+}
+
+export function nextActionLabel(task: CourrierTask): string {
   if (task.dossierClosed) return 'Dossier clos - consultation';
+  if (isPhaseBlocked(task)) return 'Phase non ouverte - aucune action';
   if (task.bucket === 'to_signature') return 'Imprimer puis mettre en signature';
   if (task.bucket === 'in_signature') {
-    const days = signatureWaitDays(task, now);
-    return days === null ? 'Retour DG attendu' : `Retour DG attendu · ${days} j`;
+    const days = signatureWaitDays(task);
+    return days === null ? 'Retour DG attendu' : `Retour DG attendu · ${days} j ouvrés`;
   }
   if (task.bucket === 'returned') return 'Transmis à la DN';
   return 'Consultation historique';

@@ -87,7 +87,10 @@ export function CourriersList({
           <span className="flex justify-end gap-1.5">
             {task.dossierClosed ? <ClosedDossierBadge status={task.dossierStatus} /> : null}
             {isSignatureLate(task) ? (
-              <span className="rounded-full border border-orange-200 bg-orange-50 px-1.5 text-[10px] font-semibold leading-4 text-anac-warning">
+              <span
+                title="Jours ouvrés en signature, au-delà du seuil d'alerte Circuit DG"
+                className="rounded-full border border-orange-200 bg-orange-50 px-1.5 text-[10px] font-semibold leading-4 text-anac-warning"
+              >
                 J+{signatureWaitDays(task)}
               </span>
             ) : null}

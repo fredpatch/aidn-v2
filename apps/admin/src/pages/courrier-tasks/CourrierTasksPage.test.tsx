@@ -29,6 +29,9 @@ const task = (n: number, over: Partial<CourrierTask> = {}): CourrierTask => ({
   availableActions: ['print', 'confirm_signature_circuit'],
   dossierStatus: 'in_progress',
   dossierClosed: false,
+  actionBlockedReason: null,
+  signatureWorkingDays: null,
+  signatureLate: false,
   ...over,
 });
 
@@ -106,5 +109,21 @@ describe('<CourrierTasksPage> two panes (C2b)', () => {
     const row = (await screen.findAllByRole('option'))[0];
     fireEvent.keyDown(row, { key: '/' });
     expect(screen.getByRole('searchbox', { name: 'Rechercher un courrier' })).toHaveFocus();
+  });
+
+  it('phase not open (C2c): no action button, the reason is shown', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue({
+      data: {
+        items: [task(1, { availableActions: [], actionBlockedReason: 'phase_not_open' })],
+        counts: {},
+        signatureAlertDays: 3,
+      },
+    });
+    renderWithProviders(<CourrierTasksPage />);
+    await screen.findAllByRole('option');
+    expect(screen.queryByRole('button', { name: /Ouvrir \/ imprimer/ })).not.toBeInTheDocument();
+    expect(
+      within(pane()).getByText(/phase M4 de ce dossier n'est pas ouverte/)
+    ).toBeInTheDocument();
   });
 });
