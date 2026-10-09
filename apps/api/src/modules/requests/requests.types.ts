@@ -81,7 +81,10 @@ export interface RequestCockpitItem {
   nextActionHref: string | null;
   nextActionTone: 'info' | 'warning' | 'success' | 'danger';
   canStartPreliminary: boolean;
+  /** D3a - latest events of the dossier, all phases, newest first (max 5). */
   activity: RequestCockpitActivity[];
+  /** D3a - latest linked audit event, or the submission date. */
+  lastActivityAt: string;
 }
 
 export interface RequestCockpitSummary {

@@ -55,6 +55,8 @@ export interface RequestCockpitItem {
   nextActionTone: 'info' | 'warning' | 'success' | 'danger';
   canStartPreliminary: boolean;
   activity: RequestCockpitActivity[];
+  /** D3a - latest linked dossier event, or the submission date. */
+  lastActivityAt: string;
 }
 
 export interface RequestCockpitSummary {

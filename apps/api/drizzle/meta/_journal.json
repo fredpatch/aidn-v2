@@ -36,6 +36,13 @@
       "when": 1791529052933,
       "tag": "0004_k8b_one_certificate_per_request",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791550302582,
+      "tag": "0005_d3a_audit_request",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,4 @@
-import { and, eq, desc } from 'drizzle-orm';
+import { and, eq, desc, isNotNull, sql } from 'drizzle-orm';
 import { db, type DbTx } from '../../shared/db/index.js';
 import {
   auditLogs,
@@ -10,7 +10,6 @@ import {
   applicants,
   organisations,
   phases,
-  users,
 } from '../../shared/db/schema.js';
 import { logAudit } from '../auth/auth.service.js';
 import { generateRequestReference } from './requests.helpers.js';
@@ -80,20 +79,81 @@ function phaseHref(phaseCode: string, requestId: number): string {
   return `/demandes/${requestId}/delivrance`;
 }
 
-function activityLabel(action: string): { title: string; tone: RequestCockpitActivity['tone'] } {
-  if (action === 'REQUEST_SUBMITTED') return { title: 'Demande déposée', tone: 'info' };
-  if (action === 'DG_CIRCUIT_SENT_TO_SIGNATURE') {
-    return { title: 'Demande mise en signature', tone: 'warning' };
+/** D3a - French titles of the dossier events shown in the reading pane, all
+ *  phases (audit actions linked to a request, modules/auth/audit-request.ts). */
+export const ACTIVITY_LABELS: Record<
+  string,
+  { title: string; tone: RequestCockpitActivity['tone'] }
+> = {
+  REQUEST_SUBMITTED: { title: 'Demande déposée', tone: 'info' },
+  REQUEST_CANCELLED: { title: 'Demande annulée', tone: 'danger' },
+  REQUEST_COMPLETED: { title: 'Dossier terminé', tone: 'success' },
+  DG_CIRCUIT_SENT_TO_SIGNATURE: { title: 'Demande mise en signature', tone: 'warning' },
+  DG_CIRCUIT_SIGNED: { title: 'Demande signée', tone: 'success' },
+  DG_CIRCUIT_SIGNED_RETURNED: { title: 'Retour signé scanné', tone: 'success' },
+  DG_CIRCUIT_PENDING_REVIEW: { title: 'Demande transmise à la DN', tone: 'success' },
+  DG_CIRCUIT_DOCUMENT_REPLACED: { title: 'Document du circuit remplacé', tone: 'info' },
+  DG_CIRCUIT_ALERT_SENT: { title: 'Alerte : circuit signature en retard', tone: 'warning' },
+  PHASE_OPENED: { title: 'Phase ouverte', tone: 'info' },
+  PHASE_CLOSED: { title: 'Phase clôturée', tone: 'success' },
+  COURRIER_SENT_TO_SIGNATURE: { title: 'Courrier mis en signature', tone: 'warning' },
+  COURRIER_SIGNED_RETURNED: { title: 'Retour signé du courrier scanné', tone: 'success' },
+  FORMAL_LETTER_SUBMITTED: { title: 'Lettre formelle déposée', tone: 'info' },
+  FORMAL_LETTER_SIGNED: { title: 'Lettre formelle signée', tone: 'success' },
+  FORMAL_LETTER_TRANSMITTED: { title: 'Lettre formelle transmise', tone: 'success' },
+  FORMAL_DOCUMENT_SUBMITTED: { title: 'Document de la demande formelle déposé', tone: 'info' },
+  PRELIMINARY_EVALUATION_MADE_AVAILABLE: {
+    title: 'Formulaire de pré-évaluation mis à disposition',
+    tone: 'info',
+  },
+  PRELIMINARY_EVALUATION_SUBMITTED: { title: 'Pré-évaluation déposée', tone: 'info' },
+  PRELIMINARY_DECLARATION_CIRCUIT_CREATED: {
+    title: 'Déclaration de pré-évaluation en circuit',
+    tone: 'warning',
+  },
+  DOCUMENT_VERDICT_SET: { title: 'Document évalué', tone: 'info' },
+  DOCUMENT_RESUBMITTED: { title: 'Document redéposé', tone: 'info' },
+  INVOICE_UPLOADED: { title: 'Facture envoyée', tone: 'info' },
+  PAYMENT_PROOF_UPLOADED: { title: 'Preuve de paiement déposée', tone: 'info' },
+  PAYMENT_VALIDATED: { title: 'Paiement validé', tone: 'success' },
+  PAYMENT_REJECTED: { title: 'Paiement rejeté', tone: 'danger' },
+  MEETING_SCHEDULED: { title: 'Réunion planifiée', tone: 'info' },
+  MEETING_RESCHEDULED: { title: 'Réunion reportée', tone: 'warning' },
+  MEETING_REPORT_ATTACHED: { title: 'Compte-rendu de réunion joint', tone: 'info' },
+  MEETING_HELD: { title: 'Réunion tenue', tone: 'success' },
+  MEETING_NO_SHOW: { title: 'Réunion : absence du postulant', tone: 'warning' },
+  MEETING_FILE_CANCELLED: { title: 'Réunion : dossier annulé', tone: 'danger' },
+  SITE_VISIT_HELD: { title: 'Visite sur site tenue', tone: 'success' },
+  INSPECTION_VERDICT_SUBMITTED: { title: 'Avis R3 rendu', tone: 'success' },
+  CERTIFICATE_CREATED: { title: 'Certificat créé', tone: 'info' },
+  CERTIFICATE_DOCUMENT_GENERATED: { title: 'Certificat généré', tone: 'info' },
+  CERTIFICATE_FIELDS_UPDATED: { title: 'Certificat mis à jour', tone: 'info' },
+  CERTIFICATE_TYPE_OVERRIDDEN: { title: 'Type de certificat modifié', tone: 'warning' },
+  CERTIFICATE_SIGNED_RETURN_REGISTERED: { title: 'Certificat signé enregistré', tone: 'success' },
+  CERTIFICATE_STATUS_CHANGED: { title: 'Statut du certificat modifié', tone: 'info' },
+};
+
+/** Phase code appended to phase events (« Phase ouverte (M4) »); the audit
+ *  module is the phase for those actions. */
+function activityLabel(
+  action: string,
+  module: string
+): { title: string; tone: RequestCockpitActivity['tone'] } {
+  const known = ACTIVITY_LABELS[action];
+  if (known && (action === 'PHASE_OPENED' || action === 'PHASE_CLOSED')) {
+    return { ...known, title: `${known.title} (${module})` };
   }
-  if (action === 'DG_CIRCUIT_SIGNED_RETURNED') {
-    return { title: 'Retour signé scanné', tone: 'success' };
-  }
-  if (action === 'DG_CIRCUIT_PENDING_REVIEW') {
-    return { title: 'Demande transmise à la DN', tone: 'success' };
-  }
-  if (action === 'REQUEST_CANCELLED') return { title: 'Demande annulée', tone: 'danger' };
+  if (known) return known;
+  if (action.startsWith('MEETING_')) return { title: 'Réunion mise à jour', tone: 'info' };
   return { title: action.replaceAll('_', ' ').toLowerCase(), tone: 'info' };
 }
+
+function latestDate(a: Date, b: Date | undefined): Date {
+  return b && b.getTime() > a.getTime() ? b : a;
+}
+
+/** D3a - events kept per dossier for the reading pane. */
+const ACTIVITY_PER_REQUEST = 5;
 
 /** Postgres unique_violation. Thrown by the partial unique index on
  *  requests.organisationId (pattern "one active request per organisation")
@@ -307,7 +367,8 @@ export async function listRequestCockpit(): Promise<RequestCockpitSummary> {
     circuitRows,
     formalDocumentRows,
     evaluationRows,
-    activityRows,
+    activityResult,
+    lastActivityRows,
   ] = await Promise.all([
     db
       .select({
@@ -323,19 +384,28 @@ export async function listRequestCockpit(): Promise<RequestCockpitSummary> {
     db.select().from(dgCircuitDocuments),
     db.select().from(formalRequestDocuments),
     db.select().from(documentEvaluations),
+    // D3a - the latest events of every dossier, all phases (was: the 120
+    // latest rows of the whole app, M1 only).
+    db.execute(sql`
+      select a.id, a.action, a.module, a.request_id, a.created_at, u.full_name as actor
+      from (
+        select id, action, module, request_id, created_at, user_id,
+               row_number() over (partition by request_id order by created_at desc, id desc) as rn
+        from audit_logs
+        where request_id is not null
+      ) a
+      left join users u on u.id = a.user_id
+      where a.rn <= ${ACTIVITY_PER_REQUEST}
+      order by a.request_id, a.created_at desc, a.id desc
+    `),
     db
       .select({
-        id: auditLogs.id,
-        action: auditLogs.action,
-        module: auditLogs.module,
-        entityId: auditLogs.entityId,
-        createdAt: auditLogs.createdAt,
-        actor: users.fullName,
+        requestId: auditLogs.requestId,
+        lastActivityAt: sql<Date>`max(${auditLogs.createdAt})`.mapWith((value) => new Date(value)),
       })
       .from(auditLogs)
-      .leftJoin(users, eq(auditLogs.userId, users.id))
-      .orderBy(desc(auditLogs.createdAt))
-      .limit(120),
+      .where(isNotNull(auditLogs.requestId))
+      .groupBy(auditLogs.requestId),
   ]);
 
   const phaseRowsByRequestId = new Map<number, Array<typeof phases.$inferSelect>>();
@@ -354,20 +424,29 @@ export async function listRequestCockpit(): Promise<RequestCockpitSummary> {
   }
   const evaluationsByDocumentId = new Map(evaluationRows.map((row) => [row.formalRequestDocumentId, row]));
   const activitiesByRequestId = new Map<number, RequestCockpitActivity[]>();
-  for (const activity of activityRows) {
-    if (!activity.entityId || activity.module !== 'M1') continue;
-    const label = activityLabel(activity.action);
-    const list = activitiesByRequestId.get(activity.entityId) ?? [];
-    if (list.length >= 3) continue;
+  for (const raw of activityResult.rows) {
+    const activity = raw as {
+      id: number;
+      action: string;
+      module: string;
+      request_id: number;
+      created_at: Date | string;
+      actor: string | null;
+    };
+    const label = activityLabel(activity.action, activity.module);
+    const list = activitiesByRequestId.get(activity.request_id) ?? [];
     list.push({
       id: activity.id,
       title: label.title,
       actor: activity.actor ?? 'Système',
-      createdAt: activity.createdAt.toISOString(),
+      createdAt: new Date(activity.created_at).toISOString(),
       tone: label.tone,
     });
-    activitiesByRequestId.set(activity.entityId, list);
+    activitiesByRequestId.set(activity.request_id, list);
   }
+  const lastActivityByRequestId = new Map(
+    lastActivityRows.map((row) => [row.requestId as number, row.lastActivityAt])
+  );
 
   function phasesForRequest(requestId: number): RequestCockpitPhase[] {
     const rows = phaseRowsByRequestId.get(requestId) ?? [];
@@ -548,6 +627,11 @@ export async function listRequestCockpit(): Promise<RequestCockpitSummary> {
       documentSummary: documentSummary(row.request.id),
       ...action,
       activity: activitiesByRequestId.get(row.request.id) ?? [],
+      // D3a - latest dossier event, or the submission when none is linked yet.
+      lastActivityAt: latestDate(
+        row.request.createdAt,
+        lastActivityByRequestId.get(row.request.id)
+      ).toISOString(),
     };
   });
 

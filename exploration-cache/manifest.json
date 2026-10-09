@@ -3,14 +3,14 @@
   "client": "ANAC Gabon",
   "repo": "fredpatch/aidn-v2",
   "branch": "main",
-  "lastUpdated": "2026-10-08T00:00:00+01:00",
+  "lastUpdated": "2026-10-09T00:00:00+01:00",
   "currentSprint": "Post-M7 workflow hardening",
-  "currentSprintFocus": "K4 atomic payment decisions are implemented. Next: K5 validation module check, M7 certificate atomicity, final role replay, analytics hardening, and notifications V1.",
-  "status": "Sprints 0-6 complete end-to-end. Current K4 batch hardens payment decision concurrency and rejection atomicity; typecheck, API tests, admin tests, and build verified before push.",
+  "currentSprintFocus": "D3a dossier-linked activity is implemented. Next: D3b request views/unread state, D3c admin unread/sort affordances, final role replay, analytics hardening, and notifications V1.",
+  "status": "Sprints 0-6 complete end-to-end. D3a links audit events to dossiers, backfills history with migration 0005, and exposes all-phase cockpit activity plus lastActivityAt.",
   "activeSession": {
-    "task": "Commit and push K4 atomic payment decisions after docs/cache updates.",
-    "startedAt": "2026-10-08",
-    "nextAction": "Run verification, commit K4, push main, then start K5 payment validation hardening."
+    "task": "Commit and push D3a dossier-linked audit activity after docs/cache updates.",
+    "startedAt": "2026-10-09",
+    "nextAction": "Run verification, commit D3a, push main, then start D3b request_views/unread state."
   },
   "index": [
     {
@@ -22,14 +22,14 @@
     {
       "path": "changelog.md",
       "type": "history",
-      "tags": ["git", "history", "payments", "k4", "atomic-decisions"],
-      "summary": "Commit-level history including the 2026-10-08 K4 atomic payment decisions batch"
+      "tags": ["git", "history", "audit", "d3a", "activity"],
+      "summary": "Commit-level history including the 2026-10-09 D3a dossier-linked activity batch"
     },
     {
       "path": "active-session/current-task.md",
       "type": "session",
-      "tags": ["current", "post-m7", "payments", "k4", "hardening"],
-      "summary": "Current state: K4 atomic payment decisions implemented; commit/push in progress"
+      "tags": ["current", "post-m7", "audit", "d3a", "activity"],
+      "summary": "Current state: D3a audit activity implemented; commit/push in progress"
     },
     {
       "path": "active-session/next-actions.md",
@@ -60,6 +60,12 @@
       "type": "session-log",
       "tags": ["payments", "k4", "transactions", "concurrency", "session-log"],
       "summary": "K4 payment rejection atomicity, validation race guards, shared dossier rejection wording"
+    },
+    {
+      "path": "sessions/2026-10-09-d3a-audit-activity.md",
+      "type": "session-log",
+      "tags": ["audit", "d3a", "activity", "migration", "session-log"],
+      "summary": "D3a audit_logs.request_id, migration 0005, all-phase cockpit activity, and lastActivityAt"
     },
     {
       "path": "docs/TASKS.md",

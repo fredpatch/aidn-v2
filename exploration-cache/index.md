@@ -3,8 +3,8 @@
 This folder is the living technical memory for AIDN v2. Notion is the shared high-level project dashboard; this cache is the repo-adjacent handoff for engineering state, decisions, gotchas, and next actions.
 
 **Project**: AIDN - Application Informatique de la Direction de la Navigabilite - ANAC Gabon
-**Last updated**: 2026-10-08
-**Current status**: M1-M7 are implemented end-to-end. Current focus is K4/K5 payment-decision hardening, final role replay, analytics hardening, and notifications V1.
+**Last updated**: 2026-10-09
+**Current status**: M1-M7 are implemented end-to-end. Current focus is D3 unread/activity follow-up, final role replay, analytics hardening, and notifications V1.
 
 ## Active Session
 
@@ -58,6 +58,7 @@ This folder is the living technical memory for AIDN v2. Notion is the shared hig
 | [`sessions/2026-09-24.md`](sessions/2026-09-24.md)             | Documentation reconciliation across repo, Notion, cache, and unmerged frontend branch |
 | [`sessions/2026-09-25.md`](sessions/2026-09-25.md)             | Settings Maintenance/dev reset implementation and UI scope correction                 |
 | [`sessions/2026-10-08-k4-payment-decisions.md`](sessions/2026-10-08-k4-payment-decisions.md) | K4 atomic payment decisions, shared rejection path, and race guards |
+| [`sessions/2026-10-09-d3a-audit-activity.md`](sessions/2026-10-09-d3a-audit-activity.md) | D3a audit request linkage, migration 0005, and Demandes activity feed |
 
 ## Other
 

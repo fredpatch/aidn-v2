@@ -1636,6 +1636,36 @@ puis admin.
 - Reste : pagination serveur de `GET /courrier-tasks` (pas nécessaire aux
   volumes actuels)
 
+### D3a (2026-10-09) - Activité rattachée au dossier (API + migration 0005)
+
+Plan D3 validé par Fred : « non lues » par agent (D3b) ; l'historique non
+rattachable reste NULL (aucune inférence).
+
+- [x] `audit_logs.request_id` (entier indexé avec `created_at`, **sans clé
+      étrangère** : la remise à zéro dev `TRUNCATE requests ... CASCADE` aurait
+      vidé tout le journal d'audit ; une ligne d'audit survit à son dossier)
+- [x] `modules/auth/audit-request.ts` : table action → entité (demande,
+      phase, circuit, certificat, paiement, réunion, inspection, document
+      formel, évaluation, formulaire de pré-évaluation) ; `logAudit` résout
+      `request_id` pour chaque nouvel événement (ordre : `requestId` explicite,
+      `details.requestId`, puis l'entité, dans la même transaction). Aucun des
+      72 appels existants modifié. Événements compte / utilisateur / auth /
+      système : non rattachés
+- [x] Migration 0005 : rattache l'historique avec les mêmes listes
+      (rejouable, seules les lignes NULL, seuls des ids de demandes
+      existantes) ; un test d'invariant compare la table et la migration
+- [x] Cockpit Demandes : fil d'activité de toutes les phases (5 derniers
+      événements par dossier, libellés français pour chaque action) au lieu des
+      120 dernières lignes globales M1 ; nouveau champ `lastActivityAt`
+      (dernier événement, sinon date de dépôt)
+- [x] Tests : `audit-request.test.ts` (2), `audit-request.db.test.ts` (5 :
+      résolution par type, backfill, inconnu NULL, fil multi-phases, repli sur
+      le dépôt, libellés complets). Migration rejouée sur base vierge. API
+      316/316 (DB suites ignorées sans `DATABASE_URL`), admin 171/171,
+      portail 94/94, typecheck, lint (0 erreur), build
+- [ ] D3b : `request_views` et « non lues » par agent
+- [ ] D3c : tri « Dernière activité », non lues en gras, repères (admin)
+
 ## Sprint 7 - Documents (transverse, M8)
 
 - [ ] Upload multi-format (PDF/Word/PNG/JPG)

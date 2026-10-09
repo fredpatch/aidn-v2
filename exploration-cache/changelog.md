@@ -1,7 +1,30 @@
 # 📝 AIDN v2 - Changelog
 
-Commit-level history. Covers `be9fce9` through the 2026-10-08 K4 atomic
-payment decisions.
+Commit-level history. Covers `be9fce9` through the 2026-10-09 D3a audit
+request activity batch.
+
+## 2026-10-09 D3a: dossier-linked activity
+
+API, migration, and admin cockpit contract change.
+
+- `audit_logs.request_id` is added as a plain indexed integer, intentionally
+  without a foreign key so audit history survives dev dossier resets and
+  deleted dossiers.
+- `logAudit` now resolves the dossier for new events through one shared
+  action-to-entity map (`modules/auth/audit-request.ts`), with explicit
+  `requestId` / `details.requestId` taking precedence and account/auth/system
+  actions left unlinked.
+- Migration `0005_d3a_audit_request` backfills historical audit rows using the
+  same action lists; the invariant test keeps the runtime map and SQL backfill
+  in sync.
+- The Demandes cockpit activity pane now reads the five latest linked events
+  per dossier across all phases, exposes French labels for mapped dossier
+  actions, and returns `lastActivityAt` for the next admin sort work.
+- Verification on 2026-10-09: admin 171/171, API 316/316 with DB-backed suites
+  skipped without `DATABASE_URL`, portal 94/94, typecheck, lint 0 errors
+  (4 existing hook warnings), build.
+- Deferred to D3b/D3c: per-agent `request_views`, unread markers, bold unread
+  rows, and sorting/visual affordances in the admin UI.
 
 ## 2026-10-08 K4: atomic payment decisions
 

@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { db, type DbExecutor } from "../../shared/db/index.js";
+import { resolveAuditRequestId } from "./audit-request.js";
 import { users, auditLogs } from "../../shared/db/schema.js";
 import { verifyRefreshToken, signAccessToken } from "../../shared/utils/jwt.js";
 import { verifyOTP, isOTPExpired, generateOTP, hashOTP, otpExpiresAt } from "../../shared/utils/otp.js";
@@ -21,14 +22,18 @@ export async function logAudit(params: {
   action: string;
   module: string;
   entityId?: number;
+  /** D3a - dossier of the event; resolved from details / entity when omitted. */
+  requestId?: number;
   details?: Record<string, unknown>;
   ip?: string;
 }, executor: DbExecutor = db): Promise<void> {
+  const requestId = await resolveAuditRequestId(executor, params);
   await executor.insert(auditLogs).values({
     userId: params.userId,
     action: params.action,
     module: params.module,
     entityId: params.entityId,
+    requestId,
     details: params.details,
     ip: params.ip,
   });

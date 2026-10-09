@@ -701,6 +701,12 @@ export const auditLogs = pgTable(
     action: varchar('action', { length: 100 }).notNull(), // SCREAMING_SNAKE_CASE
     module: varchar('module', { length: 20 }).notNull(), // M1, M3..M13
     entityId: integer('entity_id'),
+    /** D3a - dossier the event belongs to (modules/auth/audit-request.ts);
+     *  null for non-dossier events and history that could not be linked.
+     *  Plain integer, no foreign key: `TRUNCATE requests ... CASCADE` (dev
+     *  reset) must not wipe the whole audit trail, and an audit row outlives
+     *  its dossier. */
+    requestId: integer('request_id'),
     details: jsonb('details'),
     ip: varchar('ip', { length: 45 }),
     createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -709,6 +715,7 @@ export const auditLogs = pgTable(
     index('audit_logs_user_idx').on(t.userId),
     index('audit_logs_module_idx').on(t.module),
     index('audit_logs_created_at_idx').on(t.createdAt),
+    index('audit_logs_request_created_idx').on(t.requestId, t.createdAt),
   ]
 );
 
