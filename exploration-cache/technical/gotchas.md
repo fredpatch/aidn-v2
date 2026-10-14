@@ -260,3 +260,35 @@ access on 4 sibling "proof of payment"/"resubmit" routes in M5/M6/M7 that use
 comments may be aspirational rather than implemented. Flagged, not yet fixed -
 needs its own audit before touching, since later hardening may have deliberately
 made those applicant-only.
+
+## 21. A request can have several `dg_circuit_documents` rows: always filter by `entity_type`
+
+**Symptom**: a view or mutation silently acts on the wrong circuit (the M4 letter, the M3 declaration or, since
+SESSION1-M1-1, the Directeur DN circuit) because it selected circuits `WHERE request_id = ?` or built
+`new Map(rows.map(r => [r.requestId, r]))` - last row wins.
+
+**Cause**: the unique index is `(entity_type, request_id)`: one row per type, up to four per dossier.
+
+**Fix / rule**: every reader filters by the entity type it means (`intake_request`, or `RECEPTION_CIRCUIT_ENTITY_TYPES`
+for the Réception-owned views). New entity types need an explicit storage mapping (`storage-context.ts` falls back
+to M4) and, if their files are internal, a file-access stage (`file-context.ts`).
+
+## 22. DB-backed API tests: use a disposable database, serially
+
+`npm test` skips `*.db.test.ts` without `DATABASE_URL`. Point it at a throwaway database (migrated with
+`db:migrate`), never the dev one. `K7 closed dossier is read-only` snapshots whole tables (`audit_logs`,
+`dg_circuit_documents`, `document_versions`...), so it can fail when other DB test files write at the same time:
+run `npx tsx --test --test-concurrency=1 "src/**/*.test.ts"`. On Windows, `K8b one certificate per request` fails
+with `spawn npx ENOENT` (it spawns `npx` without a shell) - environmental, not a regression.
+
+## 23. A new enum value cannot be used by a later migration: drizzle applies all pending migrations in ONE transaction
+
+**Symptom**: `npm run db:migrate` fails with PostgreSQL `55P04` ("unsafe use of new value ... of enum type") on a migration that INSERTs/UPDATEs with the value added by an earlier pending migration. It only fails when rows match, so an empty throwaway DB passes.
+
+**Cause**: `drizzle-orm` `migrate()` wraps every pending migration in a single transaction; PostgreSQL requires the enum value to be committed first. Splitting into two migration files does not help.
+
+**Fix / rule**: a migration may `ADD VALUE`; data that uses it runs afterwards from an explicit idempotent script (example: `db:backfill:dn-annotation`, SESSION1-M1-1). `dn-annotation.migrations.test.ts` guards this for `dn_director_annotation`. Test migrations on a DB that is *behind* the new migration and holds legacy rows.
+
+## 24. Role writes must be atomic ("Accès refusé" for a role-less account)
+
+Creating a user then inserting roles, or deleting roles then inserting the new ones, used to be separate statements. If the role insert failed (for example an enum value whose migration was not applied yet), the account was left with NO role and landed on "Accès refusé". `createUser`, `updateUser` and `updateUserRoles` now run in a transaction (`users.roles.db.test.ts`). After pulling a new role, run `db:migrate` before assigning it.

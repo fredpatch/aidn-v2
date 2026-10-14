@@ -104,15 +104,6 @@ export async function markViewed(req: Request, res: Response): Promise<void> {
   }
 }
 
-export async function markSigned(req: Request, res: Response): Promise<void> {
-  try {
-    const result = await requestsService.markSigned(Number(req.params.id), req.user!.userId);
-    res.json(result);
-  } catch (error) {
-    handleRequestsError(res, error);
-  }
-}
-
 export async function sendToSignature(req: Request, res: Response): Promise<void> {
   try {
     const result = await requestsService.sendToSignature(Number(req.params.id), req.user!.userId);
@@ -125,15 +116,6 @@ export async function sendToSignature(req: Request, res: Response): Promise<void
 export async function confirmPrintedForSignature(req: Request, res: Response): Promise<void> {
   try {
     const result = await requestsService.sendToSignature(Number(req.params.id), req.user!.userId);
-    res.json(result);
-  } catch (error) {
-    handleRequestsError(res, error);
-  }
-}
-
-export async function markPendingReview(req: Request, res: Response): Promise<void> {
-  try {
-    const result = await requestsService.markPendingReview(Number(req.params.id), req.user!.userId);
     res.json(result);
   } catch (error) {
     handleRequestsError(res, error);

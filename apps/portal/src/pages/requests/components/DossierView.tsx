@@ -106,7 +106,7 @@ export function DossierView({
 
         {!canCancel && !terminal && request.status !== 'in_progress' && (
           <p className="text-anac-muted text-xs">
-            Cette demande ne peut plus être annulée (déjà envoyée en signature ou au-delà).
+            Cette demande ne peut plus être annulée (déjà envoyée au circuit d’annotation ou au-delà).
           </p>
         )}
       </div>

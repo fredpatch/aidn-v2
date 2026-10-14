@@ -1,4 +1,4 @@
-import { and, eq, desc, isNotNull, sql } from 'drizzle-orm';
+import { and, eq, desc, inArray, isNotNull, sql } from 'drizzle-orm';
 import { db, type DbTx } from '../../shared/db/index.js';
 import {
   auditLogs,
@@ -14,6 +14,8 @@ import {
 } from '../../shared/db/schema.js';
 import { logAudit } from '../auth/auth.service.js';
 import { generateRequestReference } from './requests.helpers.js';
+import { returnIntakeDgAnnotation } from '../dn-annotation/intake-dg-return.js';
+import { INTAKE_STAGE_LABELS, intakeStage, isPreliminaryOpenable } from '../dn-annotation/dn-annotation.stage.js';
 import type {
   RequestCockpitActivity,
   RequestCockpitItem,
@@ -53,14 +55,6 @@ const REQUEST_STATUS_LABELS: Record<string, string> = {
   cancelled: 'Annulé',
 };
 
-const CIRCUIT_STATUS_LABELS: Record<string, string> = {
-  submitted: 'Déposé',
-  in_signature_circuit: 'En signature',
-  signed: 'Signé',
-  pending_review: 'Circuit terminé',
-  completed: 'Circuit terminé',
-};
-
 const PHASE_LABELS: Record<string, string> = {
   M3: 'Préliminaire',
   M4: 'Demande formelle',
@@ -89,9 +83,13 @@ export const ACTIVITY_LABELS: Record<
   REQUEST_SUBMITTED: { title: 'Demande déposée', tone: 'info' },
   REQUEST_CANCELLED: { title: 'Demande annulée', tone: 'danger' },
   REQUEST_COMPLETED: { title: 'Dossier terminé', tone: 'success' },
-  DG_CIRCUIT_SENT_TO_SIGNATURE: { title: 'Demande mise en signature', tone: 'warning' },
+  DG_CIRCUIT_SENT_TO_SIGNATURE: { title: 'Demande mise en circuit DG', tone: 'warning' },
   DG_CIRCUIT_SIGNED: { title: 'Demande signée', tone: 'success' },
-  DG_CIRCUIT_SIGNED_RETURNED: { title: 'Retour signé scanné', tone: 'success' },
+  DG_CIRCUIT_SIGNED_RETURNED: { title: 'Annotation du DG reçue', tone: 'success' },
+  DG_ANNOTATION_RETURNED: { title: 'Annotation du DG reçue', tone: 'success' },
+  DN_ANNOTATION_CIRCUIT_CREATED: { title: 'À transmettre au Directeur DN', tone: 'info' },
+  DN_ANNOTATION_SENT_TO_DIRECTOR: { title: 'Dossier en circuit Directeur DN', tone: 'warning' },
+  DN_ANNOTATION_RETURNED: { title: 'Annotation du Directeur DN reçue', tone: 'success' },
   DG_CIRCUIT_PENDING_REVIEW: { title: 'Demande transmise à la DN', tone: 'success' },
   DG_CIRCUIT_DOCUMENT_REPLACED: { title: 'Document du circuit remplacé', tone: 'info' },
   DG_CIRCUIT_ALERT_SENT: { title: 'Alerte : circuit signature en retard', tone: 'warning' },
@@ -341,7 +339,7 @@ export async function getRequest(requestId: number): Promise<RequestView> {
   const [circuitDoc] = await db
     .select()
     .from(dgCircuitDocuments)
-    .where(eq(dgCircuitDocuments.requestId, requestId));
+    .where(and(eq(dgCircuitDocuments.requestId, requestId), eq(dgCircuitDocuments.entityType, 'intake_request')));
 
   return toRequestView(request, circuitDoc ?? null);
 }
@@ -360,7 +358,7 @@ export async function listRequests(filters: { status?: string }): Promise<Reques
       const [circuitDoc] = await db
         .select()
         .from(dgCircuitDocuments)
-        .where(eq(dgCircuitDocuments.requestId, row.id));
+        .where(and(eq(dgCircuitDocuments.requestId, row.id), eq(dgCircuitDocuments.entityType, 'intake_request')));
       return toRequestView(row, circuitDoc ?? null);
     })
   );
@@ -409,6 +407,7 @@ export async function listRequestCockpit(viewerUserId?: number): Promise<Request
     requestRows,
     phaseRows,
     circuitRows,
+    dnCircuitRows,
     formalDocumentRows,
     evaluationRows,
     activityResult,
@@ -426,7 +425,8 @@ export async function listRequestCockpit(viewerUserId?: number): Promise<Request
       .innerJoin(applicants, eq(requests.applicantId, applicants.id))
       .orderBy(desc(requests.createdAt)),
     db.select().from(phases),
-    db.select().from(dgCircuitDocuments),
+    db.select().from(dgCircuitDocuments).where(eq(dgCircuitDocuments.entityType, 'intake_request')),
+    db.select().from(dgCircuitDocuments).where(eq(dgCircuitDocuments.entityType, 'dn_director_annotation')),
     db.select().from(formalRequestDocuments),
     db.select().from(documentEvaluations),
     // D3a - the latest events of every dossier, all phases (was: the 120
@@ -466,6 +466,22 @@ export async function listRequestCockpit(viewerUserId?: number): Promise<Request
   }
 
   const circuitByRequestId = new Map(circuitRows.map((row) => [row.requestId, row]));
+  const dnCircuitByRequestId = new Map(dnCircuitRows.map((row) => [row.requestId, row]));
+  // SESSION1-M1-1 - the returned Directeur DN annotation, readable by the DN agents (staff-only cockpit).
+  const dnReturnedIds = dnCircuitRows.filter((row) => row.status === 'pending_review').map((row) => row.id);
+  const dnDocumentRows = dnReturnedIds.length
+    ? await db
+        .select({ ownerId: documentVersions.ownerId, fileUrl: documentVersions.fileUrl })
+        .from(documentVersions)
+        .where(
+          and(
+            eq(documentVersions.ownerType, 'dg_circuit_document'),
+            inArray(documentVersions.ownerId, dnReturnedIds),
+            eq(documentVersions.isCurrent, true)
+          )
+        )
+    : [];
+  const dnDocumentByCircuitId = new Map(dnDocumentRows.map((row) => [row.ownerId, row.fileUrl]));
   const formalDocsByPhaseId = new Map<number, Array<typeof formalRequestDocuments.$inferSelect>>();
   for (const document of formalDocumentRows) {
     const list = formalDocsByPhaseId.get(document.phaseId) ?? [];
@@ -528,7 +544,7 @@ export async function listRequestCockpit(viewerUserId?: number): Promise<Request
     if (closedPhase) {
       return { currentPhaseCode: closedPhase.phaseCode, currentPhaseLabel: closedPhase.label };
     }
-    return { currentPhaseCode: null, currentPhaseLabel: 'Circuit signature' };
+    return { currentPhaseCode: null, currentPhaseLabel: 'Circuit d’annotation' };
   }
 
   function documentSummary(requestId: number) {
@@ -554,6 +570,7 @@ export async function listRequestCockpit(viewerUserId?: number): Promise<Request
     requestId: number;
     status: string;
     circuitStatus: string | null;
+    dnCircuitStatus: string | null;
     phasesSummary: RequestCockpitPhase[];
   }): Pick<
     RequestCockpitItem,
@@ -563,7 +580,7 @@ export async function listRequestCockpit(viewerUserId?: number): Promise<Request
     | 'nextActionTone'
     | 'canStartPreliminary'
   > {
-    const { requestId, status, circuitStatus, phasesSummary } = params;
+    const { requestId, status, circuitStatus, dnCircuitStatus, phasesSummary } = params;
     if (status === 'completed') {
       return {
         nextActionLabel: 'Workflow terminé',
@@ -590,8 +607,8 @@ export async function listRequestCockpit(viewerUserId?: number): Promise<Request
     }
     if (circuitStatus === 'submitted') {
       return {
-        nextActionLabel: 'Réception doit mettre en signature',
-        nextActionDescription: 'Le dossier attend impression et mise en circuit signature.',
+        nextActionLabel: 'Réception doit mettre en circuit DG',
+        nextActionDescription: 'Le dossier attend impression et mise en circuit DG.',
         nextActionHref: null,
         nextActionTone: 'warning',
         canStartPreliminary: false,
@@ -599,17 +616,29 @@ export async function listRequestCockpit(viewerUserId?: number): Promise<Request
     }
     if (circuitStatus === 'in_signature_circuit') {
       return {
-        nextActionLabel: 'Retour signé attendu',
-        nextActionDescription: 'La DN suit le dossier en lecture seule jusqu’au scan retour.',
+        nextActionLabel: 'Annotation du DG attendue',
+        nextActionDescription: 'La DN suit le dossier en lecture seule jusqu’au retour annoté du DG.',
         nextActionHref: null,
         nextActionTone: 'warning',
         canStartPreliminary: false,
       };
     }
-    if (status === 'pending_review' && circuitStatus === 'pending_review') {
+    if (circuitStatus === 'pending_review' && (status === 'submitted' || status === 'pending_review') && !isPreliminaryOpenable(status, dnCircuitStatus)) {
+      const atDirector = dnCircuitStatus === 'in_signature_circuit';
+      return {
+        nextActionLabel: atDirector ? 'En attente de l’annotation du Directeur DN' : 'Annotation du DG reçue',
+        nextActionDescription: atDirector
+          ? 'Le dossier est en circuit Directeur DN. La DN le suit en lecture seule jusqu’au retour annoté.'
+          : 'Annotation du DG reçue. L’Assistante DN doit transmettre le dossier au Directeur DN.',
+        nextActionHref: null,
+        nextActionTone: 'warning',
+        canStartPreliminary: false,
+      };
+    }
+    if (isPreliminaryOpenable(status, dnCircuitStatus)) {
       return {
         nextActionLabel: 'Ouvrir la phase préliminaire',
-        nextActionDescription: 'Le retour signé est transmis. La DN peut démarrer le traitement.',
+        nextActionDescription: 'L’annotation du Directeur DN est reçue. La DN peut démarrer le traitement.',
         nextActionHref: phaseHref('M3', requestId),
         nextActionTone: 'info',
         canStartPreliminary: true,
@@ -651,10 +680,12 @@ export async function listRequestCockpit(viewerUserId?: number): Promise<Request
     const phasesSummary = phasesForRequest(row.request.id);
     const currentPhase = currentPhaseLabel(phasesSummary);
     const circuit = circuitByRequestId.get(row.request.id) ?? null;
+    const dnCircuit = dnCircuitByRequestId.get(row.request.id) ?? null;
     const action = nextAction({
       requestId: row.request.id,
       status: resolvedStatus,
       circuitStatus: circuit?.status ?? null,
+      dnCircuitStatus: dnCircuit?.status ?? null,
       phasesSummary,
     });
     return {
@@ -665,9 +696,9 @@ export async function listRequestCockpit(viewerUserId?: number): Promise<Request
       status: resolvedStatus,
       statusLabel: REQUEST_STATUS_LABELS[resolvedStatus] ?? resolvedStatus,
       circuitStatus: circuit?.status ?? null,
-      circuitStatusLabel: circuit
-        ? CIRCUIT_STATUS_LABELS[circuit.status] ?? circuit.status
-        : 'Non initialisé',
+      circuitStatusLabel: INTAKE_STAGE_LABELS[intakeStage(circuit?.status ?? null, dnCircuit?.status ?? null)],
+      dnAnnotationStatus: dnCircuit?.status ?? null,
+      dnAnnotationDocumentUrl: dnCircuit ? dnDocumentByCircuitId.get(dnCircuit.id) ?? null : null,
       createdAt: row.request.createdAt.toISOString(),
       updatedAt: row.request.updatedAt.toISOString(),
       organisationName: row.organisation.name,
@@ -696,8 +727,11 @@ export async function listRequestCockpit(viewerUserId?: number): Promise<Request
   });
 
   const activeItems = items.filter((item) => !TERMINAL_REQUEST_STATUSES.includes(item.status));
-  const waitingDg = items.filter((item) =>
-    ['submitted', 'in_signature_circuit', 'signed'].includes(item.circuitStatus ?? '')
+  const waitingDg = items.filter(
+    (item) =>
+      ['submitted', 'in_signature_circuit', 'signed'].includes(item.circuitStatus ?? '') ||
+      // DG annotation received, Directeur DN annotation still to come.
+      (item.circuitStatus === 'pending_review' && item.status === 'submitted')
   );
   const inReview = items.filter((item) => item.status === 'in_progress' || item.status === 'pending_review');
   const completed = items.filter((item) => item.status === 'completed');
@@ -708,7 +742,7 @@ export async function listRequestCockpit(viewerUserId?: number): Promise<Request
         key: 'new',
         label: 'Nouvelles',
         value: items.filter((item) => item.status === 'pending_review').length,
-        helper: 'Retours signés prêts à ouvrir',
+        helper: 'Annotations du Directeur DN reçues, prêtes à ouvrir',
         tone: 'info',
       },
       {
@@ -722,7 +756,7 @@ export async function listRequestCockpit(viewerUserId?: number): Promise<Request
         key: 'waiting_dg',
         label: 'En attente DG',
         value: waitingDg.length,
-        helper: 'Circuit signature non terminé',
+        helper: 'Annotations DG ou Directeur DN en attente',
         tone: waitingDg.length > 0 ? 'warning' : 'success',
       },
       {
@@ -744,7 +778,7 @@ export async function sendToSignature(requestId: number, actorUserId: number): P
   const [circuitDoc] = await db
     .select()
     .from(dgCircuitDocuments)
-    .where(eq(dgCircuitDocuments.requestId, requestId));
+    .where(and(eq(dgCircuitDocuments.requestId, requestId), eq(dgCircuitDocuments.entityType, 'intake_request')));
   if (!circuitDoc) throw new Error('DG_CIRCUIT_NOT_FOUND');
   if (circuitDoc.status !== 'submitted') throw new Error('INVALID_CIRCUIT_TRANSITION');
 
@@ -767,115 +801,18 @@ export async function sendToSignature(requestId: number, actorUserId: number): P
   return toRequestView(request, updatedCircuitDoc);
 }
 
-/** Legacy fallback for records already in the old two-step state. New M1 intake
- *  uses sendToSignature() then returnSignedFromDg(). */
-export async function markSigned(requestId: number, actorUserId: number): Promise<RequestView> {
-  // K7 - closed dossier: read-only (requests/dossier-open.ts).
-  await assertDossierOpen(db, requestId);
-  const [circuitDoc] = await db
-    .select()
-    .from(dgCircuitDocuments)
-    .where(eq(dgCircuitDocuments.requestId, requestId));
-  if (!circuitDoc) throw new Error('DG_CIRCUIT_NOT_FOUND');
-  if (circuitDoc.status !== 'submitted') throw new Error('INVALID_CIRCUIT_TRANSITION');
-
-  await db
-    .update(dgCircuitDocuments)
-    .set({ status: 'signed', signedAt: new Date() })
-    .where(eq(dgCircuitDocuments.id, circuitDoc.id));
-
-  const [request] = await db
-    .update(requests)
-    .set({ status: 'signed', updatedAt: new Date() })
-    .where(eq(requests.id, requestId))
-    .returning();
-
-  await logAudit({
-    userId: actorUserId,
-    action: 'DG_CIRCUIT_SIGNED',
-    module: 'M1',
-    entityId: requestId,
-  });
-
-  const updatedCircuitDoc = { ...circuitDoc, status: 'signed' } as typeof circuitDoc;
-  return toRequestView(request, updatedCircuitDoc);
-}
-
-/** Pattern "Circuit DG" - Signe -> En attente de traitement. DN can now
- *  start working the dossier (Phase 1 creation is a separate module). */
-export async function markPendingReview(
-  requestId: number,
-  actorUserId: number
-): Promise<RequestView> {
-  // K7 - closed dossier: read-only (requests/dossier-open.ts).
-  await assertDossierOpen(db, requestId);
-  const [circuitDoc] = await db
-    .select()
-    .from(dgCircuitDocuments)
-    .where(eq(dgCircuitDocuments.requestId, requestId));
-  if (!circuitDoc) throw new Error('DG_CIRCUIT_NOT_FOUND');
-  if (circuitDoc.status !== 'signed') throw new Error('INVALID_CIRCUIT_TRANSITION');
-
-  await db
-    .update(dgCircuitDocuments)
-    .set({ status: 'pending_review', pendingReviewAt: new Date() })
-    .where(eq(dgCircuitDocuments.id, circuitDoc.id));
-
-  const [request] = await db
-    .update(requests)
-    .set({ status: 'pending_review', updatedAt: new Date() })
-    .where(eq(requests.id, requestId))
-    .returning();
-
-  await logAudit({
-    userId: actorUserId,
-    action: 'DG_CIRCUIT_PENDING_REVIEW',
-    module: 'M1',
-    entityId: requestId,
-  });
-
-  const updatedCircuitDoc = { ...circuitDoc, status: 'pending_review' } as typeof circuitDoc;
-  return toRequestView(request, updatedCircuitDoc);
-}
-
+/** SESSION1-M1-1 - the DG-annotated return. Shares its implementation with
+ *  courrier-tasks.returnSigned (dn-annotation/intake-dg-return.ts) and no
+ *  longer sets requests.status: only the Directeur DN return unlocks M3.
+ *  The legacy mark-signed / mark-pending-review chain was removed: it could
+ *  move an intake request to pending_review without that second annotation. */
 export async function returnSignedFromDg(
   requestId: number,
   attachment: PreparedAttachment,
   actorUserId: number
 ): Promise<RequestView> {
-  let target: RelocationTarget | undefined;
-  const { request, circuitDoc } = await db.transaction(async (tx) => {
-    // K7 - closed dossier: read-only (requests/dossier-open.ts).
-    await assertDossierOpen(tx, requestId);
-    const circuit = await lockIntakeCircuit(tx, requestId);
-    target = { ownerType: 'dg_circuit_document', ownerId: circuit.id };
-    if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') {
-      const [current] = await tx.select().from(requests).where(eq(requests.id, requestId));
-      return { request: current, circuitDoc: circuit };
-    }
-    if (circuit.status !== 'in_signature_circuit') throw new Error('INVALID_CIRCUIT_TRANSITION');
-
-    await replaceCircuitVersion(tx, requestId, circuit.id, attachment, actorUserId);
-
-    const now = new Date();
-    const [updatedCircuitDoc] = await tx
-      .update(dgCircuitDocuments)
-      .set({ status: 'pending_review', signedAt: now, pendingReviewAt: now })
-      .where(eq(dgCircuitDocuments.id, circuit.id))
-      .returning();
-
-    const [updatedRequest] = await tx
-      .update(requests)
-      .set({ status: 'pending_review', updatedAt: now })
-      .where(eq(requests.id, requestId))
-      .returning();
-
-    await logAudit({ userId: actorUserId, action: 'DG_CIRCUIT_SIGNED_RETURNED', module: 'M1', entityId: requestId }, tx);
-    return { request: updatedRequest, circuitDoc: updatedCircuitDoc };
-  });
-
-  if (target) await relocateDossierAssetAfterCommit(attachment.assetId, target);
-  return toRequestView(request, circuitDoc);
+  const { request, circuit } = await returnIntakeDgAnnotation({ requestId, attachment, actorUserId });
+  return toRequestView(request, circuit);
 }
 
 /** Cancellable only while still in Depose - locked the instant DG signs it.
@@ -900,7 +837,7 @@ export async function cancelRequest(
   const [circuitDoc] = await db
     .select()
     .from(dgCircuitDocuments)
-    .where(eq(dgCircuitDocuments.requestId, requestId));
+    .where(and(eq(dgCircuitDocuments.requestId, requestId), eq(dgCircuitDocuments.entityType, 'intake_request')));
   if (!circuitDoc) throw new Error('DG_CIRCUIT_NOT_FOUND');
   if (circuitDoc.status !== 'submitted') throw new Error('REQUEST_NOT_CANCELLABLE');
 
@@ -937,7 +874,7 @@ export async function listRequestsByApplicant(applicantId: number): Promise<Requ
       const [circuitDoc] = await db
         .select()
         .from(dgCircuitDocuments)
-        .where(eq(dgCircuitDocuments.requestId, row.id));
+        .where(and(eq(dgCircuitDocuments.requestId, row.id), eq(dgCircuitDocuments.entityType, 'intake_request')));
       return toRequestView(row, circuitDoc ?? null);
     })
   );

@@ -47,7 +47,7 @@ describe('K7 closed dossier is read-only (real PostgreSQL)', { skip }, () => {
 
   before(async () => {
     pool = new pg.Pool({ connectionString: DATABASE_URL });
-    const [phasesSvc, prelim, formal, deep, site, cert, meetings, courrier, requests, guard, dbModule] = await Promise.all([
+    const [phasesSvc, prelim, formal, deep, site, cert, meetings, courrier, dnAnnotation, requests, guard, dbModule] = await Promise.all([
       import('../phases/phases.service.js'),
       import('../preliminary-evaluation/preliminary-evaluation.service.js'),
       import('../formal-request/formal-request.service.js'),
@@ -56,11 +56,12 @@ describe('K7 closed dossier is read-only (real PostgreSQL)', { skip }, () => {
       import('../certificates/certificates.service.js'),
       import('../meetings/meetings.service.js'),
       import('../courrier-tasks/courrier-tasks.service.js'),
+      import('../dn-annotation/dn-annotation.service.js'),
       import('./requests.service.js'),
       import('./dossier-open.js'),
       import('../../shared/db/index.js'),
     ]);
-    m = { phasesSvc, prelim, formal, deep, site, cert, meetings, courrier, requests, guard, db: dbModule.db };
+    m = { phasesSvc, prelim, formal, deep, site, cert, meetings, courrier, dnAnnotation, requests, guard, db: dbModule.db };
     closeAppPool = () => dbModule.db.$client.end();
   });
 
@@ -112,12 +113,12 @@ describe('K7 closed dossier is read-only (real PostgreSQL)', { skip }, () => {
       `INSERT INTO certificates (request_id, reference, certificate_type) VALUES ($1, $2, 'agreement') RETURNING id`,
       [request, `CERT-K7-${k}`]
     )).id;
-    await pool.query(`INSERT INTO dg_circuit_documents (entity_type, request_id, status) VALUES ('intake_request', $1, 'submitted'), ('formal_request_letter', $1, 'submitted')`, [request]);
+    await pool.query(`INSERT INTO dg_circuit_documents (entity_type, request_id, status) VALUES ('intake_request', $1, 'submitted'), ('formal_request_letter', $1, 'submitted'), ('dn_director_annotation', $1, 'submitted')`, [request]);
     return { user, applicant, request, phase, meeting, visit, evaluation, certificate };
   }
 
   function actions(d: Awaited<ReturnType<typeof dossierWithEverything>>): Array<[string, () => Promise<unknown>]> {
-    const { phasesSvc, prelim, formal, deep, site, cert, meetings, courrier, requests } = m;
+    const { phasesSvc, prelim, formal, deep, site, cert, meetings, courrier, dnAnnotation, requests } = m;
     const u = d.user;
     const soon = new Date(Date.now() + 3 * 86_400_000).toISOString();
     return [
@@ -166,8 +167,9 @@ describe('K7 closed dossier is read-only (real PostgreSQL)', { skip }, () => {
       ['courrier sent to signature', () => courrier.confirmPrintedForSignature(`formal_request_letter:${d.request}`, u)],
       ['courrier signed copy returned', () => courrier.returnSigned(`formal_request_letter:${d.request}`, attachment, u)],
       ['M1 sent to signature', () => requests.sendToSignature(d.request, u)],
-      ['M1 marked signed', () => requests.markSigned(d.request, u)],
-      ['M1 pending review', () => requests.markPendingReview(d.request, u)],
+      ['courrier intake DG annotated copy returned', () => courrier.returnSigned(`intake_request:${d.request}`, attachment, u)],
+      ['DN annotation sent to the Directeur DN', () => dnAnnotation.sendToDirector(`dn_director_annotation:${d.request}`, u)],
+      ['DN annotation returned', () => dnAnnotation.returnAnnotated(`dn_director_annotation:${d.request}`, attachment, u)],
       ['M1 signed copy returned', () => requests.returnSignedFromDg(d.request, attachment, u)],
       ['M1 circuit document replaced', () => requests.replaceCircuitDocument(d.request, attachment, u)],
       ['M1 cancelled (staff)', () => requests.cancelRequest(d.request, { userId: u })],
@@ -195,7 +197,7 @@ describe('K7 closed dossier is read-only (real PostgreSQL)', { skip }, () => {
       assert.deepEqual(failures, [], `\n  ${failures.join('\n  ')}`);
       // Every write route of the workflow modules (cross-checked route by route,
       // see TASKS.md K7a); openPreliminaryPhase already requires 'pending_review'.
-      assert.equal(list.length, 50);
+      assert.equal(list.length, 51);
     });
   }
 

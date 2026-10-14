@@ -1,5 +1,6 @@
 import cron from "node-cron";
-import { and, eq, isNull, lt } from "drizzle-orm";
+import { and, eq, inArray, isNull, lt } from "drizzle-orm";
+import { RECEPTION_CIRCUIT_ENTITY_TYPES } from "../modules/dn-annotation/dn-annotation.stage.js";
 import { db } from "../shared/db/index.js";
 import { dgCircuitDocuments, requests, userRoles, notifications } from "../shared/db/schema.js";
 import { subtractWorkingDays } from "@aidn/shared";
@@ -25,6 +26,7 @@ export async function runDgCircuitAlertCheck(): Promise<void> {
     .from(dgCircuitDocuments)
     .where(
       and(
+        inArray(dgCircuitDocuments.entityType, [...RECEPTION_CIRCUIT_ENTITY_TYPES]),
         eq(dgCircuitDocuments.status, "in_signature_circuit"),
         lt(dgCircuitDocuments.signatureSentAt, cutoff),
         isNull(dgCircuitDocuments.blockedAlertSentAt)

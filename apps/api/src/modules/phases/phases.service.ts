@@ -18,6 +18,7 @@ import {
 } from '../uploads/upload-attachment.js';
 import { relocateDossierAssetAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
 import { assertPhaseDossierOpen, isDossierClosed } from '../requests/dossier-open.js';
+import { isPreliminaryOpenable } from '../dn-annotation/dn-annotation.stage.js';
 
 export interface PhaseView {
   id: number;
@@ -60,6 +61,18 @@ export async function openPreliminaryPhase(
   if (existing) throw new Error('PHASE_ALREADY_OPEN');
 
   if (request.status !== 'pending_review') throw new Error('REQUEST_NOT_READY_FOR_PHASE');
+
+  // SESSION1-M1-1 - final gate: the Directeur DN circuit is authoritative,
+  // requests.status is its projection. If they disagree, M3 stays closed.
+  const [dnCircuit] = await db
+    .select({ status: dgCircuitDocuments.status })
+    .from(dgCircuitDocuments)
+    .where(
+      and(eq(dgCircuitDocuments.requestId, requestId), eq(dgCircuitDocuments.entityType, 'dn_director_annotation'))
+    );
+  if (!isPreliminaryOpenable(request.status, dnCircuit?.status ?? null)) {
+    throw new Error('DN_ANNOTATION_REQUIRED');
+  }
 
   const [phase] = await db.insert(phases).values({ requestId, phaseCode: 'M3' }).returning();
 

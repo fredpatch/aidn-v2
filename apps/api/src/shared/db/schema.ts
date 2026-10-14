@@ -47,6 +47,7 @@ export const dgCircuitEntityTypeEnum = pgEnum('dg_circuit_entity_type', [
   'intake_request',
   'formal_request_letter',
   'pre_evaluation', // M3 - PRELIM-DG-CIRCUIT-1
+  'dn_director_annotation', // M1 - SESSION1-M1-1: 2nd physical circuit, Assistante DN <-> Directeur DN
 ]);
 
 /** Overall dossier status - includes terminal states not part of the DG circuit.

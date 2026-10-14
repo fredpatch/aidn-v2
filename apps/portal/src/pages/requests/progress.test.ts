@@ -129,7 +129,7 @@ describe('buildBanner - active dossier', () => {
 
   it.each([
     ['submitted', 'Demande déposée'],
-    ['in_signature_circuit', 'Demande en signature'],
+    ['in_signature_circuit', 'Demande en cours d’annotation'],
     ['signed', 'Demande signée'],
     ['pending_review', 'Transmise à la Direction de la Navigabilité'],
   ])('intake, circuit %s -> "%s"', (circuitStatus, title) => {

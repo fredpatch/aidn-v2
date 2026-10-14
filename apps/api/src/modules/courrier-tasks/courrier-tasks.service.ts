@@ -24,6 +24,7 @@ import type {
   CourrierTaskSource,
   CourrierTaskView,
 } from './courrier-tasks.types.js';
+import { returnIntakeDgAnnotation } from '../dn-annotation/intake-dg-return.js';
 import { assertDossierOpen, dossierFlags } from '../requests/dossier-open.js';
 import {
   getIntegerValue,
@@ -327,6 +328,20 @@ export async function returnSigned(
   const found = await getCircuitForTask(taskId);
   await ensureTaskCanMutate(found);
 
+  // SESSION1-M1-1 - the DG-annotated intake return has one implementation,
+  // shared with requests.returnSignedFromDg: it creates the Directeur DN circuit
+  // and no longer unlocks M3.
+  if (found.entityType === 'intake_request') {
+    const { circuit } = await returnIntakeDgAnnotation({
+      requestId: found.requestId,
+      attachment,
+      actorUserId,
+    });
+    const intakeTask = await buildTaskView(circuit, await loadTaskContext([circuit]));
+    if (!intakeTask) throw new Error('COURRIER_TASK_NOT_FOUND');
+    return intakeTask;
+  }
+
   const target: RelocationTarget = { ownerType: 'dg_circuit_document', ownerId: found.id };
   const updated = await db.transaction(async (tx) => {
     // STORAGE-0B - target row locked first, then the upload asset.
@@ -350,13 +365,6 @@ export async function returnSigned(
       .set({ status: 'pending_review', signedAt: now, pendingReviewAt: now })
       .where(eq(dgCircuitDocuments.id, circuit.id))
       .returning();
-
-    if (signed.entityType === 'intake_request') {
-      await tx
-        .update(requests)
-        .set({ status: 'pending_review', updatedAt: now })
-        .where(eq(requests.id, signed.requestId));
-    }
 
     await logAudit(
       {

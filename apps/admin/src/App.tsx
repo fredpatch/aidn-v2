@@ -17,6 +17,7 @@ import SiteInspectionPhasePage from './pages/phases/site-inspection/SiteInspecti
 import CertificatesPhasePage from './pages/phases/certificates/CertificatesPhasePage';
 import MyInspectionsPage from './pages/inspections/MyInspectionsPage';
 import CourrierTasksPage from './pages/courrier-tasks/CourrierTasksPage';
+import CircuitDirecteurDnPage from './pages/dn-annotation/CircuitDirecteurDnPage';
 import S5PaymentsPage from './pages/payments/S5PaymentsPage';
 import DashboardPage from './pages/dashboard/DashboardPage';
 import ReceptionDashboardPage from './pages/dashboard/ReceptionDashboardPage';
@@ -36,6 +37,7 @@ const DASHBOARD_ROLES: InternalRole[] = [
   'SU',
 ];
 const RECEPTION_ROLES: InternalRole[] = ['reception', 'assistant_dg', 'SU'];
+const DN_CIRCUIT_ROLES: InternalRole[] = ['assistant_dn', 'SU'];
 const DEEP_EVALUATION_ROLES: InternalRole[] = ['dn_agent', 'dn_supervisor', 's5_agent', 'SU'];
 const SITE_INSPECTION_ROLES: InternalRole[] = ['dn_agent', 'dn_supervisor', 's5_agent', 'r3_agent', 'SU'];
 const DELIVERY_ROLES: InternalRole[] = ['dn_agent', 'dn_supervisor', 's5_agent', 'SU'];
@@ -73,6 +75,14 @@ function RoleRoute({
 
 function HomeRoute() {
   const { user } = useAuth();
+
+  // Assistante DN has no dashboard: her inbox is the Directeur DN circuit.
+  if (
+    hasAnyRole(user?.roles, ['assistant_dn']) &&
+    !hasAnyRole(user?.roles, ['dn_agent', 'dn_supervisor', 'reception', 'assistant_dg', 's5_agent', 'r3_agent'])
+  ) {
+    return <Navigate to="/circuit-directeur-dn" replace />;
+  }
 
   if (
     hasAnyRole(user?.roles, ['s5_agent']) &&
@@ -185,6 +195,14 @@ function Gate() {
           element={
             <RoleRoute roles={RECEPTION_ROLES}>
               <CourrierTasksPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="circuit-directeur-dn"
+          element={
+            <RoleRoute roles={DN_CIRCUIT_ROLES}>
+              <CircuitDirecteurDnPage />
             </RoleRoute>
           }
         />

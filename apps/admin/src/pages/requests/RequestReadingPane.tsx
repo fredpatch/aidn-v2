@@ -6,6 +6,7 @@ import { Button, buttonVariants } from '../../components/ui/button';
 import { ClosedDossierBadge } from '../../components/common/ClosedDossierBadge';
 import { EmptyState } from '../../components/common/EmptyState';
 import { StatusBadge } from '../../components/common/StatusBadge';
+import FileLink from '../../components/files/FileLink';
 import { apiErrorMessage } from '../../lib/axios';
 import { startPreliminaryPhase } from '../../lib/api/requests.api';
 import type { RequestCockpitItem, RequestCockpitPhase } from '../../lib/api/requests.types';
@@ -135,7 +136,15 @@ export function RequestReadingPane({
           </Section>
           <Section title="Informations clés">
             <Info label="Phase actuelle" value={item.currentPhaseLabel} />
-            <Info label="Circuit signature" value={item.circuitStatusLabel} />
+            <Info label="Circuit d’annotation" value={item.circuitStatusLabel} />
+            {item.dnAnnotationDocumentUrl ? (
+              <div className="flex items-start justify-between gap-4 text-sm">
+                <span className="text-anac-muted">Annotation du Directeur DN</span>
+                <FileLink address={item.dnAnnotationDocumentUrl} className="font-semibold text-anac-blue hover:underline">
+                  Voir le document
+                </FileLink>
+              </div>
+            ) : null}
             <Info label="Date de dépôt" value={formatDateTime(item.createdAt)} />
             <Info label="Dernière activité" value={formatDateTime(item.lastActivityAt)} />
           </Section>

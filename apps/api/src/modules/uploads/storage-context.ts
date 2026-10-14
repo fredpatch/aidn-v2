@@ -20,6 +20,7 @@ import {
   requests,
 } from '../../shared/db/schema.js';
 import type { UploadOwnerType } from './uploads.types.js';
+export type DgCircuitEntityType = (typeof dgCircuitDocuments.$inferSelect)['entityType'];
 
 /** Hardcoded French dossier folder names - do NOT derive these from
  *  MODULE_CODES or any UI translation table (approved decision). */
@@ -69,7 +70,7 @@ export function isRelocatableOwnerType(ownerType: string): ownerType is UploadOw
 export interface StorageContextDeps {
   dgCircuitDocument: (
     id: number
-  ) => Promise<{ entityType: 'intake_request' | 'formal_request_letter' | 'pre_evaluation'; reference: string } | undefined>;
+  ) => Promise<{ entityType: DgCircuitEntityType; reference: string } | undefined>;
   formalRequestDocument: (id: number) => Promise<{ slot: string; reference: string } | undefined>;
   preliminaryEvaluationForm: (id: number) => Promise<{ reference: string } | undefined>;
   payment: (id: number) => Promise<{ reference: string; phaseCode: PhaseFolderCode } | undefined>;
@@ -160,6 +161,10 @@ export async function resolveStorageContext(
     case 'dg_circuit_document': {
       const row = await deps.dgCircuitDocument(ownerId);
       if (!row) return null;
+      // SESSION1-M1-1 - explicit: the Directeur DN annotation is an M1 document, never the M4 fallback.
+      if (row.entityType === 'dn_director_annotation') {
+        return { requestReference: row.reference, phaseFolder: PHASE_FOLDERS.M1, categorySlug: 'annotation-dn' };
+      }
       const phase: PhaseFolderCode =
         row.entityType === 'intake_request' ? 'M1' : row.entityType === 'pre_evaluation' ? 'M3' : 'M4';
       return { requestReference: row.reference, phaseFolder: PHASE_FOLDERS[phase], categorySlug: 'circuit-dg' };

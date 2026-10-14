@@ -3,6 +3,16 @@
 Commit-level history. Covers `be9fce9` through the 2026-10-09 D3c admin
 unread/activity batch.
 
+## 2026-10-14 SESSION1-M1-1: Directeur DN annotation circuit before M3
+
+- New circuit `dn_director_annotation` (migration 0008 enum; grandfather backfill = script `db:backfill:dn-annotation`, run after `db:migrate`) reusing `dg_circuit_documents`;
+  dedicated `dn-annotation` API module and admin page « Circuit Directeur DN » for `assistant_dn`.
+- The DG return (single shared implementation) no longer sets `requests.status`; only the Directeur DN return does,
+  atomically. `openPreliminaryPhase` checks both. Legacy intake `mark-signed` / `mark-pending-review` removed.
+- File-access stage `dn_annotation` (internal, no applicant, no Réception); storage `M1/annotation-dn`.
+- Readers keyed by request id fixed (dashboard, analytics, alert job, cockpit...). No automatic alert / notification yet.
+- Details: `project/decisions.md` #16, `technical/gotchas.md` #21-22.
+
 ## 2026-10-14 SESSION1-ROLE-1: Assistante DN role and métier terminology
 
 - Added `assistant_dn` to `INTERNAL_ROLES` and the `internal_role` enum (migration 0007); no permissions granted.

@@ -56,18 +56,34 @@ describe('canAccessFile', () => {
   it('gives each staff role exactly the stages it can read', () => {
     const matrix: Record<string, string[]> = {
       dg_circuit: ['reception', 'assistant_dg', 'dn_agent', 'dn_supervisor'],
+      dn_annotation: ['assistant_dn', 'dn_agent', 'dn_supervisor'],
       M3: ['dn_agent', 'dn_supervisor'],
       M4: ['dn_agent', 'dn_supervisor'],
       M5: ['dn_agent', 'dn_supervisor', 's5_agent'],
       M6: ['dn_agent', 'dn_supervisor', 's5_agent', 'r3_agent'],
       M7: ['dn_agent', 'dn_supervisor', 's5_agent'],
     };
-    const roles = ['reception', 'assistant_dg', 'dn_agent', 'dn_supervisor', 's5_agent', 'r3_agent'];
+    const roles = ['reception', 'assistant_dg', 'assistant_dn', 'dn_agent', 'dn_supervisor', 's5_agent', 'r3_agent'];
     for (const [stage, allowed] of Object.entries(matrix)) {
       for (const role of roles) {
         assert.equal(canAccessFile(staff(role), dossier(stage)), allowed.includes(role), `${role} on ${stage}`);
       }
     }
+  });
+
+  it('keeps the Directeur DN annotation internal: no applicant, no reception, SU yes', () => {
+    const annotation = dossier('dn_annotation', 'dg_circuit_document');
+    assert.equal(canAccessFile(applicant(7), annotation), false);
+    assert.equal(canAccessFile(staff('reception'), annotation), false);
+    assert.equal(canAccessFile(staff('assistant_dg'), annotation), false);
+    assert.equal(canAccessFile(staff('assistant_dn'), annotation), true);
+    assert.equal(canAccessFile(staff('dn_agent'), annotation), true);
+    assert.equal(canAccessFile(staff('dn_supervisor'), annotation), true);
+    assert.equal(canAccessFile(staff('SU'), annotation), true);
+    // The DG circuit stays applicant-visible and out of reach for assistant_dn.
+    const dg = dossier('dg_circuit', 'dg_circuit_document');
+    assert.equal(canAccessFile(applicant(7), dg), true);
+    assert.equal(canAccessFile(staff('assistant_dn'), dg), false);
   });
 
   it('opens current active templates to any authenticated user, history to DN only', () => {

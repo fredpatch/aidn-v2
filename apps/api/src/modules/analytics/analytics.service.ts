@@ -1,4 +1,6 @@
 import { db } from '../../shared/db/index.js';
+import { RECEPTION_CIRCUIT_ENTITY_TYPES } from '../dn-annotation/dn-annotation.stage.js';
+import { inArray } from 'drizzle-orm';
 import {
   dgCircuitDocuments,
   meetings,
@@ -176,7 +178,10 @@ function buildMetric(
 export async function getAnalyticsOverview(filters: AnalyticsFilters): Promise<AnalyticsOverview> {
   const requestRows = await db.select().from(requests);
   const phaseRows = await db.select().from(phases);
-  const circuitRows = await db.select().from(dgCircuitDocuments);
+  const circuitRows = await db
+    .select()
+    .from(dgCircuitDocuments)
+    .where(inArray(dgCircuitDocuments.entityType, [...RECEPTION_CIRCUIT_ENTITY_TYPES]));
   const paymentRows = await db.select().from(payments);
   const meetingRows = await db.select().from(meetings);
   const organisationRows = await db.select().from(organisations);

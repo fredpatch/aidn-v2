@@ -37,6 +37,10 @@ export interface RequestCockpitItem {
   statusLabel: string;
   circuitStatus: string | null;
   circuitStatusLabel: string;
+  /** SESSION1-M1-1 - status of the Directeur DN circuit (null before the DG return). */
+  dnAnnotationStatus: string | null;
+  /** Returned Directeur DN annotation (staff only); null until it is returned. */
+  dnAnnotationDocumentUrl: string | null;
   createdAt: string;
   updatedAt: string;
   organisationName: string;

@@ -18,6 +18,8 @@ const item = (over: Partial<RequestCockpitItem>): RequestCockpitItem => ({
   statusLabel: 'En cours',
   circuitStatus: 'completed',
   circuitStatusLabel: 'Circuit termine',
+  dnAnnotationStatus: null,
+  dnAnnotationDocumentUrl: null,
   createdAt: '2026-10-05T09:00:00.000Z',
   updatedAt: '2026-10-05T09:00:00.000Z',
   lastActivityAt: '2026-10-05T09:00:00.000Z',
@@ -105,12 +107,12 @@ const pane = () => screen.getByRole('article');
 const tab = (name: RegExp) => screen.getByRole('button', { name });
 
 describe('<RequestsPage> (D1)', () => {
-  it('tabs are exclusive: a rejected dossier is under « Clôturées », not « À traiter » or « Attente DG »', async () => {
+  it('tabs are exclusive: a rejected dossier is under « Clôturées », not « À traiter » or « Attente annotations »', async () => {
     renderPage();
     await screen.findByRole('listbox');
     expect(tab(/^Toutes/)).toHaveTextContent('4');
     expect(tab(/^À traiter/)).toHaveTextContent('2');
-    expect(tab(/^Attente DG/)).toHaveTextContent('0');
+    expect(tab(/^Attente annotations/)).toHaveTextContent('0');
     expect(tab(/^Clôturées/)).toHaveTextContent('2');
 
     fireEvent.click(tab(/^Clôturées/));
@@ -134,7 +136,7 @@ describe('<RequestsPage> (D1)', () => {
       await within(await screen.findByRole('article')).findByRole('heading', { name: 'DEM-D1-01' })
     ).toBeInTheDocument();
 
-    fireEvent.click(tab(/^Attente DG/));
+    fireEvent.click(tab(/^Attente annotations/));
     expect(screen.getByText('Aucune demande dans cette vue')).toBeInTheDocument();
     expect(within(pane()).getByText('Aucune demande sélectionnée')).toBeInTheDocument();
     expect(within(pane()).queryByRole('heading', { name: /DEM-D1/ })).not.toBeInTheDocument();

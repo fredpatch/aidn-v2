@@ -22,6 +22,8 @@ const item = (over: Partial<RequestCockpitItem>): RequestCockpitItem => ({
   statusLabel: 'En cours',
   circuitStatus: 'completed',
   circuitStatusLabel: 'Circuit termine',
+  dnAnnotationStatus: null,
+  dnAnnotationDocumentUrl: null,
   createdAt: '2026-10-01T09:00:00.000Z',
   updatedAt: '2026-10-01T09:00:00.000Z',
   lastActivityAt: '2026-10-01T09:00:00.000Z',

@@ -17,6 +17,7 @@ import {
   LayoutDashboard,
   CalendarDays,
   BarChart3,
+  Route as RouteIcon,
 } from 'lucide-react';
 
 import { internalRoleLabel, type InternalRole } from '@aidn/shared';
@@ -50,6 +51,12 @@ const NAV_ITEMS: NavItem[] = [
     label: 'Courriers à traiter',
     icon: FileText,
     roles: ['reception', 'assistant_dg', 'SU'],
+  },
+  {
+    to: '/circuit-directeur-dn',
+    label: 'Courrier DN',
+    icon: RouteIcon,
+    roles: ['assistant_dn', 'SU'],
   },
   {
     to: '/mes-inspections',

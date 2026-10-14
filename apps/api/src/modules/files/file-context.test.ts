@@ -15,8 +15,9 @@ const store: FileContextStore = {
   async findRequestApplicant(requestId) {
     return requestId === REQUEST.id ? REQUEST.applicantId : null;
   },
-  async findDgCircuitRequest(id) {
-    return id === 5 ? 1 : null;
+  async findDgCircuit(id) {
+    if (id === 7) return { requestId: 1, entityType: 'dn_director_annotation' };
+    return id === 5 ? { requestId: 1, entityType: 'intake_request' } : null;
   },
   async findPhase(id) {
     return phases[id] ?? null;
@@ -70,6 +71,16 @@ describe('resolveAssetContext', () => {
       requestId: 1,
       applicantId: 7,
       stage: 'dg_circuit',
+    });
+  });
+
+  it('resolves a Directeur DN circuit document to the dn_annotation stage', async () => {
+    assert.deepEqual(await resolveAssetContext(asset({ linkedOwnerType: 'dg_circuit_document', linkedOwnerId: 7 }), store), {
+      kind: 'dossier',
+      ownerType: 'dg_circuit_document',
+      requestId: 1,
+      applicantId: 7,
+      stage: 'dn_annotation',
     });
   });
 

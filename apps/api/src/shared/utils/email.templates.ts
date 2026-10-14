@@ -51,9 +51,9 @@ export function dgCircuitAlertEmailTemplate(params: {
   daysStuck: number;
 }): string {
   return baseLayout(
-    `AIDN - Demande ${params.reference} en attente de signature`,
+    `AIDN - Demande ${params.reference} en attente d’annotation du DG`,
     `
-      <p>La demande <strong>${params.reference}</strong> est en attente de signature DG
+      <p>La demande <strong>${params.reference}</strong> est en attente d’annotation du DG
       depuis ${params.daysStuck} jour(s).</p>
       <p>Merci de vérifier l'avancement du parapheur.</p>
     `

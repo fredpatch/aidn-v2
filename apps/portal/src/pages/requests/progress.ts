@@ -106,11 +106,11 @@ export interface BannerContent {
 const INTAKE_BANNERS: Record<string, { title: string; description: string }> = {
   submitted: {
     title: 'Demande déposée',
-    description: "Votre demande va suivre le circuit de signature de l'ANAC. Vous pouvez encore l'annuler.",
+    description: "Votre demande va suivre le circuit d'annotation de l'ANAC. Vous pouvez encore l'annuler.",
   },
   in_signature_circuit: {
-    title: 'Demande en signature',
-    description: "Votre demande suit le circuit de signature interne de l'ANAC.",
+    title: 'Demande en cours d’annotation',
+    description: "Votre demande suit le circuit d'annotation interne de l'ANAC.",
   },
   signed: {
     title: 'Demande signée',

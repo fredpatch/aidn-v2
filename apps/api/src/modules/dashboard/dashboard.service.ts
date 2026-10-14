@@ -1,4 +1,5 @@
-import { and, desc, eq, gte, lt, ne, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, lt, ne, sql } from 'drizzle-orm';
+import { RECEPTION_CIRCUIT_ENTITY_TYPES } from '../dn-annotation/dn-annotation.stage.js';
 import { db } from '../../shared/db/index.js';
 import {
   auditLogs,
@@ -401,8 +402,8 @@ function s5ActivityLabel(action: string): string | null {
 
 function receptionActivityLabel(action: string): string | null {
   if (action === 'REQUEST_SUBMITTED') return 'Demande déposée';
-  if (action === 'DG_CIRCUIT_SENT_TO_SIGNATURE') return 'Demande mise en signature';
-  if (action === 'DG_CIRCUIT_SIGNED_RETURNED') return 'Retour signé scanné';
+  if (action === 'DG_CIRCUIT_SENT_TO_SIGNATURE') return 'Demande mise en circuit DG';
+  if (action === 'DG_CIRCUIT_SIGNED_RETURNED' || action === 'DG_ANNOTATION_RETURNED') return 'Annotation du DG reçue';
   if (action === 'COURRIER_SENT_TO_SIGNATURE') return 'Courrier mis en signature';
   if (action === 'COURRIER_SIGNED_RETURNED') return 'Retour courrier scanné';
   if (action === 'FORMAL_LETTER_SUBMITTED') return 'Lettre officielle déposée';
@@ -531,7 +532,7 @@ export async function getDashboardSummary(
   ] = await Promise.all([
     db.select().from(requests),
     db.select().from(phases),
-    db.select().from(dgCircuitDocuments),
+    db.select().from(dgCircuitDocuments).where(inArray(dgCircuitDocuments.entityType, [...RECEPTION_CIRCUIT_ENTITY_TYPES])),
     db.select().from(meetings),
     db.select().from(payments),
     db.select().from(certificates),
@@ -1300,6 +1301,7 @@ export async function getReceptionDashboardSummary(
       .innerJoin(requests, eq(dgCircuitDocuments.requestId, requests.id))
       .innerJoin(organisations, eq(requests.organisationId, organisations.id))
       .innerJoin(applicants, eq(requests.applicantId, applicants.id))
+      .where(inArray(dgCircuitDocuments.entityType, [...RECEPTION_CIRCUIT_ENTITY_TYPES]))
       .orderBy(desc(dgCircuitDocuments.createdAt)),
     db
       .select({
@@ -1312,7 +1314,7 @@ export async function getReceptionDashboardSummary(
       .from(auditLogs)
       .leftJoin(users, eq(auditLogs.userId, users.id))
       .where(
-        sql`${auditLogs.action} in ('REQUEST_SUBMITTED', 'DG_CIRCUIT_SENT_TO_SIGNATURE', 'DG_CIRCUIT_SIGNED_RETURNED', 'COURRIER_SENT_TO_SIGNATURE', 'COURRIER_SIGNED_RETURNED', 'FORMAL_LETTER_SUBMITTED')`
+        sql`${auditLogs.action} in ('REQUEST_SUBMITTED', 'DG_CIRCUIT_SENT_TO_SIGNATURE', 'DG_CIRCUIT_SIGNED_RETURNED', 'DG_ANNOTATION_RETURNED', 'COURRIER_SENT_TO_SIGNATURE', 'COURRIER_SIGNED_RETURNED', 'FORMAL_LETTER_SUBMITTED')`
       )
       .orderBy(desc(auditLogs.createdAt))
       .limit(5),
@@ -1334,7 +1336,7 @@ export async function getReceptionDashboardSummary(
     return {
       id: `${circuit.entityType}:${row.requestId}`,
       circuitId: circuit.id,
-      entityType: circuit.entityType,
+      entityType: circuit.entityType as ReceptionDashboardCourrierItem['entityType'], // query is filtered to the reception sources
       sourceLabel: RECEPTION_CIRCUIT_SOURCE_LABELS[circuit.entityType] ?? circuit.entityType,
       requestId: row.requestId,
       requestReference: row.requestReference,

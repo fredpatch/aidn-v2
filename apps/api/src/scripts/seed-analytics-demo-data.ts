@@ -278,6 +278,19 @@ async function seedCircuit(requestId: number, scenario: Scenario, createdAt: Dat
     pendingReviewAt: addDays(createdAt, 4),
     createdAt,
   });
+
+  // SESSION1-M1-1 - a dossier past the DG return has also crossed the Directeur DN
+  // circuit (the M3 gate needs it at pending_review).
+  await db.insert(dgCircuitDocuments).values({
+    entityType: 'dn_director_annotation',
+    requestId,
+    status: 'pending_review',
+    depositedAt: addDays(createdAt, 4),
+    signatureSentAt: addDays(createdAt, 5),
+    signedAt: addDays(createdAt, 6),
+    pendingReviewAt: addDays(createdAt, 6),
+    createdAt: addDays(createdAt, 4),
+  });
 }
 
 async function seedPhaseDetails(

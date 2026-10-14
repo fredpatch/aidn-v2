@@ -80,7 +80,7 @@ export async function sendDgCircuitAlertEmail(params: {
   const { to, ...templateParams } = params;
   await sendEmail({
     to,
-    subject: `AIDN - Demande ${params.reference} en attente de signature`,
+    subject: `AIDN - Demande ${params.reference} en attente d’annotation du DG`,
     html: dgCircuitAlertEmailTemplate(templateParams),
   });
 }

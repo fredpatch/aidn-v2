@@ -19,6 +19,7 @@ const WORKFLOW_MODULES = [
   'certificates',
   'meetings',
   'courrier-tasks',
+  'dn-annotation',
   'requests',
 ];
 
@@ -72,8 +73,8 @@ const KNOWN_WRITE_ROUTES: Record<string, string> = {
   'requests POST /': 'creates a new dossier (one-active rule)',
   'requests POST /:id/send-to-signature': 'guarded',
   'requests POST /:id/confirm-printed-for-signature': 'guarded',
-  'requests POST /:id/mark-signed': 'guarded',
-  'requests POST /:id/mark-pending-review': 'guarded',
+  'dn-annotation POST /:taskId/send-to-director': 'guarded',
+  'dn-annotation POST /:taskId/return-annotated': 'guarded',
   'requests POST /:id/return-signed-from-dg': 'guarded',
   'requests POST /:id/cancel': 'guarded',
   'requests POST /:id/replace-document': 'guarded',

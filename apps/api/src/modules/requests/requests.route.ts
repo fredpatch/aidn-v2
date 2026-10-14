@@ -40,18 +40,6 @@ router.post(
   requestsController.confirmPrintedForSignature
 );
 router.post(
-  "/:id/mark-signed",
-  authenticate,
-  requireRole("assistant_dg", "reception", "SU"),
-  requestsController.markSigned
-);
-router.post(
-  "/:id/mark-pending-review",
-  authenticate,
-  requireRole("assistant_dg", "reception", "SU"),
-  requestsController.markPendingReview
-);
-router.post(
   "/:id/return-signed-from-dg",
   authenticate,
   requireRole("assistant_dg", "reception", "SU"),

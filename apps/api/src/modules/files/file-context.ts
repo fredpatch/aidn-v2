@@ -25,7 +25,7 @@ type PhaseOwnedType =
 
 export interface FileContextStore {
   findRequestApplicant(requestId: number): Promise<number | null>;
-  findDgCircuitRequest(dgCircuitDocumentId: number): Promise<number | null>;
+  findDgCircuit(dgCircuitDocumentId: number): Promise<{ requestId: number; entityType: string } | null>;
   findPhase(phaseId: number): Promise<{ requestId: number; phaseCode: string } | null>;
   findOwnerPhaseId(ownerType: PhaseOwnedType, ownerId: number): Promise<number | null>;
   findCertificateRequest(certificateId: number): Promise<number | null>;
@@ -71,7 +71,10 @@ export async function resolveAssetContext(asset: AssetForContext, store: FileCon
   }
 
   if (ownerType === 'dg_circuit_document') {
-    return dossier(store, ownerType, await store.findDgCircuitRequest(ownerId), 'dg_circuit');
+    const circuit = await store.findDgCircuit(ownerId);
+    // Both circuits share this owner type: the stage tells them apart (SESSION1-M1-1).
+    const stage = circuit?.entityType === 'dn_director_annotation' ? 'dn_annotation' : 'dg_circuit';
+    return dossier(store, ownerType, circuit?.requestId ?? null, stage);
   }
   if (PHASE_OWNED.has(ownerType)) {
     return phaseDossier(store, ownerType, await store.findOwnerPhaseId(ownerType as PhaseOwnedType, ownerId));
@@ -108,14 +111,17 @@ export function createDbFileContextStore(executor: Executor): FileContextStore {
       );
       return row?.applicantId ?? null;
     },
-    async findDgCircuitRequest(id) {
+    async findDgCircuit(id) {
       const row = await one(
         executor
-          .select({ requestId: schema.dgCircuitDocuments.requestId })
+          .select({
+            requestId: schema.dgCircuitDocuments.requestId,
+            entityType: schema.dgCircuitDocuments.entityType,
+          })
           .from(schema.dgCircuitDocuments)
           .where(eq(schema.dgCircuitDocuments.id, id))
       );
-      return row?.requestId ?? null;
+      return row ?? null;
     },
     async findPhase(id) {
       return one(

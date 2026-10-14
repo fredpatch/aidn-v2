@@ -15,9 +15,21 @@ const migration = readFileSync(
 /** Actions quoted in the backfill statements, e.g. 'PAYMENT_VALIDATED'. */
 const backfilled = new Set([...migration.matchAll(/'([A-Z][A-Z_]+)'/g)].map((m) => m[1]));
 
+/** Actions created after migration 0005: their rows carry request_id from the
+ *  start (logAudit), so they need no backfill. */
+const ADDED_AFTER_0005 = [
+  'DG_ANNOTATION_RETURNED',
+  'DN_ANNOTATION_CIRCUIT_CREATED',
+  'DN_ANNOTATION_SENT_TO_DIRECTOR',
+  'DN_ANNOTATION_RETURNED',
+];
+
 describe('D3a audit -> request map', () => {
-  it('every mapped action is backfilled by migration 0005, and nothing else', () => {
-    assert.deepEqual([...backfilled].sort(), Object.keys(AUDIT_ENTITY_BY_ACTION).sort());
+  it('every mapped action is backfilled by migration 0005 or added after it, and nothing else', () => {
+    assert.deepEqual(
+      [...backfilled, ...ADDED_AFTER_0005].sort(),
+      Object.keys(AUDIT_ENTITY_BY_ACTION).sort()
+    );
   });
 
   it('MEETING_<status> is a meeting event; account, user and auth events stay unlinked', () => {

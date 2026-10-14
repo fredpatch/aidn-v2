@@ -95,22 +95,27 @@ export async function createUser(
   const otpHash = await hashOTP(otp);
   const expiresAt = otpExpiresAt(15);
 
-  const [newUser] = await db
-    .insert(users)
-    .values({
-      employeeCode,
-      fullName: params.fullName,
-      email: params.email,
-      active: true,
-      firstLogin: true,
-      otpHash,
-      otpExpiresAt: expiresAt,
-    })
-    .returning();
+  // Atomic: a role the database does not know (e.g. a pending migration) must not
+  // leave a user without any role.
+  const newUser = await db.transaction(async (tx) => {
+    const [created] = await tx
+      .insert(users)
+      .values({
+        employeeCode,
+        fullName: params.fullName,
+        email: params.email,
+        active: true,
+        firstLogin: true,
+        otpHash,
+        otpExpiresAt: expiresAt,
+      })
+      .returning();
 
-  for (const role of params.roles) {
-    await db.insert(userRoles).values({ userId: newUser.id, role: role as (typeof userRoles.$inferInsert)["role"] });
-  }
+    for (const role of params.roles) {
+      await tx.insert(userRoles).values({ userId: created.id, role: role as (typeof userRoles.$inferInsert)["role"] });
+    }
+    return created;
+  });
 
   let emailSent = true;
   try {
@@ -149,18 +154,22 @@ export async function updateUser(id: number, params: UpdateUserParams): Promise<
   if (params.active !== undefined) updates.active = params.active;
   if (params.email !== undefined) updates.email = params.email;
 
-  const [updated] = await db
-    .update(users)
-    .set({ ...updates, updatedAt: new Date() })
-    .where(eq(users.id, id))
-    .returning();
+  // Atomic with the role replacement (see updateUserRoles).
+  const updated = await db.transaction(async (tx) => {
+    const [row] = await tx
+      .update(users)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
 
-  if (params.roles !== undefined) {
-    await db.delete(userRoles).where(eq(userRoles.userId, id));
-    for (const role of params.roles) {
-      await db.insert(userRoles).values({ userId: id, role: role as (typeof userRoles.$inferInsert)["role"] });
+    if (params.roles !== undefined) {
+      await tx.delete(userRoles).where(eq(userRoles.userId, id));
+      for (const role of params.roles) {
+        await tx.insert(userRoles).values({ userId: id, role: role as (typeof userRoles.$inferInsert)["role"] });
+      }
     }
-  }
+    return row;
+  });
 
   await logAudit({
     userId: params.updatedByUserId,
@@ -179,6 +188,7 @@ async function countUsersWithRole(role: (typeof internalRoleEnum.enumValues)[num
 
 export async function updateUserRoles(id: number, params: UpdateUserRolesParams): Promise<UserView> {
   assertValidRoles(params.roles);
+  const nextRoles = params.roles; // keeps the narrowed type inside the transaction callback
 
   const [existing] = await db.select().from(users).where(eq(users.id, id));
   if (!existing) throw new Error("USER_NOT_FOUND");
@@ -197,12 +207,14 @@ export async function updateUserRoles(id: number, params: UpdateUserRolesParams)
     throw new Error("LAST_SU_ROLE_REQUIRED");
   }
 
-  await db.delete(userRoles).where(eq(userRoles.userId, id));
-  for (const role of params.roles) {
-    await db.insert(userRoles).values({ userId: id, role });
-  }
-
-  await db.update(users).set({ updatedAt: new Date() }).where(eq(users.id, id));
+  // Atomic: replacing the roles is all-or-nothing, never "all deleted, none inserted".
+  await db.transaction(async (tx) => {
+    await tx.delete(userRoles).where(eq(userRoles.userId, id));
+    for (const role of nextRoles) {
+      await tx.insert(userRoles).values({ userId: id, role });
+    }
+    await tx.update(users).set({ updatedAt: new Date() }).where(eq(users.id, id));
+  });
 
   await logAudit({
     userId: params.updatedByUserId,

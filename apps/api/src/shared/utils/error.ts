@@ -250,6 +250,10 @@ export const handlePhasesError = createErrorHandler(
       status: 409,
       message: "La demande doit être en attente de traitement avant d'ouvrir cette phase.",
     },
+    DN_ANNOTATION_REQUIRED: {
+      status: 409,
+      message: 'L’annotation du Directeur DN doit être retournée avant l’ouverture de la phase préliminaire.',
+    },
     PHASE_ALREADY_OPEN: {
       status: 409,
       message: 'Cette phase est déjà ouverte pour cette demande.',
@@ -417,6 +421,23 @@ export const handleFormalRequestError = createErrorHandler(
     ...UPLOAD_ATTACH_ERRORS,
   },
   '[formal-request]'
+);
+
+export const handleDnAnnotationError = createErrorHandler(
+  {
+    DN_TASK_INVALID: { status: 400, message: 'Identifiant de tâche invalide.' },
+    DN_TASK_NOT_FOUND: { status: 404, message: 'Circuit Directeur DN introuvable.' },
+    INVALID_CIRCUIT_TRANSITION: {
+      status: 409,
+      message: 'Cette étape du circuit Directeur DN n’est pas possible dans l’état actuel.',
+    },
+    REQUEST_NOT_AWAITING_DN_ANNOTATION: {
+      status: 409,
+      message: 'Ce dossier n’attend pas l’annotation du Directeur DN.',
+    },
+    ...UPLOAD_ATTACH_ERRORS,
+  },
+  '[dn-annotation]'
 );
 
 export const handleDeepEvaluationError = createErrorHandler(

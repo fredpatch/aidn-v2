@@ -2,6 +2,8 @@
 
 **Session date**: 2026-10-08
 
+> **2026-10-14 SESSION1-M1-1 (in working tree):** Directeur DN annotation circuit added between the DG return and M3 (`dn_director_annotation`, migration 0008 + post-migration script `db:backfill:dn-annotation`, `/api/dn-annotation-tasks`, admin « Circuit Directeur DN »). DG return no longer unlocks M3. See `project/decisions.md` #16. Deferred: DN alert rule, notifications, SESSION1-MEET-1.
+>
 > **2026-10-14 SESSION1-ROLE-1 (in working tree, uncommitted):** `assistant_dn` role added (no permissions yet, M1-1 owns them); `r3_agent`/`s5_agent` now display as Agent CI / Agent Finance via `@aidn/shared` role labels; visible R3/S5 wording replaced by métier terms. See `project/decisions.md` #15.
 **Status**: K4 atomic payment decisions implemented; preparing commit and push.
 

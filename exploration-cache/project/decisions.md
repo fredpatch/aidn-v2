@@ -161,3 +161,39 @@ so a new role fails to compile until labelled. The admin header uses it instead 
 New role `assistant_dn` (Assistante DN, group DN) added to the shared constant and the PG enum
 (migration `0007_session1_role1_assistant_dn`, a single `ADD VALUE`). It has no workflow permission yet:
 SESSION1-M1-1 defines its guards. No permanent "absent from every guard" test is kept on purpose.
+
+## 16. Directeur DN annotation circuit between the DG return and M3 (SESSION1-M1-1)
+
+DN Session 1: after the DG annotates and Assistant DG uploads the annotated return, Assistante DN takes the
+dossier to the Directeur DN and uploads his annotated return. Only that second return makes the request
+`pending_review` and lets DN open M3. Terminology: « Annotation du DG », « Annotation du Directeur DN ».
+
+- **Reuses `dg_circuit_documents`** with a new entity type `dn_director_annotation` (one row per dossier, unique
+  index gives idempotency). It reuses the circuit/versioning/relocation primitives: a separate circuit row means a
+  separate document chain, so the DG-annotated and the Directeur DN-annotated artifacts both stay. The technical
+  statuses (`in_signature_circuit`, `signed`, `pending_review`) are reused but never displayed; labels come from
+  `dn-annotation.stage.ts`.
+- **Dedicated module `modules/dn-annotation/`** (`/api/dn-annotation-tasks`, `assistant_dn` + `SU`) and a dedicated
+  admin page « Circuit Directeur DN » (`/circuit-directeur-dn`). `assistant_dn` is NOT in the `courrier-tasks`
+  guard (Réception / Assistant DG keep theirs): least privilege and no role branches in the courrier page.
+  `courrier-tasks` still manages only the 3 reception sources, so it cannot see or act on the DN circuit.
+- **Copy-on-create.** The DG-annotated return is physically copied into the DN circuit (same pattern as #14), so
+  `assistant_dn` never needs access to the DG circuit files.
+- **Internal document.** File-access stage `dn_annotation` (assistant_dn, dn_agent, dn_supervisor, SU). Applicants
+  and Réception / Assistant DG are denied, even though the owner type (`dg_circuit_document`) is shared with the
+  applicant-visible DG circuit: the stage is resolved from the circuit's entity type (`file-context.ts`). Reason:
+  the Director's annotation is an internal ANAC working document. Storage: `M1-circuit-dg/annotation-dn`.
+- **One DG-return implementation** (`dn-annotation/intake-dg-return.ts`) used by `courrier-tasks.returnSigned` and
+  `requests.returnSignedFromDg`: it does not touch `requests.status`. The legacy `mark-signed` /
+  `mark-pending-review` intake routes (which could set `pending_review`) were removed.
+- **Gate.** `openPreliminaryPhase` requires `requests.status = pending_review` AND DN circuit `pending_review`
+  (`isPreliminaryOpenable`); the DN circuit is authoritative, the request status its projection.
+- **Readers keyed by request id** were fixed to filter by entity type (requests list/cockpit/cancel/sendToSignature,
+  reception dashboard, analytics `dgWaiting`, DG alert job, DN dashboard).
+- **No automatic alert, no notification** for the Director circuit yet: the timing is recorded
+  (`signatureSentAt`, `directorWorkingDays`), but the rule is to be validated with DN. The DG alert is unchanged
+  (it now filters the reception entity types explicitly).
+- **Grandfather.** A script (NOT a migration - see gotchas #23), `npm run db:backfill:dn-annotation`, run after
+  `db:migrate`, creates a `pending_review` DN circuit (no document) for every intake circuit already past the DG
+  return; idempotent, requests are not regressed and open dossiers keep working. Dossiers still in the DG
+  circuit get their DN circuit when their DG return is uploaded. `db:reset:dev` stays an option for UAT.

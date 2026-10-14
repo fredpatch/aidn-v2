@@ -7,7 +7,7 @@ export const REQUEST_TYPE_LABELS: Record<string, string> = {
 
 export const CIRCUIT_STATUS_LABELS: Record<string, string> = {
   submitted: 'Déposée',
-  in_signature_circuit: 'En signature',
+  in_signature_circuit: 'En cours d’annotation',
   signed: 'Signée',
   pending_review: 'Transmise à la Direction de la Navigabilité',
 };

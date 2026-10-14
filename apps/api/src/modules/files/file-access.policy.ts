@@ -20,6 +20,9 @@ const DN = ['dn_agent', 'dn_supervisor'];
  *  existing bundle endpoints. */
 const STAFF_ROLES_BY_STAGE: Record<string, readonly string[]> = {
   dg_circuit: ['reception', 'assistant_dg', ...DN],
+  // SESSION1-M1-1 - Directeur DN annotation: internal ANAC working document.
+  // Not reception / assistant_dg, and never the applicant (see STAFF_ONLY_STAGES).
+  dn_annotation: ['assistant_dn', ...DN],
   M3: DN,
   M4: DN,
   M5: [...DN, 's5_agent'],
@@ -29,6 +32,11 @@ const STAFF_ROLES_BY_STAGE: Record<string, readonly string[]> = {
 
 /** Never shown in the portal today, so applicants cannot open them either. */
 const STAFF_ONLY_OWNER_TYPES = new Set(['phase_closure_document', 'certificate_document']);
+
+/** Stages whose files an applicant can never open, whatever the owner type
+ *  (the Directeur DN circuit shares owner type dg_circuit_document with the
+ *  applicant-visible DG circuit). */
+const STAFF_ONLY_STAGES = new Set(['dn_annotation']);
 
 function hasRole(actor: FileActor, roles: readonly string[]): boolean {
   return actor.kind === 'staff' && actor.roles.some((role) => roles.includes(role));
@@ -45,7 +53,11 @@ export function canAccessFile(actor: FileActor, context: FileContext): boolean {
 
     case 'dossier':
       if (actor.kind === 'applicant') {
-        return context.applicantId === actor.applicantId && !STAFF_ONLY_OWNER_TYPES.has(context.ownerType);
+        return (
+          context.applicantId === actor.applicantId &&
+          !STAFF_ONLY_OWNER_TYPES.has(context.ownerType) &&
+          !STAFF_ONLY_STAGES.has(context.stage)
+        );
       }
       return hasRole(actor, STAFF_ROLES_BY_STAGE[context.stage] ?? []);
 

@@ -1,0 +1,1 @@
+ALTER TYPE "public"."dg_circuit_entity_type" ADD VALUE 'dn_director_annotation';

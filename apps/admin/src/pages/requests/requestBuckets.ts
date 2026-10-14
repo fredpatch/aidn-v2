@@ -24,14 +24,14 @@ export type RequestSortKey = 'activity' | 'newest' | 'oldest' | 'reference';
 /** Closed dossier (K7): only viewing and downloading remain possible. */
 export const CLOSED_REQUEST_STATUSES = ['completed', 'rejected', 'cancelled'];
 
-/** Physical DG signature circuit not finished: the DN follows read-only. */
+/** Physical DG circuit not finished: the DN follows read-only. */
 export const WAITING_DG_CIRCUIT_STATUSES = ['submitted', 'in_signature_circuit', 'signed'];
 
 export const REQUEST_BUCKETS: Array<{ key: RequestBucket; label: string }> = [
   { key: 'all', label: 'Toutes' },
   { key: 'unread', label: 'Non lues' },
   { key: 'todo', label: 'À traiter' },
-  { key: 'waiting_dg', label: 'Attente DG' },
+  { key: 'waiting_dg', label: 'Attente annotations' },
   { key: 'closed', label: 'Clôturées' },
 ];
 
@@ -49,7 +49,7 @@ export function isClosedRequest(item: Pick<RequestCockpitItem, 'status'>): boole
 /**
  * Each dossier belongs to exactly one bucket, by precedence:
  * 1. closed (completed, rejected, cancelled) - whatever its circuit status;
- * 2. waiting_dg (signature circuit not finished);
+ * 2. waiting_dg (DG or Directeur DN annotation circuit not finished);
  * 3. todo - everything else, i.e. work the DN can act on or must check.
  */
 export function bucketOf(
@@ -57,12 +57,14 @@ export function bucketOf(
 ): Exclude<RequestBucket, 'all' | 'unread'> {
   if (isClosedRequest(item)) return 'closed';
   if (WAITING_DG_CIRCUIT_STATUSES.includes(item.circuitStatus ?? '')) return 'waiting_dg';
+  // DG annotation received but the Directeur DN annotation not yet: still waiting (SESSION1-M1-1).
+  if (item.circuitStatus === 'pending_review' && item.status === 'submitted') return 'waiting_dg';
   return 'todo';
 }
 
 /**
  * What the reading pane (and Entrée in the list) offers for a dossier:
- * - start: the signed return is in, the DN can open the preliminary phase
+ * - start: the Directeur DN annotation is in, the DN can open the preliminary phase
  *   (a state change, so it is never fired by a single key press);
  * - treat: an open workflow step, link to the phase page;
  * - consult: closed dossier with a page to view (K7: viewing only);
