@@ -124,14 +124,14 @@ export const SYSTEM_PARAMETER_SEEDS: readonly SystemParameterSeedDefinition[] = 
     defaultValue: '2',
     type: 'integer',
     module: 'M12',
-    description: 'Cible dashboard (jours calendaires) pour envoi facture par S5.',
+    description: 'Cible dashboard (jours calendaires) pour envoi facture par Finance.',
   },
   {
     key: 'dashboard_sla_payment_validation_days',
     defaultValue: '1',
     type: 'integer',
     module: 'M12',
-    description: 'Cible dashboard (jours calendaires) pour validation preuve paiement par S5.',
+    description: 'Cible dashboard (jours calendaires) pour validation preuve paiement par Finance.',
   },
   {
     key: 'dashboard_sla_document_evaluation_days',

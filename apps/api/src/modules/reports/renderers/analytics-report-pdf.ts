@@ -8,7 +8,7 @@ const REPORT_NOTES: Record<ReportKey, string> = {
   sla: 'Contrôle du respect des délais cibles et identification des phases hors SLA.',
   bottlenecks: 'Lecture des points de blocage qui ralentissent le traitement opérationnel.',
   inspections: 'Suivi ciblé de la phase Démonstration / Inspection et des comptes-rendus attendus.',
-  s5: 'Suivi des paiements, preuves et validations bloquantes côté S5.',
+  s5: 'Suivi des paiements, preuves et validations bloquantes côté Finance.',
 };
 
 function formatDate(value: string): string {
@@ -221,8 +221,8 @@ function reportSections(snapshot: ReportSnapshot): string {
     case 's5':
       return [
         renderMetricsSection('Indicateurs de paiement', reportMetrics(snapshot)),
-        renderBlockersSection(snapshot, 'Blocages S5', ['payment_blockers']),
-        renderPhaseSection(snapshot, 'Phases dépendant des validations S5', ['M5', 'M6', 'M7']),
+        renderBlockersSection(snapshot, 'Blocages Finance', ['payment_blockers']),
+        renderPhaseSection(snapshot, 'Phases dépendant des validation Finance', ['M5', 'M6', 'M7']),
       ].join('');
     case 'full_report':
     default:

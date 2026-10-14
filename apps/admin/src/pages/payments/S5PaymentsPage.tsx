@@ -369,7 +369,7 @@ export default function S5PaymentsPage() {
 
   async function handleUploadInvoice() {
     if (!invoiceTask || !invoiceFile) {
-      setActionError('Sélectionnez la facture reçue par S5.');
+      setActionError('Sélectionnez la facture reçue par Finance.');
       return;
     }
     const key = `${invoiceTask.phaseCode}:${invoiceTask.phaseId}`;
@@ -447,7 +447,7 @@ export default function S5PaymentsPage() {
           <S5MetricCard
             label="Factures à envoyer"
             value={counts.to_invoice}
-            helper="Factures reçues par S5 à transmettre"
+            helper="Factures reçues par Finance à transmettre"
             icon={FileText}
             tone="blue"
           />
@@ -468,7 +468,7 @@ export default function S5PaymentsPage() {
           <S5MetricCard
             label="Paiements valides"
             value={counts.validated}
-            helper="Phases débloquées par S5"
+            helper="Phases débloquées par Finance"
             icon={CheckCircle2}
             tone="success"
           />
@@ -554,9 +554,9 @@ function S5Header() {
   return (
     <header>
       <p className="text-xs font-medium text-anac-muted">Direction de la Navigabilité</p>
-      <h1 className="mt-2 text-2xl font-semibold leading-tight text-anac-navy">Facturation S5</h1>
+      <h1 className="mt-2 text-2xl font-semibold leading-tight text-anac-navy">Paiements / Finance</h1>
       <p className="mt-1 text-sm text-anac-muted">
-        Suivez les factures reçues par S5, leur transmission au postulant et la validation des preuves de paiement.
+        Suivez les factures reçues par Finance, leur transmission au postulant et la validation des preuves de paiement.
       </p>
     </header>
   );
@@ -659,7 +659,7 @@ function S5PaymentTable({
       <EmptyState
         icon={CheckCircle2}
         title="Aucun paiement dans cette vue"
-        description="Les paiements réapparaîtront ici des qu'une action S5 sera attendue."
+        description="Les paiements réapparaîtront ici des qu'une action Finance sera attendue."
       />
     );
   }
@@ -743,7 +743,7 @@ function S5DetailPanel({
         <EmptyState
           icon={CreditCard}
           title="Sélectionnez un paiement"
-          description="Le résumé, les pièces et les actions S5 apparaîtront ici."
+          description="Le résumé, les pièces et les actions Finance apparaîtront ici."
         />
       </aside>
     );
@@ -849,7 +849,7 @@ function S5ActionPanel({
           Dossier clos - consultation uniquement
         </h3>
         <p className="mt-1 text-xs leading-relaxed text-slate-600">
-          Le paiement et ses pieces restent consultables. Aucune action S5 n&apos;est possible sur
+          Le paiement et ses pieces restent consultables. Aucune action Finance n&apos;est possible sur
           ce dossier.
         </p>
       </section>
@@ -866,7 +866,7 @@ function S5ActionPanel({
               Facture reçue à transmettre
             </h3>
             <p className="mt-1 text-xs leading-relaxed text-anac-muted">
-              Importez la facture reçue par S5. Cette action enregistré sa transmission au postulant et attend la preuve.
+              Importez la facture reçue par Finance. Cette action enregistré sa transmission au postulant et attend la preuve.
             </p>
           </div>
           <Button size="sm" disabled={busy} onClick={() => onUploadInvoice(item)}>
@@ -914,7 +914,7 @@ function S5ActionPanel({
           Preuve postulant attendue
         </h3>
         <p className="mt-1 text-xs leading-relaxed text-anac-muted">
-          La facture a été transmise. S5 attend maintenant la preuve de paiement du postulant.
+          La facture a été transmise. Finance attend maintenant la preuve de paiement du postulant.
         </p>
       </section>
     );
@@ -927,7 +927,7 @@ function S5ActionPanel({
         Paiement traité
       </h3>
       <p className="mt-1 text-xs leading-relaxed text-anac-muted">
-        Le paiement ne requiert plus d&apos;action S5 immediate.
+        Le paiement ne requiert plus d&apos;action Finance immediate.
       </p>
     </section>
   );
@@ -948,7 +948,7 @@ function S5Timeline({ item }: { item: S5PaymentQueueItem }) {
       current: item.payment.status === 'awaiting_proof',
     },
     {
-      label: 'Décision S5',
+      label: 'Décision Finance',
       date: item.payment.validatedAt,
       done: item.payment.status === 'validated' || item.payment.status === 'rejected',
       current: item.payment.status === 'pending_validation',
@@ -1058,7 +1058,7 @@ function InvoiceModal({
       }
     >
       <div className="space-y-2">
-        <label className="label">Facture reçue par S5</label>
+        <label className="label">Facture reçue par Finance</label>
         <input
           type="file"
           accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"

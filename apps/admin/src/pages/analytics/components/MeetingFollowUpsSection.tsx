@@ -136,7 +136,7 @@ export function MeetingFollowUpsSection({
         <div className="border-t border-anac-border xl:border-t-0">
           <div className="px-4 pb-2 pt-3">
             <h3 className="text-[13px] font-semibold text-anac-navy">
-              Avis R3 en attente{' '}
+              Avis d’inspection en attente{' '}
               <span className="font-medium text-anac-muted">· {missingR3Opinions.length}</span>
             </h3>
             <p className="mt-0.5 text-[11px] text-anac-muted">
@@ -147,12 +147,12 @@ export function MeetingFollowUpsSection({
             <Empty />
           ) : (
             <div className={LIST_BOX}>
-              <Table aria-label="Avis R3 en attente">
+              <Table aria-label="Avis d’inspection en attente">
                 <TableHeader>
                   <TableRow>
                     <TableHead>Dossier</TableHead>
                     <TableHead>Visite le</TableHead>
-                    <TableHead>Inspecteur R3</TableHead>
+                    <TableHead>Agent CI</TableHead>
                     <TableHead>
                       <span className="sr-only">Action</span>
                     </TableHead>

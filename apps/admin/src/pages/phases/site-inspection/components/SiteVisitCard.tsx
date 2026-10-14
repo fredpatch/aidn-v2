@@ -12,7 +12,7 @@ import PhaseStatusBadge from '../../preliminary/components/PhaseStatusBadge';
 import { ClosedDossierNote, useDossierReadOnly } from '../../components/DossierReadOnly';
 
 const scheduleSchema = z.object({
-  r3AgentId: z.string().min(1, 'Merci de sélectionner un agent R3.'),
+  r3AgentId: z.string().min(1, 'Merci de sélectionner un agent CI.'),
   scheduledAt: z.string(),
   location: z.string().optional(),
 });
@@ -85,7 +85,7 @@ export default function SiteVisitCard({
         ) : canScheduleVisit && scheduling ? (
           <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-3">
             <div>
-              <label className="label">Agent R3</label>
+              <label className="label">Agent CI</label>
               <select className="input" {...register('r3AgentId')} required>
                 <option value="">
                   {loadingAgents ? 'Chargement...' : 'Sélectionner un agent'}

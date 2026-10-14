@@ -53,7 +53,7 @@ export default function SiteInspectionPhasePage() {
             onClick={() => navigate('/paiements-s5')}
             className="text-xs text-anac-muted transition-colors hover:text-anac-navy"
           >
-            {'<-'} Retour aux paiements S5
+            {'<-'} Retour aux paiements Finance
           </button>
 
           <div>
@@ -70,7 +70,7 @@ export default function SiteInspectionPhasePage() {
           {!bundle?.phase ? (
             <div className="card">
               <p className="text-sm text-anac-muted">
-                Aucun paiement S5 n&apos;est disponible pour cette demande.
+                Aucun paiement Finance n&apos;est disponible pour cette demande.
               </p>
             </div>
           ) : (
@@ -99,7 +99,7 @@ export default function SiteInspectionPhasePage() {
           </button>
 
           <div>
-            <h1 className="text-xl font-semibold text-anac-navy">Avis R3 - Inspection sur site</h1>
+            <h1 className="text-xl font-semibold text-anac-navy">Avis d’inspection - Inspection sur site</h1>
             <p className="text-sm text-anac-muted">Demande #{requestId}</p>
           </div>
 
@@ -110,7 +110,7 @@ export default function SiteInspectionPhasePage() {
           {!bundle?.phase ? (
             <div className="card">
               <p className="text-sm text-anac-muted">
-                Aucune inspection R3 n&apos;est disponible pour cette demande.
+                Aucune inspection n&apos;est disponible pour cette demande.
               </p>
             </div>
           ) : (
@@ -172,7 +172,7 @@ export default function SiteInspectionPhasePage() {
       tone: bundle?.siteVisit?.status === 'held' ? 'success' : 'muted',
     },
     {
-      label: 'Avis R3',
+      label: 'Avis d’inspection',
       value: bundle?.inspection ? 'Soumis' : 'Attendu',
       tone: bundle?.inspection ? 'success' : 'warning',
       closedValue: bundle?.inspection ? undefined : 'Non rendu',

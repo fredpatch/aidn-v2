@@ -1,23 +1,9 @@
-export const ROLE_LABELS: Record<string, string> = {
-  reception: 'Réception',
-  assistant_dg: 'Assistant DG',
-  dn_agent: 'Agent DN',
-  dn_supervisor: 'Superviseur DN',
-  r3_agent: 'Agent R3',
-  s5_agent: 'Agent S5',
-  SU: 'Super Admin',
-};
+import { INTERNAL_ROLES, INTERNAL_ROLE_GROUP_LABELS, INTERNAL_ROLE_LABELS } from '@aidn/shared';
 
-export const ROLE_GROUP_LABELS: Record<string, string> = {
-  reception: 'Réception',
-  assistant_dg: 'Circuit DG',
-  dn_agent: 'DN',
-  dn_supervisor: 'DN',
-  r3_agent: 'R3',
-  s5_agent: 'S5',
-  SU: 'Admin',
-};
+/** Business role names live in @aidn/shared (single source for admin/API/reports). */
+export const ROLE_LABELS: Record<string, string> = INTERNAL_ROLE_LABELS;
+export const ROLE_GROUP_LABELS: Record<string, string> = INTERNAL_ROLE_GROUP_LABELS;
 
-export const ALL_ROLES = Object.keys(ROLE_LABELS);
+export const ALL_ROLES: string[] = [...INTERNAL_ROLES];
 export const USERS_PAGE_SIZE = 10;
 export const PERSONNEL_ANAC_PAGE_SIZE = 8;

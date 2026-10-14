@@ -175,13 +175,13 @@ export const PARAMETER_UI_META: Record<string, ParameterUiMeta> = {
   dashboard_sla_invoice_upload_days: {
     section: 'monitoring',
     subgroup: 'operational-targets',
-    label: 'Envoi de facture par S5',
+    label: 'Envoi de facture par Finance',
     unit: UNITS.calendarDays,
   },
   dashboard_sla_payment_validation_days: {
     section: 'monitoring',
     subgroup: 'operational-targets',
-    label: 'Validation d’une preuve de paiement par S5',
+    label: 'Validation d’une preuve de paiement par Finance',
     unit: UNITS.calendarDays,
   },
   dashboard_sla_document_evaluation_days: {

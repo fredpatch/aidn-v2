@@ -73,7 +73,7 @@ export default function PaymentCard({
       }
     >
       <div className="space-y-2">
-        <p className="text-xs font-medium text-anac-navy">Facture (S5)</p>
+        <p className="text-xs font-medium text-anac-navy">Facture (Finance)</p>
         {!payment?.invoiceFileUrl ? (
           canAct ? (
             <div className="flex items-center gap-2">
@@ -90,7 +90,7 @@ export default function PaymentCard({
             <ClosedDossierNote>Aucune facture envoyée - dossier clos.</ClosedDossierNote>
           ) : (
             <p className="text-anac-muted text-xs">
-              En attente de l&apos;envoi par le service S5.
+              En attente de l&apos;envoi par le service Finance.
             </p>
           )
         ) : (

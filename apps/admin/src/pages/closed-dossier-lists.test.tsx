@@ -89,7 +89,7 @@ describe('<MeetingsPage> (K7c)', () => {
     expect(screen.getByText(/la réunion reste consultable, aucune action/)).toBeInTheDocument();
     expect(screen.getByText('Consulter le compte-rendu')).toBeInTheDocument();
     expect(screen.queryByText(/Remplacer le compte-rendu/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Les actions R3 restent disponibles/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Les actions de la Cellule Inspection restent disponibles/)).not.toBeInTheDocument();
   });
 
   it('open dossier: report form unchanged', async () => {
@@ -151,7 +151,7 @@ describe('<MyInspectionsPage> (K7c)', () => {
     renderMissions([mission({ ...closed, missionStatus: 'closed', statusLabel: 'Dossier clos', nextAction: 'consult', nextActionLabel: 'Consulter', priority: 'basse' })]);
     fireEvent.click(screen.getAllByText('DEM-K7C-01')[0]);
     expect(screen.getAllByText('Dossier rejeté').length).toBeGreaterThan(0);
-    expect(screen.getByText(/aucune action R3 n’est possible/)).toBeInTheDocument();
+    expect(screen.getByText(/aucune action de la Cellule Inspection n’est possible/)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Enregistrer la tenue/ })).not.toBeInTheDocument();
   });
 

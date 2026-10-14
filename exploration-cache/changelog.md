@@ -3,6 +3,16 @@
 Commit-level history. Covers `be9fce9` through the 2026-10-09 D3c admin
 unread/activity batch.
 
+## 2026-10-14 SESSION1-ROLE-1: Assistante DN role and métier terminology
+
+- Added `assistant_dn` to `INTERNAL_ROLES` and the `internal_role` enum (migration 0007); no permissions granted.
+- Shared `INTERNAL_ROLE_LABELS` / `INTERNAL_ROLE_GROUP_LABELS` / `internalRoleLabel()`; admin user management and
+  the AppShell header use them (header no longer prints raw role keys).
+- Visible R3 -> Agent CI / Cellule Inspection / Avis d’inspection; visible S5 -> Finance / Agent Finance /
+  Paiements / Finance, across admin, portal, API errors and dashboards, seeded parameter descriptions and
+  PDF/Excel reports. Technical identifiers unchanged (decisions.md #15).
+- `assertValidRoles` moved to `users.roles.ts` (pure, tested).
+
 ## 2026-10-09 D3c: admin unread and activity affordances
 
 Admin UI change, using the D3a/D3b API contract.

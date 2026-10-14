@@ -22,7 +22,7 @@ const reports = [
   item({ meetingId: 2, requestId: 11, reference: 'DEM-K6-02', meetingType: 'formal', phaseCode: 'M4', agentName: null }),
 ];
 const opinions = [
-  item({ meetingId: 3, requestId: 12, reference: 'DEM-K6-03', meetingType: 'site_visit', phaseCode: 'M6', agentName: 'Agent R3 Mba' }),
+  item({ meetingId: 3, requestId: 12, reference: 'DEM-K6-03', meetingType: 'site_visit', phaseCode: 'M6', agentName: 'Agent CI Mba' }),
 ];
 
 describe('<MeetingFollowUpsSection> (K6)', () => {
@@ -46,10 +46,10 @@ describe('<MeetingFollowUpsSection> (K6)', () => {
     expect(link('DEM-K6-02')).toHaveAttribute('href', '/demandes/11/phase-formelle');
     expect(link('DEM-K6-03')).toHaveAttribute('href', '/demandes/12/demonstration-inspection');
 
-    const opinionTable = screen.getByRole('table', { name: 'Avis R3 en attente' });
-    expect(within(within(opinionTable).getAllByRole('row')[1]).getByText('Agent R3 Mba')).toBeInTheDocument();
+    const opinionTable = screen.getByRole('table', { name: 'Avis d’inspection en attente' });
+    expect(within(within(opinionTable).getAllByRole('row')[1]).getByText('Agent CI Mba')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Comptes-rendus non déposés · 2/ })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /Avis R3 en attente · 1/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Avis d’inspection en attente · 1/ })).toBeInTheDocument();
   });
 
   it('says so when there is nothing to follow, instead of an empty table', () => {
@@ -82,7 +82,7 @@ describe('<BlockingPointGrid> meeting cards (K6)', () => {
         points={[
           point('delayed_phases', 'Phases en depassement', 'danger', '/demandes'),
           point('missing_reports', 'Reunions sans compte-rendu', 'info'),
-          point('missing_r3_opinions', 'Avis R3 manquant', 'info'),
+          point('missing_r3_opinions', 'Avis d’inspection manquant', 'info'),
         ]}
       />
     );
@@ -95,10 +95,10 @@ describe('<BlockingPointGrid> meeting cards (K6)', () => {
   it('neutral tone: no alert styling on the meeting cards', () => {
     renderWithProviders(
       <BlockingPointGrid
-        points={[point('missing_reports', 'Reunions sans compte-rendu', 'info'), point('missing_r3_opinions', 'Avis R3 manquant', 'info')]}
+        points={[point('missing_reports', 'Reunions sans compte-rendu', 'info'), point('missing_r3_opinions', 'Avis d’inspection manquant', 'info')]}
       />
     );
-    for (const label of ['Reunions sans compte-rendu', 'Avis R3 manquant']) {
+    for (const label of ['Reunions sans compte-rendu', 'Avis d’inspection manquant']) {
       const card = screen.getByText(label).closest('article')!;
       expect(card.className).toContain('bg-blue-50');
       expect(card.className).not.toMatch(/red|orange/);

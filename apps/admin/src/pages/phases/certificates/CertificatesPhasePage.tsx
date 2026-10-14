@@ -50,7 +50,7 @@ export default function CertificatesPhasePage() {
             onClick={() => navigate('/paiements-s5')}
             className="text-xs text-anac-muted transition-colors hover:text-anac-navy"
           >
-            {'<-'} Retour aux paiements S5
+            {'<-'} Retour aux paiements Finance
           </button>
 
           <div>
@@ -65,7 +65,7 @@ export default function CertificatesPhasePage() {
           {!bundle?.phase ? (
             <div className="card">
               <p className="text-sm text-anac-muted">
-                Aucun paiement S5 n&apos;est disponible pour cette demande.
+                Aucun paiement Finance n&apos;est disponible pour cette demande.
               </p>
             </div>
           ) : (

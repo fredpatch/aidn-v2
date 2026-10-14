@@ -65,8 +65,8 @@ export function certificateWorkflowSummary(bundle: CertificateBundle): PhaseWork
   if (!bundle.payment?.invoiceFileUrl) {
     return {
       title: 'Facture à envoyer',
-      description: 'S5 envoie la facture avant la création du certificat.',
-      owner: 'S5',
+      description: 'Finance envoie la facture avant la création du certificat.',
+      owner: 'Finance',
       tone: 'warning',
       phaseStatus,
       blockReason: 'Le certificat est créé après validation du paiement.',
@@ -77,8 +77,8 @@ export function certificateWorkflowSummary(bundle: CertificateBundle): PhaseWork
   if (bundle.payment.status !== 'validated') {
     return {
       title: 'Paiement à valider',
-      description: 'S5 valide la preuve de paiement pour créer ou poursuivre le certificat.',
-      owner: 'S5',
+      description: 'Finance valide la preuve de paiement pour créer ou poursuivre le certificat.',
+      owner: 'Finance',
       tone: 'warning',
       phaseStatus,
       blockReason: 'La délivrance ne peut pas avancer tant que le paiement n’est pas validé.',
@@ -90,7 +90,7 @@ export function certificateWorkflowSummary(bundle: CertificateBundle): PhaseWork
     return {
       title: 'Certificat a créer',
       description: 'Le certificat sera créé après validation du paiement.',
-      owner: 'S5',
+      owner: 'Finance',
       tone: 'info',
       phaseStatus,
       metrics,

@@ -23,7 +23,7 @@ export function useVerdictAction(
         });
       }
     },
-    onError: (err) => setActionError(apiErrorMessage(err, "Impossible de soumettre l'avis R3.")),
+    onError: (err) => setActionError(apiErrorMessage(err, "Impossible de soumettre l'avis d’inspection.")),
   });
 
   async function submit(

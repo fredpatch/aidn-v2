@@ -66,7 +66,7 @@ export default function VerdictCard({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ClipboardCheck size={16} className="text-anac-navy" />
-            <span className="font-medium text-sm">Avis R3</span>
+            <span className="font-medium text-sm">Avis d’inspection</span>
           </div>
           <PhaseStatusBadge
             status={inspection.verdict}
@@ -97,7 +97,7 @@ export default function VerdictCard({
     <div className="card space-y-3">
       <div className="flex items-center gap-2">
         <ClipboardCheck size={16} className="text-anac-navy" />
-        <span className="font-medium text-sm">Avis R3</span>
+        <span className="font-medium text-sm">Avis d’inspection</span>
       </div>
 
       {readOnly ? (

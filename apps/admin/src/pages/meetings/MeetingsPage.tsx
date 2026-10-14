@@ -864,7 +864,7 @@ function SelectedMeetingPanel({
               </div>
             ) : !item.canManage ? (
               <div className="rounded-lg border border-anac-border bg-slate-50 p-3 text-xs text-anac-muted">
-                Cette visite est suivie ici en lecture. Les actions R3 restent disponibles dans Mes
+                Cette visite est suivie ici en lecture. Les actions de la Cellule Inspection restent disponibles dans Mes
                 inspections.
               </div>
             ) : null}

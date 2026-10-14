@@ -56,7 +56,7 @@ export function useSiteVisitActions(
       const result = await scheduleMutation.mutateAsync(params);
       if (result.softOverlapWarning) {
         setActionError(
-          "Attention : cet agent R3 a déjà une visite ce jour-là (chevauchement non bloquant)."
+          "Attention : cet agent CI a déjà une visite ce jour-là (chevauchement non bloquant)."
         );
       }
       return true;

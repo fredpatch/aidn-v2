@@ -94,7 +94,7 @@ function canManageMeeting(meetingType: string): boolean {
 }
 
 function meetingActionLabel(row: typeof meetings.$inferSelect): string {
-  if (!canManageMeeting(row.meetingType)) return 'Suivi inspection R3';
+  if (!canManageMeeting(row.meetingType)) return 'Suivi inspection';
   if (row.status === 'scheduled') return 'Résoudre la réunion';
   if (row.status === 'held' && !row.crDocumentUrl) return 'Compte-rendu facultatif';
   if (row.status === 'held' && row.crDocumentUrl) return 'Compte-rendu déposé';

@@ -6,6 +6,7 @@ import { sendOTPEmail } from "../../shared/utils/email.js";
 import { logAudit } from "../auth/auth.service.js";
 import { getCanonicalEmployeeCodeForUserCreation } from "../personnel-anac/personnel-anac.service.js";
 import { toUserView } from "./users.helpers.js";
+import { assertValidRoles } from "./users.roles.js";
 import type {
   CreateUserParams,
   UpdateUserParams,
@@ -170,16 +171,6 @@ export async function updateUser(id: number, params: UpdateUserParams): Promise<
   });
 
   return toUserView(updated);
-}
-
-function assertValidRoles(roles: string[]): asserts roles is (typeof internalRoleEnum.enumValues)[number][] {
-  if (roles.length === 0) throw new Error("ROLES_REQUIRED");
-
-  const allowedRoles = new Set<string>(internalRoleEnum.enumValues);
-  const uniqueRoles = new Set(roles);
-  if (uniqueRoles.size !== roles.length || roles.some((role) => !allowedRoles.has(role))) {
-    throw new Error("INVALID_ROLE");
-  }
 }
 
 async function countUsersWithRole(role: (typeof internalRoleEnum.enumValues)[number]): Promise<number> {

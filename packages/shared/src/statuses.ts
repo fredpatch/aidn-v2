@@ -70,6 +70,7 @@ export type DossierTerminalStatus = (typeof DOSSIER_TERMINAL_STATUSES)[number];
 export const INTERNAL_ROLES = [
   'reception',
   'assistant_dg',
+  'assistant_dn',
   'dn_agent',
   'dn_supervisor',
   'r3_agent',
@@ -77,6 +78,41 @@ export const INTERNAL_ROLES = [
   'SU',
 ] as const;
 export type InternalRole = (typeof INTERNAL_ROLES)[number];
+
+/** Business (métier) role names, validated in DN Session 1. The technical keys
+ *  r3_agent / s5_agent are kept for storage and routing only: they are shown
+ *  as Agent CI / Agent Finance. Single source for admin, API and reports. */
+export const INTERNAL_ROLE_LABELS: Record<InternalRole, string> = {
+  reception: 'Réception',
+  assistant_dg: 'Assistant DG',
+  assistant_dn: 'Assistante DN',
+  dn_agent: 'Agent DN',
+  dn_supervisor: 'Superviseur DN',
+  r3_agent: 'Agent CI',
+  s5_agent: 'Agent Finance',
+  SU: 'Super Admin',
+};
+
+/** Functional area / service of each role. */
+export const INTERNAL_ROLE_GROUP_LABELS: Record<InternalRole, string> = {
+  reception: 'Réception',
+  assistant_dg: 'Circuit DG',
+  assistant_dn: 'DN',
+  dn_agent: 'DN',
+  dn_supervisor: 'DN',
+  r3_agent: 'Cellule Inspection',
+  s5_agent: 'Finance',
+  SU: 'Admin',
+};
+
+/** Label for a role key coming from the API; unknown keys fall back to the key. */
+export function internalRoleLabel(role: string): string {
+  return (INTERNAL_ROLE_LABELS as Record<string, string>)[role] ?? role;
+}
+
+export function internalRoleGroupLabel(role: string): string {
+  return (INTERNAL_ROLE_GROUP_LABELS as Record<string, string>)[role] ?? role;
+}
 
 /** AUTH - default system parameter keys and fallback values, used when a row
  *  is missing from system_parameters (should not normally happen once seeded) */

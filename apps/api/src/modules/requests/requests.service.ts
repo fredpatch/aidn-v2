@@ -125,7 +125,7 @@ export const ACTIVITY_LABELS: Record<
   MEETING_NO_SHOW: { title: 'Réunion : absence du postulant', tone: 'warning' },
   MEETING_FILE_CANCELLED: { title: 'Réunion : dossier annulé', tone: 'danger' },
   SITE_VISIT_HELD: { title: 'Visite sur site tenue', tone: 'success' },
-  INSPECTION_VERDICT_SUBMITTED: { title: 'Avis R3 rendu', tone: 'success' },
+  INSPECTION_VERDICT_SUBMITTED: { title: 'Avis d’inspection rendu', tone: 'success' },
   CERTIFICATE_CREATED: { title: 'Certificat créé', tone: 'info' },
   CERTIFICATE_DOCUMENT_GENERATED: { title: 'Certificat généré', tone: 'info' },
   CERTIFICATE_FIELDS_UPDATED: { title: 'Certificat mis à jour', tone: 'info' },

@@ -19,7 +19,7 @@ import {
   BarChart3,
 } from 'lucide-react';
 
-import type { InternalRole } from '@aidn/shared';
+import { internalRoleLabel, type InternalRole } from '@aidn/shared';
 import { cn } from '../../lib/utils';
 import { Button } from '../ui/button';
 import { useAuth } from '../../hooks/useAuth';
@@ -59,7 +59,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     to: '/paiements-s5',
-    label: 'Paiements S5',
+    label: 'Paiements / Finance',
     icon: CreditCard,
     roles: ['s5_agent', 'SU'],
   },
@@ -183,7 +183,7 @@ export default function AppShell() {
       <div className="flex flex-col flex-1 overflow-hidden min-w-0">
         <header className="bg-white border-b border-anac-border flex items-center justify-between px-6 h-[57px] flex-shrink-0">
           <h1 className="text-anac-navy font-semibold text-sm truncate">
-            Application Informatique de la Direction de la Navigabilité
+            Application Informatique de la Direction de la Navigabilité - Service des OMA
           </h1>
 
           <div className="flex items-center gap-1 flex-shrink-0 ml-4">
@@ -193,7 +193,7 @@ export default function AppShell() {
                   {user?.fullName}
                 </p>
                 <p className="text-[10px] text-anac-muted leading-tight">
-                  {user?.roles.join(', ')}
+                  {user?.roles.map(internalRoleLabel).join(', ')}
                 </p>
               </div>
               <div className="w-8 h-8 rounded-lg bg-anac-navy text-white flex items-center justify-center text-[11px] font-bold flex-shrink-0 select-none">

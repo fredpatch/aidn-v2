@@ -148,7 +148,7 @@ export default function MyInspectionsPage() {
       key: 'closed',
       label: 'Clôturées',
       value: data.filter((item) => item.missionStatus === 'closed').length,
-      helper: 'Avis R3 déjà soumis',
+      helper: 'Avis d’inspection déjà soumis',
       icon: CheckCircle2,
       tone: 'success',
     },
@@ -168,7 +168,7 @@ export default function MyInspectionsPage() {
                 Mes inspections
               </h1>
               <p className="mt-1 text-sm text-anac-muted">
-                Suivez vos missions R3, les visites planifiées et les avis a remettre.
+                Suivez vos missions d’inspection, les visites planifiées et les avis a remettre.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -351,7 +351,7 @@ function InspectionTable({
       </div>
 
       {isLoading ? (
-        <EmptyState title="Chargement des inspections" description="Récupération de vos missions R3." className="min-h-[150px]" />
+        <EmptyState title="Chargement des inspections" description="Récupération de vos missions d’inspection." className="min-h-[150px]" />
       ) : error ? (
         <EmptyState title="Chargement impossible" description="Impossible de charger la file de dossiers." danger className="min-h-[150px]" />
       ) : items.length === 0 ? (
@@ -411,7 +411,7 @@ function InspectionDetailPanel({
     resolver: zodResolver(
       z.object({
         verdict: z.enum(['compliant', 'non_compliant', 'compliant_with_reserves']),
-        note: z.string().trim().min(1, "La note est obligatoire pour soumettre l'avis R3."),
+        note: z.string().trim().min(1, "La note est obligatoire pour soumettre l'avis d’inspection."),
       })
     ),
     defaultValues: { verdict: 'compliant', note: '' },
@@ -434,7 +434,7 @@ function InspectionDetailPanel({
       setActionError(null);
       await queryClient.invalidateQueries({ queryKey: queryKeys.siteInspection.myQueue() });
     },
-    onError: (err) => setActionError(apiErrorMessage(err, "Impossible de soumettre l'avis R3.")),
+    onError: (err) => setActionError(apiErrorMessage(err, "Impossible de soumettre l'avis d’inspection.")),
   });
 
   async function onVerdictSubmit(values: { verdict: VerdictValue; note: string }) {
@@ -486,7 +486,7 @@ function InspectionDetailPanel({
           <Info label="Paiement" value={paymentLabel(item.payment?.status)} />
           <Info label="Visite" value={visitLabel(item.siteVisit?.status)} />
           <Info
-            label="Avis R3"
+            label="Avis d’inspection"
             value={item.inspection ? verdictLabel(item.inspection.verdict) : item.dossierClosed ? 'Non rendu' : 'Attendu'}
           />
         </PanelBlock>
@@ -494,7 +494,7 @@ function InspectionDetailPanel({
         <PanelBlock title="Avancement" icon={ClipboardCheck}>
           <ProgressStep label="Paiement validé" done={item.payment?.status === 'validated'} />
           <ProgressStep label="Visite tenue" done={item.siteVisit?.status === 'held'} />
-          <ProgressStep label="Avis R3 soumis" done={!!item.inspection} />
+          <ProgressStep label="Avis d’inspection soumis" done={!!item.inspection} />
         </PanelBlock>
 
         {item.inspection ? (
@@ -505,7 +505,7 @@ function InspectionDetailPanel({
           </PanelBlock>
         ) : canSubmitVerdict ? (
           <form onSubmit={verdictForm.handleSubmit(onVerdictSubmit, onVerdictInvalid)} className="rounded-lg border border-anac-border p-4">
-            <h3 className="text-sm font-semibold text-anac-navy">Soumettre l&apos;avis R3</h3>
+            <h3 className="text-sm font-semibold text-anac-navy">Soumettre l&apos;avis d’inspection</h3>
             <label className="mt-3 block text-xs font-semibold text-anac-muted" htmlFor="r3-verdict">
               Verdict
             </label>
@@ -644,7 +644,7 @@ function paymentLabel(status: string | undefined): string {
   if (status === 'validated') return 'Validé';
   if (status === 'awaiting_invoice') return 'Facture attendue';
   if (status === 'awaiting_proof') return 'Preuve attendue';
-  if (status === 'pending_validation') return 'Validation S5 attendue';
+  if (status === 'pending_validation') return 'Validation Finance attendue';
   if (status === 'rejected') return 'Rejeté';
   return 'Non initialise';
 }
@@ -664,13 +664,13 @@ function verdictLabel(verdict: string): string {
 
 function blockedReason(item: MyQueueItem): string {
   if (item.dossierClosed) {
-    return 'Dossier clos : la mission reste consultable, aucune action R3 n’est possible.';
+    return 'Dossier clos : la mission reste consultable, aucune action de la Cellule Inspection n’est possible.';
   }
   if (item.nextAction === 'wait_payment') {
-    return 'Le paiement doit être validé par S5 avant la tenue opérationnelle et l’avis R3.';
+    return 'Le paiement doit être validé par Finance avant la tenue opérationnelle et l’avis d’inspection.';
   }
   if (item.missionStatus === 'to_hold') {
     return 'La visite doit être marquée tenue avant de soumettre un avis.';
   }
-  return 'Aucune action R3 immédiate sur cette mission.';
+  return 'Aucune action immédiate de la Cellule Inspection sur cette mission.';
 }

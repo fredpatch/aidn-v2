@@ -441,7 +441,7 @@ export const handleDeepEvaluationError = createErrorHandler(
     INVOICE_NOT_UPLOADED: {
       status: 409,
       message:
-        "La facture doit d'abord être mise en ligne par S5 avant que le postulant puisse soumettre sa preuve.",
+        "La facture doit d'abord être mise en ligne par Finance avant que le postulant puisse soumettre sa preuve.",
     },
     PAYMENT_ALREADY_VALIDATED: {
       status: 409,
@@ -509,7 +509,7 @@ export const handleSiteInspectionError = createErrorHandler(
     },
     PAYMENT_NOT_VALIDATED: {
       status: 409,
-      message: "Le paiement doit être validé avant de soumettre l'avis R3.",
+      message: "Le paiement doit être validé avant de soumettre l'avis d’inspection.",
     },
     SITE_VISIT_NOT_SCHEDULED: {
       status: 409,
@@ -517,15 +517,15 @@ export const handleSiteInspectionError = createErrorHandler(
     },
     SITE_VISIT_NOT_ASSIGNED: {
       status: 403,
-      message: "Cette visite sur site n'est pas assignée à cet agent R3.",
+      message: "Cette visite sur site n'est pas assignée à cet agent CI.",
     },
     SITE_VISIT_NOT_HELD: {
       status: 409,
-      message: "La visite sur site doit être marquée 'tenue' avant de soumettre l'avis R3.",
+      message: "La visite sur site doit être marquée 'tenue' avant de soumettre l'avis d’inspection.",
     },
     VERDICT_ALREADY_SUBMITTED: {
       status: 409,
-      message: 'Un avis R3 a déjà été soumis pour cette phase.',
+      message: 'Un avis d’inspection a déjà été soumis pour cette phase.',
     },
   },
   '[site-inspection]'

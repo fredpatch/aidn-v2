@@ -1,0 +1,1 @@
+ALTER TYPE "public"."internal_role" ADD VALUE 'assistant_dn' BEFORE 'dn_agent';

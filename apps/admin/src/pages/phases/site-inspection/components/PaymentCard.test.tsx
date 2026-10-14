@@ -138,6 +138,6 @@ describe('<PaymentCard> M6 - invoice', () => {
   it('only the payment role can send the invoice', () => {
     setup({ value: null, canManagePayment: false });
     expect(screen.queryByRole('button', { name: 'Envoyer la facture' })).not.toBeInTheDocument();
-    expect(screen.getByText("En attente de l'envoi par le service S5.")).toBeInTheDocument();
+    expect(screen.getByText("En attente de l'envoi par le service Finance.")).toBeInTheDocument();
   });
 });

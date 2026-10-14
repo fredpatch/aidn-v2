@@ -56,13 +56,13 @@ export default function S5DashboardPage() {
   });
 
   if (isLoading) {
-    return <div className="text-sm text-anac-muted">Chargement du tableau de bord S5...</div>;
+    return <div className="text-sm text-anac-muted">Chargement du tableau de bord Finance...</div>;
   }
 
   if (error || !data) {
     return (
       <div className="rounded-lg border border-anac-danger/20 bg-white p-4 text-sm text-anac-danger">
-        Impossible de charger le tableau de bord S5.
+        Impossible de charger le tableau de bord Finance.
       </div>
     );
   }
@@ -74,7 +74,7 @@ export default function S5DashboardPage() {
           <div>
             <p className="text-xs font-medium text-anac-muted">Direction de la Navigabilité</p>
             <h1 className="mt-2 text-2xl font-semibold leading-tight text-anac-navy">
-              Tableau de bord - Facturation S5
+              Tableau de bord - Finance
             </h1>
             <p className="mt-1 text-sm text-anac-muted">
               Suivez les factures, les preuves de paiement, les validations et les blocages.
@@ -84,7 +84,7 @@ export default function S5DashboardPage() {
             <PeriodFilter value={period} onChange={setPeriod} />
             <Link to="/paiements-s5" className={cn(buttonVariants({ size: 'sm' }), 'gap-2')}>
               <WalletCards size={14} aria-hidden="true" />
-              Ouvrir l&apos;inbox S5
+              Ouvrir l&apos;inbox Finance
             </Link>
           </div>
         </header>
@@ -137,7 +137,7 @@ function S5PriorityActions({ items }: { items: S5DashboardPaymentItem[] }) {
   return (
     <DashboardSection
       title="1. Actions prioritaires"
-      description="Factures et preuves qui demandent une action S5."
+      description="Factures et preuves qui demandent une action Finance."
       className="p-4"
       action={<Link to="/paiements-s5" className="text-xs font-semibold text-anac-blue">Voir tout</Link>}
     >
@@ -146,7 +146,7 @@ function S5PriorityActions({ items }: { items: S5DashboardPaymentItem[] }) {
           <EmptyDashboardState
             icon={<CheckCircle2 size={16} aria-hidden="true" />}
             title="Aucune action prioritaire"
-            description="Les actions S5 urgentes apparaîtront ici."
+            description="Les actions Finance urgentes apparaîtront ici."
           />
         ) : (
           items.map((item) => <S5ActionRow key={item.id} item={item} />)
@@ -176,7 +176,7 @@ function S5ActionRow({ item }: { item: S5DashboardPaymentItem }) {
 function S5FlowSummary({ flow, updatedAt }: { flow: S5DashboardFlowStep[]; updatedAt: string }) {
   return (
     <DashboardSection
-      title="2. Flux de facturation S5"
+      title="2. Flux de facturation"
       description="Lecture rapide de l'entonnoir de paiement."
       className="p-4"
     >
@@ -240,7 +240,7 @@ function CompactPaymentList({ items, empty }: { items: S5DashboardPaymentItem[];
         <EmptyDashboardState
           icon={<CheckCircle2 size={16} aria-hidden="true" />}
           title={empty}
-          description="La liste se remplira automatiquement selon les paiements S5."
+          description="La liste se remplira automatiquement selon les paiements Finance."
         />
       ) : (
         items.map((item) => (
@@ -298,13 +298,13 @@ function S5Alerts({ alerts }: { alerts: S5DashboardAlert[] }) {
 
 function S5Activity({ activity }: { activity: S5DashboardActivityItem[] }) {
   return (
-    <DashboardSection title="6. Activité récente" description="Événements de paiement S5." className="p-4">
+    <DashboardSection title="6. Activité récente" description="Événements de paiement Finance." className="p-4">
       <div className="mt-4 space-y-3">
         {activity.length === 0 ? (
           <EmptyDashboardState
             icon={<Clock3 size={16} aria-hidden="true" />}
             title="Aucune activité récente"
-            description="Les validations, rejets et transmissions S5 apparaîtront ici."
+            description="Les validations, rejets et transmissions Finance apparaîtront ici."
           />
         ) : (
           activity.map((item) => (
@@ -329,7 +329,7 @@ function S5MonthlyProgress({ items, updatedAt }: { items: S5DashboardProgressMet
   return (
     <DashboardSection
       title="7. Progression de la période"
-      description="Indicateurs bases sur les actions S5 enregistrées."
+      description="Indicateurs bases sur les actions Finance enregistrées."
       className="p-4"
     >
       <div className="mt-5 grid gap-6 lg:grid-cols-[1fr_1fr_1fr_280px]">

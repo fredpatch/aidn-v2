@@ -95,7 +95,7 @@ export default function PaymentCard({
           ) : readOnly ? (
             <ClosedDossierNote>Aucune facture envoyée - dossier clos.</ClosedDossierNote>
           ) : (
-            <p className="text-anac-muted text-xs">En attente de l&apos;envoi par le service S5.</p>
+            <p className="text-anac-muted text-xs">En attente de l&apos;envoi par le service Finance.</p>
           )
         ) : (
           <p className="text-xs text-anac-muted">

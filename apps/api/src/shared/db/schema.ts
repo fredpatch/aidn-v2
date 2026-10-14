@@ -20,6 +20,7 @@ import { relations, sql } from 'drizzle-orm';
 export const internalRoleEnum = pgEnum('internal_role', [
   'reception',
   'assistant_dg',
+  'assistant_dn',
   'dn_agent',
   'dn_supervisor',
   'r3_agent',

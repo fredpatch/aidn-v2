@@ -70,7 +70,7 @@ export const ANALYTICS_REPORTS = [
   },
   {
     key: 's5',
-    title: 'Rapport S5 / délais paiement',
+    title: 'Rapport Finance / délais paiement',
     description: 'Paiements en attente et impact sur les délais.',
     available: true,
   },
@@ -485,9 +485,9 @@ export async function getAnalyticsOverview(filters: AnalyticsFilters): Promise<A
       },
       {
         key: 'missing_r3_opinions',
-        label: 'Avis R3 manquant',
+        label: 'Avis d’inspection manquant',
         value: String(missingR3Opinions.length),
-        helper: "Visites sur site tenues sans avis R3 soumis",
+        helper: "Visites sur site tenues sans avis d’inspection soumis",
         tone: 'info',
         href: '/reunions',
       },

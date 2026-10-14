@@ -146,3 +146,18 @@ to disk under `generated/...` before the transaction, `insertAssetWithAddress` i
 it, `cleanupGeneratedFileOnFailure` on any rollback) into a second, independent
 `upload_assets` row owned by the circuit document. Verified in the runtime UAT that
 the applicant's asset and the circuit's asset always get distinct ids.
+
+## 15. Role keys stay technical; métier names live in `@aidn/shared` (SESSION1-ROLE-1)
+
+DN Session 1 renamed two roles for the business: `r3_agent` is the Cellule Inspection / Agent CI and
+`s5_agent` is Finance / Agent Finance. The keys `r3_agent` / `s5_agent`, the DB enum values, API routes
+(including `/paiements-s5`), DTO fields (`r3AgentId`), and S5/R3-named files and components are kept
+unchanged: renaming them would force a data migration and churn routes, bookmarks and tests for no user
+benefit. Only displayed wording changed.
+
+`INTERNAL_ROLE_LABELS` / `INTERNAL_ROLE_GROUP_LABELS` (`Record<InternalRole, string>`) and the
+`internalRoleLabel()` helper in `packages/shared/src/statuses.ts` are the single source for role display,
+so a new role fails to compile until labelled. The admin header uses it instead of printing raw keys.
+New role `assistant_dn` (Assistante DN, group DN) added to the shared constant and the PG enum
+(migration `0007_session1_role1_assistant_dn`, a single `ADD VALUE`). It has no workflow permission yet:
+SESSION1-M1-1 defines its guards. No permanent "absent from every guard" test is kept on purpose.

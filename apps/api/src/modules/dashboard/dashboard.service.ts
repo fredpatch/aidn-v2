@@ -412,7 +412,7 @@ function receptionActivityLabel(action: string): string | null {
 function r3ActivityLabel(action: string): string | null {
   if (action === 'MEETING_SCHEDULED') return 'Visite planifiée';
   if (action === 'SITE_VISIT_HELD') return 'Visite tenue';
-  if (action === 'INSPECTION_VERDICT_SUBMITTED') return 'Avis R3 soumis';
+  if (action === 'INSPECTION_VERDICT_SUBMITTED') return 'Avis d’inspection soumis';
   if (action === 'PHASE_CLOSED') return 'Phase démonstration clôturée';
   return null;
 }
@@ -662,7 +662,7 @@ export async function getDashboardSummary(
       value: pendingPayments,
       helper: 'Facture, preuve ou validation',
       definition:
-        'Paiements qui bloquent une phase: facture attendue, preuve attendue ou validation S5 attendue.',
+        'Paiements qui bloquent une phase: facture attendue, preuve attendue ou validation Finance attendue.',
       periodLabel: 'État actuel',
       sampleSize: paymentRows.length,
       href: hrefForRoles(userRoles, ['s5_agent', 'SU'], '/paiements-s5'),
@@ -738,8 +738,8 @@ export async function getDashboardSummary(
       return enrichActionDelay(
         {
           id: `payment-${payment.id}`,
-          owner: 'S5',
-          responsibleService: 'Facturation S5',
+          owner: 'Finance',
+          responsibleService: 'Finance',
           ...actionAccess(userRoles, ['s5_agent']),
           ...context,
           title:
@@ -752,7 +752,7 @@ export async function getDashboardSummary(
           blockingReason:
             payment.status === 'awaiting_invoice'
               ? 'La phase attend la facture avant la preuve de paiement.'
-              : 'La phase attend la décision S5 sur la preuve de paiement.',
+              : 'La phase attend la décision Finance sur la preuve de paiement.',
           priority: priorityFromAge(submittedAt),
           href: phase
             ? `/demandes/${phase.requestId}/${phase.phaseCode === 'M7' ? 'delivrance' : phase.phaseCode === 'M6' ? 'demonstration-inspection' : 'evaluation-approfondie'}`
@@ -1131,7 +1131,7 @@ export async function getS5DashboardSummary(
       key: 'overdue_invoices',
       title: 'Factures non transmises',
       value: overdueInvoices,
-      helper: `Cible: ${slaConfig.invoiceUploadDays} j’après réception par S5`,
+      helper: `Cible: ${slaConfig.invoiceUploadDays} j’après réception par Finance`,
       tone: overdueInvoices > 0 ? 'warning' : 'info',
       href: '/paiements-s5',
     },
@@ -1147,7 +1147,7 @@ export async function getS5DashboardSummary(
       key: 'overdue_validation',
       title: 'Preuves à valider en retard',
       value: overdueValidation,
-      helper: `Cible validation S5: ${slaConfig.paymentValidationDays} j`,
+      helper: `Cible validation Finance: ${slaConfig.paymentValidationDays} j`,
       tone: overdueValidation > 0 ? 'danger' : 'info',
       href: '/paiements-s5',
     },
@@ -1193,7 +1193,7 @@ export async function getS5DashboardSummary(
     {
       label: 'Preuves validées sur la période',
       value: String(validatedThisPeriod.length),
-      helper: 'Paiements approuvés par S5.',
+      helper: 'Paiements approuvés par Finance.',
       percentage: percent(validatedThisPeriod.length, Math.max(proofsReceivedThisPeriod.length, 1)),
       tone: 'success',
     },
@@ -1215,7 +1215,7 @@ export async function getS5DashboardSummary(
         key: 'invoices_to_send',
         label: 'Factures à transmettre',
         value: awaitingInvoice.length,
-        helper: 'Factures reçues par S5 à envoyer au postulant',
+        helper: 'Factures reçues par Finance à envoyer au postulant',
         tone: awaitingInvoice.length > 0 ? 'info' : 'success',
       },
       {
@@ -1244,7 +1244,7 @@ export async function getS5DashboardSummary(
       {
         key: 'invoice_received',
         label: 'Facture reçue',
-        description: 'À transmettre par S5',
+        description: 'À transmettre par Finance',
         count: awaitingInvoice.length,
         tone: 'info',
       },
@@ -1258,13 +1258,13 @@ export async function getS5DashboardSummary(
       {
         key: 'proof_received',
         label: 'Preuve reçue',
-        description: 'Validation S5 requise',
+        description: 'Validation Finance requise',
         count: pendingValidation.length,
         tone: 'warning',
       },
       {
         key: 'validated',
-        label: 'Validation S5',
+        label: 'Validation Finance',
         description: 'Paiements approuvés',
         count: paymentRows.filter((row) => row.payment.status === 'validated').length,
         tone: 'success',
@@ -1778,21 +1778,21 @@ export async function getR3DashboardSummary(
     {
       label: 'Visites tenues sur la période',
       value: String(visitsHeldThisPeriod.length),
-      helper: 'Visites R3 marquées comme tenues dans la période.',
+      helper: 'Visites d’inspection marquées comme tenues dans la période.',
       percentage: percent(visitsHeldThisPeriod.length, Math.max(missionRows.length, 1)),
       tone: 'info',
     },
     {
       label: 'Avis soumis sur la période',
       value: String(reportsSubmittedThisPeriod.length),
-      helper: 'Avis R3 soumis et phases clôturées automatiquement.',
+      helper: 'Avis d’inspection soumis et phases clôturées automatiquement.',
       percentage: percent(reportsSubmittedThisPeriod.length, Math.max(visitsHeldThisPeriod.length, 1)),
       tone: 'success',
     },
     {
       label: 'Missions clôturées',
       value: String(closedThisPeriod.length),
-      helper: 'Missions R3 clôturées sur la période sélectionnée.',
+      helper: 'Missions d’inspection clôturées sur la période sélectionnée.',
       percentage: percent(closedThisPeriod.length, Math.max(missionRows.length, 1)),
       tone: 'success',
     },
@@ -1807,7 +1807,7 @@ export async function getR3DashboardSummary(
         key: 'planned_visits',
         label: 'Inspections prévues',
         value: plannedVisits.length,
-        helper: 'Visites planifiées assignées à R3',
+        helper: 'Visites planifiées assignées à la Cellule Inspection',
         tone: plannedVisits.length > 0 ? 'info' : 'success',
       },
       {
@@ -1821,7 +1821,7 @@ export async function getR3DashboardSummary(
         key: 'reports_due',
         label: 'Avis à remettre',
         value: reportsDue.length,
-        helper: 'Visites tenues sans avis R3',
+        helper: 'Visites tenues sans avis d’inspection',
         tone: reportsDue.length > 0 ? 'danger' : 'success',
       },
       {
@@ -1843,14 +1843,14 @@ export async function getR3DashboardSummary(
       {
         key: 'held',
         label: 'Tenue',
-        description: 'Avis R3 attendu',
+        description: 'Avis d’inspection attendu',
         count: reportsDue.length,
         tone: reportsDue.length > 0 ? 'warning' : 'success',
       },
       {
         key: 'submitted',
         label: 'Avis soumis',
-        description: 'Décision R3 enregistrée',
+        description: 'Décision d’inspection enregistrée',
         count: items.filter((item) => item.inspectionVerdict !== null).length,
         tone: 'success',
       },
@@ -1876,7 +1876,7 @@ export async function getR3DashboardSummary(
       },
       {
         key: 'overdue_reports',
-        title: 'Avis R3 en retard',
+        title: 'Avis d’inspection en retard',
         value: overdueReports,
         helper: 'Visites tenues sans avis depuis au moins 1 jour',
         tone: overdueReports > 0 ? 'danger' : 'info',
@@ -1887,7 +1887,7 @@ export async function getR3DashboardSummary(
         title: 'Paiements bloquants',
         value: items.filter((item) => item.paymentStatus !== 'validated' && item.missionStatus !== 'closed')
           .length,
-        helper: 'R3 attend la validation S5 avant action finale',
+        helper: 'La Cellule Inspection attend la validation Finance avant action finale',
         tone: items.some((item) => item.paymentStatus !== 'validated' && item.missionStatus !== 'closed')
           ? 'warning'
           : 'info',

@@ -118,7 +118,7 @@ export function CertificatesSection({ requestId }: { requestId: number }) {
         <PaymentBlock
           title="Paiement final"
           payment={bundle.payment}
-          waitingInvoiceText="En attente de la facture du service S5."
+          waitingInvoiceText="En attente de la facture du service Finance."
           onSubmitProof={submitProof}
         />
       )}

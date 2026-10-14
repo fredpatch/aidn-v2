@@ -1,6 +1,8 @@
 # Current Task
 
 **Session date**: 2026-10-08
+
+> **2026-10-14 SESSION1-ROLE-1 (in working tree, uncommitted):** `assistant_dn` role added (no permissions yet, M1-1 owns them); `r3_agent`/`s5_agent` now display as Agent CI / Agent Finance via `@aidn/shared` role labels; visible R3/S5 wording replaced by métier terms. See `project/decisions.md` #15.
 **Status**: K4 atomic payment decisions implemented; preparing commit and push.
 
 ## Current Repo Truth

@@ -50,6 +50,13 @@
       "when": 1791551383879,
       "tag": "0006_d3b_request_views",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791970828900,
+      "tag": "0007_session1_role1_assistant_dn",
+      "breakpoints": true
     }
   ]
 }

@@ -27,7 +27,7 @@ const overview = {
   slaDistribution: [],
   blockingPoints: [
     point('missing_reports', 'Reunions sans compte-rendu', '4'),
-    point('missing_r3_opinions', 'Avis R3 manquant', '2'),
+    point('missing_r3_opinions', 'Avis d’inspection manquant', '2'),
   ],
   delayedDossiers: [],
   meetingFollowUps: { missingReports: [], missingR3Opinions: [] },
@@ -55,9 +55,9 @@ async function sheetsText(reportKey: ReportSnapshot['reportKey']) {
 describe('K6 inspection report blockers', () => {
   it('lists the missing R3 opinions, not the meetings without compte-rendu', async () => {
     const sheets = await sheetsText('inspections');
-    const blockers = sheets.find((sheet) => sheet.name === 'Avis R3');
+    const blockers = sheets.find((sheet) => sheet.name === 'Avis d’inspection');
     assert.ok(blockers, `sheets: ${sheets.map((sheet) => sheet.name).join(', ')}`);
-    assert.match(blockers.text, /Avis R3 manquant \| 2/);
+    assert.match(blockers.text, /Avis d’inspection manquant \| 2/);
     assert.doesNotMatch(blockers.text, /Reunions sans compte-rendu/);
   });
 
@@ -65,6 +65,6 @@ describe('K6 inspection report blockers', () => {
     const sheets = await sheetsText('bottlenecks');
     const all = sheets.map((sheet) => sheet.text).join(' ');
     assert.match(all, /Reunions sans compte-rendu/);
-    assert.match(all, /Avis R3 manquant/);
+    assert.match(all, /Avis d’inspection manquant/);
   });
 });
