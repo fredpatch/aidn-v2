@@ -57,6 +57,12 @@ rule; `status` includes `scheduled` as the real initial value, not just `held`/
 `certificates` - **M3 (Phase Préliminaire) is built** (phases open/close, meetings
 scheduled/statused, declaration made-available/submitted); M4-M7 still model-only.
 
+**SESSION1-MEET-2 (migration 0010):** `meetings.signed_cr_document_url` (text, nullable) and
+`meetings.signed_cr_uploaded_at` (timestamp, nullable) hold the applicant's signed copy of the M3/M4 compte rendu.
+Check `meetings_signed_cr_coherent_chk`: the two columns are both null or both set; a signed copy requires
+`cr_document_url` (the DN CR) and `meeting_type IN ('preliminary','formal')`. `document_owner_type` gained
+`meeting_report_signed` (versions of the signed copy in `document_versions`, same meeting id as `meeting_report`).
+
 ## Table: `document_templates` (added Sprint 2, ahead of M4)
 
 Blank template forms DN makes available for applicants to download and fill -

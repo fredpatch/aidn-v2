@@ -6,11 +6,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import { MeetingNegotiationCard } from '../../../../components/meetings/MeetingNegotiationCard';
 import { isOperationallyConfirmed } from '../../../../lib/api/meetings.types';
 import { queryKeys } from '../../../../lib/react-query/queryKeys';
-import { CalendarClock, CheckCircle2, FileUp, RotateCcw, XCircle } from 'lucide-react';
-import DocumentPreviewLink from '../../../../components/documents/DocumentPreviewLink';
+import { CalendarClock, CheckCircle2, RotateCcw, XCircle } from 'lucide-react';
+import { MeetingReportRows } from '../../../../components/meetings/MeetingReportRows';
 import { Button } from '../../../../components/ui/button';
 import { MEETING_STATUS_LABELS, MEETING_STATUS_TONES } from '../constants';
-import { formatDate, formatDateTime } from '../helpers';
+import { formatDateTime } from '../helpers';
 import { ClosedDossierNote, useDossierReadOnly } from '../../components/DossierReadOnly';
 import { useMeetingActions } from '../hooks/useMeetingActions';
 import type { MeetingView } from '../types';
@@ -51,8 +51,6 @@ export default function MeetingCard({
   const [scheduling, setScheduling] = useState(false);
   const [rescheduling, setRescheduling] = useState(false);
   const [warning, setWarning] = useState<string | null>(null);
-  const [sendingReport, setSendingReport] = useState(false);
-  const [reportFile, setReportFile] = useState<File | null>(null);
 
   const { busy, schedule, reschedule, markStatus, sendReport } = useMeetingActions(
     setActionError,
@@ -92,20 +90,6 @@ export default function MeetingCard({
     }
   }
 
-  async function handleSendReport() {
-    if (!meeting) return;
-    if (!reportFile) {
-      setActionError('Merci de sélectionner un fichier pour le compte-rendu.');
-      return;
-    }
-
-    const ok = await sendReport(meeting.id, reportFile);
-    if (ok) {
-      setSendingReport(false);
-      setReportFile(null);
-    }
-  }
-
   return (
     <div className="card space-y-3">
       <div className="flex items-center gap-2">
@@ -128,14 +112,8 @@ export default function MeetingCard({
               toneMap={MEETING_STATUS_TONES}
               fallbackTone="bg-anac-info/10 text-anac-info"
             />
-            {meeting.crDocumentUrl && (
-              <p className="text-sm">
-                Compte-rendu envoyé le {formatDate(meeting.crUploadedAt)} -{' '}
-                <DocumentPreviewLink
-                  title="Compte-rendu de réunion préliminaire"
-                  url={meeting.crDocumentUrl}
-                />
-              </p>
+            {meeting.status === 'held' && (
+              <MeetingReportRows title="Réunion préliminaire" report={meeting} canUpload={false} />
             )}
             <MeetingNegotiationCard
               meeting={meeting}
@@ -284,49 +262,13 @@ export default function MeetingCard({
           )}
 
           {meeting.status === 'held' && (
-            <div className="pt-1 space-y-2">
-              {meeting.crDocumentUrl ? (
-                <p className="text-sm">
-                  Compte-rendu envoyé le {formatDate(meeting.crUploadedAt)} -{' '}
-                  <DocumentPreviewLink
-                    title="Compte-rendu de réunion préliminaire"
-                    url={meeting.crDocumentUrl}
-                  />
-                  {' - '}
-                  <button
-                    type="button"
-                    className="underline text-anac-muted text-xs"
-                    onClick={() => setSendingReport(true)}
-                  >
-                    remplacer
-                  </button>
-                </p>
-              ) : sendingReport ? (
-                <div className="flex items-center gap-2">
-                  <input type="file" onChange={(e) => setReportFile(e.target.files?.[0] ?? null)} />
-                  <Button size="sm" onClick={handleSendReport} disabled={busy}>
-                    Envoyer
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => setSendingReport(false)}
-                    disabled={busy}
-                  >
-                    Annuler
-                  </Button>
-                </div>
-              ) : (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => setSendingReport(true)}
-                  className="gap-1"
-                >
-                  <FileUp size={12} /> Envoyer le compte-rendu (optionnel)
-                </Button>
-              )}
-            </div>
+            <MeetingReportRows
+              title="Réunion préliminaire"
+              report={meeting}
+              canUpload
+              busy={busy}
+              onUpload={(file) => sendReport(meeting.id, file)}
+            />
           )}
         </div>
       )}

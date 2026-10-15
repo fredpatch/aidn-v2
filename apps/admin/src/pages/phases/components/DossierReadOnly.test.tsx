@@ -245,6 +245,8 @@ describe('phase cards on a closed dossier: documents stay, actions go (K7b)', ()
       status: 'held',
       crDocumentUrl: '/files/cr.pdf',
       crUploadedAt: AT,
+      signedCrDocumentUrl: null,
+      signedCrUploadedAt: null,
     };
     renderIn(
       rejected,
@@ -261,12 +263,12 @@ describe('phase cards on a closed dossier: documents stay, actions go (K7b)', ()
         />
       </>
     );
-    for (const name of ['Tenue', 'Absence', 'Reprogrammer', 'Annuler le dossier', 'remplacer']) {
+    for (const name of ['Tenue', 'Absence', 'Reprogrammer', 'Annuler le dossier', 'Remplacer le compte rendu', 'Déposer le compte rendu']) {
       expect(screen.queryByRole('button', { name: new RegExp(name) })).not.toBeInTheDocument();
     }
     expect(screen.queryByRole('link', { name: 'Voir le ticket' })).not.toBeInTheDocument();
     // the report link survives (DocumentPreviewLink renders a button)
-    expect(screen.getAllByRole('button', { name: 'voir le fichier' })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: 'Consulter' })).toHaveLength(1);
     expect(screen.getAllByText('Aucune action - dossier clos.')).toHaveLength(2);
   });
 

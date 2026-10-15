@@ -26,6 +26,8 @@ const view = (): MeetingView => ({
   confirmedAt: null,
   crDocumentUrl: null,
   crUploadedAt: null,
+  signedCrDocumentUrl: null,
+  signedCrUploadedAt: null,
   createdAt: AT,
 });
 const block = (): ApplicantNegotiationBlock => ({
@@ -49,6 +51,8 @@ function meetingRow(overrides: Partial<MeetingRow>): MeetingRow {
     ticketDocumentUrl: null,
     crDocumentUrl: null,
     crUploadedAt: null,
+    signedCrDocumentUrl: null,
+    signedCrUploadedAt: null,
     createdAt: AT,
     confirmationStatus: 'awaiting_applicant',
     alternateScheduledAt: null,
@@ -75,17 +79,35 @@ function event(overrides: Partial<NegotiationEventRow>): NegotiationEventRow {
 }
 
 describe('toApplicantMeetingView', () => {
-  it('drops dnAgentId and keeps every other field plus the negotiation block', () => {
-    const expected: Record<string, unknown> = { ...view(), ...block() };
+  it('drops dnAgentId and keeps every other field plus the negotiation block and the signed-report flag', () => {
+    const expected: Record<string, unknown> = { ...view(), ...block(), canSubmitSignedReport: false };
     delete expected.dnAgentId;
-    assert.deepEqual(toApplicantMeetingView(view(), block()), expected);
-    assert.doesNotMatch(JSON.stringify(toApplicantMeetingView(view(), block())), /dnAgentId|:42\b/);
+    assert.deepEqual(toApplicantMeetingView(view(), block(), false), expected);
+    assert.doesNotMatch(JSON.stringify(toApplicantMeetingView(view(), block(), false)), /dnAgentId|:42/);
+  });
+
+  it('SESSION1-MEET-2 - passes both report files and the upload flag through', () => {
+    const signedAt = new Date('2026-10-16T09:00:00Z');
+    const source: MeetingView = {
+      ...view(),
+      meetingType: 'preliminary',
+      status: 'held',
+      crDocumentUrl: '/api/files/1',
+      crUploadedAt: AT,
+      signedCrDocumentUrl: '/api/files/2',
+      signedCrUploadedAt: signedAt,
+    };
+    const result = toApplicantMeetingView(source, block(), true);
+    assert.equal(result.crDocumentUrl, '/api/files/1');
+    assert.equal(result.signedCrDocumentUrl, '/api/files/2');
+    assert.equal(result.signedCrUploadedAt, signedAt);
+    assert.equal(result.canSubmitSignedReport, true);
   });
 
   it('whitelist: a field added to MeetingView or to the block later is not passed through', () => {
     const source = { ...view(), internalNote: 'secret' } as MeetingView;
     const extra = { ...block(), history: [{ remark: 'Confirmé par téléphone' }] } as ApplicantNegotiationBlock;
-    assert.doesNotMatch(JSON.stringify(toApplicantMeetingView(source, extra)), /internalNote|secret|history|téléphone/);
+    assert.doesNotMatch(JSON.stringify(toApplicantMeetingView(source, extra, false)), /internalNote|secret|history|téléphone/);
   });
 });
 

@@ -1,5 +1,6 @@
 /** SESSION1-MEET-1 - who can write on meetings. Static check, no database.
- *  - the applicant has exactly two write routes (confirm, propose-alternate),
+ *  - the applicant has exactly three write routes (confirm, propose-alternate,
+ *    signed-report),
  *    authenticated as an applicant only (identity from the token);
  *  - every other write route is DN-only: dn_agent, dn_supervisor, SU - no
  *    other role gains anything. */
@@ -16,7 +17,7 @@ const writeRoutes = [...routeSource.matchAll(/router\.(post|patch|put|delete)\(\
   ([, method, routePath, guards]) => ({ route: `${method.toUpperCase()} ${routePath}`, guards })
 );
 
-const APPLICANT_WRITES = ['POST /:id/confirm', 'POST /:id/propose-alternate'];
+const APPLICANT_WRITES = ['POST /:id/confirm', 'POST /:id/propose-alternate', 'POST /:id/signed-report'];
 const DN_GUARD = /requireRole\(\s*'dn_agent',\s*'dn_supervisor',\s*'SU'\s*\)/;
 
 describe('meetings write routes', () => {
@@ -32,7 +33,7 @@ describe('meetings write routes', () => {
     }
   });
 
-  it('gives the applicant exactly two write routes, applicant-authenticated only', () => {
+  it('gives the applicant exactly its write routes, applicant-authenticated only', () => {
     const applicantRoutes = writeRoutes.filter((r) => /authenticateApplicant/.test(r.guards)).map((r) => r.route);
     assert.deepEqual(applicantRoutes.sort(), [...APPLICANT_WRITES].sort());
     for (const route of writeRoutes.filter((r) => APPLICANT_WRITES.includes(r.route))) {

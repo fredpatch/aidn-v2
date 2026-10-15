@@ -31,6 +31,7 @@ const WORKFLOW_DOCUMENT_OWNER_TYPES = [
   'payment_invoice',
   'payment_proof',
   'meeting_report',
+  'meeting_report_signed',
   'phase_closure_document',
   'certificate_document',
 ] as const;
@@ -192,14 +193,14 @@ async function runScope(scope: ResettableScope): Promise<void> {
       await db.execute(
         sql`DELETE FROM document_versions WHERE owner_type IN (
           'dg_circuit_document', 'formal_request_document', 'preliminary_evaluation_form',
-          'payment_invoice', 'payment_proof', 'meeting_report', 'phase_closure_document',
+          'payment_invoice', 'payment_proof', 'meeting_report', 'meeting_report_signed', 'phase_closure_document',
           'certificate_document'
         )`
       );
       await db.execute(
         sql`DELETE FROM upload_assets WHERE linked_owner_type IN (
           'dg_circuit_document', 'formal_request_document', 'preliminary_evaluation_form',
-          'payment_invoice', 'payment_proof', 'meeting_report', 'phase_closure_document',
+          'payment_invoice', 'payment_proof', 'meeting_report', 'meeting_report_signed', 'phase_closure_document',
           'certificate_document'
         )`
       );

@@ -6,12 +6,12 @@ import { useQueryClient } from '@tanstack/react-query';
 import { MeetingNegotiationCard } from '../../../../components/meetings/MeetingNegotiationCard';
 import { isOperationallyConfirmed } from '../../../../lib/api/meetings.types';
 import { queryKeys } from '../../../../lib/react-query/queryKeys';
-import { CalendarClock, CheckCircle2, FileUp, RotateCcw, XCircle } from 'lucide-react';
-import DocumentPreviewLink from '../../../../components/documents/DocumentPreviewLink';
+import { CalendarClock, CheckCircle2, RotateCcw, XCircle } from 'lucide-react';
+import { MeetingReportRows } from '../../../../components/meetings/MeetingReportRows';
 import { Button } from '../../../../components/ui/button';
 import CollapsibleCard from '../../../../components/ui/collapsible-card';
 import { MEETING_STATUS_LABELS, MEETING_STATUS_TONES } from '../constants';
-import { formatDate, formatDateTime } from '../helpers';
+import { formatDateTime } from '../helpers';
 import { ClosedDossierNote, useDossierReadOnly } from '../../components/DossierReadOnly';
 import { useFormalMeetingActions } from '../hooks/useFormalMeetingActions';
 import type { FormalMeetingView } from '../types';
@@ -56,8 +56,6 @@ export default function FormalMeetingCard({
   const [scheduling, setScheduling] = useState(false);
   const [rescheduling, setRescheduling] = useState(false);
   const [warning, setWarning] = useState<string | null>(null);
-  const [sendingReport, setSendingReport] = useState(false);
-  const [reportFile, setReportFile] = useState<File | null>(null);
 
   const { busy, schedule, reschedule, markStatus, sendReport } = useFormalMeetingActions(
     requestId,
@@ -92,18 +90,6 @@ export default function FormalMeetingCard({
     if (ok) {
       setRescheduling(false);
       rescheduleForm.reset();
-    }
-  }
-
-  async function handleSendReport() {
-    if (!meeting || !reportFile) {
-      setActionError('Merci de sélectionner un fichier pour le compte-rendu.');
-      return;
-    }
-    const ok = await sendReport(meeting.id, reportFile);
-    if (ok) {
-      setSendingReport(false);
-      setReportFile(null);
     }
   }
 
@@ -143,14 +129,8 @@ export default function FormalMeetingCard({
               toneMap={MEETING_STATUS_TONES}
               fallbackTone="bg-anac-info/10 text-anac-info"
             />
-            {meeting.crDocumentUrl && (
-              <p className="text-sm">
-                Compte-rendu envoyé le {formatDate(meeting.crUploadedAt)} -{' '}
-                <DocumentPreviewLink
-                  title="Compte-rendu de réunion formelle"
-                  url={meeting.crDocumentUrl}
-                />
-              </p>
+            {meeting.status === 'held' && (
+              <MeetingReportRows title="Réunion formelle" report={meeting} canUpload={false} />
             )}
             <MeetingNegotiationCard
               meeting={meeting}
@@ -308,58 +288,13 @@ export default function FormalMeetingCard({
           )}
 
           {meeting.status === 'held' && (
-            <div className="pt-1 space-y-2">
-              {meeting.crDocumentUrl ? (
-                <p className="text-sm">
-                  Compte-rendu envoyé le {formatDate(meeting.crUploadedAt)} -{' '}
-                  <DocumentPreviewLink
-                    title="Compte-rendu de réunion formelle"
-                    url={meeting.crDocumentUrl}
-                  />
-                  {' - '}
-                  <button
-                    type="button"
-                    className="underline text-anac-muted text-xs"
-                    disabled={!canManage}
-                    onClick={() => setSendingReport(true)}
-                  >
-                    remplacer
-                  </button>
-                </p>
-              ) : sendingReport ? (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="file"
-                    disabled={!canManage}
-                    onChange={(e) => setReportFile(e.target.files?.[0] ?? null)}
-                  />
-                  <Button size="sm" onClick={handleSendReport} disabled={busy || !canManage}>
-                    Envoyer
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => setSendingReport(false)}
-                    disabled={busy}
-                  >
-                    Annuler
-                  </Button>
-                </div>
-              ) : (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => setSendingReport(true)}
-                  disabled={!canManage}
-                  className="gap-1"
-                >
-                  <FileUp size={12} /> Deposer le compte-rendu
-                </Button>
-              )}
-              <p className="text-anac-muted text-xs">
-                Le compte-rendu est facultatif pour la clôture de la phase.
-              </p>
-            </div>
+            <MeetingReportRows
+              title="Réunion formelle"
+              report={meeting}
+              canUpload={canManage}
+              busy={busy}
+              onUpload={(file) => sendReport(meeting.id, file)}
+            />
           )}
           {!canManage && meeting.status === 'scheduled' && (
             <p className="text-anac-muted text-xs">Action réservée à la DN.</p>

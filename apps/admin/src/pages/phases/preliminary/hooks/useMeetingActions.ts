@@ -64,7 +64,13 @@ export function useMeetingActions(
         await queryClient.invalidateQueries({ queryKey: queryKeys.preliminary.bundle(requestId) });
       }
     },
-    onError: (err) => setActionError(apiErrorMessage(err, "Impossible d'envoyer le compte-rendu.")),
+    onError: async (err) => {
+      setActionError(apiErrorMessage(err, "Impossible d'envoyer le compte-rendu."));
+      // A 409 means a signed copy arrived meanwhile: show it.
+      if (requestId) {
+        await queryClient.invalidateQueries({ queryKey: queryKeys.preliminary.bundle(requestId) });
+      }
+    },
   });
 
   async function schedule(params: {

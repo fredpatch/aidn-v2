@@ -233,3 +233,14 @@ refuses (mandatory reason), or confirms on the applicant's behalf (mandatory not
 - **Legacy**: migration 0009 sets existing M3/M4 rows `confirmed` (`confirmed_at = created_at`, a technical proxy
   never shown as a KPI) and M6 rows `not_required`, in the same migration (enum types created there - safe, see
   gotchas #23); no backfill script.
+
+## 18. SESSION1-MEET-2 - signed return of the meeting compte rendu (2026-10-15)
+
+- M3/M4 only; M6 has no DN CR and no signed copy (API guard `acceptsMeetingReport`, DB check for the signed copy).
+- Two independent chains on the same meeting id: `meeting_report` (DN, `meetings.cr_document_url`) and `meeting_report_signed` (applicant, `meetings.signed_cr_document_url`).
+- The DN CR is frozen once a signed copy exists (409 `MEETING_REPORT_FROZEN_SIGNED`). Exceptional corrections are handled manually outside the workflow until a rectification mechanism is validated.
+- The applicant uploads the signed copy once (D3 revised before push): a second file is a 409 `MEETING_SIGNED_REPORT_ALREADY_SUBMITTED` (« … contactez la Direction de la Navigabilité »), nothing is trashed. A correction workflow is a future task.
+- Portal surfaces the pending signed copy from `canSubmitSignedReport` only: M3/M4 phase summary (« Action requise — Compte rendu à signer », after the phase-blocking actions), dossier banner, dashboard `ReportsToSignBanner`. A closed phase still awaiting it opens by default and allows the upload (exception to read-only closed rows, because the API rule is dossier-open).
+- No DN validation, no notification, no cockpit metric; phase closure needs neither file.
+- Audit `MEETING_SIGNED_REPORT_SUBMITTED` (applicant actor), one per meeting, one activity label.
+- Migration 0010: ADD VALUE + two nullable columns + check; no backfill.

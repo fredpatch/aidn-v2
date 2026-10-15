@@ -60,7 +60,13 @@ export function useFormalMeetingActions(
       await attachMeetingReport(meetingId, uploaded.uploadAssetId);
     },
     onSuccess: invalidate,
-    onError: (err) => setActionError(apiErrorMessage(err, "Impossible d'envoyer le compte-rendu.")),
+    onError: async (err) => {
+      setActionError(apiErrorMessage(err, "Impossible d'envoyer le compte-rendu."));
+      // A 409 means a signed copy arrived meanwhile: show it.
+      if (requestId) {
+        await queryClient.invalidateQueries({ queryKey: queryKeys.formal.bundle(requestId) });
+      }
+    },
   });
 
   const busy =

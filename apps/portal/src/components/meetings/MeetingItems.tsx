@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { CalendarDays, MapPin } from 'lucide-react';
-import FileLink from '../files/FileLink';
 import { TicketLink } from './TicketLink';
+import { MeetingReportPanel, showsReportPanel } from './MeetingReportPanel';
 import type { ApplicantMeeting } from '../../lib/api/meetings.api';
 import { formatMeetingDate, formatMeetingTime, isAwaitingConfirmation, relativeDayLabel } from '../../lib/meetings';
 import { MEETING_STATUS_LABELS, MEETING_TYPE_LABELS, labelOf } from '../../pages/requests/constants';
@@ -62,17 +62,14 @@ export function MeetingHistoryRow({ meeting, now }: { meeting: ApplicantMeeting;
         <p className="text-xs text-anac-muted">
           {formatMeetingDate(meeting.scheduledAt)} · {formatMeetingTime(meeting.scheduledAt)} ·{' '}
           <Link to={`/dossiers/${meeting.requestId}`} className="hover:underline">{meeting.requestReference}</Link>
-          {meeting.crDocumentUrl && (
-            <>
-              {' · '}
-              <FileLink address={meeting.crDocumentUrl} className="text-anac-blue underline">
-                compte-rendu
-              </FileLink>
-            </>
-          )}
         </p>
       </div>
       <span className={`whitespace-nowrap rounded px-2 py-0.5 text-[11px] font-medium ${tone}`}>{statusLabel}</span>
+      {showsReportPanel(meeting) && (
+        <div className="basis-full">
+          <MeetingReportPanel meeting={meeting} />
+        </div>
+      )}
     </li>
   );
 }

@@ -3,7 +3,7 @@
  *  sends dossierClosed (and already drops its own actions); these tests pin
  *  what each screen renders from it. */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { AxiosError, AxiosHeaders } from 'axios';
 import { api } from '../lib/axios';
 import { CONFIRMED_NEGOTIATION } from '../test/meetingFixtures';
@@ -65,14 +65,25 @@ describe('<S5PaymentsPage> (K7c)', () => {
     expect(await screen.findByRole('button', { name: /Valider le paiement/ })).toBeInTheDocument();
     expect(screen.queryByText(/Dossier rejeté/)).not.toBeInTheDocument();
   });
+
+  it('SESSION1-MEET-2 - a held site visit shows no compte-rendu rows', async () => {
+    responses['/meetings'] = cockpit(
+      meeting({ meetingType: 'site_visit', meetingTypeLabel: 'Visite sur site', phaseCode: 'M6', canManage: false, crDocumentUrl: null, crUploadedAt: null })
+    );
+    renderWithProviders(<MeetingsPage />);
+    fireEvent.click(await screen.findByText('Liste'));
+    fireEvent.click(await screen.findByText('DEM-K7C-01'));
+    expect(screen.queryByRole('region', { name: 'Compte rendu DN' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Compte rendu signé par le postulant' })).not.toBeInTheDocument();
+  });
 });
 
 const meeting = (over: Partial<MeetingCockpitItem>): MeetingCockpitItem => ({
   id: 7, phaseId: 3, phaseCode: 'M3', phaseLabel: 'Préliminaire', phaseStatus: 'open', requestId: 1,
   requestReference: 'DEM-K7C-01', requestType: 'issuance', organisationName: 'OMA K7c', applicantName: 'P',
   meetingType: 'preliminary', meetingTypeLabel: 'Reunion preliminaire', status: 'held', statusLabel: 'Tenue',
-  scheduledAt: SOON, location: 'Salle A', dnAgentId: 5, dnAgentName: 'Agent DN', crDocumentUrl: '/api/files/cr.pdf',
-  crUploadedAt: AT, ticketUrl: '/api/meetings/7/ticket', phaseHref: '/demandes/1/phase-preliminaire',
+  scheduledAt: SOON, location: 'Salle A', dnAgentId: 5, dnAgentName: 'Agent DN', crDocumentUrl: '/api/files/41',
+  crUploadedAt: AT, signedCrDocumentUrl: null, signedCrUploadedAt: null, ticketUrl: '/api/meetings/7/ticket', phaseHref: '/demandes/1/phase-preliminaire',
   canManage: true, actionLabel: 'Compte-rendu depose', negotiation: CONFIRMED_NEGOTIATION, ...open, ...over,
 });
 
@@ -88,8 +99,9 @@ describe('<MeetingsPage> (K7c)', () => {
     fireEvent.click(await screen.findByText('DEM-K7C-01'));
     expect(screen.getAllByText('Dossier rejeté').length).toBeGreaterThan(0);
     expect(screen.getByText(/la réunion reste consultable, aucune action/)).toBeInTheDocument();
-    expect(screen.getByText('Consulter le compte-rendu')).toBeInTheDocument();
-    expect(screen.queryByText(/Remplacer le compte-rendu/)).not.toBeInTheDocument();
+    const dnReport = screen.getByRole('region', { name: 'Compte rendu DN' });
+    expect(within(dnReport).getByRole('button', { name: 'Consulter' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Remplacer le compte rendu/ })).not.toBeInTheDocument();
     expect(screen.queryByText(/Les actions de la Cellule Inspection restent disponibles/)).not.toBeInTheDocument();
   });
 
@@ -98,7 +110,7 @@ describe('<MeetingsPage> (K7c)', () => {
     renderWithProviders(<MeetingsPage />);
     fireEvent.click(await screen.findByText('Liste'));
     fireEvent.click(await screen.findByText('DEM-K7C-01'));
-    expect(screen.getByText('Remplacer le compte-rendu')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Remplacer le compte rendu/ })).toBeInTheDocument();
     expect(screen.queryByText(/Dossier rejeté/)).not.toBeInTheDocument();
   });
 });

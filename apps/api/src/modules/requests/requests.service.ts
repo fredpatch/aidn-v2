@@ -119,6 +119,8 @@ export const ACTIVITY_LABELS: Record<
   MEETING_SCHEDULED: { title: 'Réunion planifiée', tone: 'info' },
   MEETING_RESCHEDULED: { title: 'Réunion reportée', tone: 'warning' },
   MEETING_REPORT_ATTACHED: { title: 'Compte-rendu de réunion joint', tone: 'info' },
+  // SESSION1-MEET-2 - the applicant's signed copy (one upload per meeting).
+  MEETING_SIGNED_REPORT_SUBMITTED: { title: 'Compte rendu signé transmis par le postulant', tone: 'info' },
   MEETING_HELD: { title: 'Réunion tenue', tone: 'success' },
   MEETING_NO_SHOW: { title: 'Réunion : absence du postulant', tone: 'warning' },
   MEETING_FILE_CANCELLED: { title: 'Réunion : dossier annulé', tone: 'danger' },

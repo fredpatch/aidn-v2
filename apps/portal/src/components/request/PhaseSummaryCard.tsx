@@ -16,6 +16,7 @@ export function PhaseSummaryCard({
   description,
   tone,
   closed,
+  action,
   children,
 }: {
   phaseLabel: string;
@@ -23,6 +24,8 @@ export function PhaseSummaryCard({
   description: string;
   tone: PhaseTone;
   closed: boolean;
+  /** A link to where the applicant acts (SESSION1-MEET-2 signed compte rendu). */
+  action?: { label: string; href: string };
   children: ReactNode;
 }) {
   return (
@@ -32,6 +35,11 @@ export function PhaseSummaryCard({
           <p className="text-sm font-semibold text-anac-navy">{phaseLabel}</p>
           <h3 className="mt-1 text-base font-semibold text-anac-navy">{title}</h3>
           <p className="mt-1 text-sm text-anac-muted">{description}</p>
+          {action && (
+            <a href={action.href} className="btn-primary mt-2 inline-flex rounded px-3 py-1.5 text-xs no-underline">
+              {action.label}
+            </a>
+          )}
         </div>
         <span
           className={`rounded px-2 py-0.5 text-[11px] font-medium ${

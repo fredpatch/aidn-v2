@@ -71,6 +71,13 @@
       "when": 1791988141665,
       "tag": "0009_session1_meet1_meeting_confirmation",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792046309035,
+      "tag": "0010_session1_meet2_signed_report",
+      "breakpoints": true
     }
   ]
 }

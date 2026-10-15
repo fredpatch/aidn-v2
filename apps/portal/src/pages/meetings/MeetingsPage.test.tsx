@@ -13,6 +13,7 @@ const at = (month: number, day: number, hour = 9) => new Date(2026, month, day, 
 const meeting = (id: number, meetingType: ApplicantMeeting['meetingType'], status: string, scheduledAt: string, extra: Partial<ApplicantMeeting> = {}): ApplicantMeeting => ({
   id, meetingType, status, scheduledAt, location: 'Salle de conférence Siège', phaseCode: 'M4', requestId: 42,
   requestReference: 'DEM-2026-10-05-OMAT-02', requestType: 'recognition', crDocumentUrl: null,
+  crUploadedAt: null, signedCrDocumentUrl: null, signedCrUploadedAt: null, canSubmitSignedReport: false,
   ticketAvailable: status === 'scheduled',
   confirmationStatus: meetingType === 'site_visit' ? 'not_required' : 'confirmed', confirmedAt: null,
   alternate: null, lastRefusal: null, actions: [], ...extra,
@@ -68,7 +69,7 @@ describe('<MeetingsPage>', () => {
     expect(rows[1]).toHaveTextContent('Reprogrammée');
     expect(rows[1].querySelector('.line-through')).not.toBeNull();
     expect(rows[2]).toHaveTextContent('Tenue');
-    expect(within(rows[2]).getByText('compte-rendu')).toBeInTheDocument();
+    expect(within(rows[2]).getByRole('button', { name: 'Consulter le compte rendu' })).toBeInTheDocument();
   });
 
   it("opens on the next meeting's month and navigates between months", async () => {

@@ -21,7 +21,8 @@ type PhaseOwnedType =
   | 'preliminary_evaluation_form'
   | 'payment_invoice'
   | 'payment_proof'
-  | 'meeting_report';
+  | 'meeting_report'
+  | 'meeting_report_signed';
 
 export interface FileContextStore {
   findRequestApplicant(requestId: number): Promise<number | null>;
@@ -39,6 +40,7 @@ const PHASE_OWNED = new Set<string>([
   'payment_invoice',
   'payment_proof',
   'meeting_report',
+  'meeting_report_signed',
 ]);
 
 const UNRESOLVABLE: FileContext = { kind: 'unresolvable' };
@@ -138,6 +140,7 @@ export function createDbFileContextStore(executor: Executor): FileContextStore {
         payment_invoice: schema.payments,
         payment_proof: schema.payments,
         meeting_report: schema.meetings,
+        meeting_report_signed: schema.meetings,
       }[ownerType];
       const row = await one(executor.select({ phaseId: table.phaseId }).from(table).where(eq(table.id, id)));
       return row?.phaseId ?? null;

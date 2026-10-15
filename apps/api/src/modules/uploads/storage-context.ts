@@ -55,6 +55,7 @@ export const RELOCATABLE_OWNER_TYPES_LIST: readonly UploadOwnerType[] = [
   'payment_invoice',
   'payment_proof',
   'meeting_report',
+  'meeting_report_signed',
   'phase_closure_document',
   'certificate_document',
 ];
@@ -198,6 +199,18 @@ export async function resolveStorageContext(
       const row = await deps.meetingReport(ownerId);
       if (!row) return null;
       return { requestReference: row.reference, phaseFolder: PHASE_FOLDERS[row.phaseCode], categorySlug: 'meeting-reports' };
+    }
+
+    // SESSION1-MEET-2 - same meeting (same deps lookup), its own folder next to
+    // the DN's, so the two chains never share a path.
+    case 'meeting_report_signed': {
+      const row = await deps.meetingReport(ownerId);
+      if (!row) return null;
+      return {
+        requestReference: row.reference,
+        phaseFolder: PHASE_FOLDERS[row.phaseCode],
+        categorySlug: 'meeting-reports-signed',
+      };
     }
 
     case 'phase_closure_document': {

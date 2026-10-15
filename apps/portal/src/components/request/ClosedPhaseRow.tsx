@@ -9,17 +9,21 @@ export function ClosedPhaseRow({
   label,
   summary,
   interrupted = false,
+  defaultOpen = false,
   children,
 }: {
   label: string;
   summary: string | null;
   interrupted?: boolean;
+  /** Opened from the start - e.g. a closed phase still awaiting the signed compte rendu (SESSION1-MEET-2). */
+  defaultOpen?: boolean;
   children: ReactNode;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
 
   return (
     <details
+      open={defaultOpen || undefined}
       className="group border-t border-anac-border first:border-t-0"
       onToggle={(e) => setOpen(e.currentTarget.open)}
     >

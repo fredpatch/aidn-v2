@@ -6,6 +6,7 @@ export const UPLOAD_OWNER_TYPES = [
   'payment_proof',
   'document_template',
   'meeting_report',
+  'meeting_report_signed',
   'phase_closure_document',
   'certificate_document',
   'report',

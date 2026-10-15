@@ -60,6 +60,7 @@ export const AUDIT_ENTITY_BY_ACTION: Record<string, AuditEntityKind> = {
   MEETING_SCHEDULED: 'meeting',
   MEETING_RESCHEDULED: 'meeting',
   MEETING_REPORT_ATTACHED: 'meeting',
+  MEETING_SIGNED_REPORT_SUBMITTED: 'meeting',
   SITE_VISIT_HELD: 'meeting',
   INSPECTION_VERDICT_SUBMITTED: 'inspection',
   FORMAL_DOCUMENT_SUBMITTED: 'formal_document',

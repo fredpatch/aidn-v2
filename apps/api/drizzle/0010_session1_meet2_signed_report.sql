@@ -1,0 +1,4 @@
+ALTER TYPE "public"."document_owner_type" ADD VALUE 'meeting_report_signed';--> statement-breakpoint
+ALTER TABLE "meetings" ADD COLUMN "signed_cr_document_url" text;--> statement-breakpoint
+ALTER TABLE "meetings" ADD COLUMN "signed_cr_uploaded_at" timestamp;--> statement-breakpoint
+ALTER TABLE "meetings" ADD CONSTRAINT "meetings_signed_cr_coherent_chk" CHECK (("meetings"."signed_cr_document_url" IS NULL) = ("meetings"."signed_cr_uploaded_at" IS NULL) AND ("meetings"."signed_cr_document_url" IS NULL OR "meetings"."cr_document_url" IS NOT NULL) AND ("meetings"."signed_cr_document_url" IS NULL OR "meetings"."meeting_type" IN ('preliminary', 'formal')));

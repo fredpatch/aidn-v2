@@ -169,6 +169,7 @@ export function DossierView({
                       label={item.label}
                       summary={item.summary}
                       interrupted={item.stage === 'interrupted'}
+                      defaultOpen={!!item.presentation?.action}
                     >
                       <ReadOnlyProvider readOnly>
                         <Section requestId={request.id} />

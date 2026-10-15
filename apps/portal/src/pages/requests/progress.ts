@@ -17,10 +17,33 @@ export const PHASES: ReadonlyArray<{ code: PhaseCode; label: string; shortLabel:
  */
 export type PhaseStage = 'upcoming' | 'loading' | 'error' | 'current' | 'closed' | 'interrupted';
 
+/** A link to where the applicant acts (same-page anchor or dossier URL). */
+export interface PhaseAction {
+  label: string;
+  href: string;
+}
+
 export interface PhasePresentation {
   title: string;
   description: string;
   tone: PhaseTone;
+  /** SESSION1-MEET-2 - set only for the signed compte-rendu to return. */
+  action?: PhaseAction;
+}
+
+/** SESSION1-MEET-2 - the M3 / M4 meeting compte rendu waits for the applicant's
+ *  signed copy. Driven by the API's canSubmitSignedReport only. */
+export const SIGNED_REPORT_TITLE = 'Action requise — Compte rendu à signer';
+export const SIGNED_REPORT_DESCRIPTION =
+  'Le compte rendu de votre réunion est disponible. Consultez-le, signez-le puis déposez la version signée.';
+
+export function signedReportPresentation(anchor: string): PhasePresentation {
+  return {
+    title: SIGNED_REPORT_TITLE,
+    description: SIGNED_REPORT_DESCRIPTION,
+    tone: 'warning',
+    action: { label: 'Accéder au compte rendu', href: `#${anchor}` },
+  };
 }
 
 /** What the parent knows about one phase after its query settled. */
@@ -101,6 +124,7 @@ export interface BannerContent {
   eyebrow: string;
   title: string;
   description: string;
+  action?: PhaseAction;
 }
 
 const INTAKE_BANNERS: Record<string, { title: string; description: string }> = {
@@ -139,14 +163,24 @@ export function buildBanner(
 
   if (items.some((item) => item.stage === 'loading')) return null;
 
+  // Priority: the open phase's own applicant action (declaration, letter,
+  // pieces, rendez-vous, or its signed compte rendu); then a signed compte
+  // rendu still awaited on another phase, a closed one included (SESSION1-MEET-2);
+  // then the open phase's passive wording.
   const current = currentPhase(items);
-  if (current?.presentation) {
-    const isAction = current.presentation.tone === 'warning';
+  const signedReport = items.find(
+    (item) => (item.stage === 'current' || item.stage === 'closed') && item.presentation?.action,
+  );
+  const shown =
+    current?.presentation?.tone === 'warning' ? current.presentation : signedReport?.presentation ?? current?.presentation;
+  if (shown) {
+    const isAction = shown.tone === 'warning';
     return {
       kind: isAction ? 'action' : 'waiting',
       eyebrow: isAction ? 'Action requise' : WAITING,
-      title: current.presentation.title,
-      description: current.presentation.description,
+      title: shown.title,
+      description: shown.description,
+      ...(shown.action ? { action: shown.action } : {}),
     };
   }
 

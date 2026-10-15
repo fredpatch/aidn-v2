@@ -30,6 +30,7 @@ export const ADDRESS_COLUMNS = [
   { table: 'payments', column: 'invoice_file_url', ownerTypeSql: "'payment_invoice'", ownerIdSql: 'id', mimeSql: null },
   { table: 'payments', column: 'proof_file_url', ownerTypeSql: "'payment_proof'", ownerIdSql: 'id', mimeSql: null },
   { table: 'meetings', column: 'cr_document_url', ownerTypeSql: "'meeting_report'", ownerIdSql: 'id', mimeSql: null },
+  { table: 'meetings', column: 'signed_cr_document_url', ownerTypeSql: "'meeting_report_signed'", ownerIdSql: 'id', mimeSql: null },
   { table: 'phases', column: 'closure_document_url', ownerTypeSql: "'phase_closure_document'", ownerIdSql: 'id', mimeSql: null },
   { table: 'certificates', column: 'signed_file_url', ownerTypeSql: "'certificate_document'", ownerIdSql: 'id', mimeSql: null },
   { table: 'reports', column: 'file_url', ownerTypeSql: "'report'", ownerIdSql: 'id', mimeSql: null },

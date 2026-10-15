@@ -28,6 +28,8 @@ const meeting = (negotiation: MeetingNegotiationView) => ({
   status: 'scheduled',
   crDocumentUrl: null,
   crUploadedAt: null,
+  signedCrDocumentUrl: null,
+  signedCrUploadedAt: null,
   negotiation,
 });
 

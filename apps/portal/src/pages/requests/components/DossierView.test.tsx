@@ -15,7 +15,7 @@ const closed = (id: number) => ({ id, status: 'closed' });
 const BUNDLES: Record<PhaseCode, unknown> = {
   M3: {
     phase: closed(3),
-    meeting: { id: 9, scheduledAt: DAY, location: 'Salle', status: 'held', crDocumentUrl: null, crUploadedAt: null },
+    meeting: { id: 9, scheduledAt: DAY, location: 'Salle', status: 'held', crDocumentUrl: null, crUploadedAt: null, signedCrDocumentUrl: null, signedCrUploadedAt: null, canSubmitSignedReport: false },
     evaluation: { templateFileUrl: 'u/t', madeAvailableAt: DAY, returnDeadline: DAY, submittedFileUrl: null, submittedAt: null },
   },
   M4: {
@@ -72,6 +72,32 @@ describe('<DossierView> - read-only rules', () => {
     expect(screen.queryByRole('button', { name: /Soumettre|Joindre|Annuler ma demande/ })).not.toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent('Motif : Manuel MPM non conforme');
     expect(screen.getByText('Consulter la facture')).toBeInTheDocument(); // files stay viewable
+  });
+});
+
+describe('<DossierView> - SESSION1-MEET-2 signed compte rendu', () => {
+  function renderWithReportToSign(req: RequestView) {
+    const m3 = BUNDLES.M3 as { meeting: Record<string, unknown> };
+    const seed = (Object.keys(BUNDLES) as PhaseCode[]).map((code) => {
+      const bundle =
+        code === 'M3'
+          ? { ...m3, meeting: { ...m3.meeting, crDocumentUrl: '/api/files/101', crUploadedAt: DAY, canSubmitSignedReport: true } }
+          : BUNDLES[code];
+      return [queryKeys.requests.phase(req.id, code), bundle] as [readonly unknown[], unknown];
+    });
+    renderWithProviders(<DossierView request={req} onChanged={vi.fn()} />, { seed });
+  }
+
+  it('a closed M3 whose compte rendu awaits the signed copy (API flag): row opened, the only extra control is that upload', () => {
+    renderWithReportToSign(request());
+    const panel = screen.getByRole('region', { name: 'Compte rendu de réunion' });
+    expect(within(panel).getByRole('button', { name: 'Déposer le compte rendu signé' })).toBeInTheDocument();
+    expect(uploadControls()).toHaveLength(3); // M5 payment proof + correction + the signed copy
+    // The open M5 phase's own action (payment proof) keeps the dossier banner...
+    expect(screen.getByRole('status')).toHaveTextContent('Téléchargez la facture puis déposez votre quittance de paiement.');
+    // ...the M3 summary carries the signed-report action and its link.
+    expect(screen.getByText('Action requise — Compte rendu à signer')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Accéder au compte rendu' })).toHaveAttribute('href', '#compte-rendu-9');
   });
 });
 

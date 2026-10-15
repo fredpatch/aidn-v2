@@ -7,9 +7,9 @@
  *  Each command is one transaction: dossier guard + meeting row lock
  *  (meeting-write.ts), state check, state change, negotiation event, audit.
  *  A command that loses a race sees the winner's state and gets a 409. */
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { db, type DbTx } from '../../shared/db/index.js';
-import { meetings, phases, requests } from '../../shared/db/schema.js';
+import { meetings } from '../../shared/db/schema.js';
 import { logAudit } from '../auth/auth.service.js';
 import { isAwaitingApplicant, isAwaitingDn } from './meeting-confirmation.js';
 import { appendNegotiationEvent } from './meeting-negotiation.events.js';
@@ -17,6 +17,7 @@ import {
   hasSameDayMeeting,
   insertMeetingRow,
   lockMeeting,
+  lockOwnedMeeting,
   parseSlot,
   phaseCodeOf,
   type MeetingRow,
@@ -26,20 +27,6 @@ function requiredText(value: string | undefined, errorCode: string): string {
   const text = value?.trim() ?? '';
   if (!text) throw new Error(errorCode);
   return text;
-}
-
-/** MEETINGS-IDOR - ownership (meeting -> phase -> request -> applicant) is
- *  checked before anything else, so another applicant's meeting is
- *  MEETING_NOT_FOUND whatever its state - even on a closed dossier. */
-async function lockOwnedMeeting(tx: DbTx, meetingId: number, applicantId: number): Promise<MeetingRow> {
-  const [owned] = await tx
-    .select({ id: meetings.id })
-    .from(meetings)
-    .innerJoin(phases, eq(phases.id, meetings.phaseId))
-    .innerJoin(requests, eq(requests.id, phases.requestId))
-    .where(and(eq(meetings.id, meetingId), eq(requests.applicantId, applicantId)));
-  if (!owned) throw new Error('MEETING_NOT_FOUND');
-  return lockMeeting(tx, meetingId);
 }
 
 function assertScheduled(meeting: MeetingRow): void {

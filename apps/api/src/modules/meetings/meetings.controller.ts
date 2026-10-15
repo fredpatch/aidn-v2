@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import * as meetingsService from './meetings.service.js';
 import * as negotiationService from './meeting-negotiation.service.js';
+import * as signedReportService from './meeting-signed-report.service.js';
 import { handleMeetingsError } from '../../shared/utils/error.js';
 import { actorFromRequest, parseUploadAssetId, prepareUploadAttachment } from '../uploads/upload-attachment.js';
 
@@ -144,6 +145,10 @@ const proposeAlternateBody = z
 const refuseBody = z.object({ reason: text }).strict();
 const onBehalfBody = z.object({ note: text }).strict();
 
+// SESSION1-MEET-2 - the applicant names only the uploaded file; the meeting is
+// the URL, the applicant the token.
+const signedReportBody = z.object({ uploadAssetId: z.union([z.number(), z.string()]) }).strict();
+
 function parseBody<T>(schema: z.ZodType<T>, req: Request, res: Response, message: string): T | null {
   const parsed = schema.safeParse(req.body ?? {});
   if (parsed.success) return parsed.data;
@@ -177,6 +182,25 @@ export async function proposeAlternate(req: Request, res: Response): Promise<voi
     const applicant = req.applicant!;
     const meetingId = Number(req.params.id);
     await negotiationService.proposeAlternate(meetingId, applicant.applicantId, body);
+    res.json(await meetingsService.getMeeting(meetingId, { applicant }));
+  } catch (error) {
+    handleMeetingsError(res, error);
+  }
+}
+
+/** POST /meetings/:id/signed-report - applicant only, own held M3/M4 meeting
+ *  with a DN compte-rendu (SESSION1-MEET-2). Once: a second file is a 409. */
+export async function submitSignedReport(req: Request, res: Response): Promise<void> {
+  try {
+    const body = parseBody(signedReportBody, req, res, 'Seul le fichier téléversé (uploadAssetId) est attendu.');
+    if (!body) return;
+    const applicant = req.applicant!;
+    const attachment = await prepareUploadAttachment(parseUploadAssetId(body.uploadAssetId), {
+      kind: 'applicant',
+      applicantId: applicant.applicantId,
+    });
+    const meetingId = Number(req.params.id);
+    await signedReportService.submitSignedMeetingReport(meetingId, applicant.applicantId, attachment);
     res.json(await meetingsService.getMeeting(meetingId, { applicant }));
   } catch (error) {
     handleMeetingsError(res, error);

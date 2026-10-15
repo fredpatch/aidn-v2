@@ -174,6 +174,7 @@ export const documentOwnerTypeEnum = pgEnum('document_owner_type', [
   'phase_closure_document',
   'certificate_document', // M7 - generated filled certificate (HTML-rendered PDF)
   'report', // M12 - generated analytics report (STORAGE-0A asset registration)
+  'meeting_report_signed', // SESSION1-MEET-2 - applicant's signed return of a meeting CR
 ]);
 
 /** M3/M4 - blank template forms DN makes available for applicants to download
@@ -447,6 +448,11 @@ export const meetings = pgTable(
     // never required, DN sends it if/when they want to.
     crDocumentUrl: text('cr_document_url'),
     crUploadedAt: timestamp('cr_uploaded_at'),
+    // SESSION1-MEET-2 - the applicant's signed return of that CR (current file;
+    // history in document_versions, owner type meeting_report_signed). The DN
+    // CR above can no longer be replaced once this is set.
+    signedCrDocumentUrl: text('signed_cr_document_url'),
+    signedCrUploadedAt: timestamp('signed_cr_uploaded_at'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     // SESSION1-MEET-1 - no DB default on purpose: every insert states it
     // (initialConfirmationStatus / accepted alternate), see migration 0009.
@@ -471,6 +477,12 @@ export const meetings = pgTable(
     check(
       'meetings_type_confirmation_chk',
       sql`(${t.meetingType} = 'site_visit') = (${t.confirmationStatus} = 'not_required')`
+    ),
+    // SESSION1-MEET-2 - a signed copy has its date, answers an existing DN CR,
+    // and only exists on M3/M4. The "held" rule stays in the service.
+    check(
+      'meetings_signed_cr_coherent_chk',
+      sql`(${t.signedCrDocumentUrl} IS NULL) = (${t.signedCrUploadedAt} IS NULL) AND (${t.signedCrDocumentUrl} IS NULL OR ${t.crDocumentUrl} IS NOT NULL) AND (${t.signedCrDocumentUrl} IS NULL OR ${t.meetingType} IN ('preliminary', 'formal'))`
     ),
   ]
 );

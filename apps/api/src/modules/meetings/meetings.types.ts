@@ -24,6 +24,9 @@ export interface MeetingView {
   confirmedAt: Date | null;
   crDocumentUrl: string | null;
   crUploadedAt: Date | null;
+  /** SESSION1-MEET-2 - the applicant's signed return (M3/M4 only). */
+  signedCrDocumentUrl: string | null;
+  signedCrUploadedAt: Date | null;
   createdAt: Date;
 }
 
@@ -53,6 +56,8 @@ export interface MeetingCockpitItem {
   dnAgentName: string;
   crDocumentUrl: string | null;
   crUploadedAt: string | null;
+  signedCrDocumentUrl: string | null;
+  signedCrUploadedAt: string | null;
   ticketUrl: string;
   phaseHref: string;
   canManage: boolean;
@@ -100,4 +105,9 @@ export interface ApplicantMeetingItem extends ApplicantNegotiationBlock {
   requestType: string;
   /** Compte-rendu address, when the DN attached one (same field the phase bundles expose). */
   crDocumentUrl: string | null;
+  crUploadedAt: string | null;
+  /** SESSION1-MEET-2 - signed return, and whether you may upload it now (once). */
+  signedCrDocumentUrl: string | null;
+  signedCrUploadedAt: string | null;
+  canSubmitSignedReport: boolean;
 }

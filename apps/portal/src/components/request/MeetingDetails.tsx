@@ -1,4 +1,3 @@
-import FileLink from '../files/FileLink';
 import { MEETING_STATUS_LABELS, labelOf } from '../../pages/requests/constants';
 import { formatDateTime } from '../../lib/format';
 import { meetingTicketHref } from '../../lib/api/meetings.api';
@@ -19,7 +18,6 @@ export function MeetingDetails({
     scheduledAt: string;
     location: string | null;
     status: string;
-    crDocumentUrl?: string | null;
     /** SESSION1-MEET-1 - invitation only for a confirmed appointment. */
     ticketAvailable?: boolean;
   };
@@ -52,11 +50,6 @@ export function MeetingDetails({
         >
           Voir mon invitation
         </a>
-      )}
-      {meeting.crDocumentUrl && (
-        <FileLink address={meeting.crDocumentUrl} className="inline-flex text-xs text-anac-blue underline">
-          Consulter le compte-rendu
-        </FileLink>
       )}
     </div>
   );

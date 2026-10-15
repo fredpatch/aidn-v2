@@ -73,6 +73,7 @@ const KNOWN_WRITE_ROUTES: Record<string, string> = {
   'meetings POST /:id/confirm-on-behalf': 'guarded',
   'meetings POST /:id/confirm': 'guarded',
   'meetings POST /:id/propose-alternate': 'guarded',
+  'meetings POST /:id/signed-report': 'guarded',
   'courrier-tasks POST /:taskId/confirm-printed-for-signature': 'guarded',
   'courrier-tasks POST /:taskId/return-signed': 'guarded',
   'requests POST /': 'creates a new dossier (one-active rule)',

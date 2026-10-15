@@ -36,6 +36,8 @@ export function runPreliminaryHelpersTests(): void {
     status: 'held',
     crDocumentUrl: null,
     crUploadedAt: null,
+    signedCrDocumentUrl: null,
+    signedCrUploadedAt: null,
   };
   const evaluation = {
     id: 2,

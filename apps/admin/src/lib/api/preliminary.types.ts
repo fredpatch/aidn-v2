@@ -16,6 +16,9 @@ export interface MeetingView {
   status: MeetingStatus | string;
   crDocumentUrl: string | null;
   crUploadedAt: string | null;
+  /** SESSION1-MEET-2 - the applicant's signed return of the CR. */
+  signedCrDocumentUrl: string | null;
+  signedCrUploadedAt: string | null;
   negotiation: MeetingNegotiationView;
 }
 

@@ -43,6 +43,8 @@ import {
   isDossierClosed,
 } from '../requests/dossier-open.js';
 import {
+  acceptsMeetingReport,
+  canApplicantSubmitSignedReport,
   initialConfirmationStatus,
   isAwaitingApplicant,
   isAwaitingDn,
@@ -73,6 +75,8 @@ function toMeetingView(row: typeof meetings.$inferSelect): MeetingView {
     confirmedAt: row.confirmedAt,
     crDocumentUrl: row.crDocumentUrl,
     crUploadedAt: row.crUploadedAt,
+    signedCrDocumentUrl: row.signedCrDocumentUrl,
+    signedCrUploadedAt: row.signedCrUploadedAt,
     createdAt: row.createdAt,
   };
 }
@@ -167,6 +171,8 @@ function toCockpitItem(row: CockpitRow, negotiation: MeetingNegotiationView): Me
     dnAgentName: row.agent.fullName,
     crDocumentUrl: row.meeting.crDocumentUrl,
     crUploadedAt: row.meeting.crUploadedAt?.toISOString() ?? null,
+    signedCrDocumentUrl: row.meeting.signedCrDocumentUrl,
+    signedCrUploadedAt: row.meeting.signedCrUploadedAt?.toISOString() ?? null,
     ticketUrl: `/api/meetings/${row.meeting.id}/ticket`,
     phaseHref: phaseHref(row.phase.phaseCode, row.request.id),
     canManage: !flags.dossierClosed && canManageMeeting(row.meeting.meetingType),
@@ -360,6 +366,10 @@ export async function listApplicantMeetings(applicantId: number): Promise<Applic
     requestReference: request.reference,
     requestType: request.requestType,
     crDocumentUrl: meeting.crDocumentUrl,
+    crUploadedAt: meeting.crUploadedAt?.toISOString() ?? null,
+    signedCrDocumentUrl: meeting.signedCrDocumentUrl,
+    signedCrUploadedAt: meeting.signedCrUploadedAt?.toISOString() ?? null,
+    canSubmitSignedReport: canApplicantSubmitSignedReport(meeting, closedById.get(meeting.id) ?? true),
     ...blocks.get(meeting.id)!,
   }));
 }
@@ -473,7 +483,7 @@ export async function getMeeting(
   const closed = () => isDossierClosed(request?.status ?? 'cancelled');
   if (actor.applicant) {
     const blocks = await applicantBlocksFor([meeting], closed);
-    return toApplicantMeetingView(view, blocks.get(meeting.id)!);
+    return toApplicantMeetingView(view, blocks.get(meeting.id)!, canApplicantSubmitSignedReport(meeting, closed()));
   }
   const negotiation = await negotiationViewsFor([meeting], closed, { withPhaseHistory: true });
   return { ...view, negotiation: negotiation.get(meeting.id)! };
@@ -609,10 +619,10 @@ export async function rescheduleMeeting(
   });
 }
 
-/** Optional compte-rendu, only after the meeting is "held" - never
- *  required, DN can send it whenever they want (including replacing an
- *  earlier one, which goes through the M8 version/trash pattern like every
- *  other document in the app). */
+/** Optional compte-rendu, only after the meeting is "held" and only for
+ *  M3/M4 (a site visit has none) - never required, DN can send it whenever
+ *  they want. Replaceable (M8 version/trash pattern like every other
+ *  document in the app) until the applicant returns a signed copy. */
 export async function attachMeetingReport(
   meetingId: number,
   actorUserId: number,
@@ -625,6 +635,10 @@ export async function attachMeetingReport(
     const [meeting] = await tx.select().from(meetings).where(eq(meetings.id, meetingId)).for('update');
     if (!meeting) throw new Error('MEETING_NOT_FOUND');
     if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') return meeting;
+    if (!acceptsMeetingReport(meeting.meetingType)) throw new Error('MEETING_REPORT_NOT_APPLICABLE');
+    // SESSION1-MEET-2 (D2) - the applicant signed this exact file: checked
+    // under the meeting row lock, so a concurrent signed upload is serialized.
+    if (meeting.signedCrDocumentUrl !== null) throw new Error('MEETING_REPORT_FROZEN_SIGNED');
     if (meeting.status !== 'held') throw new Error('MEETING_NOT_HELD');
 
     // VERSION-CURRENT-DISCIPLINE - unconditional, like every other owner

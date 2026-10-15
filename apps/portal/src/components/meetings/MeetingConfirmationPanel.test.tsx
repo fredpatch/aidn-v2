@@ -114,6 +114,7 @@ describe('<MeetingsToConfirmBanner>', () => {
     requestReference: 'DEM-2026-10-14-OMA-01',
     requestType: 'issuance',
     crDocumentUrl: null,
+    crUploadedAt: null, signedCrDocumentUrl: null, signedCrUploadedAt: null, canSubmitSignedReport: false,
     ...over,
   });
 

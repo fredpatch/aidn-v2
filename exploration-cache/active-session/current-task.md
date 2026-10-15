@@ -2,7 +2,9 @@
 
 **Session date**: 2026-10-08
 
-> **2026-10-14 SESSION1-MEET-1 (committed):** applicant confirmation / counter-proposal of M3/M4 meetings - all 9 slices done and validated (see changelog, decisions #17). Deploy: `npm run db:migrate` only (migration 0009, no backfill). Deferred: notifications/e-mail. Not started: SESSION1-MEET-2.
+> **2026-10-15 SESSION1-MEET-2 (implemented, validated; single feature commit at the end of Task 8):** signed CR return - the applicant returns the signed copy of the M3/M4 meeting compte rendu (`POST /meetings/:id/signed-report`, `meeting_report_signed` chain, DN CR frozen once signed; see changelog, decisions #18). Deploy: `npm run db:migrate` (0010). Deferred: notifications, CR rectification mechanism.
+>
+> **2026-10-14 SESSION1-MEET-1 (committed):** applicant confirmation / counter-proposal of M3/M4 meetings - all 9 slices done and validated (see changelog, decisions #17). Deploy: `npm run db:migrate` only (migration 0009, no backfill). Deferred: notifications/e-mail.
 >
 > **2026-10-15 local env fix:** portal submission refused as « saisie manuelle » because the local `apps/api/.env` lacked `PORTAL_ORIGIN` / `ADMIN_ORIGIN` (gotchas #26). Open: `authenticateEither` still falls back to the staff session when the applicant token is expired - hardening proposed, awaiting approval.
 

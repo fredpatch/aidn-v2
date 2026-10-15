@@ -15,6 +15,7 @@ const meeting = (id: number, status: string, scheduledAt: Date): ApplicantMeetin
   requestReference: 'DEM-1',
   requestType: 'issuance',
   crDocumentUrl: null,
+  crUploadedAt: null, signedCrDocumentUrl: null, signedCrUploadedAt: null, canSubmitSignedReport: false,
   ticketAvailable: status === 'scheduled',
   confirmationStatus: 'confirmed',
   confirmedAt: null,

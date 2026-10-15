@@ -28,7 +28,7 @@ const item = (over: Partial<MeetingCockpitItem>): MeetingCockpitItem => ({
   id: 7, phaseId: 3, phaseCode: 'M3', phaseLabel: 'Préliminaire', phaseStatus: 'open', requestId: 1,
   requestReference: 'DEM-MEET-01', requestType: 'issuance', organisationName: 'OMA Meet', applicantName: 'P',
   meetingType: 'preliminary', meetingTypeLabel: 'Réunion préliminaire', status: 'scheduled', statusLabel: 'Planifiée',
-  scheduledAt: SOON, location: 'Salle B', dnAgentId: 5, dnAgentName: 'Agent DN', crDocumentUrl: null, crUploadedAt: null,
+  scheduledAt: SOON, location: 'Salle B', dnAgentId: 5, dnAgentName: 'Agent DN', crDocumentUrl: null, crUploadedAt: null, signedCrDocumentUrl: null, signedCrUploadedAt: null,
   ticketUrl: '/api/meetings/7/ticket', phaseHref: '/demandes/1/phase-preliminaire', canManage: true,
   actionLabel: 'Répondre à la contre-proposition', dossierStatus: 'in_progress', dossierClosed: false,
   negotiation: counterProposal, ...over,

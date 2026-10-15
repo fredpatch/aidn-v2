@@ -71,6 +71,9 @@ export interface MeetingCockpitItem {
   dnAgentName: string;
   crDocumentUrl: string | null;
   crUploadedAt: string | null;
+  /** SESSION1-MEET-2 - the applicant's signed return of the CR. */
+  signedCrDocumentUrl: string | null;
+  signedCrUploadedAt: string | null;
   ticketUrl: string;
   phaseHref: string;
   canManage: boolean;

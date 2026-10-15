@@ -57,10 +57,12 @@ router.post(
   requireRole('dn_agent', 'dn_supervisor', 'SU'),
   meetingsController.confirmOnBehalf
 );
-// Applicant side: the only two applicant writes on meetings. Identity comes
-// from the token; ownership is checked inside the transaction (404 otherwise).
+// Applicant side: the only applicant writes on meetings. Identity comes from
+// the token; ownership is checked inside the transaction (404 otherwise).
 router.post('/:id/confirm', authenticateApplicant, meetingsController.confirm);
 router.post('/:id/propose-alternate', authenticateApplicant, meetingsController.proposeAlternate);
+// SESSION1-MEET-2 - signed return of the DN compte-rendu.
+router.post('/:id/signed-report', authenticateApplicant, meetingsController.submitSignedReport);
 
 router.get(
   '/',

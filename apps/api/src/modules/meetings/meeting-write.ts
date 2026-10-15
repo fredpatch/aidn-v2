@@ -8,7 +8,7 @@
  *  keeps its slot. */
 import { and, eq, gte, lt, ne } from 'drizzle-orm';
 import type { DbTx } from '../../shared/db/index.js';
-import { meetings, phases } from '../../shared/db/schema.js';
+import { meetings, phases, requests } from '../../shared/db/schema.js';
 import { assertMeetingDossierOpen } from '../requests/dossier-open.js';
 
 export type MeetingRow = typeof meetings.$inferSelect;
@@ -32,6 +32,21 @@ export async function lockMeeting(tx: DbTx, meetingId: number): Promise<MeetingR
   const [meeting] = await tx.select().from(meetings).where(eq(meetings.id, meetingId)).for('update');
   if (!meeting) throw new Error('MEETING_NOT_FOUND');
   return meeting;
+}
+
+/** MEETINGS-IDOR - an applicant write on a meeting (SESSION1-MEET-1 commands,
+ *  SESSION1-MEET-2 signed report). Ownership (meeting -> phase -> request ->
+ *  applicant) is checked first, so another applicant's meeting is a 404
+ *  whatever its dossier state; then the usual dossier guard and row lock. */
+export async function lockOwnedMeeting(tx: DbTx, meetingId: number, applicantId: number): Promise<MeetingRow> {
+  const [owned] = await tx
+    .select({ id: meetings.id })
+    .from(meetings)
+    .innerJoin(phases, eq(phases.id, meetings.phaseId))
+    .innerJoin(requests, eq(requests.id, phases.requestId))
+    .where(and(eq(meetings.id, meetingId), eq(requests.applicantId, applicantId)));
+  if (!owned) throw new Error('MEETING_NOT_FOUND');
+  return lockMeeting(tx, meetingId);
 }
 
 /** Insert one meeting; the partial unique index (agent, slot) on scheduled

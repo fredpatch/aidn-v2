@@ -48,7 +48,7 @@ describe('K7 closed dossier is read-only (real PostgreSQL)', { skip }, () => {
 
   before(async () => {
     pool = new pg.Pool({ connectionString: DATABASE_URL });
-    const [phasesSvc, prelim, formal, deep, site, cert, meetings, negotiation, courrier, dnAnnotation, requests, guard, dbModule] = await Promise.all([
+    const [phasesSvc, prelim, formal, deep, site, cert, meetings, negotiation, signedReport, courrier, dnAnnotation, requests, guard, dbModule] = await Promise.all([
       import('../phases/phases.service.js'),
       import('../preliminary-evaluation/preliminary-evaluation.service.js'),
       import('../formal-request/formal-request.service.js'),
@@ -57,13 +57,14 @@ describe('K7 closed dossier is read-only (real PostgreSQL)', { skip }, () => {
       import('../certificates/certificates.service.js'),
       import('../meetings/meetings.service.js'),
       import('../meetings/meeting-negotiation.service.js'),
+      import('../meetings/meeting-signed-report.service.js'),
       import('../courrier-tasks/courrier-tasks.service.js'),
       import('../dn-annotation/dn-annotation.service.js'),
       import('./requests.service.js'),
       import('./dossier-open.js'),
       import('../../shared/db/index.js'),
     ]);
-    m = { phasesSvc, prelim, formal, deep, site, cert, meetings, negotiation, courrier, dnAnnotation, requests, guard, db: dbModule.db };
+    m = { phasesSvc, prelim, formal, deep, site, cert, meetings, negotiation, signedReport, courrier, dnAnnotation, requests, guard, db: dbModule.db };
     closeAppPool = () => dbModule.db.$client.end();
   });
 
@@ -120,7 +121,7 @@ describe('K7 closed dossier is read-only (real PostgreSQL)', { skip }, () => {
   }
 
   function actions(d: Awaited<ReturnType<typeof dossierWithEverything>>): Array<[string, () => Promise<unknown>]> {
-    const { phasesSvc, prelim, formal, deep, site, cert, meetings, negotiation, courrier, dnAnnotation, requests } = m;
+    const { phasesSvc, prelim, formal, deep, site, cert, meetings, negotiation, signedReport, courrier, dnAnnotation, requests } = m;
     const u = d.user;
     const soon = new Date(Date.now() + 3 * 86_400_000).toISOString();
     return [
@@ -168,6 +169,7 @@ describe('K7 closed dossier is read-only (real PostgreSQL)', { skip }, () => {
       ['meeting report uploaded', () => meetings.attachMeetingReport(d.meeting, u, attachment)],
       ['meeting confirmed by the applicant', () => negotiation.confirmMeeting(d.meeting, d.applicant)],
       ['meeting alternate proposed by the applicant', () => negotiation.proposeAlternate(d.meeting, d.applicant, { scheduledAt: soon, remark: 'r' })],
+      ['meeting signed report submitted (applicant)', () => signedReport.submitSignedMeetingReport(d.meeting, d.applicant, attachment)],
       ['meeting alternate accepted', () => negotiation.acceptAlternate(d.meeting, u)],
       ['meeting alternate refused', () => negotiation.refuseAlternate(d.meeting, u, 'motif')],
       ['meeting confirmed on behalf', () => negotiation.confirmOnBehalf(d.meeting, u, 'note')],
@@ -204,7 +206,7 @@ describe('K7 closed dossier is read-only (real PostgreSQL)', { skip }, () => {
       assert.deepEqual(failures, [], `\n  ${failures.join('\n  ')}`);
       // Every write route of the workflow modules (cross-checked route by route,
       // see TASKS.md K7a); openPreliminaryPhase already requires 'pending_review'.
-      assert.equal(list.length, 56);
+      assert.equal(list.length, 57);
     });
   }
 

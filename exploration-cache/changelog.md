@@ -3,6 +3,32 @@
 Commit-level history. Covers `be9fce9` through the 2026-10-09 D3c admin
 unread/activity batch.
 
+## 2026-10-15 SESSION1-MEET-2: applicant returns the signed M3/M4 meeting compte rendu
+
+- Migration 0010: `document_owner_type` += `meeting_report_signed`, `meetings.signed_cr_document_url` /
+  `signed_cr_uploaded_at` (nullable), check `meetings_signed_cr_coherent_chk` (both or none, needs the DN CR, M3/M4
+  only). No backfill.
+- API: `POST /meetings/:id/signed-report` (applicant, `authenticateApplicant`), service
+  `meetings/meeting-signed-report.service.ts`; DN CR frozen once a signed copy exists (409
+  `MEETING_REPORT_FROZEN_SIGNED`); one signed upload only (a second file: 409
+  `MEETING_SIGNED_REPORT_ALREADY_SUBMITTED`, nothing trashed); audit `MEETING_SIGNED_REPORT_SUBMITTED` (applicant actor)
+  + activity label; HTTP-level strict-body test. Also touched:
+  file-context / storage-context / address-rewrite (new owner type), applicant-view, bundle-meeting, meeting-write,
+  meetings controller / route / types / service, requests.service, dev-tools, schema.ts, error.ts.
+- Admin: shared `MeetingReportRows` on the Réunions page and the M3 / M4 meeting cards (DN CR + signed copy);
+  the three DN report uploads now also refresh the page on error (a 409 frozen CR shows the received signed copy).
+  User-visible change: the Réunions DN upload form no longer restricts file extensions client-side (same policy as
+  the DN CR; the backend stays authoritative).
+- Portal: `MeetingReportPanel` in the meeting detail / M3 and M4 sections (no replacement); « Action requise —
+  Compte rendu à signer » in the M3 / M4 phase summary and dossier banner with a link to the panel; dashboard
+  `ReportsToSignBanner`. A closed phase still awaiting the signed copy opens by default (the API rule is dossier-open).
+- No DN validation, no notification, no cockpit metric; phase closure needs neither file.
+- Tests: API 500 pass + 1 known Windows failure (K8b `spawn npx ENOENT`) of 501; admin 211/211 (28 files);
+  portal 130/130 (12 files); typecheck, build, lint clean; `db:check:replayable` OK; migration replayed from a
+  0009 database with legacy rows (CR + version untouched, signed fields null, check present).
+- Deploy: `npm run db:migrate` only.
+- Details: `project/decisions.md` #18, `project/database-schema.md`.
+
 ## 2026-10-14 SESSION1-MEET-1: applicant confirmation / counter-proposal of M3/M4 meetings
 
 - Migration 0009: `meeting_confirmation_status` + alternate / confirmed_at columns on `meetings` (strict checks),

@@ -338,6 +338,25 @@ export const handleMeetingsError = createErrorHandler(
       status: 409,
       message: "L'invitation sera disponible une fois le rendez-vous confirmé.",
     },
+    // SESSION1-MEET-2 - compte rendu and its signed return.
+    MEETING_REPORT_NOT_APPLICABLE: {
+      status: 409,
+      message: "Une visite sur site n'a pas de compte rendu de réunion.",
+    },
+    MEETING_REPORT_FROZEN_SIGNED: {
+      status: 409,
+      message:
+        'Le compte rendu ne peut plus être remplacé car une version signée a déjà été retournée par le postulant.',
+    },
+    MEETING_SIGNED_REPORT_ALREADY_SUBMITTED: {
+      status: 409,
+      message:
+        'Un compte rendu signé a déjà été transmis. Pour toute correction, contactez la Direction de la Navigabilité.',
+    },
+    MEETING_REPORT_MISSING: {
+      status: 409,
+      message: "Le compte rendu de la DN n'est pas encore disponible.",
+    },
     ...UPLOAD_ATTACH_ERRORS,
   },
   '[meetings]'

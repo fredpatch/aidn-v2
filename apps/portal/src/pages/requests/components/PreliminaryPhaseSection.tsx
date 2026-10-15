@@ -20,6 +20,8 @@ import { PhaseStep, stepState } from '../../../components/request/PhaseStep';
 import { SectionCard } from '../../../components/request/SectionCard';
 import { MeetingDetails, isMeetingResolved } from '../../../components/request/MeetingDetails';
 import { MeetingConfirmationPanel, usesConfirmationPanel } from '../../../components/meetings/MeetingConfirmationPanel';
+import { MeetingReportPanel, meetingReportAnchor, showsReportPanel } from '../../../components/meetings/MeetingReportPanel';
+import { signedReportPresentation, type PhasePresentation } from '../progress';
 
 export function buildPreliminaryPresentation(bundle: PreliminaryBundle) {
   const meeting = bundle.meeting;
@@ -30,11 +32,20 @@ export function buildPreliminaryPresentation(bundle: PreliminaryBundle) {
   const declarationAvailable = !!evaluation?.madeAvailableAt;
   const declarationSubmitted = !!evaluation?.submittedFileUrl;
 
+  // SESSION1-MEET-2 - priority: the declaration (it blocks the closure) first,
+  // then the signed compte rendu (API flag), which outranks every passive
+  // wording, a closed phase included.
+  const declarationPending = declarationAvailable && !declarationSubmitted && !phaseClosed;
+  const signedReportPending = !!meeting?.canSubmitSignedReport;
+
   let title = 'Traitement préliminaire ouvert';
   let description = "La Direction de la Navigabilité a pris votre dossier en charge.";
   let tone: PhaseTone = 'info';
+  let action: PhasePresentation['action'];
 
-  if (phaseClosed) {
+  if (signedReportPending && !declarationPending) {
+    ({ title, description, tone, action } = signedReportPresentation(meetingReportAnchor(meeting.id)));
+  } else if (phaseClosed) {
     title = 'Phase préliminaire clôturée';
     description = 'Votre dossier passe à la phase suivante du traitement.';
     tone = 'success';
@@ -72,6 +83,7 @@ export function buildPreliminaryPresentation(bundle: PreliminaryBundle) {
     title,
     description,
     tone,
+    action,
     steps: [
       {
         key: 'meeting',
@@ -170,6 +182,7 @@ export function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
         title={presentation.title}
         description={presentation.description}
         tone={presentation.tone}
+        action={presentation.action}
         closed={phaseClosed}
       >
         {presentation.steps.map((step) => (
@@ -189,6 +202,7 @@ export function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
           ) : (
             <MeetingDetails meeting={meeting} />
           )}
+          {meeting && showsReportPanel({ ...meeting, meetingType: 'preliminary' }) && <MeetingReportPanel meeting={meeting} />}
         </SectionCard>
 
         <SectionCard icon={FileText} title="Déclaration de pré-évaluation">

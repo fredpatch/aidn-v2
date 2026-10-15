@@ -90,6 +90,21 @@ describe('resolveStorageContext', () => {
     assert.deepEqual(ctx, { requestReference: 'DEM-REF', phaseFolder: PHASE_FOLDERS.M6, categorySlug: 'meeting-reports' });
   });
 
+  it('meeting_report_signed resolves through meetings.phaseId into its own folder (SESSION1-MEET-2)', async () => {
+    for (const phaseCode of ['M3', 'M4'] as const) {
+      const ctx = await resolveStorageContext(
+        'meeting_report_signed',
+        7,
+        deps({ meetingReport: async () => ({ reference: 'DEM-REF', phaseCode }) })
+      );
+      assert.deepEqual(ctx, {
+        requestReference: 'DEM-REF',
+        phaseFolder: PHASE_FOLDERS[phaseCode],
+        categorySlug: 'meeting-reports-signed',
+      });
+    }
+  });
+
   it('phase_closure_document resolves through phases.id directly', async () => {
     const ctx = await resolveStorageContext(
       'phase_closure_document',
@@ -125,6 +140,7 @@ describe('isRelocatableOwnerType', () => {
       'payment_invoice',
       'payment_proof',
       'meeting_report',
+      'meeting_report_signed',
       'phase_closure_document',
       'certificate_document',
     ]) {

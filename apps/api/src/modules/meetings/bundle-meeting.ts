@@ -12,6 +12,7 @@ import {
   type ApplicantNegotiationBlock,
   type MeetingNegotiationView,
 } from './meeting-negotiation.view.js';
+import { canApplicantSubmitSignedReport } from './meeting-confirmation.js';
 import type { MeetingRow } from './meeting-write.js';
 
 export type BundleAudience = 'applicant' | 'staff';
@@ -23,9 +24,11 @@ interface BundleMeetingBase {
   status: string;
   crDocumentUrl: string | null;
   crUploadedAt: Date | null;
+  signedCrDocumentUrl: string | null;
+  signedCrUploadedAt: Date | null;
 }
 
-export type ApplicantBundleMeeting = BundleMeetingBase & ApplicantNegotiationBlock;
+export type ApplicantBundleMeeting = BundleMeetingBase & ApplicantNegotiationBlock & { canSubmitSignedReport: boolean };
 export type StaffBundleMeeting = BundleMeetingBase & { negotiation: MeetingNegotiationView };
 export type BundleMeeting = ApplicantBundleMeeting | StaffBundleMeeting;
 
@@ -41,12 +44,14 @@ export async function toBundleMeeting(
     status: meeting.status,
     crDocumentUrl: meeting.crDocumentUrl,
     crUploadedAt: meeting.crUploadedAt,
+    signedCrDocumentUrl: meeting.signedCrDocumentUrl,
+    signedCrUploadedAt: meeting.signedCrUploadedAt,
   };
   const [request] = await db.select({ status: requests.status }).from(requests).where(eq(requests.id, requestId));
   const closed = () => isDossierClosed(request?.status ?? 'cancelled');
   if (audience === 'applicant') {
     const blocks = await applicantBlocksFor([meeting], closed);
-    return { ...base, ...blocks.get(meeting.id)! };
+    return { ...base, ...blocks.get(meeting.id)!, canSubmitSignedReport: canApplicantSubmitSignedReport(meeting, closed()) };
   }
   const views = await negotiationViewsFor([meeting], closed, { withPhaseHistory: true });
   return { ...base, negotiation: views.get(meeting.id)! };

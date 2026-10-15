@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -16,7 +16,6 @@ import {
   MapPin,
   RotateCcw,
   Search,
-  Upload,
   UsersRound,
   XCircle,
 } from 'lucide-react';
@@ -45,8 +44,8 @@ import {
 } from '../../lib/api/meetings.types';
 import { queryKeys } from '../../lib/react-query/queryKeys';
 import { cn } from '../../lib/utils';
-import FileLink from '../../components/files/FileLink';
 import { MeetingNegotiationCard } from '../../components/meetings/MeetingNegotiationCard';
+import { MeetingReportRows } from '../../components/meetings/MeetingReportRows';
 
 type ViewMode = 'calendar' | 'list';
 
@@ -687,7 +686,6 @@ function SelectedMeetingPanel({
     resolver: zodResolver(z.object({ rescheduleAt: z.string().min(1) })),
     defaultValues: { rescheduleAt: '' },
   });
-  const [reportFile, setReportFile] = useState<File | null>(null);
 
   const refresh = async () => {
     // K6 - the analytics meeting follow-ups depend on these meetings.
@@ -723,23 +721,19 @@ function SelectedMeetingPanel({
       await attachMeetingReport(id, uploaded.uploadAssetId);
     },
     onSuccess: async () => {
-      setReportFile(null);
       setActionError(null);
       await refresh();
     },
-    onError: (err) =>
-      setActionError(apiErrorMessage(err, 'Impossible de joindre le compte-rendu.')),
+    onError: async (err) => {
+      setActionError(apiErrorMessage(err, 'Impossible de joindre le compte-rendu.'));
+      // A 409 means a signed copy arrived meanwhile: show it.
+      await refresh();
+    },
   });
 
   async function onReschedule(values: { rescheduleAt: string }) {
     if (!item) return;
     await rescheduleMutation.mutateAsync({ id: item.id, value: values.rescheduleAt });
-  }
-
-  async function handleReport(event: FormEvent) {
-    event.preventDefault();
-    if (!item || !reportFile) return;
-    await reportMutation.mutateAsync({ id: item.id, file: reportFile });
   }
 
   if (!item) {
@@ -882,41 +876,20 @@ function SelectedMeetingPanel({
               </form>
             ) : null}
 
-            {canReport ? (
-              <form onSubmit={handleReport} className="rounded-lg border border-anac-border p-3">
-                <label className="text-xs font-semibold text-anac-muted" htmlFor="meeting-report">
-                  Compte-rendu
-                </label>
-                {item.crDocumentUrl ? (
-                  <FileLink
-                    address={item.crDocumentUrl}
-                    className="mt-2 block text-xs font-semibold text-anac-blue underline"
-                  >
-                    Consulter le compte-rendu actuel
-                  </FileLink>
-                ) : null}
-                <input
-                  id="meeting-report"
-                  type="file"
-                  accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-                  onChange={(event) => setReportFile(event.target.files?.[0] ?? null)}
-                  className="mt-2 text-xs"
-                />
-                <Button type="submit" className="mt-2 w-full" disabled={!reportFile || busy}>
-                  <Upload size={14} />
-                  {item.crDocumentUrl ? 'Remplacer le compte-rendu' : 'Ajouter le compte-rendu'}
-                </Button>
-              </form>
+            {item.meetingType !== 'site_visit' && item.status === 'held' ? (
+              <MeetingReportRows
+                key={item.id}
+                title={`${item.meetingTypeLabel} - ${item.requestReference}`}
+                report={item}
+                canUpload={canReport}
+                busy={busy}
+                onUpload={(file) => reportMutation.mutateAsync({ id: item.id, file })}
+              />
             ) : null}
 
             {item.dossierClosed ? (
               <div className="space-y-2 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-3 text-xs text-slate-600">
                 <p>Dossier clos : la réunion reste consultable, aucune action n&apos;est possible.</p>
-                {item.crDocumentUrl ? (
-                  <FileLink address={item.crDocumentUrl} className="block font-semibold text-anac-blue underline">
-                    Consulter le compte-rendu
-                  </FileLink>
-                ) : null}
               </div>
             ) : !item.canManage ? (
               <div className="rounded-lg border border-anac-border bg-slate-50 p-3 text-xs text-anac-muted">

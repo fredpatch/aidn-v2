@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { resolveAssetContext, type AssetForContext, type FileContextStore } from './file-context.js';
+import { canAccessFile } from './file-access.policy.js';
 
 const REQUEST = { id: 1, applicantId: 7 };
 const phases: Record<number, { requestId: number; phaseCode: string }> = {
@@ -29,6 +30,7 @@ const store: FileContextStore = {
       payment_invoice: { 13: 50 },
       payment_proof: { 14: 60, 15: 61 },
       meeting_report: { 16: 40 },
+      meeting_report_signed: { 17: 30 },
     };
     return table[ownerType]?.[id] ?? null;
   },
@@ -91,12 +93,32 @@ describe('resolveAssetContext', () => {
       ['payment_invoice', 13, 'M5'],
       ['payment_proof', 14, 'M6'],
       ['meeting_report', 16, 'M4'],
+      ['meeting_report_signed', 17, 'M3'],
       ['phase_closure_document', 50, 'M5'],
     ];
     for (const [ownerType, ownerId, stage] of cases) {
       const context = await resolveAssetContext(asset({ linkedOwnerType: ownerType, linkedOwnerId: ownerId }), store);
       assert.deepEqual(context, { kind: 'dossier', ownerType, requestId: 1, applicantId: 7, stage }, ownerType);
     }
+  });
+
+  it('SESSION1-MEET-2 - both CR chains: owning applicant and the DN roles only', async () => {
+    for (const [ownerType, ownerId] of [['meeting_report', 16], ['meeting_report_signed', 17]] as const) {
+      const context = await resolveAssetContext(asset({ linkedOwnerType: ownerType, linkedOwnerId: ownerId }), store);
+      assert.equal(canAccessFile({ kind: 'applicant', applicantId: 7 }, context), true, `${ownerType}: owner`);
+      assert.equal(canAccessFile({ kind: 'applicant', applicantId: 8 }, context), false, `${ownerType}: other applicant`);
+      for (const role of ['dn_agent', 'dn_supervisor', 'SU']) {
+        assert.equal(canAccessFile({ kind: 'staff', userId: 1, roles: [role] }, context), true, `${ownerType}: ${role}`);
+      }
+      for (const role of ['r3_agent', 's5_agent', 'reception', 'assistant_dg', 'assistant_dn']) {
+        assert.equal(canAccessFile({ kind: 'staff', userId: 1, roles: [role] }, context), false, `${ownerType}: ${role}`);
+      }
+    }
+  });
+
+  it('an owner type nobody mapped is unresolvable (fail-closed, SU only)', async () => {
+    const context = await resolveAssetContext(asset({ linkedOwnerType: 'not_mapped_yet', linkedOwnerId: 17 }), store);
+    assert.deepEqual(context, { kind: 'unresolvable' });
   });
 
   it('resolves certificates to M7', async () => {

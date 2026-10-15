@@ -13,12 +13,16 @@ export interface ApplicantMeetingView extends ApplicantNegotiationBlock {
   status: string;
   crDocumentUrl: string | null;
   crUploadedAt: Date | null;
+  /** SESSION1-MEET-2 - your signed return, and whether you may upload it now (once). */
+  signedCrDocumentUrl: string | null;
+  signedCrUploadedAt: Date | null;
+  canSubmitSignedReport: boolean;
   createdAt: Date;
 }
 
 /** Fields are whitelisted: a field added to MeetingView or to the block later
  *  stays hidden until it is listed here. */
-export function toApplicantMeetingView(view: MeetingView, block: ApplicantNegotiationBlock): ApplicantMeetingView {
+export function toApplicantMeetingView(view: MeetingView, block: ApplicantNegotiationBlock, canSubmitSignedReport: boolean): ApplicantMeetingView {
   return {
     id: view.id,
     phaseId: view.phaseId,
@@ -28,6 +32,9 @@ export function toApplicantMeetingView(view: MeetingView, block: ApplicantNegoti
     status: view.status,
     crDocumentUrl: view.crDocumentUrl,
     crUploadedAt: view.crUploadedAt,
+    signedCrDocumentUrl: view.signedCrDocumentUrl,
+    signedCrUploadedAt: view.signedCrUploadedAt,
+    canSubmitSignedReport,
     createdAt: view.createdAt,
     confirmationStatus: block.confirmationStatus,
     confirmedAt: block.confirmedAt,

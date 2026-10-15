@@ -21,6 +21,8 @@ import { PhaseStep, stepState } from '../../../components/request/PhaseStep';
 import { SectionCard } from '../../../components/request/SectionCard';
 import { MeetingDetails, isMeetingResolved } from '../../../components/request/MeetingDetails';
 import { MeetingConfirmationPanel, usesConfirmationPanel } from '../../../components/meetings/MeetingConfirmationPanel';
+import { MeetingReportPanel, meetingReportAnchor, showsReportPanel } from '../../../components/meetings/MeetingReportPanel';
+import { signedReportPresentation, type PhasePresentation } from '../progress';
 
 function letterLabel(status: string | undefined): string {
   if (!status) return 'À déposer';
@@ -44,8 +46,15 @@ export function buildFormalPresentation(bundle: FormalBundle) {
   let description =
     "Cette phase rassemble votre lettre officielle, les pièces du dossier et la réunion formelle.";
   let tone: PhaseTone = 'info';
+  let action: PhasePresentation['action'];
+  // SESSION1-MEET-2 - priority: the letter and the missing pieces (applicant
+  // actions the DN waits for) first, then the signed compte rendu (API flag),
+  // which outranks every passive wording, a closed phase included.
+  const blockingAction = !phaseClosed && (!bundle.letterCircuit || (letterDone && !docsDone));
 
-  if (phaseClosed) {
+  if (bundle.meeting?.canSubmitSignedReport && !blockingAction) {
+    ({ title, description, tone, action } = signedReportPresentation(meetingReportAnchor(bundle.meeting.id)));
+  } else if (phaseClosed) {
     title = 'Demande formelle clôturée';
     description = 'Votre dossier formel est complet et passe à la phase suivante.';
     tone = 'success';
@@ -85,6 +94,7 @@ export function buildFormalPresentation(bundle: FormalBundle) {
     title,
     description,
     tone,
+    action,
     steps: [
       {
         key: 'letter',
@@ -200,6 +210,7 @@ export function FormalPhaseSection({ requestId }: { requestId: number }) {
         title={presentation.title}
         description={presentation.description}
         tone={presentation.tone}
+        action={presentation.action}
         closed={phaseClosed}
       >
         {presentation.steps.map((step) => (
@@ -268,6 +279,9 @@ export function FormalPhaseSection({ requestId }: { requestId: number }) {
             <MeetingConfirmationPanel meeting={bundle.meeting} />
           ) : (
             <MeetingDetails meeting={bundle.meeting} />
+          )}
+          {bundle.meeting && showsReportPanel({ ...bundle.meeting, meetingType: 'formal' }) && (
+            <MeetingReportPanel meeting={bundle.meeting} />
           )}
         </SectionCard>
       </div>

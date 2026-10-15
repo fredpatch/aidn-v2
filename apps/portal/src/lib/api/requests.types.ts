@@ -1,4 +1,4 @@
-import type { MeetingConfirmationBlock } from './meetings.api';
+import type { MeetingConfirmationBlock, MeetingReportBlock } from './meetings.api';
 
 export interface RequestView {
   id: number;
@@ -20,9 +20,7 @@ export interface PreliminaryBundle {
     scheduledAt: string;
     location: string | null;
     status: string;
-    crDocumentUrl: string | null;
-    crUploadedAt: string | null;
-  } & MeetingConfirmationBlock) | null;
+  } & MeetingConfirmationBlock & MeetingReportBlock) | null;
   evaluation: {
     templateFileUrl: string | null;
     madeAvailableAt: string | null;
@@ -50,8 +48,7 @@ export interface FormalBundle {
     scheduledAt: string;
     location: string | null;
     status: string;
-    crDocumentUrl: string | null;
-  } & MeetingConfirmationBlock) | null;
+  } & MeetingConfirmationBlock & MeetingReportBlock) | null;
   completionRate: number;
 }
 

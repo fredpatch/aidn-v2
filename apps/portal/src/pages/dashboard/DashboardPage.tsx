@@ -5,6 +5,7 @@ import { useApplicantAuth } from '../../hooks/useApplicantAuth';
 import { useMyRequests } from '../requests/hooks/useMyRequests';
 import { NextMeetingCard } from '../../components/meetings/NextMeetingCard';
 import { MeetingsToConfirmBanner } from '../../components/meetings/MeetingsToConfirmBanner';
+import { ReportsToSignBanner } from '../../components/meetings/ReportsToSignBanner';
 import { REQUEST_TYPE_LABELS, TERMINAL_STATUSES, labelOf } from '../requests/constants';
 
 export default function DashboardPage() {
@@ -34,6 +35,8 @@ export default function DashboardPage() {
       )}
 
       <MeetingsToConfirmBanner />
+
+      <ReportsToSignBanner />
 
       <NextMeetingCard />
 

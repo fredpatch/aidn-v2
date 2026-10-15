@@ -20,6 +20,11 @@ export function ActionBanner({ banner }: { banner: BannerContent }) {
         <p className={`text-xs font-semibold ${accent}`}>{banner.eyebrow}</p>
         <p className="text-sm font-semibold text-anac-navy">{banner.title}</p>
         <p className="mt-0.5 text-sm text-anac-text">{banner.description}</p>
+        {banner.action && (
+          <a href={banner.action.href} className="btn-primary mt-2 inline-flex rounded px-3 py-1.5 text-xs no-underline">
+            {banner.action.label}
+          </a>
+        )}
       </div>
     </div>
   );
