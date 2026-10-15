@@ -16,6 +16,11 @@ const meeting = (id: number, status: string, scheduledAt: Date): ApplicantMeetin
   requestType: 'issuance',
   crDocumentUrl: null,
   ticketAvailable: status === 'scheduled',
+  confirmationStatus: 'confirmed',
+  confirmedAt: null,
+  alternate: null,
+  lastRefusal: null,
+  actions: [],
 });
 
 describe('buildMonthGrid - 6 x 7, weeks start on Monday', () => {
@@ -67,4 +72,26 @@ describe('upcoming / history split', () => {
 
 describe('dayKey', () => {
   it('uses the local calendar day', () => expect(dayKey(new Date(2026, 0, 5, 23, 59))).toBe('2026-01-05'));
+});
+
+describe('SESSION1-MEET-1 - appointments still being agreed', () => {
+  const later = new Date(2026, 9, 20, 9, 0);
+  const sooner = new Date(2026, 9, 12, 9, 0);
+  const proposed = { ...meeting(10, 'scheduled', later), confirmationStatus: 'awaiting_applicant' as const, actions: ['confirm' as const, 'propose_alternate' as const], ticketAvailable: false };
+  const countered = { ...meeting(11, 'scheduled', sooner), confirmationStatus: 'awaiting_dn' as const, ticketAvailable: false };
+
+  it('are neither upcoming nor history, and not "awaiting the DN outcome"', () => {
+    const { pending, upcoming, history } = splitMeetings([proposed, countered], NOW);
+    expect(upcoming).toEqual([]);
+    expect(history).toEqual([]);
+    expect(isUpcoming(proposed, NOW)).toBe(false);
+    expect(isAwaitingConfirmation({ ...proposed, scheduledAt: new Date(2026, 9, 1).toISOString() }, NOW)).toBe(false);
+    // The ones waiting for the applicant come first.
+    expect(pending.map((m) => m.id)).toEqual([10, 11]);
+  });
+
+  it('a confirmed one is upcoming again', () => {
+    const confirmed = { ...proposed, confirmationStatus: 'confirmed' as const, actions: [], ticketAvailable: true };
+    expect(splitMeetings([confirmed], NOW).upcoming.map((m) => m.id)).toEqual([10]);
+  });
 });

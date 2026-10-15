@@ -7,6 +7,7 @@ import {
   isMeetingResolved,
 } from './helpers';
 import type { PreliminaryBundle } from '../../../lib/api/preliminary.types';
+import { CONFIRMED_NEGOTIATION } from '../../../test/meetingFixtures';
 
 function assert(condition: boolean, message: string): void {
   if (!condition) {
@@ -28,6 +29,7 @@ export function runPreliminaryHelpersTests(): void {
   assert(!canClosePreliminaryPhase(emptyBundle), 'Phase cannot close with empty bundle.');
 
   const meeting = {
+    negotiation: CONFIRMED_NEGOTIATION,
     id: 7,
     scheduledAt: '2026-01-01T10:00:00.000Z',
     location: null,

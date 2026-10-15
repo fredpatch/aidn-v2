@@ -1,4 +1,4 @@
-import { eq, and, gte, lt } from 'drizzle-orm';
+import { eq, and, gte, inArray, lt, notInArray, type SQL } from 'drizzle-orm';
 import { db } from '../../shared/db/index.js';
 import {
   applicants,
@@ -32,17 +32,33 @@ import type {
   MeetingCockpitSummary,
   ScheduleMeetingParams,
   MeetingView,
+  StaffMeetingView,
 } from './meetings.types.js';
 import { lacksMeetingReport } from './meeting-follow-up.js';
-import { assertMeetingDossierOpen, assertPhaseDossierOpen, dossierFlags } from '../requests/dossier-open.js';
+import {
+  assertMeetingDossierOpen,
+  assertPhaseDossierOpen,
+  CLOSED_DOSSIER_STATUSES,
+  dossierFlags,
+  isDossierClosed,
+} from '../requests/dossier-open.js';
+import {
+  initialConfirmationStatus,
+  isAwaitingApplicant,
+  isAwaitingDn,
+  isConfirmedScheduledMeeting,
+  isMeetingOperationallyConfirmed,
+  requiresApplicantConfirmation,
+} from './meeting-confirmation.js';
+import {
+  applicantBlocksFor,
+  negotiationViewsFor,
+  type MeetingNegotiationView,
+} from './meeting-negotiation.view.js';
+import { appendNegotiationEvent } from './meeting-negotiation.events.js';
+import { hasSameDayMeeting, insertMeetingRow, lockMeeting, parseSlot, phaseCodeOf } from './meeting-write.js';
 
 export type { ScheduleMeetingParams, MeetingView } from './meetings.types.js';
-
-function isUniqueViolation(error: unknown): boolean {
-  const pgCode = (error as { code?: string })?.code;
-  const causeCode = (error as { cause?: { code?: string } })?.cause?.code;
-  return pgCode === '23505' || causeCode === '23505';
-}
 
 function toMeetingView(row: typeof meetings.$inferSelect): MeetingView {
   return {
@@ -53,6 +69,8 @@ function toMeetingView(row: typeof meetings.$inferSelect): MeetingView {
     scheduledAt: row.scheduledAt,
     location: row.location,
     status: row.status,
+    confirmationStatus: row.confirmationStatus,
+    confirmedAt: row.confirmedAt,
     crDocumentUrl: row.crDocumentUrl,
     crUploadedAt: row.crUploadedAt,
     createdAt: row.createdAt,
@@ -95,6 +113,8 @@ function canManageMeeting(meetingType: string): boolean {
 
 function meetingActionLabel(row: typeof meetings.$inferSelect): string {
   if (!canManageMeeting(row.meetingType)) return 'Suivi inspection';
+  if (row.status === 'scheduled' && isAwaitingDn(row)) return 'Répondre à la contre-proposition';
+  if (row.status === 'scheduled' && isAwaitingApplicant(row)) return 'En attente du postulant';
   if (row.status === 'scheduled') return 'Résoudre la réunion';
   if (row.status === 'held' && !row.crDocumentUrl) return 'Compte-rendu facultatif';
   if (row.status === 'held' && row.crDocumentUrl) return 'Compte-rendu déposé';
@@ -114,14 +134,16 @@ function addDays(date: Date, days: number): Date {
   return copy;
 }
 
-function toCockpitItem(row: {
+interface CockpitRow {
   meeting: typeof meetings.$inferSelect;
   phase: typeof phases.$inferSelect;
   request: typeof requests.$inferSelect;
   organisation: typeof organisations.$inferSelect;
   applicant: typeof applicants.$inferSelect;
   agent: typeof users.$inferSelect;
-}): MeetingCockpitItem {
+}
+
+function toCockpitItem(row: CockpitRow, negotiation: MeetingNegotiationView): MeetingCockpitItem {
   // K7c - a closed dossier's meetings stay listed for history, without action.
   const flags = dossierFlags(row.request.status);
   return {
@@ -149,36 +171,13 @@ function toCockpitItem(row: {
     phaseHref: phaseHref(row.phase.phaseCode, row.request.id),
     canManage: !flags.dossierClosed && canManageMeeting(row.meeting.meetingType),
     actionLabel: flags.dossierClosed ? 'Dossier clos' : meetingActionLabel(row.meeting),
+    negotiation,
     ...flags,
   };
 }
 
-export async function listMeetingCockpit(params: {
-  from?: string;
-  to?: string;
-  meetingType?: string;
-  status?: string;
-  phaseCode?: string;
-}): Promise<MeetingCockpitSummary> {
-  const now = new Date();
-  const periodStart = params.from ? new Date(params.from) : startOfDay(now);
-  const periodEnd = params.to ? new Date(params.to) : addDays(periodStart, 7);
-
-  const conditions = [
-    gte(meetings.scheduledAt, periodStart),
-    lt(meetings.scheduledAt, periodEnd),
-  ];
-  if (params.meetingType && params.meetingType !== 'all') {
-    conditions.push(eq(meetings.meetingType, params.meetingType as typeof meetings.$inferSelect['meetingType']));
-  }
-  if (params.status && params.status !== 'all') {
-    conditions.push(eq(meetings.status, params.status as typeof meetings.$inferSelect['status']));
-  }
-  if (params.phaseCode && params.phaseCode !== 'all') {
-    conditions.push(eq(phases.phaseCode, params.phaseCode as typeof phases.$inferSelect['phaseCode']));
-  }
-
-  const rows = await db
+async function cockpitRows(conditions: SQL[]): Promise<CockpitRow[]> {
+  return db
     .select({
       meeting: meetings,
       phase: phases,
@@ -195,10 +194,61 @@ export async function listMeetingCockpit(params: {
     .innerJoin(users, eq(meetings.dnAgentId, users.id))
     .where(and(...conditions))
     .orderBy(meetings.scheduledAt);
+}
 
-  const items = rows.map(toCockpitItem);
+async function toCockpitItems(rows: CockpitRow[]): Promise<MeetingCockpitItem[]> {
+  const closedById = new Map(rows.map((row) => [row.meeting.id, isDossierClosed(row.request.status)]));
+  const views = await negotiationViewsFor(
+    rows.map((row) => row.meeting),
+    (meeting) => closedById.get(meeting.id) ?? true
+  );
+  return rows.map((row) => toCockpitItem(row, views.get(row.meeting.id)!));
+}
+
+const CONFIRMATION_FILTERS = ['awaiting_applicant', 'awaiting_dn', 'confirmed', 'not_required'] as const;
+
+export async function listMeetingCockpit(params: {
+  from?: string;
+  to?: string;
+  meetingType?: string;
+  status?: string;
+  phaseCode?: string;
+  confirmation?: string;
+}): Promise<MeetingCockpitSummary> {
+  const now = new Date();
+  const periodStart = params.from ? new Date(params.from) : startOfDay(now);
+  const periodEnd = params.to ? new Date(params.to) : addDays(periodStart, 7);
+
+  const conditions: SQL[] = [gte(meetings.scheduledAt, periodStart), lt(meetings.scheduledAt, periodEnd)];
+  if (params.meetingType && params.meetingType !== 'all') {
+    conditions.push(eq(meetings.meetingType, params.meetingType as typeof meetings.$inferSelect['meetingType']));
+  }
+  if (params.status && params.status !== 'all') {
+    conditions.push(eq(meetings.status, params.status as typeof meetings.$inferSelect['status']));
+  }
+  if (params.phaseCode && params.phaseCode !== 'all') {
+    conditions.push(eq(phases.phaseCode, params.phaseCode as typeof phases.$inferSelect['phaseCode']));
+  }
+  const confirmation = CONFIRMATION_FILTERS.find((value) => value === params.confirmation);
+  if (confirmation) conditions.push(eq(meetings.confirmationStatus, confirmation));
+
+  // SESSION1-MEET-1 - what waits on someone is listed whatever its date: a
+  // counter-proposal for a meeting in three weeks must not hide outside the
+  // default 7-day window. Live meetings of open dossiers only (K7d).
+  const [rows, pendingRows] = await Promise.all([
+    cockpitRows(conditions),
+    cockpitRows([
+      eq(meetings.status, 'scheduled'),
+      inArray(meetings.confirmationStatus, ['awaiting_applicant', 'awaiting_dn']),
+      notInArray(requests.status, CLOSED_DOSSIER_STATUSES as (typeof requests.$inferSelect)['status'][]),
+    ]),
+  ]);
+
+  const [items, pendingItems] = await Promise.all([toCockpitItems(rows), toCockpitItems(pendingRows)]);
   const todayStart = startOfDay(now);
   const tomorrowStart = addDays(todayStart, 1);
+  // Upcoming / today: confirmed and unconfirmed slots alike - each item
+  // carries its negotiation state, so the screen can tell them apart.
   const upcoming = items
     .filter((item) => item.status === 'scheduled' && new Date(item.scheduledAt) >= now)
     .slice(0, 6);
@@ -212,6 +262,15 @@ export async function listMeetingCockpit(params: {
     const date = new Date(item.scheduledAt);
     return date >= todayStart && date < tomorrowStart;
   });
+  const confirmedPlanned = rows.filter((row) => isConfirmedScheduledMeeting(row.meeting));
+  const counterProposalIds = new Set(pendingRows.filter((row) => isAwaitingDn(row.meeting)).map((row) => row.meeting.id));
+  const awaitingApplicantCount = pendingRows.filter((row) => isAwaitingApplicant(row.meeting)).length;
+  // Counter-proposals first (the DN must act), then the longest waiting.
+  const pendingNegotiations = [...pendingItems].sort(
+    (a, b) =>
+      Number(counterProposalIds.has(b.id)) - Number(counterProposalIds.has(a.id)) ||
+      (a.negotiation.waitingSince ?? '').localeCompare(b.negotiation.waitingSince ?? '')
+  );
 
   return {
     periodStart: periodStart.toISOString(),
@@ -220,8 +279,22 @@ export async function listMeetingCockpit(params: {
       {
         key: 'scheduled',
         label: 'Réunions prévues',
-        value: items.filter((item) => item.status === 'scheduled').length,
-        helper: 'Créneaux planifiés sur la période',
+        value: confirmedPlanned.length,
+        helper: 'Rendez-vous confirmés sur la période',
+        tone: 'info',
+      },
+      {
+        key: 'counter_proposals',
+        label: 'Contre-propositions à traiter',
+        value: counterProposalIds.size,
+        helper: 'Nouvelles dates proposées par les postulants',
+        tone: counterProposalIds.size > 0 ? 'warning' : 'success',
+      },
+      {
+        key: 'awaiting_applicant',
+        label: 'En attente du postulant',
+        value: awaitingApplicantCount,
+        helper: 'Rendez-vous proposés, pas encore confirmés',
         tone: 'info',
       },
       {
@@ -250,16 +323,11 @@ export async function listMeetingCockpit(params: {
     items,
     upcoming,
     missingReports,
+    pendingNegotiations,
     updatedAt: now.toISOString(),
   };
 }
 
-/** Pattern "Reunion / Visite" (M10 conflict rules):
- *  - Hard conflict (same agent, exact same active slot) is blocked by the
- *    DB's partial unique index on scheduled meetings.
- *  - Soft overlap only considers meetings still planned for that day.
- *    Historical rows (held, no-show, cancelled, rescheduled) do not occupy
- *    the agenda anymore. */
 /**
  * Every meeting of every dossier owned by this applicant, oldest first.
  * Ownership is part of the query (requests.applicantId), not a post-filter,
@@ -275,6 +343,12 @@ export async function listApplicantMeetings(applicantId: number): Promise<Applic
     .where(eq(requests.applicantId, applicantId))
     .orderBy(meetings.scheduledAt);
 
+  const closedById = new Map(rows.map(({ meeting, request }) => [meeting.id, isDossierClosed(request.status)]));
+  const blocks = await applicantBlocksFor(
+    rows.map(({ meeting }) => meeting),
+    (meeting) => closedById.get(meeting.id) ?? true
+  );
+
   return rows.map(({ meeting, phase, request }) => ({
     id: meeting.id,
     meetingType: meeting.meetingType,
@@ -286,81 +360,71 @@ export async function listApplicantMeetings(applicantId: number): Promise<Applic
     requestReference: request.reference,
     requestType: request.requestType,
     crDocumentUrl: meeting.crDocumentUrl,
-    ticketAvailable: meeting.status === 'scheduled',
+    ...blocks.get(meeting.id)!,
   }));
 }
 
+/** A new DN proposal (M3/M4: awaiting the applicant, with a dn_proposed
+ *  event) or a site visit (M6: not_required). One transaction.
+ *  The acting user (audit) is kept apart from the assigned agent. */
 export async function scheduleMeeting(
   params: ScheduleMeetingParams
 ): Promise<{ meeting: MeetingView; softOverlapWarning: boolean }> {
-  // K7 - closed dossier: read-only (requests/dossier-open.ts).
-  await assertPhaseDossierOpen(db, params.phaseId);
-  const [phase] = await db.select().from(phases).where(eq(phases.id, params.phaseId));
-  if (!phase) throw new Error('PHASE_NOT_FOUND');
-  if (phase.status !== 'open') throw new Error('PHASE_NOT_OPEN');
+  const scheduledAt = parseSlot(params.scheduledAt);
+  return db.transaction(async (tx) => {
+    // K7 - closed dossier: read-only (requests/dossier-open.ts).
+    await assertPhaseDossierOpen(tx, params.phaseId);
+    const [phase] = await tx.select().from(phases).where(eq(phases.id, params.phaseId));
+    if (!phase) throw new Error('PHASE_NOT_FOUND');
+    if (phase.status !== 'open') throw new Error('PHASE_NOT_OPEN');
 
-  if (params.meetingType === 'formal') {
-    const [letterCircuit] = await db
-      .select()
-      .from(dgCircuitDocuments)
-      .where(
-        and(
-          eq(dgCircuitDocuments.requestId, phase.requestId),
-          eq(dgCircuitDocuments.entityType, 'formal_request_letter')
-        )
-      );
-    if (!letterCircuit || letterCircuit.status !== 'pending_review') {
-      throw new Error('FORMAL_LETTER_RETURN_REQUIRED');
+    if (params.meetingType === 'formal') {
+      const [letterCircuit] = await tx
+        .select()
+        .from(dgCircuitDocuments)
+        .where(
+          and(
+            eq(dgCircuitDocuments.requestId, phase.requestId),
+            eq(dgCircuitDocuments.entityType, 'formal_request_letter')
+          )
+        );
+      if (!letterCircuit || letterCircuit.status !== 'pending_review') {
+        throw new Error('FORMAL_LETTER_RETURN_REQUIRED');
+      }
     }
-  }
 
-  const scheduledAt = new Date(params.scheduledAt);
-  const dayStart = new Date(
-    scheduledAt.getFullYear(),
-    scheduledAt.getMonth(),
-    scheduledAt.getDate()
-  );
-  const dayEnd = new Date(dayStart);
-  dayEnd.setDate(dayEnd.getDate() + 1);
-
-  const sameDayMeetings = await db
-    .select()
-    .from(meetings)
-    .where(
-      and(
-        eq(meetings.dnAgentId, params.dnAgentId),
-        gte(meetings.scheduledAt, dayStart),
-        lt(meetings.scheduledAt, dayEnd),
-        eq(meetings.status, 'scheduled')
-      )
-    );
-  const softOverlapWarning = sameDayMeetings.length > 0;
-
-  try {
-    const [meeting] = await db
-      .insert(meetings)
-      .values({
-        phaseId: params.phaseId,
-        meetingType: params.meetingType,
-        dnAgentId: params.dnAgentId,
-        scheduledAt,
-        location: params.location,
-        status: 'scheduled',
-      })
-      .returning();
-
-    await logAudit({
-      userId: params.dnAgentId,
-      action: 'MEETING_SCHEDULED',
-      module: phase.phaseCode,
-      entityId: meeting.id,
+    const softOverlapWarning = await hasSameDayMeeting(tx, params.dnAgentId, scheduledAt);
+    const meeting = await insertMeetingRow(tx, {
+      phaseId: params.phaseId,
+      meetingType: params.meetingType,
+      dnAgentId: params.dnAgentId,
+      scheduledAt,
+      location: params.location,
+      status: 'scheduled',
+      confirmationStatus: initialConfirmationStatus(params.meetingType),
     });
+    if (requiresApplicantConfirmation(params.meetingType)) {
+      await appendNegotiationEvent(tx, {
+        meetingId: meeting.id,
+        kind: 'dn_proposed',
+        actor: { userId: params.actorUserId },
+        slotAt: scheduledAt,
+      });
+    }
+
+    await logAudit(
+      {
+        userId: params.actorUserId,
+        action: 'MEETING_SCHEDULED',
+        module: phase.phaseCode,
+        entityId: meeting.id,
+        details: { dnAgentId: params.dnAgentId },
+      },
+      tx
+    );
 
     return { meeting: toMeetingView(meeting), softOverlapWarning };
-  } catch (error) {
-    if (isUniqueViolation(error)) throw new Error('MEETING_SLOT_CONFLICT');
-    throw error;
-  }
+  });
 }
 
 export interface MeetingActor {
@@ -403,10 +467,16 @@ export async function getMeetingForAuthorizedActor(
 export async function getMeeting(
   meetingId: number,
   actor: MeetingActor
-): Promise<MeetingView | ApplicantMeetingView> {
-  const { meeting } = await getMeetingForAuthorizedActor(meetingId, actor);
+): Promise<StaffMeetingView | ApplicantMeetingView> {
+  const { meeting, request } = await getMeetingForAuthorizedActor(meetingId, actor);
   const view = toMeetingView(meeting);
-  return actor.applicant ? toApplicantMeetingView(view) : view;
+  const closed = () => isDossierClosed(request?.status ?? 'cancelled');
+  if (actor.applicant) {
+    const blocks = await applicantBlocksFor([meeting], closed);
+    return toApplicantMeetingView(view, blocks.get(meeting.id)!);
+  }
+  const negotiation = await negotiationViewsFor([meeting], closed, { withPhaseHistory: true });
+  return { ...view, negotiation: negotiation.get(meeting.id)! };
 }
 
 /** Invitation PDF (Batch L - replaces the earlier plain HTML ticket).
@@ -417,6 +487,8 @@ export async function getMeetingInvitationPdf(
   actor: MeetingActor
 ): Promise<{ pdf: Buffer; fileName: string }> {
   const { meeting, request } = await getMeetingForAuthorizedActor(meetingId, actor);
+  // SESSION1-MEET-1 - no final invitation for an appointment never confirmed.
+  if (!isMeetingOperationallyConfirmed(meeting)) throw new Error('MEETING_INVITATION_NOT_CONFIRMED');
   const [organisation] = request
     ? await db.select({ name: organisations.name }).from(organisations).where(eq(organisations.id, request.organisationId))
     : [];
@@ -450,22 +522,19 @@ export async function markMeetingStatus(
   actorUserId: number,
   status: 'held' | 'no_show' | 'file_cancelled'
 ): Promise<MeetingView> {
-  // K7 - closed dossier: read-only (requests/dossier-open.ts).
-  await assertMeetingDossierOpen(db, meetingId);
-  const [meeting] = await db.select().from(meetings).where(eq(meetings.id, meetingId));
-  if (!meeting) throw new Error('MEETING_NOT_FOUND');
-  if (meeting.status !== 'scheduled') throw new Error('MEETING_NOT_SCHEDULED');
+  return db.transaction(async (tx) => {
+    // K7 - closed dossier: read-only (requests/dossier-open.ts).
+    const meeting = await lockMeeting(tx, meetingId);
+    if (meeting.status !== 'scheduled') throw new Error('MEETING_NOT_SCHEDULED');
+    // SESSION1-MEET-1 - nobody is marked absent from an appointment they never confirmed.
+    if (!isMeetingOperationallyConfirmed(meeting)) throw new Error('MEETING_NOT_CONFIRMED');
 
-  const [updated] = await db
-    .update(meetings)
-    .set({ status })
-    .where(eq(meetings.id, meetingId))
-    .returning();
+    const [updated] = await tx.update(meetings).set({ status }).where(eq(meetings.id, meetingId)).returning();
 
-  if (status === 'file_cancelled') {
-    const [phase] = await db.select().from(phases).where(eq(phases.id, meeting.phaseId));
-    if (phase) {
-      await db
+    const [phase] = await tx.select().from(phases).where(eq(phases.id, meeting.phaseId));
+    if (!phase) throw new Error('PHASE_NOT_FOUND');
+    if (status === 'file_cancelled') {
+      await tx
         .update(requests)
         .set({
           status: 'rejected',
@@ -473,48 +542,71 @@ export async function markMeetingStatus(
         })
         .where(eq(requests.id, phase.requestId));
     }
-  }
 
-  await logAudit({
-    userId: actorUserId,
-    action: `MEETING_${status.toUpperCase()}`,
-    module: 'M3',
-    entityId: meetingId,
+    await logAudit(
+      { userId: actorUserId, action: `MEETING_${status.toUpperCase()}`, module: phase.phaseCode, entityId: meetingId },
+      tx
+    );
+    return toMeetingView(updated);
   });
-
-  return toMeetingView(updated);
 }
 
+/** DN moves a live meeting to a new slot, in ONE transaction: the
+ *  replacement row is inserted first (a slot conflict rolls everything back
+ *  and the original keeps its slot), then the old row becomes 'rescheduled'
+ *  (frozen as it was). M3/M4: the replacement is a NEW proposal the applicant
+ *  must confirm again, even if the old slot was confirmed. M6: not_required. */
 export async function rescheduleMeeting(
   meetingId: number,
   actorUserId: number,
-  newScheduledAt: string
+  newScheduledAt: string,
+  remark?: string
 ): Promise<{ meeting: MeetingView; softOverlapWarning: boolean }> {
-  // K7 - closed dossier: read-only (requests/dossier-open.ts).
-  await assertMeetingDossierOpen(db, meetingId);
-  const [oldMeeting] = await db.select().from(meetings).where(eq(meetings.id, meetingId));
-  if (!oldMeeting) throw new Error('MEETING_NOT_FOUND');
-  if (oldMeeting.status !== 'scheduled') throw new Error('MEETING_NOT_SCHEDULED');
+  const scheduledAt = parseSlot(newScheduledAt);
+  return db.transaction(async (tx) => {
+    // K7 - closed dossier: read-only (requests/dossier-open.ts).
+    const oldMeeting = await lockMeeting(tx, meetingId);
+    if (oldMeeting.status !== 'scheduled') throw new Error('MEETING_NOT_SCHEDULED');
+    if (scheduledAt.getTime() === oldMeeting.scheduledAt.getTime()) throw new Error('RESCHEDULE_SAME_SLOT');
+    const module = await phaseCodeOf(tx, oldMeeting.phaseId);
 
-  await db.update(meetings).set({ status: 'rescheduled' }).where(eq(meetings.id, meetingId));
+    const softOverlapWarning = await hasSameDayMeeting(tx, oldMeeting.dnAgentId, scheduledAt, oldMeeting.id);
+    const replacement = await insertMeetingRow(tx, {
+      phaseId: oldMeeting.phaseId,
+      meetingType: oldMeeting.meetingType,
+      dnAgentId: oldMeeting.dnAgentId,
+      scheduledAt,
+      location: oldMeeting.location,
+      status: 'scheduled',
+      confirmationStatus: initialConfirmationStatus(oldMeeting.meetingType),
+    });
+    await tx.update(meetings).set({ status: 'rescheduled' }).where(eq(meetings.id, meetingId));
 
-  const result = await scheduleMeeting({
-    phaseId: oldMeeting.phaseId,
-    meetingType: oldMeeting.meetingType as ScheduleMeetingParams['meetingType'],
-    dnAgentId: oldMeeting.dnAgentId,
-    scheduledAt: newScheduledAt,
-    location: oldMeeting.location ?? undefined,
+    if (requiresApplicantConfirmation(oldMeeting.meetingType)) {
+      const actor = { userId: actorUserId };
+      await appendNegotiationEvent(tx, {
+        meetingId: oldMeeting.id,
+        kind: 'dn_rescheduled',
+        actor,
+        slotAt: scheduledAt,
+        remark: remark?.trim() || null,
+        resultingMeetingId: replacement.id,
+      });
+      await appendNegotiationEvent(tx, { meetingId: replacement.id, kind: 'dn_proposed', actor, slotAt: scheduledAt });
+    }
+
+    await logAudit(
+      {
+        userId: actorUserId,
+        action: 'MEETING_RESCHEDULED',
+        module,
+        entityId: meetingId,
+        details: { newMeetingId: replacement.id },
+      },
+      tx
+    );
+    return { meeting: toMeetingView(replacement), softOverlapWarning };
   });
-
-  await logAudit({
-    userId: actorUserId,
-    action: 'MEETING_RESCHEDULED',
-    module: 'M3',
-    entityId: meetingId,
-    details: { newMeetingId: result.meeting.id },
-  });
-
-  return result;
 }
 
 /** Optional compte-rendu, only after the meeting is "held" - never
@@ -551,7 +643,12 @@ export async function attachMeetingReport(
       .returning();
 
     await logAudit(
-      { userId: actorUserId, action: 'MEETING_REPORT_ATTACHED', module: 'M3', entityId: meetingId },
+      {
+        userId: actorUserId,
+        action: 'MEETING_REPORT_ATTACHED',
+        module: await phaseCodeOf(tx, meeting.phaseId),
+        entityId: meetingId,
+      },
       tx
     );
     return saved;

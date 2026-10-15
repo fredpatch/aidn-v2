@@ -8,6 +8,7 @@ export const queryKeys = {
     phase: (requestId: number, code: PhaseCode) => ['requests', requestId, 'phase', code] as const,
   },
   meetings: {
+    all: () => ['meetings'] as const,
     mine: () => ['meetings', 'mine'] as const,
   },
 };

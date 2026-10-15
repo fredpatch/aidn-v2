@@ -20,6 +20,7 @@ import { PhaseSummaryCard, type PhaseTone } from '../../../components/request/Ph
 import { PhaseStep, stepState } from '../../../components/request/PhaseStep';
 import { SectionCard } from '../../../components/request/SectionCard';
 import { MeetingDetails, isMeetingResolved } from '../../../components/request/MeetingDetails';
+import { MeetingConfirmationPanel, usesConfirmationPanel } from '../../../components/meetings/MeetingConfirmationPanel';
 
 function letterLabel(status: string | undefined): string {
   if (!status) return 'À déposer';
@@ -61,6 +62,13 @@ export function buildFormalPresentation(bundle: FormalBundle) {
     title = 'Pièces à compléter';
     description = `Déposez les pièces manquantes du dossier formel (${bundle.completionRate}/11).`;
     tone = 'warning';
+  } else if (bundle.meeting?.status === 'scheduled' && bundle.meeting.confirmationStatus === 'awaiting_applicant') {
+    title = 'Rendez-vous à confirmer';
+    description = 'Confirmez le rendez-vous proposé par la DN ou proposez une autre date.';
+    tone = 'warning';
+  } else if (bundle.meeting?.status === 'scheduled' && bundle.meeting.confirmationStatus === 'awaiting_dn') {
+    title = 'Nouvelle date proposée';
+    description = 'Votre proposition est en attente de validation par la DN.';
   } else if (bundle.meeting?.status === 'scheduled') {
     title = 'Réunion formelle planifiée';
     description = "Consultez votre invitation et présentez-vous au rendez-vous indiqué.";
@@ -256,6 +264,8 @@ export function FormalPhaseSection({ requestId }: { requestId: number }) {
                 ? 'La réunion sera planifiée par la DN lorsque le dossier sera suffisamment avancé.'
                 : 'La réunion sera planifiée après le retour signé de votre lettre officielle.'}
             </p>
+          ) : usesConfirmationPanel(bundle.meeting) ? (
+            <MeetingConfirmationPanel meeting={bundle.meeting} />
           ) : (
             <MeetingDetails meeting={bundle.meeting} />
           )}

@@ -305,6 +305,39 @@ export const handleMeetingsError = createErrorHandler(
       status: 409,
       message: "Le compte-rendu ne peut être envoyé qu'une fois la réunion tenue.",
     },
+    // SESSION1-MEET-1 - confirmation / counter-proposal.
+    MEETING_INVALID_DATE: { status: 400, message: 'Date et heure invalides.' },
+    RESCHEDULE_SAME_SLOT: {
+      status: 400,
+      message: 'La nouvelle date doit être différente du rendez-vous actuel.',
+    },
+    MEETING_NOT_CONFIRMED: {
+      status: 409,
+      message: "Ce rendez-vous n'est pas encore confirmé par le postulant.",
+    },
+    MEETING_NOT_AWAITING_CONFIRMATION: {
+      status: 409,
+      message: "Ce rendez-vous n'attend plus votre réponse.",
+    },
+    NO_PENDING_ALTERNATE: {
+      status: 409,
+      message: "Aucune contre-proposition du postulant n'est en attente pour ce rendez-vous.",
+    },
+    ALTERNATE_IN_PAST: { status: 400, message: 'La date proposée doit être dans le futur.' },
+    ALTERNATE_REMARK_REQUIRED: { status: 400, message: 'Merci de préciser une remarque.' },
+    REFUSAL_REASON_REQUIRED: { status: 400, message: 'Le motif du refus est obligatoire.' },
+    CONFIRMATION_NOTE_REQUIRED: {
+      status: 400,
+      message: 'Merci de préciser comment la confirmation a été reçue.',
+    },
+    ALTERNATE_SAME_AS_CURRENT: {
+      status: 400,
+      message: 'La date proposée doit être différente du rendez-vous proposé par la DN.',
+    },
+    MEETING_INVITATION_NOT_CONFIRMED: {
+      status: 409,
+      message: "L'invitation sera disponible une fois le rendez-vous confirmé.",
+    },
     ...UPLOAD_ATTACH_ERRORS,
   },
   '[meetings]'

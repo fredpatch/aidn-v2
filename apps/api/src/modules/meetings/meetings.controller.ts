@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
+import { z } from 'zod';
 import * as meetingsService from './meetings.service.js';
+import * as negotiationService from './meeting-negotiation.service.js';
 import { handleMeetingsError } from '../../shared/utils/error.js';
 import { actorFromRequest, parseUploadAssetId, prepareUploadAttachment } from '../uploads/upload-attachment.js';
 
@@ -11,6 +13,7 @@ export async function list(req: Request, res: Response): Promise<void> {
       meetingType: typeof req.query.meetingType === 'string' ? req.query.meetingType : undefined,
       status: typeof req.query.status === 'string' ? req.query.status : undefined,
       phaseCode: typeof req.query.phaseCode === 'string' ? req.query.phaseCode : undefined,
+      confirmation: typeof req.query.confirmation === 'string' ? req.query.confirmation : undefined,
     });
     res.json(summary);
   } catch (error) {
@@ -43,6 +46,7 @@ export async function schedule(req: Request, res: Response): Promise<void> {
       dnAgentId: Number(dnAgentId),
       scheduledAt,
       location,
+      actorUserId: req.user!.userId,
     });
     res.status(201).json(result);
   } catch (error) {
@@ -101,7 +105,7 @@ export async function markStatus(req: Request, res: Response): Promise<void> {
 
 export async function reschedule(req: Request, res: Response): Promise<void> {
   try {
-    const { newScheduledAt } = req.body ?? {};
+    const { newScheduledAt, remark } = req.body ?? {};
     if (!newScheduledAt) {
       res.status(400).json({ message: 'newScheduledAt requis.' });
       return;
@@ -109,7 +113,8 @@ export async function reschedule(req: Request, res: Response): Promise<void> {
     const result = await meetingsService.rescheduleMeeting(
       Number(req.params.id),
       req.user!.userId,
-      newScheduledAt
+      newScheduledAt,
+      typeof remark === 'string' ? remark : undefined
     );
     res.status(201).json(result);
   } catch (error) {
@@ -123,6 +128,96 @@ export async function attachReport(req: Request, res: Response): Promise<void> {
     const attachment = await prepareUploadAttachment(parseUploadAssetId(uploadAssetId), actorFromRequest(req));
     const meeting = await meetingsService.attachMeetingReport(Number(req.params.id), req.user!.userId, attachment);
     res.json(meeting);
+  } catch (error) {
+    handleMeetingsError(res, error);
+  }
+}
+
+// ── SESSION1-MEET-1 - negotiation commands ──────────────────────────────
+// Strict bodies: an unknown key (dnAgentId, status, location...) is a 400,
+// so a client can never slip a DN-only field into an applicant command.
+const text = z.string().trim().min(1).max(1000);
+const emptyBody = z.object({}).strict();
+const proposeAlternateBody = z
+  .object({ scheduledAt: z.string().datetime({ offset: true }), remark: text })
+  .strict();
+const refuseBody = z.object({ reason: text }).strict();
+const onBehalfBody = z.object({ note: text }).strict();
+
+function parseBody<T>(schema: z.ZodType<T>, req: Request, res: Response, message: string): T | null {
+  const parsed = schema.safeParse(req.body ?? {});
+  if (parsed.success) return parsed.data;
+  res.status(400).json({ message, code: 'VALIDATION_ERROR' });
+  return null;
+}
+
+/** POST /meetings/:id/confirm - applicant only, own meeting. */
+export async function confirm(req: Request, res: Response): Promise<void> {
+  try {
+    if (!parseBody(emptyBody, req, res, 'Aucun paramètre attendu.')) return;
+    const applicant = req.applicant!;
+    const meetingId = Number(req.params.id);
+    await negotiationService.confirmMeeting(meetingId, applicant.applicantId);
+    res.json(await meetingsService.getMeeting(meetingId, { applicant }));
+  } catch (error) {
+    handleMeetingsError(res, error);
+  }
+}
+
+/** POST /meetings/:id/propose-alternate - applicant only, own meeting. */
+export async function proposeAlternate(req: Request, res: Response): Promise<void> {
+  try {
+    const body = parseBody(
+      proposeAlternateBody,
+      req,
+      res,
+      'Date et heure proposées (avec fuseau horaire) et remarque obligatoires.'
+    );
+    if (!body) return;
+    const applicant = req.applicant!;
+    const meetingId = Number(req.params.id);
+    await negotiationService.proposeAlternate(meetingId, applicant.applicantId, body);
+    res.json(await meetingsService.getMeeting(meetingId, { applicant }));
+  } catch (error) {
+    handleMeetingsError(res, error);
+  }
+}
+
+/** POST /meetings/:id/alternate/accept - DN; accepts the stored proposal. */
+export async function acceptAlternate(req: Request, res: Response): Promise<void> {
+  try {
+    if (!parseBody(emptyBody, req, res, 'Aucun paramètre attendu : la date acceptée est celle proposée.')) return;
+    const { meeting, softOverlapWarning } = await negotiationService.acceptAlternate(
+      Number(req.params.id),
+      req.user!.userId
+    );
+    res.json({ meeting: await meetingsService.getMeeting(meeting.id, { user: req.user }), softOverlapWarning });
+  } catch (error) {
+    handleMeetingsError(res, error);
+  }
+}
+
+/** POST /meetings/:id/alternate/refuse - DN, mandatory reason. */
+export async function refuseAlternate(req: Request, res: Response): Promise<void> {
+  try {
+    const body = parseBody(refuseBody, req, res, 'Le motif du refus est obligatoire.');
+    if (!body) return;
+    const meetingId = Number(req.params.id);
+    await negotiationService.refuseAlternate(meetingId, req.user!.userId, body.reason);
+    res.json(await meetingsService.getMeeting(meetingId, { user: req.user }));
+  } catch (error) {
+    handleMeetingsError(res, error);
+  }
+}
+
+/** POST /meetings/:id/confirm-on-behalf - DN, mandatory note. */
+export async function confirmOnBehalf(req: Request, res: Response): Promise<void> {
+  try {
+    const body = parseBody(onBehalfBody, req, res, 'Merci de préciser comment la confirmation a été reçue.');
+    if (!body) return;
+    const meetingId = Number(req.params.id);
+    await negotiationService.confirmOnBehalf(meetingId, req.user!.userId, body.note);
+    res.json(await meetingsService.getMeeting(meetingId, { user: req.user }));
   } catch (error) {
     handleMeetingsError(res, error);
   }

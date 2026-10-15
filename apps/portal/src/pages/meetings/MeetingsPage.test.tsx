@@ -13,7 +13,9 @@ const at = (month: number, day: number, hour = 9) => new Date(2026, month, day, 
 const meeting = (id: number, meetingType: ApplicantMeeting['meetingType'], status: string, scheduledAt: string, extra: Partial<ApplicantMeeting> = {}): ApplicantMeeting => ({
   id, meetingType, status, scheduledAt, location: 'Salle de conférence Siège', phaseCode: 'M4', requestId: 42,
   requestReference: 'DEM-2026-10-05-OMAT-02', requestType: 'recognition', crDocumentUrl: null,
-  ticketAvailable: status === 'scheduled', ...extra,
+  ticketAvailable: status === 'scheduled',
+  confirmationStatus: meetingType === 'site_visit' ? 'not_required' : 'confirmed', confirmedAt: null,
+  alternate: null, lastRefusal: null, actions: [], ...extra,
 });
 const MEETINGS = [
   meeting(1, 'preliminary', 'held', at(8, 16), { crDocumentUrl: '/api/files/7' }),
@@ -41,6 +43,13 @@ const upcoming = () => screen.getByRole('heading', { name: 'À venir' }).closest
 const history = () => screen.getByRole('heading', { name: 'Historique' }).closest('section')!;
 
 describe('<MeetingsPage>', () => {
+  it('SESSION1-MEET-1: a proposed appointment is listed « À confirmer » with its panel, not as upcoming', () => {
+    renderPage([...MEETINGS, meeting(6, 'formal', 'scheduled', at(9, 20), { confirmationStatus: 'awaiting_applicant', actions: ['confirm', 'propose_alternate'], ticketAvailable: false })]);
+    const pending = screen.getByRole('heading', { name: 'À confirmer' }).closest('section')!;
+    expect(within(pending).getByRole('button', { name: 'Confirmer le rendez-vous' })).toBeInTheDocument();
+    expect(within(upcoming()).getAllByRole('article')).toHaveLength(2);
+  });
+
   it('lists upcoming meetings nearest first, each with its invitation', () => {
     renderPage();
     const cards = within(upcoming()).getAllByRole('article');

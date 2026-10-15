@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { AxiosError, AxiosHeaders } from 'axios';
 import { api } from '../lib/axios';
+import { CONFIRMED_NEGOTIATION } from '../test/meetingFixtures';
 import type { PaymentQueueItem } from '../lib/api/deep-evaluation.types';
 import type { MeetingCockpitItem, MeetingCockpitSummary } from '../lib/api/meetings.types';
 import type { CourrierTask } from '../lib/api/courrier-tasks/types';
@@ -72,11 +73,11 @@ const meeting = (over: Partial<MeetingCockpitItem>): MeetingCockpitItem => ({
   meetingType: 'preliminary', meetingTypeLabel: 'Reunion preliminaire', status: 'held', statusLabel: 'Tenue',
   scheduledAt: SOON, location: 'Salle A', dnAgentId: 5, dnAgentName: 'Agent DN', crDocumentUrl: '/api/files/cr.pdf',
   crUploadedAt: AT, ticketUrl: '/api/meetings/7/ticket', phaseHref: '/demandes/1/phase-preliminaire',
-  canManage: true, actionLabel: 'Compte-rendu depose', ...open, ...over,
+  canManage: true, actionLabel: 'Compte-rendu depose', negotiation: CONFIRMED_NEGOTIATION, ...open, ...over,
 });
 
 function cockpit(item: MeetingCockpitItem): MeetingCockpitSummary {
-  return { periodStart: AT, periodEnd: AT, metrics: [], items: [item], upcoming: [item], missingReports: [], updatedAt: AT };
+  return { periodStart: AT, periodEnd: AT, metrics: [], items: [item], upcoming: [item], missingReports: [], pendingNegotiations: [], updatedAt: AT };
 }
 
 describe('<MeetingsPage> (K7c)', () => {

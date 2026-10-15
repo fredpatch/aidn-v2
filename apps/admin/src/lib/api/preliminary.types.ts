@@ -1,3 +1,5 @@
+import type { MeetingNegotiationView } from './meetings.types';
+
 export type MeetingStatus = 'scheduled' | 'held' | 'no_show' | 'rescheduled' | 'file_cancelled';
 
 export interface PhaseView {
@@ -14,6 +16,7 @@ export interface MeetingView {
   status: MeetingStatus | string;
   crDocumentUrl: string | null;
   crUploadedAt: string | null;
+  negotiation: MeetingNegotiationView;
 }
 
 export interface EvaluationView {

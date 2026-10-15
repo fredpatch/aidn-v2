@@ -134,6 +134,7 @@ export async function scheduleSiteVisit(req: Request, res: Response): Promise<vo
       r3AgentId: Number(r3AgentId),
       scheduledAt,
       location,
+      actorUserId: req.user!.userId,
     });
     res.status(201).json(result);
   } catch (error) {

@@ -292,3 +292,29 @@ with `spawn npx ENOENT` (it spawns `npx` without a shell) - environmental, not a
 ## 24. Role writes must be atomic ("Accès refusé" for a role-less account)
 
 Creating a user then inserting roles, or deleting roles then inserting the new ones, used to be separate statements. If the role insert failed (for example an enum value whose migration was not applied yet), the account was left with NO role and landed on "Accès refusé". `createUser`, `updateUser` and `updateUserRoles` now run in a transaction (`users.roles.db.test.ts`). After pulling a new role, run `db:migrate` before assigning it.
+
+## 25. Raw `pg` reads of `timestamp` columns come back in the machine's zone
+
+**Symptom**: a DB test compares a slot written through the app (`new Date(...)`) with the same column read through a
+raw `pg.Pool` and is off by exactly one hour - only for dates on the other side of a DST change (SESSION1-MEET-1).
+
+**Cause**: our columns are `timestamp` without time zone holding UTC (drizzle convention). `pg`'s default parser for
+type 1114 interprets that text as LOCAL time.
+
+**Fix / rule**: in DB tests reading timestamps with a raw pool, pass a `types.getTypeParser` that parses 1114 as UTC
+(see `meeting-negotiation.db.test.ts`), or compare through the app's services. App-side raw SQL already uses
+`utcTimestamp()` (requests.service.ts).
+
+## 26. Local `apps/api/.env` must define `PORTAL_ORIGIN` and `ADMIN_ORIGIN`
+
+**Symptom**: submitting a demande from the portal answers « applicantId requis pour une saisie manuelle. » (or another
+staff-only message) - only when the same browser is also logged into the admin (2026-10-15).
+
+**Cause**: both apps run on `localhost`, and cookies are not port-scoped, so the browser sends the staff AND the
+applicant session to the API. `authenticateEither` prefers the applicant session only when `Origin` equals
+`PORTAL_ORIGIN`; without it the staff session wins and the portal call is handled as a reception manual entry.
+
+**Fix / rule**: keep `PORTAL_ORIGIN=http://localhost:5174` and `ADMIN_ORIGIN=http://localhost:5173` in the local
+`.env` (they are in `.env.example`); restart the API after editing `.env`. Known residual: an EXPIRED applicant token
+still falls back to the staff session (same symptom, no 401 to trigger the portal refresh) - hardening proposed,
+not done.

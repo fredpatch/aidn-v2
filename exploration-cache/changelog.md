@@ -3,6 +3,21 @@
 Commit-level history. Covers `be9fce9` through the 2026-10-09 D3c admin
 unread/activity batch.
 
+## 2026-10-14 SESSION1-MEET-1: applicant confirmation / counter-proposal of M3/M4 meetings
+
+- Migration 0009: `meeting_confirmation_status` + alternate / confirmed_at columns on `meetings` (strict checks),
+  append-only `meeting_negotiation_events`, `audit_logs.applicant_id`. Legacy M3/M4 -> confirmed, M6 ->
+  not_required, same migration (no backfill script).
+- API: `POST /meetings/:id/confirm`, `/propose-alternate` (applicant), `/alternate/accept`, `/alternate/refuse`,
+  `/confirm-on-behalf` (DN). Strict Zod bodies (zod added to apps/api). Held / no-show / cancel and the invitation
+  need a confirmed appointment. Atomic reschedule (replacement first). Audit actor + phase module fixed.
+- Read models: applicant block on Mes réunions / meeting detail / M3-M4 bundles (with the latest refusal reason);
+  staff `negotiation` view (history, waiting time, taken-slot hint) on the cockpit, detail and bundles; cockpit
+  metrics « Contre-propositions à traiter » / « En attente du postulant » and `pendingNegotiations`.
+- Admin: shared `MeetingNegotiationCard` (Réunions page, M3 and M4 cards). Portal: `MeetingConfirmationPanel`,
+  « À confirmer » section in Mes réunions, dashboard banner « Rendez-vous à confirmer ». No notification.
+- Details: `project/decisions.md` #17, `technical/gotchas.md` #25.
+
 ## 2026-10-14 SESSION1-M1-1: Directeur DN annotation circuit before M3
 
 - New circuit `dn_director_annotation` (migration 0008 enum; grandfather backfill = script `db:backfill:dn-annotation`, run after `db:migrate`) reusing `dg_circuit_documents`;

@@ -34,16 +34,24 @@ export function UpcomingMeetingsCard({ meetings }: { meetings: DashboardMeetingI
                   </p>
                 </div>
               </div>
-              <span
-                className={cn(
-                  'rounded-full px-2 py-1 text-[11px] font-semibold',
-                  meeting.tag === 'today'
-                    ? 'bg-green-50 text-anac-success'
-                    : 'bg-blue-50 text-anac-blue'
+              <div className="flex flex-col items-end gap-1">
+                <span
+                  className={cn(
+                    'rounded-full px-2 py-1 text-[11px] font-semibold',
+                    meeting.tag === 'today'
+                      ? 'bg-green-50 text-anac-success'
+                      : 'bg-blue-50 text-anac-blue'
+                  )}
+                >
+                  {meeting.tag === 'today' ? "Aujourd'hui" : 'Prévue'}
+                </span>
+                {/* SESSION1-MEET-1 - reserved slot, not yet confirmed by the applicant. */}
+                {meeting.awaitingConfirmation && (
+                  <span className="rounded-full border border-dashed border-orange-200 px-2 py-0.5 text-[10px] font-semibold text-anac-warning">
+                    À confirmer
+                  </span>
                 )}
-              >
-                {meeting.tag === 'today' ? "Aujourd'hui" : 'Prévue'}
-              </span>
+              </div>
             </div>
           ))
         )}

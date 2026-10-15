@@ -65,10 +65,11 @@ describe('K6 meeting follow-ups (real PostgreSQL)', { skip }, () => {
 
   async function meeting(phaseId: number, type: string, agentId: number, daysAgo: number, cr: string | null = null, status = 'held') {
     return (await one(
-      `INSERT INTO meetings (phase_id, meeting_type, dn_agent_id, scheduled_at, status, cr_document_url, cr_uploaded_at)
-       VALUES ($1, $2, $3, now() - ($4 || ' days')::interval, $5, $6, CASE WHEN $6::text IS NULL THEN NULL ELSE now() END)
+      `INSERT INTO meetings (phase_id, meeting_type, dn_agent_id, scheduled_at, status, cr_document_url, cr_uploaded_at, confirmation_status, confirmed_at)
+       VALUES ($1, $2, $3, now() - ($4 || ' days')::interval, $5, $6, CASE WHEN $6::text IS NULL THEN NULL ELSE now() END,
+               $7::meeting_confirmation_status, CASE WHEN $8::boolean THEN now() END)
        RETURNING id`,
-      [phaseId, type, agentId, String(daysAgo), status, cr]
+      [phaseId, type, agentId, String(daysAgo), status, cr, type === 'site_visit' ? 'not_required' : 'confirmed', type !== 'site_visit']
     )).id as number;
   }
 

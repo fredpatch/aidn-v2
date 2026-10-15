@@ -37,6 +37,31 @@ router.post(
   meetingsController.attachReport
 );
 
+// SESSION1-MEET-1 - negotiation of an M3/M4 appointment. Explicit commands,
+// never the generic status endpoint. DN side: same three roles as above.
+router.post(
+  '/:id/alternate/accept',
+  authenticate,
+  requireRole('dn_agent', 'dn_supervisor', 'SU'),
+  meetingsController.acceptAlternate
+);
+router.post(
+  '/:id/alternate/refuse',
+  authenticate,
+  requireRole('dn_agent', 'dn_supervisor', 'SU'),
+  meetingsController.refuseAlternate
+);
+router.post(
+  '/:id/confirm-on-behalf',
+  authenticate,
+  requireRole('dn_agent', 'dn_supervisor', 'SU'),
+  meetingsController.confirmOnBehalf
+);
+// Applicant side: the only two applicant writes on meetings. Identity comes
+// from the token; ownership is checked inside the transaction (404 otherwise).
+router.post('/:id/confirm', authenticateApplicant, meetingsController.confirm);
+router.post('/:id/propose-alternate', authenticateApplicant, meetingsController.proposeAlternate);
+
 router.get(
   '/',
   authenticate,

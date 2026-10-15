@@ -64,6 +64,13 @@
       "when": 1791980150761,
       "tag": "0008_session1_m1_dn_director_annotation_enum",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791988141665,
+      "tag": "0009_session1_meet1_meeting_confirmation",
+      "breakpoints": true
     }
   ]
 }

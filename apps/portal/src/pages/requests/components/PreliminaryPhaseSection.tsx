@@ -19,6 +19,7 @@ import { PhaseSummaryCard, type PhaseTone } from '../../../components/request/Ph
 import { PhaseStep, stepState } from '../../../components/request/PhaseStep';
 import { SectionCard } from '../../../components/request/SectionCard';
 import { MeetingDetails, isMeetingResolved } from '../../../components/request/MeetingDetails';
+import { MeetingConfirmationPanel, usesConfirmationPanel } from '../../../components/meetings/MeetingConfirmationPanel';
 
 export function buildPreliminaryPresentation(bundle: PreliminaryBundle) {
   const meeting = bundle.meeting;
@@ -45,6 +46,14 @@ export function buildPreliminaryPresentation(bundle: PreliminaryBundle) {
     title = 'Action requise';
     description = 'Téléchargez le formulaire, remplissez-le, puis déposez votre déclaration.';
     tone = 'warning';
+  } else if (meetingScheduled && meeting.confirmationStatus === 'awaiting_applicant') {
+    title = 'Rendez-vous à confirmer';
+    description = 'Confirmez le rendez-vous proposé par la DN ou proposez une autre date.';
+    tone = 'warning';
+  } else if (meetingScheduled && meeting.confirmationStatus === 'awaiting_dn') {
+    title = 'Nouvelle date proposée';
+    description = 'Votre proposition est en attente de validation par la DN.';
+    tone = 'info';
   } else if (meetingScheduled) {
     title = 'Réunion préliminaire planifiée';
     description = "Consultez votre invitation et présentez-vous au rendez-vous indiqué.";
@@ -175,6 +184,8 @@ export function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
               La réunion n&apos;est pas encore planifiée. L&apos;invitation apparaîtra ici dès qu&apos;elle sera
               disponible.
             </p>
+          ) : usesConfirmationPanel(meeting) ? (
+            <MeetingConfirmationPanel meeting={meeting} />
           ) : (
             <MeetingDetails meeting={meeting} />
           )}

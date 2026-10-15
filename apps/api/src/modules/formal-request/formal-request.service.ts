@@ -23,6 +23,7 @@ import type {
   FormalPhaseBundle,
 } from './formal-request.types.js';
 import { assertDossierOpen, assertPhaseDossierOpen } from '../requests/dossier-open.js';
+import { toBundleMeeting, type BundleAudience } from '../meetings/bundle-meeting.js';
 
 // ── Slot labels (French) ───────────────────────────────────────────────────
 export const SLOT_LABELS: Record<string, string> = {
@@ -319,7 +320,10 @@ export async function submitDocument(
 }
 
 // ── Bundle ─────────────────────────────────────────────────────────────────
-export async function getBundleForRequest(requestId: number): Promise<FormalPhaseBundle> {
+export async function getBundleForRequest(
+  requestId: number,
+  audience: BundleAudience
+): Promise<FormalPhaseBundle> {
   const [phase] = await db
     .select()
     .from(phases)
@@ -424,16 +428,8 @@ export async function getBundleForRequest(requestId: number): Promise<FormalPhas
     },
     letterCircuit: circuit ? toCircuitView(circuit, letterVersionRows) : null,
     documents,
-    meeting: meetingRow
-      ? {
-          id: meetingRow.id,
-          scheduledAt: meetingRow.scheduledAt,
-          location: meetingRow.location,
-          status: meetingRow.status,
-          crDocumentUrl: meetingRow.crDocumentUrl,
-          crUploadedAt: meetingRow.crUploadedAt,
-        }
-      : null,
+    // SESSION1-MEET-1 - negotiation part depends on who reads the bundle.
+    meeting: meetingRow ? await toBundleMeeting(meetingRow, requestId, audience) : null,
     completionRate,
   };
 }

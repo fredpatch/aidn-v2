@@ -18,6 +18,45 @@ export const MEETING_STATUSES = [
 ] as const;
 export type MeetingStatus = (typeof MEETING_STATUSES)[number];
 
+/** SESSION1-MEET-1 - applicant confirmation of an M3/M4 meeting, kept apart
+ *  from the lifecycle status above. M6 site visits are `not_required`. */
+export const MEETING_CONFIRMATION_STATUSES = [
+  'awaiting_applicant',
+  'awaiting_dn',
+  'confirmed',
+  'not_required',
+] as const;
+export type MeetingConfirmationStatus = (typeof MEETING_CONFIRMATION_STATUSES)[number];
+
+export const MEETING_CONFIRMATION_STATUS_LABELS: Record<MeetingConfirmationStatus, string> = {
+  awaiting_applicant: 'En attente du postulant',
+  awaiting_dn: 'Contre-proposition du postulant',
+  confirmed: 'Confirmé',
+  not_required: 'Sans confirmation',
+};
+
+/** SESSION1-MEET-1 - one row of meeting_negotiation_events per business step. */
+export const MEETING_NEGOTIATION_EVENT_KINDS = [
+  'dn_proposed',
+  'applicant_confirmed',
+  'applicant_alternate_proposed',
+  'dn_alternate_accepted',
+  'dn_alternate_refused',
+  'dn_confirmed_on_behalf',
+  'dn_rescheduled',
+] as const;
+export type MeetingNegotiationEventKind = (typeof MEETING_NEGOTIATION_EVENT_KINDS)[number];
+
+export const MEETING_NEGOTIATION_EVENT_LABELS: Record<MeetingNegotiationEventKind, string> = {
+  dn_proposed: 'Rendez-vous proposé par la DN',
+  applicant_confirmed: 'Rendez-vous confirmé par le postulant',
+  applicant_alternate_proposed: 'Nouvelle date proposée par le postulant',
+  dn_alternate_accepted: 'Date proposée acceptée par la DN',
+  dn_alternate_refused: 'Date proposée refusée par la DN',
+  dn_confirmed_on_behalf: 'Confirmé par la DN au nom du postulant',
+  dn_rescheduled: 'Rendez-vous replanifié par la DN',
+};
+
 /** M3/M4 - blank template forms DN makes available for applicants */
 export const DOCUMENT_TEMPLATE_KEYS = [
   'preliminary_evaluation_declaration',

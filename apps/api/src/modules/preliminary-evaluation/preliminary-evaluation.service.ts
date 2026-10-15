@@ -26,6 +26,7 @@ import { cleanupGeneratedFileOnFailure } from '../files/generated-file-cleanup.j
 import { resolveStoredFilePath } from '../files/stored-file.js';
 import { UPLOADS_ROOT } from '../../shared/uploads-root.js';
 import { assertPhaseDossierOpen } from '../requests/dossier-open.js';
+import { toBundleMeeting, type BundleAudience, type BundleMeeting } from '../meetings/bundle-meeting.js';
 
 export interface PreliminaryEvaluationView {
   id: number;
@@ -349,14 +350,8 @@ export async function getRequestIdForPhase(
 
 export interface PreliminaryPhaseBundle {
   phase: { id: number; status: string; openedAt: Date; closedAt: Date | null } | null;
-  meeting: {
-    id: number;
-    scheduledAt: Date;
-    location: string | null;
-    status: string;
-    crDocumentUrl: string | null;
-    crUploadedAt: Date | null;
-  } | null;
+  /** SESSION1-MEET-1 - applicant block or staff negotiation view, by audience. */
+  meeting: BundleMeeting | null;
   evaluation: PreliminaryEvaluationView | null;
   circuit: PreliminaryCircuitView | null;
 }
@@ -365,7 +360,10 @@ export interface PreliminaryPhaseBundle {
  *  phases/meetings endpoints to applicants just to assemble one screen.
  *  Ownership (does this request belong to the calling applicant) is
  *  enforced by the controller before this runs. */
-export async function getBundleForRequest(requestId: number): Promise<PreliminaryPhaseBundle> {
+export async function getBundleForRequest(
+  requestId: number,
+  audience: BundleAudience
+): Promise<PreliminaryPhaseBundle> {
   const [phase] = await db
     .select()
     .from(phases)
@@ -394,16 +392,8 @@ export async function getBundleForRequest(requestId: number): Promise<Preliminar
       openedAt: phase.openedAt,
       closedAt: phase.closedAt,
     },
-    meeting: meetingRow
-      ? {
-          id: meetingRow.id,
-          scheduledAt: meetingRow.scheduledAt,
-          location: meetingRow.location,
-          status: meetingRow.status,
-          crDocumentUrl: meetingRow.crDocumentUrl,
-          crUploadedAt: meetingRow.crUploadedAt,
-        }
-      : null,
+    // SESSION1-MEET-1 - negotiation part depends on who reads the bundle.
+    meeting: meetingRow ? await toBundleMeeting(meetingRow, requestId, audience) : null,
     evaluation,
     circuit,
   };

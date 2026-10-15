@@ -15,6 +15,7 @@ const WATCHED_TABLES = [
   'requests',
   'phases',
   'meetings',
+  'meeting_negotiation_events',
   'payments',
   'certificates',
   'formal_request_documents',
@@ -47,7 +48,7 @@ describe('K7 closed dossier is read-only (real PostgreSQL)', { skip }, () => {
 
   before(async () => {
     pool = new pg.Pool({ connectionString: DATABASE_URL });
-    const [phasesSvc, prelim, formal, deep, site, cert, meetings, courrier, dnAnnotation, requests, guard, dbModule] = await Promise.all([
+    const [phasesSvc, prelim, formal, deep, site, cert, meetings, negotiation, courrier, dnAnnotation, requests, guard, dbModule] = await Promise.all([
       import('../phases/phases.service.js'),
       import('../preliminary-evaluation/preliminary-evaluation.service.js'),
       import('../formal-request/formal-request.service.js'),
@@ -55,13 +56,14 @@ describe('K7 closed dossier is read-only (real PostgreSQL)', { skip }, () => {
       import('../site-inspection/site-inspection.service.js'),
       import('../certificates/certificates.service.js'),
       import('../meetings/meetings.service.js'),
+      import('../meetings/meeting-negotiation.service.js'),
       import('../courrier-tasks/courrier-tasks.service.js'),
       import('../dn-annotation/dn-annotation.service.js'),
       import('./requests.service.js'),
       import('./dossier-open.js'),
       import('../../shared/db/index.js'),
     ]);
-    m = { phasesSvc, prelim, formal, deep, site, cert, meetings, courrier, dnAnnotation, requests, guard, db: dbModule.db };
+    m = { phasesSvc, prelim, formal, deep, site, cert, meetings, negotiation, courrier, dnAnnotation, requests, guard, db: dbModule.db };
     closeAppPool = () => dbModule.db.$client.end();
   });
 
@@ -100,11 +102,11 @@ describe('K7 closed dossier is read-only (real PostgreSQL)', { skip }, () => {
       await pool.query(`INSERT INTO payments (phase_id, status, invoice_file_url, proof_file_url) VALUES ($1, 'pending_validation', 'i', 'p')`, [phase[code]]);
     }
     const meeting = (await one(
-      `INSERT INTO meetings (phase_id, meeting_type, dn_agent_id, scheduled_at, status) VALUES ($1, 'preliminary', $2, now() + interval '1 day', 'scheduled') RETURNING id`,
+      `INSERT INTO meetings (phase_id, meeting_type, dn_agent_id, scheduled_at, status, confirmation_status, confirmed_at) VALUES ($1, 'preliminary', $2, now() + interval '1 day', 'scheduled', 'confirmed', now()) RETURNING id`,
       [phase.M3, user]
     )).id;
     const visit = (await one(
-      `INSERT INTO meetings (phase_id, meeting_type, dn_agent_id, scheduled_at, status) VALUES ($1, 'site_visit', $2, now(), 'scheduled') RETURNING id`,
+      `INSERT INTO meetings (phase_id, meeting_type, dn_agent_id, scheduled_at, status, confirmation_status) VALUES ($1, 'site_visit', $2, now(), 'scheduled', 'not_required') RETURNING id`,
       [phase.M6, user]
     )).id;
     const doc = (await one(`INSERT INTO formal_request_documents (phase_id, slot) VALUES ($1, 'quality_manual') RETURNING id`, [phase.M4])).id;
@@ -118,7 +120,7 @@ describe('K7 closed dossier is read-only (real PostgreSQL)', { skip }, () => {
   }
 
   function actions(d: Awaited<ReturnType<typeof dossierWithEverything>>): Array<[string, () => Promise<unknown>]> {
-    const { phasesSvc, prelim, formal, deep, site, cert, meetings, courrier, dnAnnotation, requests } = m;
+    const { phasesSvc, prelim, formal, deep, site, cert, meetings, negotiation, courrier, dnAnnotation, requests } = m;
     const u = d.user;
     const soon = new Date(Date.now() + 3 * 86_400_000).toISOString();
     return [
@@ -144,7 +146,7 @@ describe('K7 closed dossier is read-only (real PostgreSQL)', { skip }, () => {
       ['M6 proof (applicant)', () => site.uploadPaymentProof(d.phase.M6, d.request, d.applicant, attachment)],
       ['M6 validate payment', () => site.validatePayment(d.phase.M6, u)],
       ['M6 reject payment (dossier)', () => site.rejectPayment(d.phase.M6, u, 'reject_dossier', 'x')],
-      ['M6 schedule site visit', () => site.scheduleSiteVisit({ phaseId: d.phase.M6, r3AgentId: u, scheduledAt: soon })],
+      ['M6 schedule site visit', () => site.scheduleSiteVisit({ phaseId: d.phase.M6, r3AgentId: u, scheduledAt: soon, actorUserId: u })],
       ['M6 site visit held', () => site.markAssignedSiteVisitHeld(d.visit, u)],
       ['M6 R3 opinion (the reported case)', () => site.submitInspectionVerdict(d.phase.M6, u, 'compliant', 'x')],
       ['M7 open (delivery)', () => cert.openDeliveryPhase(d.request, u)],
@@ -160,10 +162,15 @@ describe('K7 closed dossier is read-only (real PostgreSQL)', { skip }, () => {
       ['M7 certificate archived', () => cert.markArchived(d.certificate, u)],
       ['M7 applicant notified', () => cert.notifyApplicant(d.certificate, u)],
       ['M7 certificate collected', () => cert.markCollected(d.certificate, u)],
-      ['meeting scheduled', () => meetings.scheduleMeeting({ phaseId: d.phase.M3, meetingType: 'preliminary', dnAgentId: u, scheduledAt: soon })],
+      ['meeting scheduled', () => meetings.scheduleMeeting({ phaseId: d.phase.M3, meetingType: 'preliminary', dnAgentId: u, actorUserId: u, scheduledAt: soon })],
       ['meeting marked held', () => meetings.markMeetingStatus(d.meeting, u, 'held')],
       ['meeting rescheduled', () => meetings.rescheduleMeeting(d.meeting, u, soon)],
       ['meeting report uploaded', () => meetings.attachMeetingReport(d.meeting, u, attachment)],
+      ['meeting confirmed by the applicant', () => negotiation.confirmMeeting(d.meeting, d.applicant)],
+      ['meeting alternate proposed by the applicant', () => negotiation.proposeAlternate(d.meeting, d.applicant, { scheduledAt: soon, remark: 'r' })],
+      ['meeting alternate accepted', () => negotiation.acceptAlternate(d.meeting, u)],
+      ['meeting alternate refused', () => negotiation.refuseAlternate(d.meeting, u, 'motif')],
+      ['meeting confirmed on behalf', () => negotiation.confirmOnBehalf(d.meeting, u, 'note')],
       ['courrier sent to signature', () => courrier.confirmPrintedForSignature(`formal_request_letter:${d.request}`, u)],
       ['courrier signed copy returned', () => courrier.returnSigned(`formal_request_letter:${d.request}`, attachment, u)],
       ['M1 sent to signature', () => requests.sendToSignature(d.request, u)],
@@ -197,7 +204,7 @@ describe('K7 closed dossier is read-only (real PostgreSQL)', { skip }, () => {
       assert.deepEqual(failures, [], `\n  ${failures.join('\n  ')}`);
       // Every write route of the workflow modules (cross-checked route by route,
       // see TASKS.md K7a); openPreliminaryPhase already requires 'pending_review'.
-      assert.equal(list.length, 51);
+      assert.equal(list.length, 56);
     });
   }
 

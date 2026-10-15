@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { MeetingCalendar } from '../../components/meetings/MeetingCalendar';
 import { MeetingHistoryRow, UpcomingMeetingCard } from '../../components/meetings/MeetingItems';
+import { MeetingConfirmationPanel } from '../../components/meetings/MeetingConfirmationPanel';
+import { MEETING_TYPE_LABELS, labelOf } from '../requests/constants';
 import { PageError } from '../../components/layout/PageError';
 import { dayKey, splitMeetings } from '../../lib/meetings';
 import { useMyMeetings } from './useMyMeetings';
@@ -15,7 +17,7 @@ export default function MeetingsPage() {
   if (meetings === null) return <p className="text-anac-muted text-center">Chargement...</p>;
 
   const now = new Date();
-  const { upcoming, history } = splitMeetings(meetings, now);
+  const { pending, upcoming, history } = splitMeetings(meetings, now);
   // Open on the month of the next meeting, else the current month.
   const anchor = upcoming[0] ? new Date(upcoming[0].scheduledAt) : now;
   const shown = view ?? { year: anchor.getFullYear(), month: anchor.getMonth() };
@@ -56,6 +58,21 @@ export default function MeetingsPage() {
             <p className="text-sm text-anac-navy" aria-live="polite">
               Réunions du <span className="font-semibold">{selectedLabel}</span>
             </p>
+          )}
+
+          {pending.length > 0 && (
+            <section aria-labelledby="pending-title" className="space-y-2">
+              <h2 id="pending-title" className="text-xs font-semibold text-anac-muted">À confirmer</h2>
+              {pending.map((meeting) => (
+                <article key={meeting.id} className="rounded-lg border border-anac-border bg-white p-4">
+                  <h3 className="text-sm font-semibold text-anac-navy">
+                    {labelOf(MEETING_TYPE_LABELS, meeting.meetingType, 'Réunion')}
+                  </h3>
+                  <p className="text-xs text-anac-muted">Dossier {meeting.requestReference}</p>
+                  <MeetingConfirmationPanel meeting={meeting} />
+                </article>
+              ))}
+            </section>
           )}
 
           <section aria-labelledby="upcoming-title" className="space-y-2">

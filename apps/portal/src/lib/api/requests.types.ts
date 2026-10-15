@@ -1,3 +1,5 @@
+import type { MeetingConfirmationBlock } from './meetings.api';
+
 export interface RequestView {
   id: number;
   reference: string;
@@ -13,14 +15,14 @@ export interface RequestView {
 
 export interface PreliminaryBundle {
   phase: { id: number; status: string } | null;
-  meeting: {
+  meeting: ({
     id: number;
     scheduledAt: string;
     location: string | null;
     status: string;
     crDocumentUrl: string | null;
     crUploadedAt: string | null;
-  } | null;
+  } & MeetingConfirmationBlock) | null;
   evaluation: {
     templateFileUrl: string | null;
     madeAvailableAt: string | null;
@@ -43,13 +45,13 @@ export interface FormalBundle {
   phase: { id: number; status: string } | null;
   letterCircuit: { id: number; status: string; fileUrl: string | null } | null;
   documents: FormalDoc[];
-  meeting: {
+  meeting: ({
     id: number;
     scheduledAt: string;
     location: string | null;
     status: string;
     crDocumentUrl: string | null;
-  } | null;
+  } & MeetingConfirmationBlock) | null;
   completionRate: number;
 }
 

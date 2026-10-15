@@ -56,10 +56,10 @@ describe('K7c closed dossier in the staff work lists (real PostgreSQL)', { skip 
     }
     await pool.query(`INSERT INTO payments (phase_id, status, invoice_file_url, proof_file_url) VALUES ($1, 'pending_validation', 'i', 'p'), ($2, 'validated', 'i', 'p'), ($3, 'awaiting_invoice', NULL, NULL)`, [phase.M5, phase.M6, phase.M7]);
     const meeting = (await one(
-      `INSERT INTO meetings (phase_id, meeting_type, dn_agent_id, scheduled_at, status) VALUES ($1, 'preliminary', $2, now() + interval '1 day', 'scheduled') RETURNING id`,
+      `INSERT INTO meetings (phase_id, meeting_type, dn_agent_id, scheduled_at, status, confirmation_status, confirmed_at) VALUES ($1, 'preliminary', $2, now() + interval '1 day', 'scheduled', 'confirmed', now()) RETURNING id`,
       [phase.M3, user]
     )).id;
-    await pool.query(`INSERT INTO meetings (phase_id, meeting_type, dn_agent_id, scheduled_at, status) VALUES ($1, 'site_visit', $2, now() + interval '1 hour', 'scheduled')`, [phase.M6, user]);
+    await pool.query(`INSERT INTO meetings (phase_id, meeting_type, dn_agent_id, scheduled_at, status, confirmation_status) VALUES ($1, 'site_visit', $2, now() + interval '1 hour', 'scheduled', 'not_required')`, [phase.M6, user]);
     await pool.query(`INSERT INTO dg_circuit_documents (entity_type, request_id, status) VALUES ('formal_request_letter', $1, 'submitted')`, [request]);
     return { user, request, meeting };
   }

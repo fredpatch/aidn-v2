@@ -19,6 +19,8 @@ export type { AuthTokens, UserPublic, LoginResult } from "./auth.types.js";
  *  change it records. */
 export async function logAudit(params: {
   userId?: number;
+  /** SESSION1-MEET-1 - an applicant acting from the portal (never with userId). */
+  applicantId?: number;
   action: string;
   module: string;
   entityId?: number;
@@ -30,6 +32,7 @@ export async function logAudit(params: {
   const requestId = await resolveAuditRequestId(executor, params);
   await executor.insert(auditLogs).values({
     userId: params.userId,
+    applicantId: params.applicantId,
     action: params.action,
     module: params.module,
     entityId: params.entityId,

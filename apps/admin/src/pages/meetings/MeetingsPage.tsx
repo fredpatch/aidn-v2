@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { Link } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  AlertTriangle,
   CalendarDays,
   CheckCircle2,
   ChevronLeft,
@@ -33,16 +34,19 @@ import {
   rescheduleMeeting,
 } from '../../lib/api/meetings.api';
 import { uploadFile } from '../../lib/uploads';
-import type {
-  MeetingCockpitItem,
-  MeetingCockpitMetric,
-  MeetingPhaseFilter,
-  MeetingStatusFilter,
-  MeetingTypeFilter,
+import {
+  isOperationallyConfirmed,
+  type MeetingConfirmationFilter,
+  type MeetingCockpitItem,
+  type MeetingCockpitMetric,
+  type MeetingPhaseFilter,
+  type MeetingStatusFilter,
+  type MeetingTypeFilter,
 } from '../../lib/api/meetings.types';
 import { queryKeys } from '../../lib/react-query/queryKeys';
 import { cn } from '../../lib/utils';
 import FileLink from '../../components/files/FileLink';
+import { MeetingNegotiationCard } from '../../components/meetings/MeetingNegotiationCard';
 
 type ViewMode = 'calendar' | 'list';
 
@@ -62,6 +66,14 @@ const STATUS_OPTIONS: Array<{ value: MeetingStatusFilter; label: string }> = [
   { value: 'no_show', label: 'Absences' },
   { value: 'rescheduled', label: 'Reprogrammees' },
   { value: 'file_cancelled', label: 'Dossiers annulés' },
+];
+
+// SESSION1-MEET-1 - applicant confirmation of M3/M4 appointments.
+const CONFIRMATION_OPTIONS: Array<{ value: MeetingConfirmationFilter; label: string }> = [
+  { value: 'all', label: 'Toutes' },
+  { value: 'awaiting_applicant', label: 'À confirmer' },
+  { value: 'awaiting_dn', label: 'Contre-propositions' },
+  { value: 'confirmed', label: 'Confirmées' },
 ];
 
 const PHASE_OPTIONS: Array<{ value: MeetingPhaseFilter; label: string }> = [
@@ -91,6 +103,7 @@ export default function MeetingsPage() {
   const [meetingType, setMeetingType] = useState<MeetingTypeFilter>('all');
   const [status, setStatus] = useState<MeetingStatusFilter>('all');
   const [phaseCode, setPhaseCode] = useState<MeetingPhaseFilter>('all');
+  const [confirmation, setConfirmation] = useState<MeetingConfirmationFilter>('all');
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -100,8 +113,8 @@ export default function MeetingsPage() {
   const to = weekEnd.toISOString();
 
   const query = useQuery({
-    queryKey: queryKeys.meetings.cockpit(from, to, meetingType, status, phaseCode),
-    queryFn: () => fetchMeetingCockpit({ from, to, meetingType, status, phaseCode }),
+    queryKey: queryKeys.meetings.cockpit(from, to, meetingType, status, phaseCode, confirmation),
+    queryFn: () => fetchMeetingCockpit({ from, to, meetingType, status, phaseCode, confirmation }),
   });
 
   const filteredItems = useMemo(() => {
@@ -113,8 +126,10 @@ export default function MeetingsPage() {
     );
   }, [query.data?.items, search]);
 
+  const pending = query.data?.pendingNegotiations ?? [];
   const selected =
     filteredItems.find((item) => item.id === selectedId) ??
+    pending.find((item) => item.id === selectedId) ??
     filteredItems[0] ??
     query.data?.items[0] ??
     null;
@@ -134,23 +149,34 @@ export default function MeetingsPage() {
           </div>
         ) : null}
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
           {(query.data?.metrics ?? fallbackMetrics()).map((metric) => (
             <MeetingMetricCard key={metric.key} metric={metric} />
           ))}
         </section>
+
+        <PendingNegotiations
+          items={pending}
+          setActionError={setActionError}
+          onSelect={(item) => {
+            setSelectedId(item.id);
+            setActionError(null);
+          }}
+        />
 
         <section className="overflow-hidden rounded-lg border border-anac-border bg-white shadow-[0_8px_22px_rgba(17,34,83,0.04)]">
           <MeetingFilters
             meetingType={meetingType}
             status={status}
             phaseCode={phaseCode}
+            confirmation={confirmation}
             search={search}
             weekStart={weekStart}
             weekEnd={weekEnd}
             onTypeChange={setMeetingType}
             onStatusChange={setStatus}
             onPhaseChange={setPhaseCode}
+            onConfirmationChange={setConfirmation}
             onSearchChange={setSearch}
             onPreviousWeek={() => setWeekStart(addDays(weekStart, -7))}
             onNextWeek={() => setWeekStart(addDays(weekStart, 7))}
@@ -284,6 +310,8 @@ function ViewButton({
 function MeetingMetricCard({ metric }: { metric: MeetingCockpitMetric }) {
   const iconMap = {
     scheduled: CalendarDays,
+    counter_proposals: AlertTriangle,
+    awaiting_applicant: Clock3,
     today: Clock3,
     missing_reports: FileText,
     held: CheckCircle2,
@@ -311,12 +339,14 @@ function MeetingFilters({
   meetingType,
   status,
   phaseCode,
+  confirmation,
   search,
   weekStart,
   weekEnd,
   onTypeChange,
   onStatusChange,
   onPhaseChange,
+  onConfirmationChange,
   onSearchChange,
   onPreviousWeek,
   onNextWeek,
@@ -324,12 +354,14 @@ function MeetingFilters({
   meetingType: MeetingTypeFilter;
   status: MeetingStatusFilter;
   phaseCode: MeetingPhaseFilter;
+  confirmation: MeetingConfirmationFilter;
   search: string;
   weekStart: Date;
   weekEnd: Date;
   onTypeChange: (value: MeetingTypeFilter) => void;
   onStatusChange: (value: MeetingStatusFilter) => void;
   onPhaseChange: (value: MeetingPhaseFilter) => void;
+  onConfirmationChange: (value: MeetingConfirmationFilter) => void;
   onSearchChange: (value: string) => void;
   onPreviousWeek: () => void;
   onNextWeek: () => void;
@@ -354,6 +386,12 @@ function MeetingFilters({
           value={status}
           onChange={onStatusChange}
           options={STATUS_OPTIONS}
+        />
+        <FilterSelect
+          label="Confirmation"
+          value={confirmation}
+          onChange={onConfirmationChange}
+          options={CONFIRMATION_OPTIONS}
         />
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -512,6 +550,7 @@ function WeekCalendar({
                             <span className="mt-0.5 block truncate text-anac-navy">
                               {item.organisationName}
                             </span>
+                            <ConfirmationBadge item={item} compact />
                           </button>
                         ))}
                       </div>
@@ -574,6 +613,7 @@ function MeetingsTable({
             <TableCell>
               <div className="flex flex-wrap items-center gap-1.5">
                 <StatusBadge label={item.statusLabel} tone={STATUS_STYLES[item.status] ?? STATUS_STYLES.scheduled} />
+                <ConfirmationBadge item={item} />
                 {item.dossierClosed && <ClosedDossierBadge status={item.dossierStatus} />}
               </div>
             </TableCell>
@@ -623,6 +663,7 @@ function UpcomingRail({
                   <p className="mt-1 text-xs text-anac-muted">
                     {item.location ?? item.requestReference}
                   </p>
+                  <ConfirmationBadge item={item} />
                 </div>
                 <StatusBadge label={item.statusLabel} tone={STATUS_STYLES[item.status] ?? STATUS_STYLES.scheduled} />
               </div>
@@ -716,7 +757,10 @@ function SelectedMeetingPanel({
   const busy = statusMutation.isPending || rescheduleMutation.isPending || reportMutation.isPending;
   // K7c - the API already sends canManage false on a closed dossier.
   const canManage = item.canManage && !item.dossierClosed;
-  const canResolve = canManage && item.status === 'scheduled';
+  const canReschedule = canManage && item.status === 'scheduled';
+  // SESSION1-MEET-1 - held / absent only once the appointment is confirmed.
+  const confirmed = isOperationallyConfirmed(item.negotiation);
+  const canResolve = canReschedule && confirmed;
   const canReport = canManage && item.status === 'held';
 
   return (
@@ -730,6 +774,7 @@ function SelectedMeetingPanel({
                   Détails de la réunion sélectionnée
                 </p>
                 <StatusBadge label={item.statusLabel} tone={STATUS_STYLES[item.status] ?? STATUS_STYLES.scheduled} />
+                <ConfirmationBadge item={item} />
                 {item.dossierClosed && <ClosedDossierBadge status={item.dossierStatus} />}
               </div>
               <h2 className="mt-2 text-lg font-semibold text-anac-navy">{item.meetingTypeLabel}</h2>
@@ -765,6 +810,16 @@ function SelectedMeetingPanel({
         <aside className="p-4">
           <h3 className="text-sm font-semibold text-anac-navy">Actions</h3>
           <div className="mt-3 space-y-2.5">
+            {item.meetingType !== 'site_visit' && (
+              <MeetingNegotiationCard
+                meeting={item}
+                negotiation={item.negotiation}
+                readOnly={!canManage}
+                setActionError={setActionError}
+                onChanged={refresh}
+              />
+            )}
+            {confirmed && (
             <a
               href={item.ticketUrl}
               target="_blank"
@@ -777,6 +832,7 @@ function SelectedMeetingPanel({
               <FileText size={14} />
               Voir le ticket
             </a>
+            )}
 
             {canResolve ? (
               <div className="grid gap-2">
@@ -800,7 +856,7 @@ function SelectedMeetingPanel({
               </div>
             ) : null}
 
-            {canResolve ? (
+            {canReschedule ? (
               <form
                 onSubmit={rescheduleForm.handleSubmit(onReschedule)}
                 className="rounded-lg border border-anac-border p-3"
@@ -875,6 +931,72 @@ function SelectedMeetingPanel({
   );
 }
 
+/** SESSION1-MEET-1 - an unconfirmed slot is visibly different: reserved, not settled. */
+function ConfirmationBadge({ item, compact = false }: { item: MeetingCockpitItem; compact?: boolean }) {
+  if (item.status !== 'scheduled' || isOperationallyConfirmed(item.negotiation)) return null;
+  const counter = item.negotiation.confirmationStatus === 'awaiting_dn';
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center rounded-full border font-semibold',
+        compact ? 'mt-0.5 px-1.5 text-[10px]' : 'px-2 py-0.5 text-[11px]',
+        counter ? 'border-orange-200 bg-orange-50 text-anac-warning' : 'border-dashed border-blue-200 bg-white text-anac-blue'
+      )}
+    >
+      {counter ? 'Contre-proposition' : 'À confirmer'}
+    </span>
+  );
+}
+
+/** SESSION1-MEET-1 - every M3/M4 appointment waiting on someone, whatever
+ *  its date: counter-proposals first (the DN must act), then proposals the
+ *  applicant has not confirmed yet. */
+function PendingNegotiations({
+  items,
+  setActionError,
+  onSelect,
+}: {
+  items: MeetingCockpitItem[];
+  setActionError: (message: string | null) => void;
+  onSelect: (item: MeetingCockpitItem) => void;
+}) {
+  const queryClient = useQueryClient();
+  if (items.length === 0) return null;
+  const refresh = () => queryClient.invalidateQueries({ queryKey: queryKeys.meetings.all });
+  return (
+    <section className="rounded-lg border border-anac-border bg-white p-4 shadow-[0_8px_22px_rgba(17,34,83,0.04)]">
+      <h2 className="text-sm font-semibold text-anac-navy">Rendez-vous à traiter</h2>
+      <div className="mt-3 grid gap-3 lg:grid-cols-2">
+        {items.map((item) => (
+          <article key={item.id} className="space-y-2 rounded-lg border border-anac-border p-3">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <p className="text-sm font-semibold text-anac-navy">
+                  {item.meetingTypeLabel} - {item.requestReference}
+                </p>
+                <p className="text-xs text-anac-muted">
+                  {item.organisationName} · {item.dnAgentName}
+                </p>
+              </div>
+              <button type="button" className="text-xs font-semibold text-anac-blue underline" onClick={() => onSelect(item)}>
+                Afficher
+              </button>
+            </div>
+            <MeetingNegotiationCard
+              meeting={item}
+              negotiation={item.negotiation}
+              readOnly={!item.canManage}
+              onReschedule={() => onSelect(item)}
+              setActionError={setActionError}
+              onChanged={refresh}
+            />
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function Info({
   icon: Icon,
   label,
@@ -901,7 +1023,21 @@ function fallbackMetrics(): MeetingCockpitMetric[] {
       key: 'scheduled',
       label: 'Réunions prévues',
       value: '-',
-      helper: 'Créneaux planifiés sur la période',
+      helper: 'Rendez-vous confirmés sur la période',
+      tone: 'info',
+    },
+    {
+      key: 'counter_proposals',
+      label: 'Contre-propositions à traiter',
+      value: '-',
+      helper: 'Nouvelles dates proposées par les postulants',
+      tone: 'info',
+    },
+    {
+      key: 'awaiting_applicant',
+      label: 'En attente du postulant',
+      value: '-',
+      helper: 'Rendez-vous proposés, pas encore confirmés',
       tone: 'info',
     },
     {

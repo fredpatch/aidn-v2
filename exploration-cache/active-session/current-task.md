@@ -2,9 +2,13 @@
 
 **Session date**: 2026-10-08
 
-> **2026-10-14 SESSION1-M1-1 (in working tree):** Directeur DN annotation circuit added between the DG return and M3 (`dn_director_annotation`, migration 0008 + post-migration script `db:backfill:dn-annotation`, `/api/dn-annotation-tasks`, admin « Circuit Directeur DN »). DG return no longer unlocks M3. See `project/decisions.md` #16. Deferred: DN alert rule, notifications, SESSION1-MEET-1.
+> **2026-10-14 SESSION1-MEET-1 (committed):** applicant confirmation / counter-proposal of M3/M4 meetings - all 9 slices done and validated (see changelog, decisions #17). Deploy: `npm run db:migrate` only (migration 0009, no backfill). Deferred: notifications/e-mail. Not started: SESSION1-MEET-2.
 >
-> **2026-10-14 SESSION1-ROLE-1 (in working tree, uncommitted):** `assistant_dn` role added (no permissions yet, M1-1 owns them); `r3_agent`/`s5_agent` now display as Agent CI / Agent Finance via `@aidn/shared` role labels; visible R3/S5 wording replaced by métier terms. See `project/decisions.md` #15.
+> **2026-10-15 local env fix:** portal submission refused as « saisie manuelle » because the local `apps/api/.env` lacked `PORTAL_ORIGIN` / `ADMIN_ORIGIN` (gotchas #26). Open: `authenticateEither` still falls back to the staff session when the applicant token is expired - hardening proposed, awaiting approval.
+
+> **2026-10-14 SESSION1-M1-1 (committed 6b3fc84):** Directeur DN annotation circuit added between the DG return and M3 (`dn_director_annotation`, migration 0008 + post-migration script `db:backfill:dn-annotation`, `/api/dn-annotation-tasks`, admin « Circuit Directeur DN »). DG return no longer unlocks M3. See `project/decisions.md` #16. Deferred: DN alert rule, notifications, SESSION1-MEET-1.
+>
+> **2026-10-14 SESSION1-ROLE-1 (committed 489ef4d):** `assistant_dn` role added (no permissions yet, M1-1 owns them); `r3_agent`/`s5_agent` now display as Agent CI / Agent Finance via `@aidn/shared` role labels; visible R3/S5 wording replaced by métier terms. See `project/decisions.md` #15.
 **Status**: K4 atomic payment decisions implemented; preparing commit and push.
 
 ## Current Repo Truth

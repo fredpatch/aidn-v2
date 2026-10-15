@@ -2,6 +2,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { MeetingNegotiationCard } from '../../../../components/meetings/MeetingNegotiationCard';
+import { isOperationallyConfirmed } from '../../../../lib/api/meetings.types';
+import { queryKeys } from '../../../../lib/react-query/queryKeys';
 import { CalendarClock, CheckCircle2, FileUp, RotateCcw, XCircle } from 'lucide-react';
 import DocumentPreviewLink from '../../../../components/documents/DocumentPreviewLink';
 import { Button } from '../../../../components/ui/button';
@@ -45,6 +49,10 @@ export default function FormalMeetingCard({
 }: FormalMeetingCardProps) {
   // K7b - closed dossier: the meeting and its report stay viewable, no action.
   const readOnly = useDossierReadOnly();
+  const queryClient = useQueryClient();
+  // SESSION1-MEET-1 - negotiation actions refresh this workspace's bundle.
+  const refreshBundle = () =>
+    requestId ? queryClient.invalidateQueries({ queryKey: queryKeys.formal.bundle(requestId) }) : undefined;
   const [scheduling, setScheduling] = useState(false);
   const [rescheduling, setRescheduling] = useState(false);
   const [warning, setWarning] = useState<string | null>(null);
@@ -144,6 +152,13 @@ export default function FormalMeetingCard({
                 />
               </p>
             )}
+            <MeetingNegotiationCard
+              meeting={meeting}
+              negotiation={meeting.negotiation}
+              readOnly
+              setActionError={setActionError}
+              onChanged={refreshBundle}
+            />
             <ClosedDossierNote />
           </div>
         ) : (
@@ -231,7 +246,18 @@ export default function FormalMeetingCard({
             fallbackTone="bg-anac-info/10 text-anac-info"
           />
 
-          {meeting.status === 'scheduled' && (
+          {/* SESSION1-MEET-1 - confirmation state, counter-proposal, history. */}
+          <MeetingNegotiationCard
+            meeting={meeting}
+            negotiation={meeting.negotiation}
+            readOnly={!canManage}
+            onReschedule={() => setRescheduling(true)}
+            setActionError={setActionError}
+            onChanged={refreshBundle}
+          />
+
+          {/* Held / absent / cancel only once the appointment is confirmed. */}
+          {meeting.status === 'scheduled' && isOperationallyConfirmed(meeting.negotiation) && (
             <div className="flex flex-wrap gap-2 pt-1">
               {/* Generated HTML page (not a stored file): opened as before, relative to the API proxy. */}
               <a

@@ -122,6 +122,11 @@ export const ACTIVITY_LABELS: Record<
   MEETING_HELD: { title: 'Réunion tenue', tone: 'success' },
   MEETING_NO_SHOW: { title: 'Réunion : absence du postulant', tone: 'warning' },
   MEETING_FILE_CANCELLED: { title: 'Réunion : dossier annulé', tone: 'danger' },
+  MEETING_CONFIRMED_BY_APPLICANT: { title: 'Rendez-vous confirmé par le postulant', tone: 'success' },
+  MEETING_ALTERNATE_PROPOSED: { title: 'Nouvelle date proposée par le postulant', tone: 'warning' },
+  MEETING_ALTERNATE_ACCEPTED: { title: 'Date proposée acceptée', tone: 'success' },
+  MEETING_ALTERNATE_REFUSED: { title: 'Date proposée refusée', tone: 'warning' },
+  MEETING_CONFIRMED_BY_DN: { title: 'Rendez-vous confirmé au nom du postulant', tone: 'info' },
   SITE_VISIT_HELD: { title: 'Visite sur site tenue', tone: 'success' },
   INSPECTION_VERDICT_SUBMITTED: { title: 'Avis d’inspection rendu', tone: 'success' },
   CERTIFICATE_CREATED: { title: 'Certificat créé', tone: 'info' },
@@ -432,14 +437,15 @@ export async function listRequestCockpit(viewerUserId?: number): Promise<Request
     // D3a - the latest events of every dossier, all phases (was: the 120
     // latest rows of the whole app, M1 only).
     db.execute(sql`
-      select a.id, a.action, a.module, a.request_id, a.created_at, u.full_name as actor
+      select a.id, a.action, a.module, a.request_id, a.created_at, coalesce(u.full_name, ap.full_name) as actor
       from (
-        select id, action, module, request_id, created_at, user_id,
+        select id, action, module, request_id, created_at, user_id, applicant_id,
                row_number() over (partition by request_id order by created_at desc, id desc) as rn
         from audit_logs
         where request_id is not null
       ) a
       left join users u on u.id = a.user_id
+      left join applicants ap on ap.id = a.applicant_id
       where a.rn <= ${ACTIVITY_PER_REQUEST}
       order by a.request_id, a.created_at desc, a.id desc
     `),

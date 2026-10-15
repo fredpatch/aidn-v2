@@ -83,7 +83,7 @@ describe('D3a audit -> request link (real PostgreSQL)', { skip }, () => {
     ).id;
     const meeting = (
       await one(
-        `INSERT INTO meetings (phase_id, meeting_type, dn_agent_id, scheduled_at, status) VALUES ($1, 'preliminary', $2, now(), 'scheduled') RETURNING id`,
+        `INSERT INTO meetings (phase_id, meeting_type, dn_agent_id, scheduled_at, status, confirmation_status, confirmed_at) VALUES ($1, 'preliminary', $2, now(), 'scheduled', 'confirmed', now()) RETURNING id`,
         [m3, user]
       )
     ).id;

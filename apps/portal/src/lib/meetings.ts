@@ -7,22 +7,52 @@ export function dayKey(date: Date): string {
   return `${date.getFullYear()}-${m}-${d}`;
 }
 
-/** Still to come: scheduled and not yet started. */
+type ConfirmationState = Pick<ApplicantMeeting, 'status' | 'confirmationStatus'>;
+
+/** SESSION1-MEET-1 - an M3/M4 appointment still being agreed: proposed by the
+ *  DN (your answer is expected) or counter-proposed by you (DN deciding). */
+export function isPendingConfirmation(meeting: ConfirmationState): boolean {
+  return (
+    meeting.status === 'scheduled' &&
+    (meeting.confirmationStatus === 'awaiting_applicant' || meeting.confirmationStatus === 'awaiting_dn')
+  );
+}
+
+/** Your answer is expected (confirm or propose another date). */
+export function needsApplicantAnswer(meeting: Pick<ApplicantMeeting, 'actions'>): boolean {
+  return meeting.actions.length > 0;
+}
+
+/** Still to come: a settled appointment (confirmed, or a site visit) not yet started. */
 export function isUpcoming(meeting: ApplicantMeeting, now: Date): boolean {
-  return meeting.status === 'scheduled' && new Date(meeting.scheduledAt).getTime() >= now.getTime();
+  return (
+    meeting.status === 'scheduled' &&
+    !isPendingConfirmation(meeting) &&
+    new Date(meeting.scheduledAt).getTime() >= now.getTime()
+  );
 }
 
-/** Scheduled but already past: the DN has not recorded the outcome yet. */
+/** Settled, scheduled but already past: the DN has not recorded the outcome yet. */
 export function isAwaitingConfirmation(meeting: ApplicantMeeting, now: Date): boolean {
-  return meeting.status === 'scheduled' && new Date(meeting.scheduledAt).getTime() < now.getTime();
+  return (
+    meeting.status === 'scheduled' &&
+    !isPendingConfirmation(meeting) &&
+    new Date(meeting.scheduledAt).getTime() < now.getTime()
+  );
 }
 
-/** Upcoming nearest first; everything else (history) newest first. */
+/** To answer first (yours before the DN's), then upcoming nearest first;
+ *  everything else (history) newest first. */
 export function splitMeetings(meetings: ApplicantMeeting[], now: Date) {
   const time = (m: ApplicantMeeting) => new Date(m.scheduledAt).getTime();
+  const pending = meetings
+    .filter((m) => isPendingConfirmation(m))
+    .sort((a, b) => Number(needsApplicantAnswer(b)) - Number(needsApplicantAnswer(a)) || time(a) - time(b));
   const upcoming = meetings.filter((m) => isUpcoming(m, now)).sort((a, b) => time(a) - time(b));
-  const history = meetings.filter((m) => !isUpcoming(m, now)).sort((a, b) => time(b) - time(a));
-  return { upcoming, history };
+  const history = meetings
+    .filter((m) => !isUpcoming(m, now) && !isPendingConfirmation(m))
+    .sort((a, b) => time(b) - time(a));
+  return { pending, upcoming, history };
 }
 
 /** "Aujourd'hui", "Demain", "Dans N jours" - by calendar day, not 24h blocks. */

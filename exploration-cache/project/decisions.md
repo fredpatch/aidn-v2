@@ -197,3 +197,39 @@ dossier to the Directeur DN and uploads his annotated return. Only that second r
   `db:migrate`, creates a `pending_review` DN circuit (no document) for every intake circuit already past the DG
   return; idempotent, requests are not regressed and open dossiers keep working. Dossiers still in the DG
   circuit get their DN circuit when their DG return is uploaded. `db:reset:dev` stays an option for UAT.
+
+## 17. Applicant confirmation / counter-proposal of M3/M4 meetings (SESSION1-MEET-1)
+
+Spec: `docs/superpowers/specs/2026-10-14-session1-meet-1-design.md`. The DN proposes an M3 (`preliminary`) or M4
+(`formal`) appointment; the applicant confirms or proposes another exact date-time with a remark; the DN accepts or
+refuses (mandatory reason), or confirms on the applicant's behalf (mandatory note). M6 `site_visit` is outside.
+
+- **Separate state.** `meetings.status` stays the lifecycle; `meetings.confirmation_status`
+  (`awaiting_applicant | awaiting_dn | confirmed | not_required`) holds the negotiation, with the pending
+  counter-proposal denormalised (`alternate_scheduled_at`, `alternate_remark`) and `confirmed_at`. Strict DB checks:
+  awaiting_dn ⇔ both alternate fields; confirmed ⇔ confirmed_at; site_visit ⇔ not_required (extending confirmation to
+  M6 later is a deliberate migration). One policy module: `meetings/meeting-confirmation.ts`
+  (`isMeetingOperationallyConfirmed` = confirmed or not_required); a static test keeps the literals there.
+- **History** = append-only `meeting_negotiation_events` (7 kinds incl. `dn_rescheduled`), exactly one actor
+  (user XOR applicant) and per-kind payload checks. The audit log mirrors each step; it is not the source of truth.
+  The applicant's « motif du refus » is read from these events, never from a mutable column.
+- **Superseded rows are frozen** as they were (Fred, 2026-10-14): accepting an alternate or rescheduling marks the old
+  row `rescheduled` without touching its confirmation fields (clearing them would violate the strict checks).
+- **Accepting an alternate** inserts the confirmed replacement first, then retires the old row, in one transaction:
+  a taken slot rolls everything back. `rescheduleMeeting` now works the same way (it used to retire the old row
+  first and outside a transaction, so a slot conflict left the phase without a live meeting); a DN reschedule of
+  an M3/M4 meeting is a NEW proposal the applicant must confirm again.
+- **Every scheduled row reserves the agent's slot**, confirmed or not; the pending alternate does not (first
+  accepted wins). Held / no-show / dossier cancelled require an operationally confirmed meeting; phase closing still
+  refuses a `scheduled` meeting, so a negotiation blocks M3/M4 closing as before.
+- **Invitation PDF** only for an operationally confirmed meeting (409 `MEETING_INVITATION_NOT_CONFIRMED`); no
+  proposal PDF.
+- **Audit actor**: `scheduleMeeting` records the acting user (assigned agent in `details.dnAgentId`); the module
+  comes from the phase (no hard-coded M3). Applicant actions are audited with the new `audit_logs.applicant_id`
+  (never both ids); activity feeds show the applicant's name. The R3 dashboard activity also matches
+  `details.dnAgentId`, so a visit scheduled by the DN still shows for the assigned agent.
+- **No notification / e-mail** (deferred): visibility is the portal banner « Rendez-vous à confirmer » and the admin
+  « Contre-propositions à traiter » metric and « Rendez-vous à traiter » list (any date, open dossiers only).
+- **Legacy**: migration 0009 sets existing M3/M4 rows `confirmed` (`confirmed_at = created_at`, a technical proxy
+  never shown as a KPI) and M6 rows `not_required`, in the same migration (enum types created there - safe, see
+  gotchas #23); no backfill script.

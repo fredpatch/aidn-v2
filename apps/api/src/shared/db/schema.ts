@@ -11,6 +11,7 @@ import {
   index,
   uniqueIndex,
   primaryKey,
+  check,
 } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 
@@ -81,6 +82,24 @@ export const meetingStatusEnum = pgEnum('meeting_status', [
   'no_show',
   'rescheduled',
   'file_cancelled',
+]);
+
+/** SESSION1-MEET-1 - applicant confirmation of an M3/M4 meeting, separate
+ *  from the lifecycle status (meetings/meeting-confirmation.ts). */
+export const meetingConfirmationStatusEnum = pgEnum('meeting_confirmation_status', [
+  'awaiting_applicant',
+  'awaiting_dn',
+  'confirmed',
+  'not_required',
+]);
+export const meetingNegotiationEventKindEnum = pgEnum('meeting_negotiation_event_kind', [
+  'dn_proposed',
+  'applicant_confirmed',
+  'applicant_alternate_proposed',
+  'dn_alternate_accepted',
+  'dn_alternate_refused',
+  'dn_confirmed_on_behalf',
+  'dn_rescheduled',
 ]);
 
 /** M4 - the 10 named documents besides the official letter (11th item) */
@@ -429,12 +448,71 @@ export const meetings = pgTable(
     crDocumentUrl: text('cr_document_url'),
     crUploadedAt: timestamp('cr_uploaded_at'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
+    // SESSION1-MEET-1 - no DB default on purpose: every insert states it
+    // (initialConfirmationStatus / accepted alternate), see migration 0009.
+    confirmationStatus: meetingConfirmationStatusEnum('confirmation_status').notNull(),
+    /** Pending applicant counter-proposal - set only while awaiting_dn. */
+    alternateScheduledAt: timestamp('alternate_scheduled_at'),
+    alternateRemark: text('alternate_remark'),
+    /** Set only while confirmed. Legacy rows: created_at (technical proxy). */
+    confirmedAt: timestamp('confirmed_at'),
   },
   (t) => [
+    // Every scheduled row reserves the agent's slot, confirmed or not.
     uniqueIndex('meetings_dn_agent_slot_idx')
       .on(t.dnAgentId, t.scheduledAt)
       .where(sql`${t.status} = 'scheduled'`),
     index('meetings_phase_idx').on(t.phaseId),
+    check(
+      'meetings_alternate_coherent_chk',
+      sql`(${t.confirmationStatus} = 'awaiting_dn') = (${t.alternateScheduledAt} IS NOT NULL AND ${t.alternateRemark} IS NOT NULL) AND (${t.alternateScheduledAt} IS NULL) = (${t.alternateRemark} IS NULL)`
+    ),
+    check('meetings_confirmed_at_chk', sql`(${t.confirmationStatus} = 'confirmed') = (${t.confirmedAt} IS NOT NULL)`),
+    check(
+      'meetings_type_confirmation_chk',
+      sql`(${t.meetingType} = 'site_visit') = (${t.confirmationStatus} = 'not_required')`
+    ),
+  ]
+);
+
+/** SESSION1-MEET-1 - append-only history of an M3/M4 meeting negotiation
+ *  (source of truth; the audit log only mirrors it). Written only through
+ *  meetings/meeting-negotiation.events.ts. Exactly one actor per row. */
+export const meetingNegotiationEvents = pgTable(
+  'meeting_negotiation_events',
+  {
+    id: serial('id').primaryKey(),
+    meetingId: integer('meeting_id')
+      .notNull()
+      .references(() => meetings.id),
+    kind: meetingNegotiationEventKindEnum('kind').notNull(),
+    slotAt: timestamp('slot_at'),
+    remark: text('remark'),
+    reason: text('reason'),
+    resultingMeetingId: integer('resulting_meeting_id').references(() => meetings.id),
+    actorUserId: integer('actor_user_id').references(() => users.id),
+    actorApplicantId: integer('actor_applicant_id').references(() => applicants.id),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => [
+    index('meeting_negotiation_events_meeting_created_idx').on(t.meetingId, t.createdAt, t.id),
+    check(
+      'meeting_negotiation_events_one_actor_chk',
+      sql`(${t.actorUserId} IS NULL) <> (${t.actorApplicantId} IS NULL)`
+    ),
+    check(
+      'meeting_negotiation_events_payload_chk',
+      sql`CASE ${t.kind}
+        WHEN 'dn_proposed' THEN ${t.actorUserId} IS NOT NULL AND ${t.slotAt} IS NOT NULL
+        WHEN 'applicant_confirmed' THEN ${t.actorApplicantId} IS NOT NULL
+        WHEN 'applicant_alternate_proposed' THEN ${t.actorApplicantId} IS NOT NULL AND ${t.slotAt} IS NOT NULL AND btrim(coalesce(${t.remark}, '')) <> ''
+        WHEN 'dn_alternate_accepted' THEN ${t.actorUserId} IS NOT NULL AND ${t.slotAt} IS NOT NULL AND ${t.resultingMeetingId} IS NOT NULL
+        WHEN 'dn_alternate_refused' THEN ${t.actorUserId} IS NOT NULL AND ${t.slotAt} IS NOT NULL AND btrim(coalesce(${t.reason}, '')) <> ''
+        WHEN 'dn_confirmed_on_behalf' THEN ${t.actorUserId} IS NOT NULL AND btrim(coalesce(${t.remark}, '')) <> ''
+        WHEN 'dn_rescheduled' THEN ${t.actorUserId} IS NOT NULL AND ${t.slotAt} IS NOT NULL AND ${t.resultingMeetingId} IS NOT NULL
+        ELSE false
+      END`
+    ),
   ]
 );
 
@@ -717,6 +795,8 @@ export const auditLogs = pgTable(
   {
     id: serial('id').primaryKey(),
     userId: integer('user_id').references(() => users.id),
+    /** SESSION1-MEET-1 - applicant actor (portal action); never both with userId. */
+    applicantId: integer('applicant_id').references(() => applicants.id),
     action: varchar('action', { length: 100 }).notNull(), // SCREAMING_SNAKE_CASE
     module: varchar('module', { length: 20 }).notNull(), // M1, M3..M13
     entityId: integer('entity_id'),
@@ -735,6 +815,8 @@ export const auditLogs = pgTable(
     index('audit_logs_module_idx').on(t.module),
     index('audit_logs_created_at_idx').on(t.createdAt),
     index('audit_logs_request_created_idx').on(t.requestId, t.createdAt),
+    index('audit_logs_applicant_idx').on(t.applicantId),
+    check('audit_logs_single_actor_chk', sql`NOT (${t.userId} IS NOT NULL AND ${t.applicantId} IS NOT NULL)`),
   ]
 );
 

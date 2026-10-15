@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, lt, ne, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, lt, ne, or, sql } from 'drizzle-orm';
 import { RECEPTION_CIRCUIT_ENTITY_TYPES } from '../dn-annotation/dn-annotation.stage.js';
 import { db } from '../../shared/db/index.js';
 import {
@@ -43,6 +43,7 @@ import type {
 } from './dashboard.types.js';
 import { workingDaysBetween, type PublicHolidays } from '@aidn/shared';
 import { getIntegerValue, getPublicHolidays } from '../system-parameters/system-parameters.service.js';
+import { isMeetingOperationallyConfirmed } from '../meetings/meeting-confirmation.js';
 
 const PHASE_LABELS: Record<string, string> = {
   M3: 'Préliminaire',
@@ -547,10 +548,12 @@ export async function getDashboardSummary(
         entityId: auditLogs.entityId,
         module: auditLogs.module,
         createdAt: auditLogs.createdAt,
-        actor: users.fullName,
+        // SESSION1-MEET-1 - portal actions are audited with the applicant as actor.
+        actor: sql<string | null>`coalesce(${users.fullName}, ${applicants.fullName})`,
       })
       .from(auditLogs)
       .leftJoin(users, eq(auditLogs.userId, users.id))
+      .leftJoin(applicants, eq(auditLogs.applicantId, applicants.id))
       .orderBy(desc(auditLogs.createdAt))
       .limit(12),
     countRequestsBetween(start, end),
@@ -859,6 +862,7 @@ export async function getDashboardSummary(
         scheduledAt: meeting.scheduledAt.toISOString(),
         requestReference: request?.reference ?? `Demande #${phase?.requestId ?? '-'}`,
         tag: meeting.scheduledAt.toDateString() === today ? 'today' : 'planned',
+        awaitingConfirmation: !isMeetingOperationallyConfirmed(meeting),
       };
     });
 
@@ -1637,7 +1641,9 @@ export async function getR3DashboardSummary(
         includeAll
           ? sql`${auditLogs.action} in ('MEETING_SCHEDULED', 'SITE_VISIT_HELD', 'INSPECTION_VERDICT_SUBMITTED', 'PHASE_CLOSED') and ${auditLogs.module} = 'M6'`
           : and(
-              eq(auditLogs.userId, r3AgentId),
+              // SESSION1-MEET-1 - MEETING_SCHEDULED is now audited with the user
+              // who scheduled; the assigned R3 agent is in details.dnAgentId.
+              or(eq(auditLogs.userId, r3AgentId), sql`${auditLogs.details}->>'dnAgentId' = ${String(r3AgentId)}`),
               sql`${auditLogs.action} in ('MEETING_SCHEDULED', 'SITE_VISIT_HELD', 'INSPECTION_VERDICT_SUBMITTED', 'PHASE_CLOSED') and ${auditLogs.module} = 'M6'`
             )
       )

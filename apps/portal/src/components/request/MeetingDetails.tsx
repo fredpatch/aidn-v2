@@ -20,8 +20,11 @@ export function MeetingDetails({
     location: string | null;
     status: string;
     crDocumentUrl?: string | null;
+    /** SESSION1-MEET-1 - invitation only for a confirmed appointment. */
+    ticketAvailable?: boolean;
   };
 }) {
+  const invitation = meeting.ticketAvailable ?? meeting.status === 'scheduled';
   return (
     <div className="mt-3 space-y-2 text-sm">
       <p>
@@ -40,7 +43,7 @@ export function MeetingDetails({
           {labelOf(MEETING_STATUS_LABELS, meeting.status)}
         </span>
       </p>
-      {meeting.id !== undefined && meeting.status === 'scheduled' && (
+      {meeting.id !== undefined && invitation && (
         <a
           href={meetingTicketHref(meeting.id)}
           target="_blank"

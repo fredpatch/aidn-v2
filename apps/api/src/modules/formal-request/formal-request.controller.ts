@@ -36,7 +36,7 @@ export async function getBundle(req: Request, res: Response): Promise<void> {
       res.status(404).json({ message: 'Demande introuvable.' });
       return;
     }
-    const bundle = await formalService.getBundleForRequest(requestId);
+    const bundle = await formalService.getBundleForRequest(requestId, req.applicant ? 'applicant' : 'staff');
     res.json(bundle);
   } catch (error) {
     handleFormalRequestError(res, error);

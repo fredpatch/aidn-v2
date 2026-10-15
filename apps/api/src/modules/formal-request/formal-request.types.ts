@@ -1,3 +1,4 @@
+import type { BundleMeeting } from '../meetings/bundle-meeting.js';
 export interface FormalDocumentView {
   id: number | null;
   slot: string;
@@ -30,13 +31,7 @@ export interface FormalPhaseBundle {
   } | null;
   letterCircuit: FormalLetterCircuitView | null;
   documents: FormalDocumentView[];
-  meeting: {
-    id: number;
-    scheduledAt: Date;
-    location: string | null;
-    status: string;
-    crDocumentUrl: string | null;
-    crUploadedAt: Date | null;
-  } | null;
+  /** SESSION1-MEET-1 - applicant block or staff negotiation view, by audience. */
+  meeting: BundleMeeting | null;
   completionRate: number; // 0-11
 }

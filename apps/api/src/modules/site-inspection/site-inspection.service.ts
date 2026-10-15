@@ -330,10 +330,13 @@ export async function scheduleSiteVisit(params: {
   r3AgentId: number;
   scheduledAt: string;
   location?: string;
+  /** Who schedules (audit); r3AgentId is who is assigned. */
+  actorUserId: number;
 }): Promise<{ meeting: SiteVisitView; softOverlapWarning: boolean }> {
   const { meeting, softOverlapWarning } = await scheduleMeeting({
     phaseId: params.phaseId,
     meetingType: 'site_visit',
+    actorUserId: params.actorUserId,
     dnAgentId: params.r3AgentId,
     scheduledAt: params.scheduledAt,
     location: params.location,

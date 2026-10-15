@@ -4,6 +4,7 @@ import { FileText, History, UserCircle } from 'lucide-react';
 import { useApplicantAuth } from '../../hooks/useApplicantAuth';
 import { useMyRequests } from '../requests/hooks/useMyRequests';
 import { NextMeetingCard } from '../../components/meetings/NextMeetingCard';
+import { MeetingsToConfirmBanner } from '../../components/meetings/MeetingsToConfirmBanner';
 import { REQUEST_TYPE_LABELS, TERMINAL_STATUSES, labelOf } from '../requests/constants';
 
 export default function DashboardPage() {
@@ -31,6 +32,8 @@ export default function DashboardPage() {
           </button>
         </div>
       )}
+
+      <MeetingsToConfirmBanner />
 
       <NextMeetingCard />
 

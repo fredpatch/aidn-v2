@@ -7,6 +7,7 @@ import type { DossierState } from '../../../lib/api/phases.types';
 import { queryClient as appQueryClient } from '../../../lib/react-query/queryClient';
 import { queryKeys } from '../../../lib/react-query/queryKeys';
 import { renderWithProviders } from '../../../test/render';
+import { CONFIRMED_NEGOTIATION } from '../../../test/meetingFixtures';
 import { ClosedDossierBanner, DossierStateValue } from './DossierReadOnly';
 import WorkflowCockpit from './WorkflowCockpit';
 import CertificateFieldsCard from '../certificates/components/CertificateFieldsCard';
@@ -237,6 +238,7 @@ describe('phase cards on a closed dossier: documents stay, actions go (K7b)', ()
 
   it('M3 / M4 meetings: status and report link only', () => {
     const meeting = {
+      negotiation: CONFIRMED_NEGOTIATION,
       id: 7,
       scheduledAt: AT,
       location: 'Salle DN',

@@ -69,6 +69,8 @@ export interface DashboardMeetingItem {
   scheduledAt: string;
   requestReference: string;
   tag: 'today' | 'planned';
+  /** SESSION1-MEET-1 - slot reserved but not yet confirmed by the applicant. */
+  awaitingConfirmation: boolean;
 }
 
 export interface DashboardActivityItem {

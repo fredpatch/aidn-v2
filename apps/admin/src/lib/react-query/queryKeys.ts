@@ -51,8 +51,14 @@ export const queryKeys = {
   },
   meetings: {
     all: ['meetings'] as const,
-    cockpit: (from: string, to: string, meetingType: string, status: string, phaseCode: string) =>
-      ['meetings', 'cockpit', from, to, meetingType, status, phaseCode] as const,
+    cockpit: (
+      from: string,
+      to: string,
+      meetingType: string,
+      status: string,
+      phaseCode: string,
+      confirmation: string
+    ) => ['meetings', 'cockpit', from, to, meetingType, status, phaseCode, confirmation] as const,
   },
   users: {
     all: ['users'] as const,

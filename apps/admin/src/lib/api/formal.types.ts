@@ -1,3 +1,5 @@
+import type { MeetingNegotiationView } from './meetings.types';
+
 export interface FormalDocumentView {
   id: number | null;
   slot: string;
@@ -28,6 +30,7 @@ export interface FormalMeetingView {
   status: string;
   crDocumentUrl: string | null;
   crUploadedAt: string | null;
+  negotiation: MeetingNegotiationView;
 }
 
 export interface FormalPhaseView {

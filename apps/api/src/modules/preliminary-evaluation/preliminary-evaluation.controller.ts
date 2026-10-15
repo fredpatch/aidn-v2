@@ -33,7 +33,7 @@ export async function getBundle(req: Request, res: Response): Promise<void> {
       }
     }
 
-    const bundle = await evalService.getBundleForRequest(requestId);
+    const bundle = await evalService.getBundleForRequest(requestId, req.applicant ? 'applicant' : 'staff');
     res.json(bundle);
   } catch (error) {
     handlePreliminaryEvaluationError(res, error);
