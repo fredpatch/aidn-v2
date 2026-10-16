@@ -2,7 +2,9 @@
 
 **Session date**: 2026-10-08
 
-> **2026-10-16 SESSION1-UX-1 (implemented, validated; single feature commit at the end of Task 9):** applicant actions and operational next actions - server-ordered `ApplicantAction[]` (`GET /api/applicant/actions`), portal « Actions requises » replacing the two meeting banners, passive phase wording, admin `OperationalCallout` with typed owners and `canAct`, Demandes cockpit D9 next actions (see changelog, decisions #19). No migration. Deferred: SESSION1-COCKPIT-1 scope, app-wide UTC parser for `timestamp` columns, parked minors in the plan ledger.
+> **2026-10-16 SESSION1-COCKPIT-1 (implemented, validated; single feature commit after the whole-branch review):** role work queues as home cockpits - Réception / Assistant DG, Assistante DN, Finance and Cellule Inspection land on their queue (`homeFor`), shared operational contract with `{ items, counts }`, role dashboards and their three API summaries deleted, B1-B6 fixed (see changelog, decisions #20). No migration. Deferred: Finance server-side history window, portal DG wording.
+>
+> **2026-10-16 SESSION1-UX-1 (implemented, validated; committed a4e353d):** applicant actions and operational next actions - server-ordered `ApplicantAction[]` (`GET /api/applicant/actions`), portal « Actions requises » replacing the two meeting banners, passive phase wording, admin `OperationalCallout` with typed owners and `canAct`, Demandes cockpit D9 next actions (see changelog, decisions #19). No migration. Deferred: SESSION1-COCKPIT-1 scope, app-wide UTC parser for `timestamp` columns, parked minors in the plan ledger.
 >
 > **2026-10-15 SESSION1-MEET-2 (committed 658435f):** signed CR return - the applicant returns the signed copy of the M3/M4 meeting compte rendu (`POST /meetings/:id/signed-report`, `meeting_report_signed` chain, DN CR frozen once signed; see changelog, decisions #18). Deploy: `npm run db:migrate` (0010). Deferred: notifications, CR rectification mechanism.
 >

@@ -3,7 +3,7 @@
  *  a new one. Any query that selects "the" site visit of a phase or an agent
  *  must therefore exclude 'rescheduled', otherwise it can pick the superseded
  *  row: the former R3 kept access, the current R3 could not submit the avis,
- *  queues and the R3 dashboard listed the dossier twice (fixed in H1).
+ *  queues and the (since retired) R3 dashboard listed the dossier twice (fixed in H1).
  *  Static check, no database needed: every `.where(...)` that filters on
  *  meetingType 'site_visit' must also exclude 'rescheduled' - unless it
  *  targets one meeting by id. */
@@ -14,7 +14,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const modulesRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const FILES = ['site-inspection/site-inspection.service.ts', 'dashboard/dashboard.service.ts'];
+const FILES = ['site-inspection/site-inspection.service.ts'];
 const SITE_VISIT = "eq(meetings.meetingType, 'site_visit')";
 
 /** The full `.where( ... )` argument that contains `index`. */

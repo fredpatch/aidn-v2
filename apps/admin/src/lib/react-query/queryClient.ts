@@ -10,11 +10,11 @@ export function isDossierClosedError(error: unknown): boolean {
 }
 
 const DOSSIER_WORK_LISTS = [
-  queryKeys.deepEvaluation.paymentQueue(),
-  queryKeys.siteInspection.paymentQueue(),
-  queryKeys.certificates.paymentQueue(),
+  queryKeys.payments.financeQueue(),
   queryKeys.siteInspection.myQueue(),
   queryKeys.meetings.all,
+  queryKeys.courrierTasks.queue(),
+  queryKeys.dnCircuit.queue(),
 ];
 
 export const queryClient: QueryClient = new QueryClient({

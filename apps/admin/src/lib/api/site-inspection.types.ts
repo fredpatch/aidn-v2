@@ -1,3 +1,5 @@
+import type { InspectionActionKey, InspectionBucket, OperationalQueue, OperationalQueueItem } from '@aidn/shared';
+
 export interface PaymentView {
   id: number;
   status: string;
@@ -38,39 +40,17 @@ export interface SiteInspectionBundle {
   inspection: InspectionView | null;
 }
 
-export interface MyQueueItem {
+/** Mirrors the API's InspectionQueueItem; dates are ISO strings over JSON. */
+export interface InspectionQueueItem extends OperationalQueueItem<InspectionBucket, InspectionActionKey> {
   phaseId: number;
   phaseStatus: string;
-  openedAt: string;
-  closedAt: string | null;
-  requestId: number;
-  requestReference: string;
   requestType: string;
-  organisationName: string;
   payment: PaymentView | null;
-  siteVisit: SiteVisitView | null;
+  siteVisit: SiteVisitView;
   inspection: InspectionView | null;
-  missionStatus: 'planned' | 'payment_pending' | 'to_hold' | 'report_due' | 'closed';
-  statusLabel: string;
-  nextAction: 'wait_payment' | 'mark_held' | 'submit_verdict' | 'consult';
-  nextActionLabel: string;
-  priority: 'haute' | 'moyenne' | 'basse';
-  waitingDays: number | null;
-  /** K7c - the dossier is closed: listed for history, no action offered. */
-  dossierStatus: string;
-  dossierClosed: boolean;
+  /** D11/D14 - the services act only for the assigned agent. */
+  assignedToViewer: boolean;
+  assignedAgentName: string | null;
 }
 
-export interface PaymentQueueItem {
-  phaseId: number;
-  requestId: number;
-  requestReference: string;
-  requestType: string;
-  organisationName: string;
-  payment: PaymentView;
-  nextAction: 'send_invoice' | 'validate_payment' | 'waiting_for_proof' | 'done' | 'rejected';
-  /** K7c - the dossier is closed: listed for history, no action offered. */
-  dossierStatus: string;
-  dossierClosed: boolean;
-}
-
+export type InspectionQueueResponse = OperationalQueue<InspectionQueueItem, InspectionBucket>;

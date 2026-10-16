@@ -596,6 +596,14 @@ export const handleSiteInspectionError = createErrorHandler(
       status: 409,
       message: "La visite sur site doit être marquée 'tenue' avant de soumettre l'avis d’inspection.",
     },
+    MEETING_NOT_SCHEDULED: {
+      status: 409,
+      message: "Cette visite n'est plus au statut planifié.",
+    },
+    SITE_VISIT_PAYMENT_NOT_VALIDATED: {
+      status: 409,
+      message: "Le paiement doit être validé par Finance avant d'enregistrer la tenue de la visite.",
+    },
     VERDICT_ALREADY_SUBMITTED: {
       status: 409,
       message: 'Un avis d’inspection a déjà été soumis pour cette phase.',

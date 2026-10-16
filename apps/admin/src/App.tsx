@@ -20,22 +20,11 @@ import CourrierTasksPage from './pages/courrier-tasks/CourrierTasksPage';
 import CircuitDirecteurDnPage from './pages/dn-annotation/CircuitDirecteurDnPage';
 import S5PaymentsPage from './pages/payments/S5PaymentsPage';
 import DashboardPage from './pages/dashboard/DashboardPage';
-import ReceptionDashboardPage from './pages/dashboard/ReceptionDashboardPage';
-import R3DashboardPage from './pages/dashboard/R3DashboardPage';
-import S5DashboardPage from './pages/dashboard/S5DashboardPage';
 import MeetingsPage from './pages/meetings/MeetingsPage';
 import AnalyticsPage from './pages/analytics/AnalyticsPage';
+import { homeFor } from './lib/home-for';
 
 const DN_ROLES: InternalRole[] = ['dn_agent', 'dn_supervisor', 'SU'];
-const DASHBOARD_ROLES: InternalRole[] = [
-  'dn_agent',
-  'dn_supervisor',
-  'reception',
-  'assistant_dg',
-  's5_agent',
-  'r3_agent',
-  'SU',
-];
 const RECEPTION_ROLES: InternalRole[] = ['reception', 'assistant_dg', 'SU'];
 const DN_CIRCUIT_ROLES: InternalRole[] = ['assistant_dn', 'SU'];
 const DEEP_EVALUATION_ROLES: InternalRole[] = ['dn_agent', 'dn_supervisor', 's5_agent', 'SU'];
@@ -73,36 +62,14 @@ function RoleRoute({
   return hasAnyRole(user?.roles, roles) ? children : <AccessDenied />;
 }
 
-function HomeRoute() {
+/** SESSION1-COCKPIT-1 §9 - DN roles and SU: DN dashboard; any other
+ *  operational role: its work queue (redirect, so ?id= links and the nav
+ *  highlight work). */
+export function HomeRoute() {
   const { user } = useAuth();
-
-  // Assistante DN has no dashboard: her inbox is the Directeur DN circuit.
-  if (
-    hasAnyRole(user?.roles, ['assistant_dn']) &&
-    !hasAnyRole(user?.roles, ['dn_agent', 'dn_supervisor', 'reception', 'assistant_dg', 's5_agent', 'r3_agent'])
-  ) {
-    return <Navigate to="/circuit-directeur-dn" replace />;
-  }
-
-  if (
-    hasAnyRole(user?.roles, ['s5_agent']) &&
-    !hasAnyRole(user?.roles, ['dn_agent', 'dn_supervisor', 'reception', 'assistant_dg', 'r3_agent'])
-  ) {
-    return <S5DashboardPage />;
-  }
-  if (
-    hasAnyRole(user?.roles, ['reception', 'assistant_dg']) &&
-    !hasAnyRole(user?.roles, ['dn_agent', 'dn_supervisor', 's5_agent', 'r3_agent'])
-  ) {
-    return <ReceptionDashboardPage />;
-  }
-  if (
-    hasAnyRole(user?.roles, ['r3_agent']) &&
-    !hasAnyRole(user?.roles, ['dn_agent', 'dn_supervisor', 'reception', 'assistant_dg', 's5_agent'])
-  ) {
-    return <R3DashboardPage />;
-  }
-  if (hasAnyRole(user?.roles, DASHBOARD_ROLES)) return <DashboardPage />;
+  const home = homeFor(user?.roles ?? []);
+  if (home.kind === 'dn_dashboard') return <DashboardPage />;
+  if (home.kind === 'queue') return <Navigate to={home.path} replace />;
   return <AccessDenied />;
 }
 

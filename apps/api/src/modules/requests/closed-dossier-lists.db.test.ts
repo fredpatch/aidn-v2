@@ -20,15 +20,14 @@ describe('K7c closed dossier in the staff work lists (real PostgreSQL)', { skip 
 
   before(async () => {
     pool = new pg.Pool({ connectionString: DATABASE_URL });
-    const [deep, site, cert, meetings, courrier, dbModule] = await Promise.all([
-      import('../deep-evaluation/deep-evaluation.service.js'),
+    const [finance, site, meetings, courrier, dbModule] = await Promise.all([
+      import('../payments/finance-queue.js'),
       import('../site-inspection/site-inspection.service.js'),
-      import('../certificates/certificates.service.js'),
       import('../meetings/meetings.service.js'),
       import('../courrier-tasks/courrier-tasks.service.js'),
       import('../../shared/db/index.js'),
     ]);
-    m = { deep, site, cert, meetings, courrier };
+    m = { finance, site, meetings, courrier };
     closeAppPool = () => dbModule.db.$client.end();
   });
 
@@ -71,14 +70,16 @@ describe('K7c closed dossier in the staff work lists (real PostgreSQL)', { skip 
       assert.ok(found, 'item listed');
       return found;
     };
+    const finance: { items: Array<{ requestId: number; phaseCode: string; [key: string]: unknown }> } = await m.finance.getFinanceQueue();
+    const mineFinance = (code: string) => finance.items.find((item) => item.requestId === d.request && item.phaseCode === code)!;
     const cockpit = await m.meetings.listMeetingCockpit({});
     return {
-      m5: mine(await m.deep.getPaymentQueue()),
-      m6: mine(await m.site.getPaymentQueue()),
-      m7: mine(await m.cert.getPaymentQueue()),
+      m5: mineFinance('M5'),
+      m6: mineFinance('M6'),
+      m7: mineFinance('M7'),
       meeting: cockpit.items.find((item: { id: number }) => item.id === d.meeting),
       courrier: mine((await m.courrier.listCourrierTasks({})).items),
-      mission: mine(await m.site.getMyQueue(d.user)),
+      mission: mine((await m.site.getMyQueue({ userId: d.user, roles: ['r3_agent'] })).items),
     };
   }
 
@@ -89,13 +90,16 @@ describe('K7c closed dossier in the staff work lists (real PostgreSQL)', { skip 
         assert.equal(item.dossierStatus, status);
         assert.equal(item.dossierClosed, true);
       }
+      assert.equal(l.m5.bucket, 'inactive');
+      assert.equal(l.m5.actionKey, 'none');
+      assert.equal(l.m7.bucket, 'inactive');
+      assert.equal(l.m7.actionKey, 'none');
       assert.equal(l.meeting.canManage, false);
       assert.equal(l.meeting.actionLabel, 'Dossier clos');
       assert.deepEqual(l.courrier.availableActions, []);
-      assert.equal(l.courrier.bucket, 'to_signature');
-      assert.equal(l.mission.missionStatus, 'closed');
-      assert.equal(l.mission.nextAction, 'consult');
-      assert.equal(l.mission.statusLabel, 'Dossier clos');
+      assert.equal(l.courrier.bucket, 'inactive');
+      assert.equal(l.mission.bucket, 'inactive');
+      assert.equal(l.mission.actionKey, 'none');
     });
   }
 
@@ -103,7 +107,7 @@ describe('K7c closed dossier in the staff work lists (real PostgreSQL)', { skip 
     const closedOne = await dossier('rejected');
     const openOne = await dossier('in_progress');
     const ids = (items: Array<{ requestId: number }>) => items.map((item) => item.requestId);
-    const toPrint = ids((await m.courrier.listCourrierTasks({ bucket: 'to_signature' })).items);
+    const toPrint = ids((await m.courrier.listCourrierTasks({ bucket: 'to_print' })).items);
     assert.ok(toPrint.includes(openOne.request));
     assert.ok(!toPrint.includes(closedOne.request));
     const all = ids((await m.courrier.listCourrierTasks({})).items);
@@ -116,12 +120,13 @@ describe('K7c closed dossier in the staff work lists (real PostgreSQL)', { skip 
       assert.equal(item.dossierStatus, 'in_progress');
       assert.equal(item.dossierClosed, false);
     }
-    assert.equal(l.m5.nextAction, 'validate_payment');
-    assert.equal(l.m7.nextAction, 'send_invoice');
+    assert.equal(l.m5.actionKey, 'validate_payment_proof');
+    assert.equal(l.m7.actionKey, 'send_invoice');
     assert.equal(l.meeting.canManage, true);
     assert.equal(l.meeting.actionLabel, 'Résoudre la réunion');
     assert.deepEqual(l.courrier.availableActions, ['print', 'confirm_signature_circuit']);
-    assert.equal(l.mission.missionStatus, 'to_hold');
-    assert.equal(l.mission.nextAction, 'mark_held');
+    assert.equal(l.courrier.bucket, 'to_print');
+    assert.equal(l.mission.bucket, 'to_hold');
+    assert.equal(l.mission.actionKey, 'record_visit_held');
   });
 });

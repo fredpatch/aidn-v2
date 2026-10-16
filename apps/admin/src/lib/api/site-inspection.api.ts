@@ -1,8 +1,7 @@
 import { api } from '../axios';
 import type {
   SiteInspectionBundle,
-  MyQueueItem,
-  PaymentQueueItem,
+  InspectionQueueResponse,
 } from './site-inspection.types';
 
 export async function fetchSiteInspectionBundle(requestId: string): Promise<SiteInspectionBundle> {
@@ -61,13 +60,8 @@ export async function submitVerdict(
   await api.post(`/site-inspection/phases/${phaseId}/verdict`, { verdict, note });
 }
 
-export async function fetchMyQueue(): Promise<MyQueueItem[]> {
+export async function fetchMyQueue(): Promise<InspectionQueueResponse> {
   const { data } = await api.get('/site-inspection/my-queue');
-  return data;
-}
-
-export async function fetchSiteInspectionPaymentQueue(): Promise<PaymentQueueItem[]> {
-  const { data } = await api.get('/site-inspection/payment-queue');
   return data;
 }
 

@@ -80,7 +80,7 @@ describe('C2c courrier tasks: phase guard and signature delay (real PostgreSQL)'
   it('open M4 phase: actions offered, no blocked reason', async () => {
     const { task } = await taskOf(await letter('open', 'submitted'));
     assert.deepEqual(task.availableActions, ['print', 'confirm_signature_circuit']);
-    assert.equal(task.actionBlockedReason, null);
+    assert.equal(task.blockReason, null);
   });
 
   it('M4 phase closed or missing: no action, reason « phase_not_open » (the mutation would refuse)', async () => {
@@ -88,7 +88,7 @@ describe('C2c courrier tasks: phase guard and signature delay (real PostgreSQL)'
       const request = await letter(m4, 'submitted');
       const { task } = await taskOf(request);
       assert.deepEqual(task.availableActions, []);
-      assert.equal(task.actionBlockedReason, 'phase_not_open');
+      assert.equal(task.blockReason, 'phase_not_open');
       await assert.rejects(
         service.confirmPrintedForSignature(task.id, 1),
         /PHASE_NOT_(OPEN|FOUND)/
@@ -99,13 +99,13 @@ describe('C2c courrier tasks: phase guard and signature delay (real PostgreSQL)'
   it('a returned courrier is never flagged blocked (nothing pending)', async () => {
     const { task } = await taskOf(await letter('closed', 'pending_review'));
     assert.deepEqual(task.availableActions, []);
-    assert.equal(task.actionBlockedReason, null);
+    assert.equal(task.blockReason, null);
   });
 
   it('signature delay in working days; late beyond the Circuit DG threshold', async () => {
     const { task: old, list } = await taskOf(await letter('open', 'in_signature_circuit', 30));
-    assert.equal(typeof list.signatureAlertDays, 'number');
-    assert.ok(old.signatureWorkingDays > list.signatureAlertDays);
+    assert.equal(typeof list.thresholds.dgAlertWorkingDays, 'number');
+    assert.ok(old.signatureWorkingDays > list.thresholds.dgAlertWorkingDays);
     assert.ok(old.signatureWorkingDays < 30, 'weekends are not counted');
     assert.equal(old.signatureLate, true);
 
@@ -121,12 +121,12 @@ describe('C2c courrier tasks: phase guard and signature delay (real PostgreSQL)'
   it('C2d: a courrier blocked by its phase leaves the action bucket and its count, stays in the full list', async () => {
     const blocked = await letter('closed', 'submitted');
     const open = await letter('open', 'submitted');
-    const toPrint = await service.listCourrierTasks({ bucket: 'to_signature' });
+    const toPrint = await service.listCourrierTasks({ bucket: 'to_print' });
     const ids = toPrint.items.map((item: { requestId: number }) => item.requestId);
     assert.ok(ids.includes(open) && !ids.includes(blocked));
     const all = await service.listCourrierTasks({});
     assert.ok(all.items.some((item: { requestId: number }) => item.requestId === blocked));
-    assert.equal(all.counts.toSignature, toPrint.items.length);
+    assert.equal(all.counts.to_print, toPrint.items.length);
   });
 
   it('C2d: one task carries its request, organisation, applicant and current document (batch load)', async () => {

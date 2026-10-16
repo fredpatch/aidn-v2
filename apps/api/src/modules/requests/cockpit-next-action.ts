@@ -2,21 +2,11 @@
  *  (typed owner), the operational state, and the D9 open-phase resolution.
  *  Pure: the service computes the facts from its batch rows (no N+1). Staff
  *  wording stays server-side; the applicant's own wording is the portal's (D2). */
-import type { ApplicantAction, NextActionOwner, OperationalState } from '@aidn/shared';
+import { OPERATIONAL_OWNERS, type ApplicantAction, type NextActionOwner, type OperationalState } from '@aidn/shared';
 import type { RequestCockpitPhase } from './requests.types.js';
 
-const DN_ROLES = ['dn_agent', 'dn_supervisor', 'SU'] as const;
-
-/** staff.roles copies the requireRole(...) list of the route performing the action. */
-export const OWNERS = {
-  dn: { kind: 'staff', label: 'DN', roles: [...DN_ROLES] },
-  reception: { kind: 'staff', label: 'Réception', roles: ['assistant_dg', 'reception', 'SU'] },
-  assistantDg: { kind: 'staff', label: 'Assistant DG', roles: ['assistant_dg', 'reception', 'SU'] },
-  assistantDn: { kind: 'staff', label: 'Assistante DN', roles: ['assistant_dn', 'SU'] },
-  finance: { kind: 'staff', label: 'Finance', roles: ['s5_agent', 'SU'] },
-  inspection: { kind: 'staff', label: 'Cellule Inspection', roles: ['r3_agent', 'SU'] },
-  applicant: { kind: 'applicant', label: 'Postulant' },
-} satisfies Record<string, NextActionOwner>;
+/** SESSION1-COCKPIT-1 - single source in @aidn/shared (values unchanged). */
+export const OWNERS = OPERATIONAL_OWNERS;
 
 export function phaseHref(phaseCode: string, requestId: number): string {
   if (phaseCode === 'M3') return `/demandes/${requestId}/phase-preliminaire`;
@@ -71,8 +61,8 @@ function awaitedFromApplicant(action: ApplicantAction): string {
       return `${action.count ?? 0} pièce(s) attendue(s) du postulant.`;
     case 'payment_proof':
       return action.variant === 'after_rejection'
-        ? `Nouvelle quittance attendue du postulant (${action.phaseCode}).`
-        : `Quittance de paiement attendue du postulant (${action.phaseCode}).`;
+        ? `Nouvelle preuve de paiement attendue du postulant (${action.phaseCode}).`
+        : `Preuve de paiement attendue du postulant (${action.phaseCode}).`;
     case 'document_correction':
       return `${action.count ?? 0} document(s) à corriger par le postulant.`;
     case 'certificate_collection':
@@ -144,7 +134,7 @@ export function resolveCockpitNextAction(facts: CockpitFacts): CockpitNextAction
   if (circuitStatus === 'in_signature_circuit') {
     return result(
       'Annotation du DG attendue',
-      'Le dossier est dans le circuit de signature du DG. La DN le suit en lecture seule.',
+      'Le dossier est dans le circuit DG, en attente de l’annotation du DG. La DN le suit en lecture seule.',
       null,
       'warning',
       'waiting',
@@ -245,7 +235,7 @@ function resolveOpenPhase(open: RequestCockpitPhase, facts: CockpitFacts): Cockp
   // 2. Finance.
   if (facts.openPhasePayment && facts.openPhasePayment.invoiceFileUrl === null) {
     return result(
-      'Facture à émettre',
+      'Facture à transmettre',
       'La facture de la phase doit être émise par le service Finance.',
       href,
       'warning',
@@ -255,8 +245,8 @@ function resolveOpenPhase(open: RequestCockpitPhase, facts: CockpitFacts): Cockp
   }
   if (facts.openPhasePayment?.status === 'pending_validation') {
     return result(
-      'Quittance à valider',
-      'La quittance du postulant doit être validée par le service Finance.',
+      'Preuve de paiement à valider',
+      'La preuve de paiement du postulant doit être validée par Finance.',
       href,
       'warning',
       'action_required',
@@ -290,7 +280,7 @@ function resolveOpenPhase(open: RequestCockpitPhase, facts: CockpitFacts): Cockp
   if (facts.openPhaseCircuitStatus === 'in_signature_circuit' || facts.openPhaseCircuitStatus === 'signed') {
     return result(
       'Circuit DG en cours',
-      'Le document de la phase est dans le circuit de signature du DG.',
+      'Le document de la phase est dans le circuit DG, en attente de l’annotation du DG.',
       href,
       'warning',
       'waiting',

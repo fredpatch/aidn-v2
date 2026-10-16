@@ -1,17 +1,11 @@
 import { api } from '../axios';
 import type {
   CertificateBundle,
-  PaymentQueueItem,
   ScopeDetails,
 } from './certificates.types';
 
 export async function fetchCertificateBundle(requestId: string): Promise<CertificateBundle> {
   const { data } = await api.get(`/certificates/by-request/${requestId}`);
-  return data;
-}
-
-export async function fetchCertificatesPaymentQueue(): Promise<PaymentQueueItem[]> {
-  const { data } = await api.get('/certificates/payment-queue');
   return data;
 }
 

@@ -14,7 +14,7 @@ export const DAY_GROUP_LABELS: Record<DayGroupKey, string> = {
 };
 
 export interface DayGroup<T> {
-  key: DayGroupKey | 'flat';
+  key: string;
   label: string | null;
   items: T[];
 }

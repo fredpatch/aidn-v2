@@ -25,19 +25,18 @@ describe('SESSION1-M1-1 Directeur DN annotation circuit (real PostgreSQL)', { sk
 
   before(async () => {
     pool = new pg.Pool({ connectionString: DATABASE_URL });
-    const [courrier, dn, requests, phases, uploads, attach, dashboard, alertJob, backfill, dbModule] = await Promise.all([
+    const [courrier, dn, requests, phases, uploads, attach, alertJob, backfill, dbModule] = await Promise.all([
       import('../courrier-tasks/courrier-tasks.service.js'),
       import('./dn-annotation.service.js'),
       import('../requests/requests.service.js'),
       import('../phases/phases.service.js'),
       import('../uploads/asset-registration.js'),
       import('../uploads/upload-attachment.js'),
-      import('../dashboard/dashboard.service.js'),
       import('../../jobs/dg-circuit-alert.job.js'),
       import('./dn-annotation.backfill.js'),
       import('../../shared/db/index.js'),
     ]);
-    m = { courrier, dn, requests, phases, uploads, attach, dashboard, alertJob, backfill, db: dbModule.db };
+    m = { courrier, dn, requests, phases, uploads, attach, alertJob, backfill, db: dbModule.db };
     closeAppPool = () => dbModule.db.$client.end();
   });
 
@@ -192,14 +191,14 @@ describe('SESSION1-M1-1 Directeur DN annotation circuit (real PostgreSQL)', { sk
       await assert.rejects(m.dn.returnAnnotated(d.taskId, await upload(d.user, 'trop-tot'), d.user), /INVALID_CIRCUIT_TRANSITION/);
       const sent = await m.dn.sendToDirector(d.taskId, d.user);
       assert.equal(sent.bucket, 'with_director');
-      assert.equal(sent.statusLabel, 'En circuit Directeur DN');
+      assert.equal(sent.actionKey, 'record_director_annotation');
       assert.deepEqual(sent.availableActions, ['upload_annotated_return']);
       await assert.rejects(m.dn.sendToDirector(d.taskId, d.user), /INVALID_CIRCUIT_TRANSITION/);
       assert.equal(await requestStatus(d.request), 'submitted');
 
       const returned = await m.dn.returnAnnotated(d.taskId, await upload(d.user, 'annote-directeur'), d.user);
       assert.equal(returned.bucket, 'returned');
-      assert.equal(returned.statusLabel, 'Annotation du Directeur DN reçue');
+      assert.equal(returned.actionKey, 'handed_to_dn');
       assert.deepEqual(returned.availableActions, []);
       assert.equal(await requestStatus(d.request), 'pending_review');
       assert.equal((await circuitOf(d.request, 'dn_director_annotation')).status, 'pending_review');
@@ -230,7 +229,7 @@ describe('SESSION1-M1-1 Directeur DN annotation circuit (real PostgreSQL)', { sk
       let list = await m.dn.listDnAnnotationTasks({});
       const task = list.items.find((t: { requestId: number }) => t.requestId === d.request);
       assert.equal(task.bucket, 'to_send');
-      assert.equal(task.statusLabel, 'À transmettre au Directeur DN');
+      assert.equal(task.actionKey, 'send_to_director');
       assert.deepEqual(task.availableActions, ['send_to_director']);
       assert.ok(task.fileUrl, 'carries the copied DG-annotated document');
 
@@ -239,6 +238,7 @@ describe('SESSION1-M1-1 Directeur DN annotation circuit (real PostgreSQL)', { sk
       assert.ok(!list.items.some((t: { requestId: number }) => t.requestId === d.request));
       const all = await m.dn.listDnAnnotationTasks({});
       const closed = all.items.find((t: { requestId: number }) => t.requestId === d.request);
+      assert.equal(closed.bucket, 'inactive');
       assert.deepEqual(closed.availableActions, []);
       assert.equal(closed.dossierClosed, true);
       await assert.rejects(m.dn.sendToDirector(d.taskId, d.user), /DOSSIER_CLOSED/);
@@ -302,12 +302,15 @@ describe('SESSION1-M1-1 Directeur DN annotation circuit (real PostgreSQL)', { sk
       await assert.rejects(m.courrier.returnSigned(`dn_director_annotation:${d.request}`, await upload(d.user, 'x'), d.user), /COURRIER_TASK_INVALID/);
     });
 
-    it('the reception dashboard counts the DG circuits only', async () => {
+    it('the courrier queue counts the DG circuits only', async () => {
       const d = await dossierInDgCircuit();
       await m.requests.returnSignedFromDg(d.request, await upload(d.user, 'dg'), d.user);
-      const summary = await m.dashboard.getReceptionDashboardSummary('this_month');
-      const json = JSON.stringify(summary);
-      assert.ok(!json.includes('dn_director_annotation'));
+      const list = await m.courrier.listCourrierTasks({});
+      assert.ok(list.items.some((t: { id: string; source: string; requestId: number }) => t.source === 'intake_request' && t.requestId === d.request));
+      assert.ok(!list.items.some((t: { id: string }) => t.id === `dn_director_annotation:${d.request}`));
+      const returned = list.items.filter((t: { bucket: string }) => t.bucket === 'returned');
+      assert.equal(list.counts.returned, returned.length);
+      assert.ok(returned.every((t: { source: string }) => t.source !== 'dn_director_annotation'));
     });
 
     it('the cockpit shows the intake DG circuit and the DN stage, never the other way round', async () => {

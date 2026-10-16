@@ -10,13 +10,6 @@ import * as evalController from './deep-evaluation.controller.js';
 
 const router = Router();
 
-router.get(
-  '/payment-queue',
-  authenticate,
-  requireRole('s5_agent', 'SU'),
-  evalController.getPaymentQueue
-);
-
 // Bundle - both sides
 router.get(
   '/by-request/:requestId',

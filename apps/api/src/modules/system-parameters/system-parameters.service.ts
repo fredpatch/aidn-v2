@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db } from "../../shared/db/index.js";
 import { systemParameters } from "../../shared/db/schema.js";
 import {
@@ -98,4 +98,25 @@ export async function updateParameter(
   });
 
   return toParameterView(updated);
+}
+
+/** SESSION1-COCKPIT-1 - several integer parameters in ONE query; missing or
+ *  non-numeric values fall back, same rule as getIntegerValue. */
+export async function getIntegerValues<K extends string>(fallbacks: Record<K, number>): Promise<Record<K, number>> {
+  const keys = Object.keys(fallbacks) as K[];
+  const rows =
+    keys.length === 0
+      ? []
+      : await db
+          .select({ key: systemParameters.key, value: systemParameters.value })
+          .from(systemParameters)
+          .where(inArray(systemParameters.key, keys));
+  const byKey = new Map(rows.map((row) => [row.key, row.value]));
+  const out = {} as Record<K, number>;
+  for (const key of keys) {
+    const raw = byKey.get(key);
+    const n = raw === undefined ? NaN : parseInt(raw, 10);
+    out[key] = Number.isNaN(n) ? fallbacks[key] : n;
+  }
+  return out;
 }

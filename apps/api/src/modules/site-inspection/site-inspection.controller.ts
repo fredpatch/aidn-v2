@@ -53,15 +53,6 @@ export async function getBundle(req: Request, res: Response): Promise<void> {
   }
 }
 
-export async function getPaymentQueue(_req: Request, res: Response): Promise<void> {
-  try {
-    const queue = await inspectionService.getPaymentQueue();
-    res.json(queue);
-  } catch (error) {
-    handleSiteInspectionError(res, error);
-  }
-}
-
 export async function uploadInvoice(req: Request, res: Response): Promise<void> {
   try {
     const { uploadAssetId } = req.body ?? {};
@@ -178,7 +169,7 @@ export async function submitVerdict(req: Request, res: Response): Promise<void> 
 
 export async function getMyQueue(req: Request, res: Response): Promise<void> {
   try {
-    const queue = await inspectionService.getMyQueue(req.user!.userId);
+    const queue = await inspectionService.getMyQueue({ userId: req.user!.userId, roles: req.user!.roles });
     res.json(queue);
   } catch (error) {
     handleSiteInspectionError(res, error);

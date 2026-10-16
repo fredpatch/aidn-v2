@@ -259,3 +259,17 @@ Spec: `docs/superpowers/specs/2026-10-15-session1-ux-1-design.md`.
 - **Demandes cockpit** (D9): pre-phase branches with explicit owners (Réception print, Assistant DG, Assistante DN / Directeur DN paper circuit); open phase: DN parallel work (counter-proposal, M5 documents without verdict) → applicant expected (same builder, `signed_meeting_report` never a waiting reason) → Finance → Cellule Inspection → DG circuits → DN. Reuses `loadApplicantActionRows({ includeClosedDossiers: true })` instead of re-reading phases / circuits / formal documents / evaluations; 13 fixed statements (14 with a viewer), no table read twice except `audit_logs` (2, pre-existing).
 - **Admin phase helpers** mirror that order with typed owners (Finance for invoices / validation, applicant for proofs / pieces / corrections / confirmations). Ruling: M7 « Retrait à enregistrer » stays a DN action on the phase page (the DN records it) while the cockpit says the applicant is awaited.
 - No migration. Deferred to SESSION1-COCKPIT-1: role dashboards and their next-action strings, cockpit metrics, server-side phase rail, sharing `OWNERS` between API and admin.
+
+## 20. Role cockpits are their work queues (SESSION1-COCKPIT-1, 2026-10-16)
+
+Spec: `docs/superpowers/specs/2026-10-16-session1-cockpit-1-design.md`.
+
+- **Shared contract (Option C)**: the operational vocabulary (bucket, state, owner, action key, urgency, `OPERATIONAL_OWNERS`) lives in `@aidn/shared`; each domain keeps its own read model (courrier tasks, DN circuit, Finance payments, site-inspection `getMyQueue`). No generic cross-domain queue.
+- **`items` / `counts`**: every queue returns `{ items, counts }` computed server-side from the same rows; `inactive` (closed dossier or phase) is listed but excluded from every action bucket count (B1). The overview is queue metrics derived from rows, with no `audit_logs` query.
+- **Role dashboards retired** (Réception, Finance/S5, CI/R3): pages, clients and the three endpoints `/dashboard/{s5,reception,r3}-summary` are deleted. Only the DN dashboard (`/dashboard/summary`) remains, behaviour unchanged. Caller audit: all three per-phase payment queues were removed and no unexpected consumer exists.
+- **`homeFor` precedence**: DN roles / SU keep the DN dashboard, then s5_agent, r3_agent, reception / assistant_dg, assistant_dn; `courrierDefaultTab`: Assistant DG alone starts on « Retour DG attendu ». Approved waiting mode: a queue tab can be « En attente » (waiting on someone else) instead of « À traiter »; stale `?id=` selections are cleaned up.
+- **B4**: a site visit can be marked held only with a validated payment, via compare-and-set; refusals return 409 `SITE_VISIT_PAYMENT_NOT_VALIDATED` / `MEETING_NOT_SCHEDULED`. B1-B6 fixed (closed dossiers, Finance invoice delay that could never fire, rejected dossier as Finance work, second CI state machine, courrier initial requests sent to the Assistante DN).
+- **D7** « Annotation du DG » (replaces circuit-signature wording); **D8** « preuve de paiement » (replaces « quittance »).
+- **Urgency uses only existing parameters** (`DASHBOARD_SLA_DEFAULTS` moved to `operational/thresholds.ts`); no new system parameter. Finance bucket literal: `FINANCE_BUCKETS[2]` is used instead of the literal because of the MEET-1 literal guard.
+- **Finance list stays unbounded** as before (follow-up: server-side history window). Portal DG wording is a follow-up.
+- No migration.

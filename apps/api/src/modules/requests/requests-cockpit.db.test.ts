@@ -144,7 +144,7 @@ describe('D2 request cockpit (real PostgreSQL)', { skip }, () => {
     await pool.query(`INSERT INTO payments (phase_id, status, invoice_file_url) VALUES ($1, 'awaiting_proof', '/api/files/1')`, [d.phase.M5]);
     const item = await cockpitItem(d.request);
     assert.equal(item.nextActionLabel, 'En attente du postulant');
-    assert.equal(item.nextActionDescription, 'Quittance de paiement attendue du postulant (M5).');
+    assert.equal(item.nextActionDescription, 'Preuve de paiement attendue du postulant (M5).');
     assert.equal(item.nextActionState, 'waiting');
     assert.equal(item.nextActionOwner.kind, 'applicant');
     assert.equal(item.nextActionHref, `/demandes/${d.request}/evaluation-approfondie`);
@@ -176,7 +176,7 @@ describe('D2 request cockpit (real PostgreSQL)', { skip }, () => {
       [d.phase.M6]
     );
     const item = await cockpitItem(d.request);
-    assert.equal(item.nextActionLabel, 'Quittance à valider');
+    assert.equal(item.nextActionLabel, 'Preuve de paiement à valider');
     assert.deepEqual(item.nextActionOwner, { kind: 'staff', label: 'Finance', roles: ['s5_agent', 'SU'] });
   });
 

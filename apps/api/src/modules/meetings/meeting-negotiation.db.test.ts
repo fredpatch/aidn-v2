@@ -164,8 +164,7 @@ describe('SESSION1-MEET-1 meeting negotiation (real PostgreSQL)', { skip }, () =
       assert.equal((await one(`SELECT status FROM requests WHERE id = $1`, [d.request])).status, 'pending_review');
     });
 
-    it('the R3 dashboard still lists a visit scheduled for the agent by someone else (actor fix kept M6 unchanged)', async () => {
-      const dashboard = await import('../dashboard/dashboard.service.js');
+    it('the R3 queue still lists a visit scheduled for the agent by someone else (actor fix kept M6 unchanged)', async () => {
       const d = await dossier();
       const r3 = await user();
       const dn = await user();
@@ -175,13 +174,14 @@ describe('SESSION1-MEET-1 meeting negotiation (real PostgreSQL)', { skip }, () =
         scheduledAt: slot().toISOString(),
         actorUserId: dn,
       });
-      const [audit] = await audits(meeting.id, 'MEETING_SCHEDULED');
-      assert.equal(audit.user_id, dn);
-      const summary = await dashboard.getR3DashboardSummary('this_month', r3);
-      assert.ok(
-        summary.activity.some((item) => item.id === audit.id),
-        'the assigned R3 agent still sees the scheduling in their activity'
+      const audit = await one(
+        `SELECT user_id, details->>'dnAgentId' AS agent FROM audit_logs WHERE action = 'MEETING_SCHEDULED' AND entity_id = $1 ORDER BY id DESC LIMIT 1`,
+        [meeting.id]
       );
+      assert.equal(audit.user_id, dn);
+      assert.equal(Number(audit.agent), r3);
+      const queue = await site.getMyQueue({ userId: r3, roles: ['r3_agent'] });
+      assert.ok(queue.items.some((item: { siteVisit: { id: number } }) => item.siteVisit.id === meeting.id));
     });
 
     it('a site visit can still be marked held (not_required counts as confirmed), audited under M6', async () => {

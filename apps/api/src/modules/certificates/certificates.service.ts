@@ -1,4 +1,4 @@
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { readFile, mkdir, writeFile } from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -34,12 +34,11 @@ import {
   type PaymentView,
   type CertificateView,
   type CertificateBundle,
-  type PaymentQueueItem,
   type ScopeDetails,
   type CertificateTemplateData,
 } from './certificates.types.js';
 import { rejectPhasePayment, validatePhasePaymentInTx } from '../payments/payment-decisions.js';
-import { assertCertificateDossierOpen, assertDossierOpen, dossierFlags } from '../requests/dossier-open.js';
+import { assertCertificateDossierOpen, assertDossierOpen } from '../requests/dossier-open.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATES_DIR = path.join(__dirname, '../../templates/certificates');
@@ -107,14 +106,6 @@ async function toCertificateView(row: typeof certificates.$inferSelect): Promise
   };
 }
 
-function nextPaymentAction(status: string): PaymentQueueItem['nextAction'] {
-  if (status === 'awaiting_invoice') return 'send_invoice';
-  if (status === 'pending_validation') return 'validate_payment';
-  if (status === 'awaiting_proof') return 'waiting_for_proof';
-  if (status === 'validated') return 'done';
-  return 'rejected';
-}
-
 // ── Open M7 ───────────────────────────────────────────────────────────────
 export async function openDeliveryPhase(
   requestId: number,
@@ -179,36 +170,6 @@ export async function getBundleForRequest(requestId: number): Promise<Certificat
     payment: payment ? toPaymentView(payment) : null,
     certificate: certificate ? await toCertificateView(certificate) : null,
   };
-}
-
-export async function getPaymentQueue(): Promise<PaymentQueueItem[]> {
-  const rows = await db
-    .select({
-      phaseId: phases.id,
-      requestId: requests.id,
-      requestReference: requests.reference,
-      requestType: requests.requestType,
-      requestStatus: requests.status,
-      organisationName: organisations.name,
-      payment: payments,
-    })
-    .from(phases)
-    .innerJoin(requests, eq(phases.requestId, requests.id))
-    .innerJoin(organisations, eq(requests.organisationId, organisations.id))
-    .innerJoin(payments, eq(payments.phaseId, phases.id))
-    .where(eq(phases.phaseCode, 'M7'))
-    .orderBy(desc(phases.openedAt));
-
-  return rows.map((row) => ({
-    phaseId: row.phaseId,
-    requestId: row.requestId,
-    requestReference: row.requestReference,
-    requestType: row.requestType,
-    organisationName: row.organisationName,
-    payment: toPaymentView(row.payment),
-    nextAction: nextPaymentAction(row.payment.status),
-    ...dossierFlags(row.requestStatus),
-  }));
 }
 
 // ── Invoice ───────────────────────────────────────────────────────────────

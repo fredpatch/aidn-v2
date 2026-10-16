@@ -1,4 +1,5 @@
 import { eq, and, desc, ne } from 'drizzle-orm';
+import { INSPECTION_BUCKETS, OPERATIONAL_OWNERS, canRecordSiteVisitHeld, countBuckets, visitDayUrgency } from '@aidn/shared';
 import { db } from '../../shared/db/index.js';
 import {
   phases,
@@ -7,6 +8,7 @@ import {
   payments,
   meetings,
   siteInspections,
+  users,
 } from '../../shared/db/schema.js';
 import { logAudit } from '../auth/auth.service.js';
 import type { PreparedAttachment } from '../uploads/upload-attachment.js';
@@ -17,8 +19,8 @@ import type {
   SiteVisitView,
   InspectionView,
   SiteInspectionBundle,
-  MyQueueItem,
-  PaymentQueueItem,
+  InspectionQueueItem,
+  InspectionQueueResponse,
 } from './site-inspection.types.js';
 import { rejectPhasePayment, validatePhasePayment } from '../payments/payment-decisions.js';
 import { assertDossierOpen, assertMeetingDossierOpen, assertPhaseDossierOpen, dossierFlags } from '../requests/dossier-open.js';
@@ -54,100 +56,6 @@ function toInspectionView(row: typeof siteInspections.$inferSelect): InspectionV
     verdict: row.verdict,
     note: row.note,
     submittedAt: row.submittedAt,
-  };
-}
-
-function nextPaymentAction(status: string): PaymentQueueItem['nextAction'] {
-  if (status === 'awaiting_invoice') return 'send_invoice';
-  if (status === 'pending_validation') return 'validate_payment';
-  if (status === 'awaiting_proof') return 'waiting_for_proof';
-  if (status === 'validated') return 'done';
-  return 'rejected';
-}
-
-function daysBetween(a: Date | null, b: Date | null): number | null {
-  if (!a || !b) return null;
-  const ms = b.getTime() - a.getTime();
-  return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
-}
-
-function missionState(params: {
-  dossierClosed: boolean;
-  phaseStatus: string;
-  payment: typeof payments.$inferSelect | null;
-  siteVisit: typeof meetings.$inferSelect;
-  inspection: typeof siteInspections.$inferSelect | null;
-}): Pick<
-  MyQueueItem,
-  'missionStatus' | 'statusLabel' | 'nextAction' | 'nextActionLabel' | 'priority' | 'waitingDays'
-> {
-  const waitingDays = daysBetween(params.siteVisit.scheduledAt, new Date());
-  // K7c - a closed dossier (rejected, cancelled, completed) leaves the R3's
-  // to-do list: nothing to hold or to report on, only to consult.
-  if (params.dossierClosed) {
-    return {
-      missionStatus: 'closed',
-      statusLabel: 'Dossier clos',
-      nextAction: 'consult',
-      nextActionLabel: 'Consulter',
-      priority: 'basse',
-      waitingDays,
-    };
-  }
-  if (params.inspection || params.phaseStatus === 'closed') {
-    return {
-      missionStatus: 'closed',
-      statusLabel: 'Clôturée',
-      nextAction: 'consult',
-      nextActionLabel: 'Consulter',
-      priority: 'basse',
-      waitingDays,
-    };
-  }
-  if (!params.payment || params.payment.status !== 'validated') {
-    return {
-      missionStatus: 'payment_pending',
-      statusLabel: 'Paiement attendu',
-      nextAction: 'wait_payment',
-      nextActionLabel: 'Suivre',
-      priority: 'basse',
-      waitingDays,
-    };
-  }
-  if (params.siteVisit.status === 'scheduled') {
-    const today = new Date();
-    const scheduledDay = new Date(params.siteVisit.scheduledAt);
-    scheduledDay.setHours(0, 0, 0, 0);
-    today.setHours(0, 0, 0, 0);
-    const daysUntil = Math.ceil(
-      (scheduledDay.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
-    );
-    return {
-      missionStatus: 'to_hold',
-      statusLabel: 'Prévue',
-      nextAction: 'mark_held',
-      nextActionLabel: 'Marquer tenue',
-      priority: daysUntil <= 0 ? 'haute' : daysUntil <= 2 ? 'moyenne' : 'basse',
-      waitingDays,
-    };
-  }
-  if (params.siteVisit.status === 'held') {
-    return {
-      missionStatus: 'report_due',
-      statusLabel: 'Avis attendu',
-      nextAction: 'submit_verdict',
-      nextActionLabel: "Soumettre l'avis",
-      priority: 'haute',
-      waitingDays,
-    };
-  }
-  return {
-    missionStatus: 'planned',
-    statusLabel: params.siteVisit.status,
-    nextAction: 'consult',
-    nextActionLabel: 'Consulter',
-    priority: 'basse',
-    waitingDays,
   };
 }
 
@@ -258,36 +166,6 @@ export async function assertR3AssignedToRequest(
   if (!siteVisit) throw new Error('SITE_VISIT_NOT_ASSIGNED');
 }
 
-export async function getPaymentQueue(): Promise<PaymentQueueItem[]> {
-  const rows = await db
-    .select({
-      phaseId: phases.id,
-      requestId: requests.id,
-      requestReference: requests.reference,
-      requestType: requests.requestType,
-      requestStatus: requests.status,
-      organisationName: organisations.name,
-      payment: payments,
-    })
-    .from(phases)
-    .innerJoin(requests, eq(phases.requestId, requests.id))
-    .innerJoin(organisations, eq(requests.organisationId, organisations.id))
-    .innerJoin(payments, eq(payments.phaseId, phases.id))
-    .where(eq(phases.phaseCode, 'M6'))
-    .orderBy(desc(phases.openedAt));
-
-  return rows.map((row) => ({
-    phaseId: row.phaseId,
-    requestId: row.requestId,
-    requestReference: row.requestReference,
-    requestType: row.requestType,
-    organisationName: row.organisationName,
-    payment: toPaymentView(row.payment),
-    nextAction: nextPaymentAction(row.payment.status),
-    ...dossierFlags(row.requestStatus),
-  }));
-}
-
 // ── Invoice ───────────────────────────────────────────────────────────────
 export async function uploadInvoice(
   phaseId: number,
@@ -360,24 +238,23 @@ export async function markAssignedSiteVisitHeld(
 ): Promise<SiteVisitView> {
   // K7 - closed dossier: read-only (requests/dossier-open.ts).
   await assertMeetingDossierOpen(db, meetingId);
-  const [siteVisit] = await db
-    .select()
+  const [row] = await db
+    .select({ visit: meetings, payment: payments })
     .from(meetings)
-    .where(
-      and(
-        eq(meetings.id, meetingId),
-        eq(meetings.meetingType, 'site_visit'),
-        eq(meetings.dnAgentId, r3AgentId)
-      )
-    );
-  if (!siteVisit) throw new Error('SITE_VISIT_NOT_ASSIGNED');
-  if (siteVisit.status !== 'scheduled') throw new Error('MEETING_NOT_SCHEDULED');
+    .leftJoin(payments, eq(payments.phaseId, meetings.phaseId))
+    .where(and(eq(meetings.id, meetingId), eq(meetings.meetingType, 'site_visit'), eq(meetings.dnAgentId, r3AgentId)));
+  if (!row) throw new Error('SITE_VISIT_NOT_ASSIGNED');
+  if (row.visit.status !== 'scheduled') throw new Error('MEETING_NOT_SCHEDULED');
+  // B4 - a visit is recorded as held only once its M6 payment is validated.
+  if (!canRecordSiteVisitHeld(row.visit, row.payment)) throw new Error('SITE_VISIT_PAYMENT_NOT_VALIDATED');
 
+  // Compare-and-set: a concurrent call that already moved the visit gets no row.
   const [updated] = await db
     .update(meetings)
     .set({ status: 'held' })
-    .where(eq(meetings.id, meetingId))
+    .where(and(eq(meetings.id, meetingId), eq(meetings.status, 'scheduled')))
     .returning();
+  if (!updated) throw new Error('MEETING_NOT_SCHEDULED');
 
   await logAudit({
     userId: r3AgentId,
@@ -459,19 +336,68 @@ export async function submitInspectionVerdict(
   return toInspectionView(inspection);
 }
 
-// ── R3's own dossier queue ───────────────────────────────────────────────
-export async function getMyQueue(r3AgentId: number): Promise<MyQueueItem[]> {
+// ── Cellule Inspection queue (read model) ────────────────────────────────
+type QueueRow = {
+  phaseId: number; phaseStatus: string; requestId: number; requestReference: string; requestType: string;
+  requestStatus: string; organisationName: string; agentName: string | null;
+  payment: typeof payments.$inferSelect | null; siteVisit: typeof meetings.$inferSelect; inspection: typeof siteInspections.$inferSelect | null;
+};
+type Op = Pick<InspectionQueueItem, 'bucket' | 'state' | 'owner' | 'actionKey' | 'blockReason' | 'urgency' | 'dueAt'>;
+
+export function buildInspectionItem(row: QueueRow, viewerId: number, now: Date): InspectionQueueItem {
+  const flags = dossierFlags(row.requestStatus);
+  const done = (bucket: 'closed' | 'inactive', blockReason: Op['blockReason']): Op => ({
+    bucket, state: 'done', owner: null, actionKey: 'none', blockReason, urgency: 'normal', dueAt: null,
+  });
+  let op: Op;
+  if (flags.dossierClosed) op = done('inactive', 'dossier_closed');
+  else if (row.inspection || row.phaseStatus === 'closed') op = done('closed', null);
+  else if (row.payment?.status !== 'validated') {
+    op = {
+      bucket: 'awaiting_payment', state: 'blocked', actionKey: 'await_payment', blockReason: 'payment_not_validated', urgency: 'normal', dueAt: null,
+      owner: row.payment?.status === 'awaiting_proof' ? OPERATIONAL_OWNERS.applicant : OPERATIONAL_OWNERS.finance,
+    };
+  } else if (canRecordSiteVisitHeld(row.siteVisit, row.payment)) {
+    op = {
+      bucket: 'to_hold', state: 'action_required', owner: OPERATIONAL_OWNERS.inspection, actionKey: 'record_visit_held', blockReason: null,
+      urgency: visitDayUrgency(row.siteVisit.scheduledAt, now), dueAt: row.siteVisit.scheduledAt.toISOString(),
+    };
+  } else if (row.siteVisit.status === 'held') {
+    op = { bucket: 'verdict_due', state: 'action_required', owner: OPERATIONAL_OWNERS.inspection, actionKey: 'submit_verdict', blockReason: null, urgency: 'normal', dueAt: null };
+  } else op = done('inactive', null); // no_show, file_cancelled...
+  return {
+    id: `site_visit:${row.siteVisit.id}`,
+    requestId: row.requestId,
+    requestReference: row.requestReference,
+    organisationName: row.organisationName,
+    ...op,
+    stepSince: (row.inspection?.submittedAt ?? row.siteVisit.scheduledAt).toISOString(),
+    ...flags,
+    phaseId: row.phaseId,
+    phaseStatus: row.phaseStatus,
+    requestType: row.requestType,
+    payment: row.payment ? toPaymentView(row.payment) : null,
+    siteVisit: toSiteVisitView(row.siteVisit),
+    inspection: row.inspection ? toInspectionView(row.inspection) : null,
+    assignedToViewer: row.siteVisit.dnAgentId === viewerId,
+    assignedAgentName: row.agentName,
+  };
+}
+
+/** D14 - an agent sees the missions assigned to them; SU sees every mission.
+ *  One query either way. */
+export async function getMyQueue(viewer: { userId: number; roles: readonly string[] }, now: Date = new Date()): Promise<InspectionQueueResponse> {
+  const seeAll = viewer.roles.includes('SU');
   const rows = await db
     .select({
       phaseId: phases.id,
       phaseStatus: phases.status,
-      openedAt: phases.openedAt,
-      closedAt: phases.closedAt,
       requestId: requests.id,
       requestReference: requests.reference,
       requestType: requests.requestType,
       requestStatus: requests.status,
       organisationName: organisations.name,
+      agentName: users.fullName,
       payment: payments,
       siteVisit: meetings,
       inspection: siteInspections,
@@ -480,42 +406,19 @@ export async function getMyQueue(r3AgentId: number): Promise<MyQueueItem[]> {
     .innerJoin(phases, eq(meetings.phaseId, phases.id))
     .innerJoin(requests, eq(phases.requestId, requests.id))
     .innerJoin(organisations, eq(requests.organisationId, organisations.id))
+    .leftJoin(users, eq(users.id, meetings.dnAgentId))
     .leftJoin(payments, eq(payments.phaseId, phases.id))
     .leftJoin(siteInspections, eq(siteInspections.phaseId, phases.id))
     .where(
       and(
         eq(phases.phaseCode, 'M6'),
         eq(meetings.meetingType, 'site_visit'),
-        eq(meetings.dnAgentId, r3AgentId),
         // One row per dossier: a superseded visit would list it twice.
-        ne(meetings.status, 'rescheduled')
+        ne(meetings.status, 'rescheduled'),
+        seeAll ? undefined : eq(meetings.dnAgentId, viewer.userId)
       )
     )
     .orderBy(desc(meetings.scheduledAt));
-
-  return rows.map((row) => {
-    const flags = dossierFlags(row.requestStatus);
-    const state = missionState({
-      dossierClosed: flags.dossierClosed,
-      phaseStatus: row.phaseStatus,
-      payment: row.payment,
-      siteVisit: row.siteVisit,
-      inspection: row.inspection,
-    });
-    return {
-      phaseId: row.phaseId,
-      phaseStatus: row.phaseStatus,
-      openedAt: row.openedAt,
-      closedAt: row.closedAt,
-      requestId: row.requestId,
-      requestReference: row.requestReference,
-      requestType: row.requestType,
-      organisationName: row.organisationName,
-      payment: row.payment ? toPaymentView(row.payment) : null,
-      siteVisit: toSiteVisitView(row.siteVisit),
-      inspection: row.inspection ? toInspectionView(row.inspection) : null,
-      ...flags,
-      ...state,
-    };
-  });
+  const items = rows.map((row) => buildInspectionItem(row, viewer.userId, now));
+  return { items, counts: countBuckets(INSPECTION_BUCKETS, items) };
 }

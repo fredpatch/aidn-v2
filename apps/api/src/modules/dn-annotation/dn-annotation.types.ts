@@ -1,19 +1,11 @@
-export type DnAnnotationBucket = 'to_send' | 'with_director' | 'returned';
+import type { DnCircuitActionKey, DnCircuitBucket, OperationalQueue, OperationalQueueItem } from '@aidn/shared';
 
 export type DnAnnotationAction = 'send_to_director' | 'upload_annotated_return';
 
-export interface DnAnnotationTaskView {
-  /** `dn_director_annotation:<requestId>` - same shape as the courrier task ids. */
-  id: string;
-  bucket: DnAnnotationBucket;
-  requestId: number;
-  requestReference: string;
+export interface DnCircuitQueueItem extends OperationalQueueItem<DnCircuitBucket, DnCircuitActionKey> {
   requestType: string;
-  organisationName: string;
   applicantName: string;
   circuitDocumentId: number;
-  /** Business label (« À transmettre au Directeur DN »...), never the technical status. */
-  statusLabel: string;
   /** Current file of the Directeur DN circuit: the copied DG-annotated
    *  document, then the Directeur DN annotated return. */
   fileUrl: string | null;
@@ -23,16 +15,12 @@ export interface DnAnnotationTaskView {
   sentToDirectorAt: Date | null;
   returnedAt: Date | null;
   availableActions: DnAnnotationAction[];
-  dossierStatus: string;
-  dossierClosed: boolean;
-  /** Whole working days since the hand-over to the Directeur DN (null otherwise).
-   *  Measured only - no automatic alert yet (rule to be validated with DN). */
+  /** Whole working days since the hand-over (informational only, D10). */
   directorWorkingDays: number | null;
   /** Returned without any document: the dossier predates this step (grandfathered). */
   predatesProcess: boolean;
 }
 
-export interface DnAnnotationListResponse {
-  items: DnAnnotationTaskView[];
-  counts: { toSend: number; withDirector: number; returned: number };
-}
+export type DnCircuitQueueResponse = OperationalQueue<DnCircuitQueueItem, DnCircuitBucket>;
+/** @deprecated kept for the mutation callers. */
+export type DnAnnotationTaskView = DnCircuitQueueItem;

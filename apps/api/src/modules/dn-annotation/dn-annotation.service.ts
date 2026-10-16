@@ -1,5 +1,5 @@
 import { and, desc, eq, inArray } from 'drizzle-orm';
-import { workingDaysBetween, type PublicHolidays } from '@aidn/shared';
+import { DN_CIRCUIT_BUCKETS, OPERATIONAL_OWNERS, countBuckets, workingDaysBetween, type PublicHolidays } from '@aidn/shared';
 import { db } from '../../shared/db/index.js';
 import { applicants, dgCircuitDocuments, documentVersions, organisations, requests } from '../../shared/db/schema.js';
 import { logAudit } from '../auth/auth.service.js';
@@ -13,12 +13,11 @@ import {
 import { relocateDossierAssetAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
 import { assertDossierOpen, dossierFlags } from '../requests/dossier-open.js';
 import { getPublicHolidays } from '../system-parameters/system-parameters.service.js';
-import { DN_CIRCUIT_STATUS_LABELS } from './dn-annotation.stage.js';
 import type {
   DnAnnotationAction,
-  DnAnnotationBucket,
-  DnAnnotationListResponse,
   DnAnnotationTaskView,
+  DnCircuitQueueItem,
+  DnCircuitQueueResponse,
 } from './dn-annotation.types.js';
 
 type Circuit = typeof dgCircuitDocuments.$inferSelect;
@@ -33,10 +32,21 @@ function parseTaskId(taskId: string): number {
   return requestId;
 }
 
-function bucketOf(status: string): DnAnnotationBucket {
-  if (status === 'in_signature_circuit') return 'with_director';
-  if (status === 'pending_review') return 'returned';
-  return 'to_send';
+type Operational = Pick<DnCircuitQueueItem, 'bucket' | 'state' | 'owner' | 'actionKey' | 'blockReason'>;
+
+function operationalOf(status: string, dossierClosed: boolean): Operational {
+  const pending = status === 'submitted' || status === 'in_signature_circuit';
+  if (pending && dossierClosed) return { bucket: 'inactive', state: 'done', owner: null, actionKey: 'none', blockReason: 'dossier_closed' };
+  if (status === 'submitted') return { bucket: 'to_send', state: 'action_required', owner: OPERATIONAL_OWNERS.assistantDn, actionKey: 'send_to_director', blockReason: null };
+  if (status === 'in_signature_circuit') return { bucket: 'with_director', state: 'waiting', owner: OPERATIONAL_OWNERS.assistantDn, actionKey: 'record_director_annotation', blockReason: null };
+  if (status === 'pending_review') return { bucket: 'returned', state: 'done', owner: null, actionKey: 'handed_to_dn', blockReason: null };
+  return { bucket: 'inactive', state: 'done', owner: null, actionKey: 'none', blockReason: null };
+}
+
+function stepSinceOf(row: Circuit): Date {
+  if (row.status === 'in_signature_circuit') return row.signatureSentAt ?? row.depositedAt;
+  if (row.status === 'pending_review') return row.pendingReviewAt ?? row.depositedAt;
+  return row.depositedAt;
 }
 
 function actionsFor(status: string): DnAnnotationAction[] {
@@ -103,7 +113,7 @@ async function loadContext(rows: Circuit[]): Promise<Context> {
   };
 }
 
-function buildView(row: Circuit, ctx: Context): DnAnnotationTaskView | null {
+function buildView(row: Circuit, ctx: Context): DnCircuitQueueItem | null {
   const request = ctx.requestsById.get(row.requestId);
   if (!request) return null;
   const flags = dossierFlags(request.status);
@@ -111,14 +121,16 @@ function buildView(row: Circuit, ctx: Context): DnAnnotationTaskView | null {
   const withDirector = row.status === 'in_signature_circuit' && row.signatureSentAt !== null;
   return {
     id: `${ENTITY_TYPE}:${row.requestId}`,
-    bucket: bucketOf(row.status),
     requestId: row.requestId,
     requestReference: request.reference,
-    requestType: request.requestType,
     organisationName: request.organisationName ?? '-',
+    ...operationalOf(row.status, flags.dossierClosed),
+    urgency: 'normal', // D10: Directeur DN aging is informational only
+    stepSince: stepSinceOf(row).toISOString(),
+    dueAt: null,
+    requestType: request.requestType,
     applicantName: request.applicantName ?? '-',
     circuitDocumentId: row.id,
-    statusLabel: DN_CIRCUIT_STATUS_LABELS[row.status] ?? row.status,
     fileUrl: document?.fileUrl ?? null,
     mimeType: document?.mimeType ?? null,
     createdAt: row.depositedAt,
@@ -140,29 +152,18 @@ async function viewOf(circuit: Circuit): Promise<DnAnnotationTaskView> {
   return view;
 }
 
-/** K7d - on a closed dossier the pending buckets drop out of the lists and counts. */
-function visibleIn(task: DnAnnotationTaskView, bucket: DnAnnotationBucket): boolean {
-  if (task.bucket !== bucket) return false;
-  return !(task.dossierClosed && bucket !== 'returned');
-}
-
-export async function listDnAnnotationTasks(filters: { bucket?: string }): Promise<DnAnnotationListResponse> {
+/** K7d - a pending circuit on a closed dossier is `inactive`: outside the
+ *  to_send / with_director lists and counts, still present in the full list. */
+export async function listDnAnnotationTasks(filters: { bucket?: string }): Promise<DnCircuitQueueResponse> {
   const rows = await db
     .select()
     .from(dgCircuitDocuments)
     .where(eq(dgCircuitDocuments.entityType, ENTITY_TYPE))
     .orderBy(desc(dgCircuitDocuments.depositedAt));
   const ctx = await loadContext(rows);
-  const tasks = rows.map((row) => buildView(row, ctx)).filter((task): task is DnAnnotationTaskView => !!task);
-  const items = filters.bucket ? tasks.filter((task) => visibleIn(task, filters.bucket as DnAnnotationBucket)) : tasks;
-  return {
-    items,
-    counts: {
-      toSend: tasks.filter((task) => visibleIn(task, 'to_send')).length,
-      withDirector: tasks.filter((task) => visibleIn(task, 'with_director')).length,
-      returned: tasks.filter((task) => visibleIn(task, 'returned')).length,
-    },
-  };
+  const tasks = rows.map((row) => buildView(row, ctx)).filter((task): task is DnCircuitQueueItem => !!task);
+  const items = filters.bucket ? tasks.filter((task) => task.bucket === filters.bucket) : tasks;
+  return { items, counts: countBuckets(DN_CIRCUIT_BUCKETS, tasks) };
 }
 
 /** Assistante DN hands the DG-annotated dossier to the Directeur DN. The

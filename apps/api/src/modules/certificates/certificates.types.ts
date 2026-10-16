@@ -75,19 +75,6 @@ export interface CertificateBundle {
   certificate: CertificateView | null;
 }
 
-export interface PaymentQueueItem {
-  phaseId: number;
-  requestId: number;
-  requestReference: string;
-  requestType: string;
-  organisationName: string;
-  payment: PaymentView;
-  nextAction: 'send_invoice' | 'validate_payment' | 'waiting_for_proof' | 'done' | 'rejected';
-  /** K7c - closed dossier: listed for history, no action offered. */
-  dossierStatus: string;
-  dossierClosed: boolean;
-}
-
 /** Data shape the HTML template's renderCertificate(data) expects - the full
  *  22-field contract locked with Fred. Keep in sync with the {tag} names in
  *  apps/api/src/templates/certificates/*.html. */

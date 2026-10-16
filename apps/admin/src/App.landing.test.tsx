@@ -24,6 +24,7 @@ import App from './App';
 beforeEach(() => {
   vi.spyOn(api, 'get').mockImplementation(async (url: string) => {
     if (url.includes('dn-annotation-tasks')) return { data: { items: [], counts: { toSend: 0, withDirector: 0, returned: 0 } } };
+    if (url.includes('courrier-tasks')) return { data: { items: [], counts: { to_print: 0, with_dg: 0, returned: 0, inactive: 0 }, thresholds: { dgAlertWorkingDays: 3, depositDays: 1 } } };
     return { data: {} };
   });
 });
@@ -42,13 +43,13 @@ describe('assistant_dn-only account', () => {
     expect(screen.queryByText('Accès refusé')).not.toBeInTheDocument();
   });
 
-  it('sees only « Courrier DN » in the sidebar', async () => {
+  it('sees only « Circuit Directeur DN » in the sidebar', async () => {
     mockRoles = ['assistant_dn'];
     renderWithProviders(<App />, { route: '/' });
     await screen.findByRole('heading', { name: 'Circuit Directeur DN' });
     const labels = sidebarLabels();
-    expect(labels.some((label) => label.includes('Courrier DN'))).toBe(true);
-    for (const forbidden of ['Tableau de bord', 'Demandes', 'Comptes postulants', 'Courriers à traiter', 'Mes Inspections', 'Paiements', 'Réunions', 'Analytique', 'Modèles', 'utilisateurs', 'Paramètres']) {
+    expect(labels.some((label) => label.includes('Circuit Directeur DN'))).toBe(true);
+    for (const forbidden of ['Tableau de bord', 'Demandes', 'Comptes postulants', 'Courriers à traiter', 'Mes inspections', 'Paiements', 'Réunions', 'Analytique', 'Modèles', 'utilisateurs', 'Paramètres']) {
       expect(labels.some((label) => label.includes(forbidden)), forbidden).toBe(false);
     }
     expect(labels).toHaveLength(1);
@@ -73,11 +74,11 @@ describe('account with no role at all', () => {
 });
 
 describe('other roles keep their landing and navigation', () => {
-  it('reception does not see the Courrier DN entry and cannot open it', async () => {
+  it('reception does not see the Circuit Directeur DN entry and cannot open it', async () => {
     mockRoles = ['reception'];
     const { unmount } = renderWithProviders(<App />, { route: '/' });
     await waitFor(() => expect(sidebarLabels().length).toBeGreaterThan(0));
-    expect(sidebarLabels().some((label) => label.includes('Courrier DN'))).toBe(false);
+    expect(sidebarLabels().some((label) => label.includes('Circuit Directeur DN'))).toBe(false);
     unmount();
     renderWithProviders(<App />, { route: '/circuit-directeur-dn' });
     expect(await screen.findByText('Accès refusé')).toBeInTheDocument();
@@ -88,13 +89,13 @@ describe('other roles keep their landing and navigation', () => {
     renderWithProviders(<App />, { route: '/' });
     await waitFor(() => expect(sidebarLabels().length).toBeGreaterThan(1));
     expect(screen.queryByRole('heading', { name: 'Circuit Directeur DN' })).not.toBeInTheDocument();
-    expect(sidebarLabels().some((label) => label.includes('Courrier DN'))).toBe(true);
+    expect(sidebarLabels().some((label) => label.includes('Circuit Directeur DN'))).toBe(true);
   });
 
-  it('SU sees the Courrier DN entry', async () => {
+  it('SU sees the Circuit Directeur DN entry', async () => {
     mockRoles = ['SU'];
     renderWithProviders(<App />, { route: '/' });
     await waitFor(() => expect(sidebarLabels().length).toBeGreaterThan(1));
-    expect(sidebarLabels().some((label) => label.includes('Courrier DN'))).toBe(true);
+    expect(sidebarLabels().some((label) => label.includes('Circuit Directeur DN'))).toBe(true);
   });
 });

@@ -82,7 +82,7 @@ describe('resolveCockpitNextAction - pre-phase branches (§7.4)', () => {
   it('intake in_signature_circuit → Annotation du DG attendue, waiting, Assistant DG', () => {
     const r = resolveCockpitNextAction(facts({ status: 'submitted', circuitStatus: 'in_signature_circuit', dnCircuitStatus: null }));
     assert.equal(r.nextActionLabel, 'Annotation du DG attendue');
-    assert.equal(r.nextActionDescription, 'Le dossier est dans le circuit de signature du DG. La DN le suit en lecture seule.');
+    assert.equal(r.nextActionDescription, 'Le dossier est dans le circuit DG, en attente de l’annotation du DG. La DN le suit en lecture seule.');
     assert.equal(r.nextActionState, 'waiting');
     assert.deepEqual(r.nextActionOwner, { kind: 'staff', label: 'Assistant DG', roles: ['assistant_dg', 'reception', 'SU'] });
     assert.equal(r.nextActionHref, null);
@@ -191,21 +191,21 @@ describe('resolveCockpitNextAction - open phase (D9)', () => {
       })
     );
     assert.equal(r.nextActionLabel, 'En attente du postulant');
-    assert.equal(r.nextActionDescription, 'Quittance de paiement attendue du postulant (M5).');
+    assert.equal(r.nextActionDescription, 'Preuve de paiement attendue du postulant (M5).');
     assert.equal(r.nextActionState, 'waiting');
     assert.equal(r.nextActionTone, 'warning');
     assert.deepEqual(r.nextActionOwner, APPLICANT);
     assert.equal(r.nextActionHref, `/demandes/${ID}/M5`);
   });
 
-  it('step 1: payment proof after a rejection → Nouvelle quittance attendue', () => {
+  it('step 1: payment proof after a rejection → Nouvelle preuve de paiement attendue', () => {
     const r = resolveCockpitNextAction(
       facts({
         phases: phases({ M3: 'closed', M4: 'closed', M5: 'open' }),
         applicantActions: [act('payment_proof', 'M5', { variant: 'after_rejection' })],
       })
     );
-    assert.equal(r.nextActionDescription, 'Nouvelle quittance attendue du postulant (M5).');
+    assert.equal(r.nextActionDescription, 'Nouvelle preuve de paiement attendue du postulant (M5).');
   });
 
   it('step 1: missing M4 pieces → {n} pièce(s) attendue(s) du postulant', () => {
@@ -247,28 +247,28 @@ describe('resolveCockpitNextAction - open phase (D9)', () => {
     assert.equal(r.nextActionLabel, 'Traiter Préliminaire');
   });
 
-  it('step 2: payment pending_validation → Quittance à valider, Finance', () => {
+  it('step 2: payment pending_validation → Preuve de paiement à valider, Finance', () => {
     const r = resolveCockpitNextAction(
       facts({
         phases: phases({ M3: 'closed', M4: 'closed', M5: 'open' }),
         openPhasePayment: { status: 'pending_validation', invoiceFileUrl: '/api/files/1' },
       })
     );
-    assert.equal(r.nextActionLabel, 'Quittance à valider');
-    assert.equal(r.nextActionDescription, 'La quittance du postulant doit être validée par le service Finance.');
+    assert.equal(r.nextActionLabel, 'Preuve de paiement à valider');
+    assert.equal(r.nextActionDescription, 'La preuve de paiement du postulant doit être validée par Finance.');
     assert.equal(r.nextActionState, 'action_required');
     assert.equal(r.nextActionTone, 'warning');
     assert.deepEqual(r.nextActionOwner, FINANCE);
   });
 
-  it('step 2: payment without invoice → Facture à émettre, Finance', () => {
+  it('step 2: payment without invoice → Facture à transmettre, Finance', () => {
     const r = resolveCockpitNextAction(
       facts({
         phases: phases({ M3: 'closed', M4: 'closed', M5: 'closed', M6: 'open' }),
         openPhasePayment: { status: 'awaiting_invoice', invoiceFileUrl: null },
       })
     );
-    assert.equal(r.nextActionLabel, 'Facture à émettre');
+    assert.equal(r.nextActionLabel, 'Facture à transmettre');
     assert.equal(r.nextActionDescription, 'La facture de la phase doit être émise par le service Finance.');
     assert.deepEqual(r.nextActionOwner, FINANCE);
   });
@@ -306,7 +306,7 @@ describe('resolveCockpitNextAction - open phase (D9)', () => {
     for (const status of ['in_signature_circuit', 'signed']) {
       const dg = resolveCockpitNextAction(facts({ phases: open, openPhaseCircuitStatus: status }));
       assert.equal(dg.nextActionLabel, 'Circuit DG en cours');
-      assert.equal(dg.nextActionDescription, 'Le document de la phase est dans le circuit de signature du DG.');
+      assert.equal(dg.nextActionDescription, 'Le document de la phase est dans le circuit DG, en attente de l’annotation du DG.');
       assert.equal(dg.nextActionState, 'waiting');
       assert.deepEqual(dg.nextActionOwner, { kind: 'staff', label: 'Assistant DG', roles: ['assistant_dg', 'reception', 'SU'] });
     }

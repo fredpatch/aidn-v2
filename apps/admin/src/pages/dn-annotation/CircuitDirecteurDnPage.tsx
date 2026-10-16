@@ -1,360 +1,302 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Eye, Search, Send } from 'lucide-react';
+import { useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { Link } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Eye, FileUp, FolderOpen, Send } from 'lucide-react';
+import type { InternalRole } from '@aidn/shared';
 import DocumentViewer from '../../components/documents/DocumentViewer';
-import { Button } from '../../components/ui/button';
-import { Modal } from '../../components/ui/modal';
-import { BucketTabs } from '../../components/common/BucketTabs';
+import { CockpitPage } from '../../components/cockpit/CockpitPage';
+import { QueueColumn } from '../../components/cockpit/QueueColumn';
+import { AgingBadge } from '../../components/cockpit/AgingBadge';
+import { CockpitUploadModal } from '../../components/cockpit/CockpitUploadModal';
+import { QueueEmptyPane, QueueReadingPane } from '../../components/cockpit/QueueReadingPane';
 import { ClosedDossierBadge } from '../../components/common/ClosedDossierBadge';
-import { EmptyState } from '../../components/common/EmptyState';
-import { StatusBadge } from '../../components/common/StatusBadge';
+import { Button, buttonVariants } from '../../components/ui/button';
+import { useAuth } from '../../hooks/useAuth';
 import {
   fetchDnAnnotationTasks,
   returnDirectorAnnotation,
   sendToDirectorDn,
-  type DnAnnotationBucket,
   type DnAnnotationTask,
 } from '../../lib/api/dn-annotation';
 import { apiErrorMessage } from '../../lib/axios';
+import { defaultOrderFor, filterQueue, groupQueue, sortQueue, type AgeOrder } from '../../lib/cockpit/queue';
+import { useQueueTab } from '../../lib/cockpit/useQueueTab';
+import { useUrlSelection } from '../../lib/cockpit/useUrlSelection';
+import { formatRowDate } from '../../lib/dayGroups';
+import { canAct } from '../../lib/next-action-owner';
 import { isDossierClosedError } from '../../lib/react-query/queryClient';
+import { queryKeys } from '../../lib/react-query/queryKeys';
 import { uploadFile } from '../../lib/uploads';
+import { cn } from '../../lib/utils';
 import { formatDateTime } from '../dashboard/dashboard.helpers';
-import { REQUEST_TYPE_LABELS } from '../courrier-tasks/courrierBuckets';
-import { DN_ANNOTATION_TABS, countDnTabs, dnActionLabel, filterDnTasks } from './dnAnnotationBuckets';
+import { REQUEST_TYPE_LABELS } from '../courrier-tasks/courrierCopy';
+import { DN_CIRCUIT_TAB_MODES, DN_CIRCUIT_TABS, dnCircuitCallout, dnCircuitMetrics, type DnCircuitTab } from './dnCircuitCopy';
 
-const BUCKET_HINTS: Record<DnAnnotationBucket, string> = {
-  to_send: 'Annotation du DG reçue. Remettez le dossier au Directeur DN, puis marquez-le en circuit Directeur DN.',
-  with_director:
-    'Le dossier est chez le Directeur DN. Dès que le retour annoté physique est disponible, scannez-le et téléversez-le.',
-  returned: 'Annotation du Directeur DN reçue. La DN peut ouvrir la phase préliminaire.',
-};
+const EMPTY_COUNTS = { to_send: 0, with_director: 0, returned: 0, inactive: 0 };
+const DN_VIEW_ROLES = ['dn_agent', 'dn_supervisor', 'SU'];
 
-const TAB_TONES: Record<DnAnnotationBucket, string> = {
-  to_send: 'border-blue-100 bg-blue-50 text-anac-blue',
-  with_director: 'border-orange-100 bg-orange-50 text-anac-warning',
-  returned: 'border-green-100 bg-green-50 text-anac-success',
-};
-
-/**
- * SESSION1-M1-1 - Circuit Directeur DN, the Assistante DN inbox: the dossiers
- * whose DG annotation was received, to hand to the Directeur DN and bring back
- * annotated. Only this page: the Réception courrier page has no DN branch.
- * The selected task is kept in `?id=`.
- */
+/** SESSION1-COCKPIT-1 - Circuit Directeur DN cockpit (home of the Assistante
+ *  DN): the dossiers whose DG annotation was received, to hand to the
+ *  Directeur DN and bring back annotated. Entrée only focuses the action. */
 export default function CircuitDirecteurDnPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [tasks, setTasks] = useState<DnAnnotationTask[]>([]);
-  const [tab, setTab] = useState<DnAnnotationBucket>('to_send');
+  const { user } = useAuth();
+  const roles = user?.roles ?? [];
+  const queryClient = useQueryClient();
+  const query = useQuery({ queryKey: queryKeys.dnCircuit.queue(), queryFn: () => fetchDnAnnotationTasks() });
+  const items = useMemo(() => query.data?.items ?? [], [query.data]);
+  const counts = query.data?.counts ?? EMPTY_COUNTS;
+
+  const [tab, setTab] = useQueueTab<DnCircuitTab>(DN_CIRCUIT_TABS.map((t) => t.key), 'to_send');
+  const mode = DN_CIRCUIT_TAB_MODES[tab];
+  const [order, setOrder] = useState<AgeOrder | null>(null);
+  const effectiveOrder = order ?? defaultOrderFor(mode);
   const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
-  const [busyId, setBusyId] = useState<string | null>(null);
-  const [viewTask, setViewTask] = useState<DnAnnotationTask | null>(null);
+  const visible = useMemo(
+    () =>
+      sortQueue(
+        filterQueue(items, tab, search, (item) =>
+          [item.requestReference, item.organisationName, item.applicantName, REQUEST_TYPE_LABELS[item.requestType]].join(' ')
+        ),
+        mode,
+        effectiveOrder
+      ),
+    [items, tab, search, mode, effectiveOrder]
+  );
+  const groups = useMemo(() => groupQueue(visible, mode), [visible, mode]);
+  const { selected, select } = useUrlSelection(visible, !query.isLoading);
+
+  const [previewTask, setPreviewTask] = useState<DnAnnotationTask | null>(null);
   const [returnTask, setReturnTask] = useState<DnAnnotationTask | null>(null);
   const [returnFile, setReturnFile] = useState<File | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const actionButtonRef = useRef<HTMLButtonElement>(null);
+  const previewButtonRef = useRef<HTMLButtonElement>(null);
 
-  async function load() {
-    setLoading(true);
-    setError(null);
-    try {
-      setTasks((await fetchDnAnnotationTasks()).items);
-    } catch (err) {
-      setError(apiErrorMessage(err, 'Impossible de charger le circuit Directeur DN.'));
-    } finally {
-      setLoading(false);
-    }
-  }
+  const reload = () => queryClient.invalidateQueries({ queryKey: queryKeys.dnCircuit.queue() });
 
-  useEffect(() => {
-    void load();
-  }, []);
-
-  const counts = useMemo(() => countDnTabs(tasks), [tasks]);
-  const visible = useMemo(() => filterDnTasks(tasks, tab, search), [tasks, tab, search]);
-  const requestedId = searchParams.get('id');
-  const selected = visible.find((task) => task.id === requestedId) ?? visible[0] ?? null;
-
-  function select(task: DnAnnotationTask) {
-    setActionError(null);
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        next.set('id', task.id);
-        return next;
-      },
-      { replace: true }
-    );
-  }
-
-  async function handleSend(task: DnAnnotationTask) {
+  async function run(task: DnAnnotationTask, action: () => Promise<void>, fallback: string, close: () => void) {
     setActionError(null);
     setBusyId(task.id);
     try {
-      await sendToDirectorDn(task.id);
-      await load();
+      await action();
+      close();
+      await reload();
     } catch (err) {
-      setActionError(apiErrorMessage(err, 'Mise en circuit impossible.'));
-      // K7c - dossier closed meanwhile: reload so the task shows it, no action.
-      if (isDossierClosedError(err)) await load();
-    } finally {
-      setBusyId(null);
-    }
-  }
-
-  async function handleReturn() {
-    if (!returnTask || !returnFile) {
-      setActionError('Sélectionnez le document annoté par le Directeur DN.');
-      return;
-    }
-    setActionError(null);
-    setBusyId(returnTask.id);
-    try {
-      const uploaded = await uploadFile(returnFile);
-      await returnDirectorAnnotation(returnTask.id, uploaded.uploadAssetId);
-      setReturnTask(null);
-      setReturnFile(null);
-      await load();
-    } catch (err) {
-      setActionError(apiErrorMessage(err, 'Retour annoté impossible.'));
+      setActionError(apiErrorMessage(err, fallback));
+      // K7c - dossier closed meanwhile: reload so the row shows it, no action.
       if (isDossierClosedError(err)) {
-        setReturnTask(null);
-        setReturnFile(null);
-        await load();
+        close();
+        await reload();
       }
     } finally {
       setBusyId(null);
     }
   }
 
+  const closeReturn = () => {
+    setReturnTask(null);
+    setReturnFile(null);
+  };
+
   return (
-    <div className="-m-6 min-h-full bg-[#f8fafc] text-anac-text">
-      <main className="mx-auto max-w-[1600px] space-y-4 px-5 py-4">
-        <header className="flex flex-wrap items-center gap-x-5 gap-y-3">
-          <div className="mr-auto">
-            <p className="text-xs font-medium text-anac-muted">Direction de la Navigabilité</p>
-            <h1 className="mt-1 text-xl font-semibold leading-tight text-anac-navy">Circuit Directeur DN</h1>
-          </div>
-          <div className="flex flex-wrap gap-2" aria-label="Synthèse">
-            <StatusBadge label={`${counts.to_send} à transmettre`} tone={TAB_TONES.to_send} />
-            <StatusBadge label={`${counts.with_director} en attente du retour`} tone={TAB_TONES.with_director} />
-            <StatusBadge label={`${counts.returned} annotation(s) reçue(s)`} tone={TAB_TONES.returned} />
-          </div>
-          <label className="relative block w-full sm:w-[340px]">
-            <span className="sr-only">Rechercher un dossier</span>
-            <Search
-              size={14}
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-anac-muted"
-              aria-hidden="true"
-            />
-            <input
-              type="search"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              className="h-9 w-full rounded-lg border border-anac-border bg-white pl-9 pr-3 text-sm outline-none transition focus:border-anac-blue focus:ring-2 focus:ring-anac-blue/15"
-              placeholder="Référence, organisation, postulant..."
-            />
-          </label>
-        </header>
-
-        {[error, actionError].map((message, index) =>
-          message ? (
-            <div
-              key={index}
-              role="alert"
-              className="rounded-lg border border-anac-danger/20 bg-red-50 px-4 py-3 text-sm text-anac-danger"
-            >
-              {message}
-            </div>
-          ) : null
-        )}
-
-        <section className="grid items-start gap-4 lg:grid-cols-[minmax(340px,400px)_minmax(0,1fr)]">
-          <div className="flex min-w-0 flex-col overflow-hidden rounded-lg border border-anac-border bg-white shadow-[0_8px_22px_rgba(17,34,83,0.04)]">
-            <BucketTabs
-              size="compact"
-              value={tab}
-              items={DN_ANNOTATION_TABS.map((t) => ({ key: t.key, label: t.label, count: counts[t.key] }))}
-              onChange={setTab}
-            />
-            <ul className="max-h-[calc(100vh-14rem)] divide-y divide-anac-border overflow-y-auto">
-              {loading ? (
-                <li className="px-4 py-6 text-sm text-anac-muted">Chargement...</li>
-              ) : visible.length === 0 ? (
-                <li className="px-4 py-6 text-sm text-anac-muted">Aucun dossier dans cet onglet.</li>
-              ) : (
-                visible.map((task) => (
-                  <li key={task.id}>
-                    <button
-                      type="button"
-                      onClick={() => select(task)}
-                      aria-current={selected?.id === task.id}
-                      className={`block w-full px-4 py-3 text-left transition hover:bg-anac-gray/60 ${
-                        selected?.id === task.id ? 'bg-blue-50/60' : ''
-                      }`}
-                    >
-                      <span className="block text-sm font-semibold text-anac-navy">{task.requestReference}</span>
-                      <span className="block text-xs text-anac-muted">
-                        {task.organisationName} · {task.applicantName}
-                      </span>
-                    </button>
-                  </li>
-                ))
-              )}
-            </ul>
-          </div>
-
-          <DetailPane
-            task={selected}
-            busy={busyId !== null && busyId === selected?.id}
-            onView={setViewTask}
-            onSend={handleSend}
-            onReturn={(task) => {
-              setReturnTask(task);
-              setReturnFile(null);
-            }}
-          />
-        </section>
-
-        <DocumentViewer
-          file={
-            viewTask?.fileUrl
-              ? { title: `Circuit Directeur DN ${viewTask.requestReference}`, url: viewTask.fileUrl }
-              : null
-          }
-          onClose={() => setViewTask(null)}
-          actionHint="Document courant du circuit Directeur DN."
+    <CockpitPage
+      title="Circuit Directeur DN"
+      metrics={dnCircuitMetrics(items, counts)}
+      search={{ value: search, onChange: setSearch, placeholder: 'Référence, organisation, postulant, type...', label: 'Rechercher un dossier' }}
+      errors={[query.error ? apiErrorMessage(query.error, 'Impossible de charger le circuit Directeur DN.') : null, actionError]}
+      list={
+        <QueueColumn
+          tabs={DN_CIRCUIT_TABS.map((t) => ({ key: t.key, label: t.label, count: t.key === 'all' ? items.length : counts[t.key] }))}
+          tab={tab}
+          onTabChange={(next) => {
+            setTab(next);
+            setActionError(null);
+            setOrder(null);
+          }}
+          order={effectiveOrder}
+          onOrderChange={setOrder}
+          groups={groups}
+          selectedId={selected?.id ?? null}
+          status={query.isLoading ? 'loading' : query.error ? 'error' : 'ready'}
+          texts={{
+            loading: 'Chargement du circuit Directeur DN',
+            error: 'Impossible de charger le circuit Directeur DN.',
+            empty: 'Aucun dossier dans cette vue',
+            listLabel: 'Dossiers du circuit Directeur DN',
+            noun: ['dossier', 'dossiers'],
+          }}
+          onSelect={(task) => {
+            setActionError(null);
+            select(task);
+          }}
+          onActivate={() => {
+            const button = actionButtonRef.current;
+            if (button && !button.disabled) button.focus();
+            else previewButtonRef.current?.focus();
+          }}
+          renderRow={(task) => <DnCircuitRow task={task} />}
         />
-
-        {returnTask && (
-          <Modal
-            title="Téléverser le retour annoté"
-            subtitle={`Annotation du Directeur DN - ${returnTask.requestReference}`}
-            onClose={() => {
-              setReturnTask(null);
-              setReturnFile(null);
-            }}
-            footer={
-              <>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  disabled={busyId === returnTask.id}
-                  onClick={() => {
-                    setReturnTask(null);
-                    setReturnFile(null);
-                  }}
-                >
-                  Annuler
-                </Button>
-                <Button type="button" size="sm" disabled={!returnFile || busyId === returnTask.id} onClick={handleReturn}>
-                  <Send size={14} aria-hidden="true" />
-                  {busyId === returnTask.id ? 'Enregistrement...' : 'Enregistrer le retour'}
-                </Button>
-              </>
-            }
-          >
-            <div className="space-y-2">
-              <label className="label">Document annoté par le Directeur DN</label>
-              <input
-                type="file"
-                accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
-                disabled={busyId === returnTask.id}
-                onChange={(event) => setReturnFile(event.target.files?.[0] ?? null)}
-              />
-              {returnFile ? <p className="text-xs text-anac-muted">{returnFile.name}</p> : null}
-              <p className="text-xs text-anac-muted">
-                Une fois enregistré, la DN peut ouvrir la phase préliminaire du dossier.
-              </p>
-            </div>
-          </Modal>
-        )}
-      </main>
-    </div>
+      }
+      pane={
+        <DnCircuitReadingPane
+          task={selected}
+          roles={roles}
+          busy={busyId !== null && busyId === selected?.id}
+          actionButtonRef={actionButtonRef}
+          previewButtonRef={previewButtonRef}
+          onPreview={setPreviewTask}
+          onSend={(task) => run(task, () => sendToDirectorDn(task.id), 'Mise en circuit impossible.', () => undefined)}
+          onReturn={(task) => {
+            setReturnTask(task);
+            setReturnFile(null);
+          }}
+        />
+      }
+    >
+      <DocumentViewer
+        file={previewTask?.fileUrl ? { title: `Circuit Directeur DN ${previewTask.requestReference}`, url: previewTask.fileUrl } : null}
+        onClose={() => setPreviewTask(null)}
+        actionHint="Document courant du circuit Directeur DN."
+      />
+      {returnTask ? (
+        <CockpitUploadModal
+          title="Téléverser le retour annoté"
+          subtitle={`Annotation du Directeur DN - ${returnTask.requestReference}`}
+          label="Document annoté par le Directeur DN"
+          hint="Une fois enregistré, la DN peut ouvrir la phase préliminaire du dossier."
+          accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+          submitLabel="Enregistrer le retour"
+          busySubmitLabel="Enregistrement..."
+          file={returnFile}
+          busy={busyId === returnTask.id}
+          onFileChange={setReturnFile}
+          onClose={closeReturn}
+          onSubmit={() =>
+            returnFile &&
+            run(
+              returnTask,
+              async () => returnDirectorAnnotation(returnTask.id, (await uploadFile(returnFile)).uploadAssetId),
+              'Retour annoté impossible.',
+              closeReturn
+            )
+          }
+        />
+      ) : null}
+    </CockpitPage>
   );
 }
 
-function DetailPane({
-  task,
-  busy,
-  onView,
-  onSend,
-  onReturn,
+/** One list row: organisation and date, reference and badges, then the step. */
+function DnCircuitRow({ task }: { task: DnAnnotationTask }) {
+  return (
+    <>
+      <span className="truncate text-sm font-medium text-anac-text">{task.organisationName}</span>
+      <span className="whitespace-nowrap text-right text-[11px] text-anac-muted">{task.stepSince ? formatRowDate(task.stepSince) : '-'}</span>
+      <span className="truncate text-xs text-anac-text/80">{task.requestReference}</span>
+      <span className="flex justify-end gap-1.5">
+        {task.dossierClosed ? <ClosedDossierBadge status={task.dossierStatus} /> : null}
+        {task.bucket === 'to_send' || task.bucket === 'with_director' ? (
+          <AgingBadge urgency="normal" since={task.stepSince} workingDays={task.bucket === 'with_director' ? task.directorWorkingDays : null} />
+        ) : null}
+      </span>
+      <span className="col-span-2 truncate text-xs">
+        <span className={cn('font-semibold', task.state === 'action_required' ? 'text-anac-blue' : task.state === 'waiting' ? 'text-anac-warning' : 'text-anac-muted')}>
+          {dnCircuitCallout(task).title}
+        </span>
+      </span>
+    </>
+  );
+}
+
+function DnCircuitReadingPane({
+  task, roles, busy, actionButtonRef, previewButtonRef, onPreview, onSend, onReturn,
 }: {
   task: DnAnnotationTask | null;
+  roles: readonly string[];
   busy: boolean;
-  onView: (task: DnAnnotationTask) => void;
+  actionButtonRef: RefObject<HTMLButtonElement>;
+  previewButtonRef: RefObject<HTMLButtonElement>;
+  onPreview: (task: DnAnnotationTask) => void;
   onSend: (task: DnAnnotationTask) => void;
   onReturn: (task: DnAnnotationTask) => void;
 }) {
-  if (!task) {
-    return (
-      <EmptyState
-        title="Aucun dossier sélectionné"
-        description="Les dossiers dont l'annotation du DG est reçue apparaissent ici, à transmettre au Directeur DN."
-        className="min-h-[240px]"
-      />
-    );
-  }
-  const action = dnActionLabel(task);
+  if (!task) return <QueueEmptyPane title="Sélectionnez un dossier" description="Le circuit, le document et l’action apparaîtront ici." />;
+  const copy = dnCircuitCallout(task);
+  const cta = task.availableActions.includes('send_to_director') ? (
+    <Button ref={actionButtonRef} type="button" size="sm" disabled={busy} onClick={() => onSend(task)}>
+      <Send size={14} aria-hidden="true" /> Marquer transmis au Directeur DN
+    </Button>
+  ) : task.availableActions.includes('upload_annotated_return') ? (
+    <Button ref={actionButtonRef} type="button" size="sm" disabled={busy} onClick={() => onReturn(task)}>
+      <FileUp size={14} aria-hidden="true" /> Téléverser le retour annoté
+    </Button>
+  ) : undefined;
+  const secondary = (
+    <>
+      {task.fileUrl ? (
+        <button ref={previewButtonRef} type="button" onClick={() => onPreview(task)} className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'gap-2')}>
+          <Eye size={14} aria-hidden="true" /> Voir le document
+        </button>
+      ) : null}
+      {roles.some((role) => DN_VIEW_ROLES.includes(role)) ? (
+        <Link to={`/demandes/${task.requestId}/phase-preliminaire`} className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'gap-2')}>
+          <FolderOpen size={14} aria-hidden="true" /> Voir le dossier
+        </Link>
+      ) : null}
+    </>
+  );
   return (
-    <article className="min-w-0 overflow-hidden rounded-lg border border-anac-border bg-white shadow-[0_8px_22px_rgba(17,34,83,0.04)]">
-      <div className="flex flex-wrap items-center gap-2 border-b border-anac-border px-5 py-4">
-        <div className="mr-auto">
-          <p className="text-xs text-anac-muted">
-            {REQUEST_TYPE_LABELS[task.requestType] ?? task.requestType}
-          </p>
-          <h2 className="text-lg font-semibold text-anac-navy">{task.requestReference}</h2>
-        </div>
-        <StatusBadge label={task.statusLabel} tone={TAB_TONES[task.bucket]} />
-        {task.dossierClosed ? <ClosedDossierBadge status={task.dossierStatus} /> : null}
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2 border-b border-anac-border bg-anac-gray/40 px-5 py-3">
-        {task.fileUrl ? (
-          <Button type="button" variant="secondary" size="sm" onClick={() => onView(task)}>
-            <Eye size={14} aria-hidden="true" />
-            Voir le document
-          </Button>
-        ) : null}
-        {action && task.availableActions.includes('send_to_director') ? (
-          <Button type="button" size="sm" disabled={busy} onClick={() => onSend(task)}>
-            <Send size={14} aria-hidden="true" />
-            {busy ? 'Enregistrement...' : action}
-          </Button>
-        ) : null}
-        {action && task.availableActions.includes('upload_annotated_return') ? (
-          <Button type="button" size="sm" disabled={busy} onClick={() => onReturn(task)}>
-            <Send size={14} aria-hidden="true" />
-            {action}
-          </Button>
-        ) : null}
-        {!action ? (
-          <span className="text-xs text-anac-muted">
-            {task.dossierClosed ? 'Dossier clos : consultation uniquement.' : 'Aucune action à effectuer.'}
-          </span>
-        ) : null}
-      </div>
-
-      <p className="border-b border-anac-border px-5 py-3 text-sm text-anac-muted">{BUCKET_HINTS[task.bucket]}</p>
-
-      <dl className="grid gap-x-8 gap-y-2 px-5 py-4 text-sm md:grid-cols-2">
-        <Info label="Organisation" value={task.organisationName} />
-        <Info label="Postulant" value={task.applicantName} />
-        <Info label="Annotation du DG reçue" value={formatDateTime(task.createdAt)} />
-        <Info label="En circuit Directeur DN" value={formatDateTime(task.sentToDirectorAt)} />
-        <Info label="Annotation du Directeur DN reçue" value={formatDateTime(task.returnedAt)} />
-        {task.directorWorkingDays !== null ? (
-          <Info label="Délai chez le Directeur DN" value={`${task.directorWorkingDays} jour(s) ouvré(s)`} />
-        ) : null}
+    <QueueReadingPane
+      ariaLabel={`Détail du dossier ${task.requestReference}`}
+      header={
+        <>
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1.5">
+            <h2 className="text-lg font-semibold text-anac-navy">{task.requestReference}</h2>
+            <span className="text-sm text-anac-text/80">{REQUEST_TYPE_LABELS[task.requestType] ?? task.requestType}</span>
+            <span className="ml-auto">{task.dossierClosed ? <ClosedDossierBadge status={task.dossierStatus} /> : null}</span>
+          </div>
+          <p className="mt-1.5 text-sm"><span className="font-semibold">{task.organisationName}</span><span className="text-anac-muted"> · {task.applicantName}</span></p>
+        </>
+      }
+      callout={{
+        state: task.state,
+        title: copy.title,
+        description: copy.description,
+        owner: task.owner,
+        canAct: canAct(task.owner, roles as InternalRole[]) && !!cta,
+        cta,
+        secondary,
+        blockReason: copy.blockReason,
+      }}
+    >
+      <Section title="Informations clés">
+        <dl className="grid gap-x-8 gap-y-2 text-sm md:grid-cols-2">
+          <Info label="Organisation" value={task.organisationName} />
+          <Info label="Postulant" value={task.applicantName} />
+          <Info label="Annotation du DG reçue" value={formatDateTime(task.createdAt)} />
+          <Info label="Transmis au Directeur DN" value={formatDateTime(task.sentToDirectorAt)} />
+          <Info label="Annotation du Directeur DN reçue" value={formatDateTime(task.returnedAt)} />
+          {task.directorWorkingDays !== null ? (
+            <Info label="Délai chez le Directeur DN" value={`${task.directorWorkingDays} jour(s) ouvré(s)`} />
+          ) : null}
+        </dl>
         {task.predatesProcess ? (
-          <p className="text-xs text-anac-muted md:col-span-2">
+          <p className="mt-3 text-xs text-anac-muted">
             Dossier antérieur à cette étape : aucun document d&apos;annotation du Directeur DN n&apos;est conservé.
           </p>
         ) : null}
-      </dl>
-    </article>
+      </Section>
+    </QueueReadingPane>
+  );
+}
+
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section>
+      <h3 className="mb-3 text-sm font-semibold text-anac-navy">{title}</h3>
+      {children}
+    </section>
   );
 }
 

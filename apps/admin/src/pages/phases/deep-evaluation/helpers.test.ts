@@ -40,9 +40,9 @@ describe('deepEvaluationWorkflowSummary (SESSION1-UX-1 §7.6)', () => {
     expect(s.state).toBe('action_required');
   });
 
-  it('awaiting_proof: Quittance attendue du postulant, applicant, waiting', () => {
+  it('awaiting_proof: Preuve de paiement attendue du postulant, applicant, waiting', () => {
     const s = deepEvaluationWorkflowSummary(bundle(payment({})), null);
-    expect(s.title).toBe('Quittance attendue du postulant');
+    expect(s.title).toBe('Preuve de paiement attendue du postulant');
     expect(s.owner).toEqual(APPLICANT_OWNER);
     expect(s.state).toBe('waiting');
   });

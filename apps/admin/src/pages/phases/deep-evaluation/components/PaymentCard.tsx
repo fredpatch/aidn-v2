@@ -112,7 +112,7 @@ export default function PaymentCard({
               <ClosedDossierNote>Aucune preuve de paiement déposée - dossier clos.</ClosedDossierNote>
             ) : (
               <p className="text-anac-muted text-xs">
-                En attente - le postulant doit soumettre sa quittance via le portail.
+                En attente - le postulant doit soumettre sa preuve de paiement via le portail.
               </p>
             )
           ) : (

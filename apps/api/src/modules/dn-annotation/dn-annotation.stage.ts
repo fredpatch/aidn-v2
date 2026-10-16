@@ -41,13 +41,6 @@ export function isPreliminaryOpenable(requestStatus: string, dnStatus: string | 
   return requestStatus === 'pending_review' && dnStatus === 'pending_review';
 }
 
-/** Labels of the Directeur DN circuit itself (Assistante DN inbox). */
-export const DN_CIRCUIT_STATUS_LABELS: Record<string, string> = {
-  submitted: 'À transmettre au Directeur DN',
-  in_signature_circuit: 'En circuit Directeur DN',
-  pending_review: 'Annotation du Directeur DN reçue',
-};
-
 /** The circuits owned by Réception / Assistant DG (courrier inbox, reception
  *  dashboard, DG alert). `dn_director_annotation` is deliberately NOT one of
  *  them: it belongs to Assistante DN and must never surface in those views. */

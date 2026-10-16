@@ -22,19 +22,28 @@ export const queryKeys = {
   deepEvaluation: {
     all: ['deepEvaluation'] as const,
     bundle: (requestId: string) => ['deepEvaluation', 'bundle', requestId] as const,
-    paymentQueue: () => ['deepEvaluation', 'payment-queue'] as const,
+  },
+  payments: {
+    all: ['payments'] as const,
+    financeQueue: () => ['payments', 'finance-queue'] as const,
+  },
+  courrierTasks: {
+    all: ['courrierTasks'] as const,
+    queue: () => ['courrierTasks', 'queue'] as const,
+  },
+  dnCircuit: {
+    all: ['dnCircuit'] as const,
+    queue: () => ['dnCircuit', 'queue'] as const,
   },
   siteInspection: {
     all: ['siteInspection'] as const,
     bundle: (requestId: string) => ['siteInspection', 'bundle', requestId] as const,
     myQueue: () => ['siteInspection', 'my-queue'] as const,
-    paymentQueue: () => ['siteInspection', 'payment-queue'] as const,
     usersByRole: (role: string) => ['siteInspection', 'users-by-role', role] as const,
   },
   certificates: {
     all: ['certificates'] as const,
     bundle: (requestId: string) => ['certificates', 'bundle', requestId] as const,
-    paymentQueue: () => ['certificates', 'payment-queue'] as const,
   },
   phases: {
     all: ['phases'] as const,

@@ -18,13 +18,6 @@ router.get(
   certificatesController.getBundle
 );
 
-router.get(
-  '/payment-queue',
-  authenticate,
-  requireRole('s5_agent', 'SU'),
-  certificatesController.getPaymentQueue
-);
-
 // Open M7 - DN/SU
 router.post(
   '/requests/:requestId/start-delivery',

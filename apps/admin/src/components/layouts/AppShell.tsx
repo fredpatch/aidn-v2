@@ -37,7 +37,7 @@ const NAV_ITEMS: NavItem[] = [
     to: '/',
     label: 'Tableau de bord',
     icon: LayoutDashboard,
-    roles: ['dn_agent', 'dn_supervisor', 'reception', 'assistant_dg', 's5_agent', 'r3_agent', 'SU'],
+    roles: ['dn_agent', 'dn_supervisor', 'SU'],
   },
   { to: '/demandes', label: 'Demandes', icon: Inbox, roles: ['dn_agent', 'dn_supervisor', 'SU'] },
   {
@@ -54,13 +54,13 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     to: '/circuit-directeur-dn',
-    label: 'Courrier DN',
+    label: 'Circuit Directeur DN',
     icon: RouteIcon,
     roles: ['assistant_dn', 'SU'],
   },
   {
     to: '/mes-inspections',
-    label: 'Mes Inspections',
+    label: 'Mes inspections',
     icon: ClipboardList,
     roles: ['r3_agent', 'SU'],
   },

@@ -18,13 +18,6 @@ router.get(
   inspectionController.getMyQueue
 );
 
-router.get(
-  '/payment-queue',
-  authenticate,
-  requireRole('s5_agent', 'SU'),
-  inspectionController.getPaymentQueue
-);
-
 // Bundle - both sides
 router.get(
   '/by-request/:requestId',

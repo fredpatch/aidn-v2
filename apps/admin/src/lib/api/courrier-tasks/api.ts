@@ -13,6 +13,6 @@ export async function confirmCourrierPrinted(taskId: string): Promise<void> {
   await api.post(`/courrier-tasks/${encodeURIComponent(taskId)}/confirm-printed-for-signature`);
 }
 
-export async function returnSignedCourrier(taskId: string, uploadAssetId: number): Promise<void> {
+export async function returnAnnotatedCourrier(taskId: string, uploadAssetId: number): Promise<void> {
   await api.post(`/courrier-tasks/${encodeURIComponent(taskId)}/return-signed`, { uploadAssetId });
 }

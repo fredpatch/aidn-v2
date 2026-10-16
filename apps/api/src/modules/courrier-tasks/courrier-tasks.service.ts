@@ -1,5 +1,13 @@
 import { and, desc, eq, inArray } from 'drizzle-orm';
-import { subtractWorkingDays, workingDaysBetween, type PublicHolidays } from '@aidn/shared';
+import {
+  COURRIER_BUCKETS,
+  OPERATIONAL_OWNERS,
+  countBuckets,
+  subtractWorkingDays,
+  urgencyFromAge,
+  workingDaysBetween,
+  type PublicHolidays,
+} from '@aidn/shared';
 import { db } from '../../shared/db/index.js';
 import {
   applicants,
@@ -19,21 +27,17 @@ import {
 } from '../uploads/upload-attachment.js';
 import { relocateDossierAssetAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
 import type {
-  CourrierTaskBucket,
-  CourrierTaskListResponse,
+  CourrierCircuitStep,
+  CourrierQueueItem,
+  CourrierQueueResponse,
   CourrierTaskSource,
   CourrierTaskView,
 } from './courrier-tasks.types.js';
 import { returnIntakeDgAnnotation } from '../dn-annotation/intake-dg-return.js';
 import { assertDossierOpen, dossierFlags } from '../requests/dossier-open.js';
-import {
-  getIntegerValue,
-  getPublicHolidays,
-} from '../system-parameters/system-parameters.service.js';
-
-/** Same key and default as the Circuit DG alert job (jobs/dg-circuit-alert.job.ts). */
-const DG_CIRCUIT_ALERT_DAYS_KEY = 'dg_circuit_alert_days';
-const DG_CIRCUIT_ALERT_DAYS_DEFAULT = 3;
+import { getPublicHolidays } from '../system-parameters/system-parameters.service.js';
+import { loadThresholds } from '../operational/thresholds.js';
+import { calendarDaysSince } from '../operational/aging.js';
 
 const MANAGED_ENTITY_TYPES: CourrierTaskSource[] = [
   'intake_request',
@@ -72,7 +76,7 @@ function phaseCodeFor(entityType: string): 'M3' | 'M4' | null {
 /** C2c - read once per list (or per mutation), never per row. */
 interface TaskContext {
   now: Date;
-  alertDays: number;
+  thresholds: { dgAlertWorkingDays: number; depositDays: number };
   holidays: PublicHolidays;
   /** `${requestId}:${phaseCode}` of every open phase among the listed requests. */
   openPhases: Set<string>;
@@ -96,8 +100,8 @@ async function loadTaskContext(
   const requestIds = [...new Set(rows.map((row) => row.requestId))];
   const circuitIds = rows.map((row) => row.id);
   const none = Promise.resolve([]);
-  const [alertDays, holidays, openRows, requestRows, documentRows] = await Promise.all([
-    getIntegerValue(DG_CIRCUIT_ALERT_DAYS_KEY, DG_CIRCUIT_ALERT_DAYS_DEFAULT),
+  const [limits, holidays, openRows, requestRows, documentRows] = await Promise.all([
+    loadThresholds(['dgAlertWorkingDays', 'signatureDepositDays']),
     getPublicHolidays(),
     requestIds.length === 0
       ? none
@@ -145,7 +149,7 @@ async function loadTaskContext(
   ]);
   return {
     now: new Date(),
-    alertDays,
+    thresholds: { dgAlertWorkingDays: limits.dgAlertWorkingDays, depositDays: limits.signatureDepositDays },
     holidays,
     openPhases: new Set(openRows.map((row) => `${row.requestId}:${row.phaseCode}`)),
     requestsById: new Map(requestRows.map((row) => [row.id, row])),
@@ -155,24 +159,29 @@ async function loadTaskContext(
   };
 }
 
-function bucketForStatus(status: string): CourrierTaskBucket {
-  if (status === 'submitted') return 'to_signature';
-  if (status === 'in_signature_circuit') return 'in_signature';
-  if (status === 'pending_review') return 'returned';
-  if (status === 'signed') return 'legacy_signed';
-  return 'to_signature';
-}
-
 function actionsForStatus(status: string): CourrierTaskView['availableActions'] {
   if (status === 'submitted') return ['print', 'confirm_signature_circuit'];
   if (status === 'in_signature_circuit') return ['upload_signed_return'];
   return [];
 }
 
-function buildTaskView(
-  row: typeof dgCircuitDocuments.$inferSelect,
-  ctx: TaskContext
-): CourrierTaskView | null {
+function circuitStepFor(status: string): CourrierCircuitStep {
+  if (status === 'in_signature_circuit') return 'with_dg';
+  if (status === 'pending_review') return 'returned';
+  if (status === 'signed') return 'legacy_signed';
+  return 'deposited';
+}
+
+function stepSinceOf(row: typeof dgCircuitDocuments.$inferSelect): Date {
+  if (row.status === 'in_signature_circuit') return row.signatureSentAt ?? row.depositedAt;
+  if (row.status === 'pending_review') return row.pendingReviewAt ?? row.signedAt ?? row.depositedAt;
+  if (row.status === 'signed') return row.signedAt ?? row.pendingReviewAt ?? row.depositedAt;
+  return row.depositedAt;
+}
+
+type Operational = Pick<CourrierQueueItem, 'bucket' | 'state' | 'owner' | 'actionKey' | 'blockReason' | 'urgency'>;
+
+function buildTaskView(row: typeof dgCircuitDocuments.$inferSelect, ctx: TaskContext): CourrierQueueItem | null {
   const request = ctx.requestsById.get(row.requestId);
   if (!request) return null;
   const currentDocument = ctx.documentsByCircuitId.get(row.id);
@@ -182,25 +191,56 @@ function buildTaskView(
   // C2c - same guard as ensureTaskCanMutate: a pending courrier of an M3 / M4
   // phase that is not open offers no action (the API would refuse it).
   const statusActions = actionsForStatus(row.status);
+  const pending = statusActions.length > 0;
   const phaseCode = phaseCodeFor(row.entityType);
-  const phaseBlocked =
-    !flags.dossierClosed &&
-    statusActions.length > 0 &&
-    phaseCode !== null &&
-    !ctx.openPhases.has(`${row.requestId}:${phaseCode}`);
+  const phaseBlocked = !flags.dossierClosed && pending && phaseCode !== null && !ctx.openPhases.has(`${row.requestId}:${phaseCode}`);
   const inSignature = row.status === 'in_signature_circuit' && row.signatureSentAt !== null;
+  const signatureWorkingDays = inSignature ? Math.floor(workingDaysBetween(row.signatureSentAt!, ctx.now, ctx.holidays)) : null;
+  // Exactly the alert job's cutoff: sent before it = more than N working days.
+  const signatureLate =
+    inSignature && row.signatureSentAt! < subtractWorkingDays(ctx.now, ctx.thresholds.dgAlertWorkingDays, ctx.holidays);
+
+  const inactive = (state: Operational['state'], owner: Operational['owner'], blockReason: Operational['blockReason']): Operational => ({
+    bucket: 'inactive', state, owner, actionKey: 'none', blockReason, urgency: 'normal',
+  });
+  let op: Operational;
+  if (pending && flags.dossierClosed) op = inactive('done', null, 'dossier_closed');
+  else if (phaseBlocked) op = inactive('blocked', OPERATIONAL_OWNERS.dn, 'phase_not_open');
+  else if (row.status === 'submitted') {
+    op = {
+      bucket: 'to_print', state: 'action_required', owner: OPERATIONAL_OWNERS.reception, actionKey: 'print_for_dg', blockReason: null,
+      urgency: urgencyFromAge(calendarDaysSince(row.depositedAt, ctx.now), ctx.thresholds.depositDays),
+    };
+  } else if (row.status === 'in_signature_circuit') {
+    // Overdue is exactly the alert job's cutoff; the step before it is the warning.
+    const byAge = urgencyFromAge(signatureWorkingDays, ctx.thresholds.dgAlertWorkingDays);
+    op = {
+      bucket: 'with_dg', state: 'waiting', owner: OPERATIONAL_OWNERS.assistantDg, actionKey: 'record_dg_annotation', blockReason: null,
+      urgency: signatureLate ? 'overdue' : byAge === 'normal' ? 'normal' : 'warning',
+    };
+  } else if (row.status === 'pending_review') {
+    op = {
+      bucket: 'returned', state: 'done', owner: null, blockReason: null, urgency: 'normal',
+      // B6 - since M1-1 an initial request goes to the Assistante DN (Circuit Directeur DN).
+      actionKey: row.entityType === 'intake_request' ? 'handed_to_assistant_dn' : 'handed_to_dn',
+    };
+  } else op = inactive('done', null, null); // legacy `signed` or an unknown status: history
 
   return {
     id: `${row.entityType}:${row.requestId}`,
-    source: row.entityType as CourrierTaskSource,
-    bucket: bucketForStatus(row.status),
     requestId: row.requestId,
     requestReference: request.reference,
-    requestType: request.requestType,
     organisationName: request.organisationName ?? '-',
+    ...op,
+    stepSince: stepSinceOf(row).toISOString(),
+    dueAt: null,
+    ...flags,
+    source: row.entityType as CourrierTaskSource,
+    requestType: request.requestType,
     applicantName: request.applicantName ?? '-',
     circuitDocumentId: row.id,
     circuitStatus: row.status,
+    circuitStep: circuitStepFor(row.status),
     fileUrl: currentDocument?.fileUrl ?? null,
     mimeType: currentDocument?.mimeType ?? null,
     depositedAt: row.depositedAt,
@@ -208,15 +248,8 @@ function buildTaskView(
     signedAt: row.signedAt,
     pendingReviewAt: row.pendingReviewAt,
     availableActions: flags.dossierClosed || phaseBlocked ? [] : statusActions,
-    ...flags,
-    actionBlockedReason: phaseBlocked ? 'phase_not_open' : null,
-    signatureWorkingDays: inSignature
-      ? Math.floor(workingDaysBetween(row.signatureSentAt!, ctx.now, ctx.holidays))
-      : null,
-    // Exactly the alert job's cutoff: sent before it = more than N working days.
-    signatureLate:
-      inSignature &&
-      row.signatureSentAt! < subtractWorkingDays(ctx.now, ctx.alertDays, ctx.holidays),
+    signatureWorkingDays,
+    signatureLate,
   };
 }
 
@@ -246,22 +279,10 @@ async function ensureTaskCanMutate(circuit: typeof dgCircuitDocuments.$inferSele
   if (phase.status !== 'open') throw new Error('PHASE_NOT_OPEN');
 }
 
-/** K7d - a courrier still to print or in signature on a closed dossier needs
- *  no action: it leaves those buckets and their counts (bucket itself keeps
- *  the circuit status; the full list still returns it). */
-const ACTION_BUCKETS: readonly string[] = ['to_signature', 'in_signature'];
-
-function inBucket(task: CourrierTaskView, bucket: string): boolean {
-  if (task.bucket !== bucket) return false;
-  // C2d - same for a courrier whose M3 / M4 phase is not open: no action possible.
-  const noAction = task.dossierClosed || task.actionBlockedReason !== null;
-  return !(noAction && ACTION_BUCKETS.includes(bucket));
-}
-
 export async function listCourrierTasks(filters: {
   bucket?: string;
   source?: string;
-}): Promise<CourrierTaskListResponse> {
+}): Promise<CourrierQueueResponse> {
   const rows =
     filters.source && MANAGED_ENTITY_TYPES.includes(filters.source as CourrierTaskSource)
       ? await db
@@ -277,19 +298,13 @@ export async function listCourrierTasks(filters: {
   const ctx = await loadTaskContext(managed);
   const tasks = managed
     .map((row) => buildTaskView(row, ctx))
-    .filter((task): task is CourrierTaskView => !!task);
+    .filter((task): task is CourrierQueueItem => !!task);
 
-  const filtered = filters.bucket ? tasks.filter((task) => inBucket(task, filters.bucket!)) : tasks;
-
+  const items = filters.bucket ? tasks.filter((task) => task.bucket === filters.bucket) : tasks;
   return {
-    items: filtered,
-    counts: {
-      toSignature: tasks.filter((task) => inBucket(task, 'to_signature')).length,
-      inSignature: tasks.filter((task) => inBucket(task, 'in_signature')).length,
-      returned: tasks.filter((task) => inBucket(task, 'returned')).length,
-      legacySigned: tasks.filter((task) => inBucket(task, 'legacy_signed')).length,
-    },
-    signatureAlertDays: ctx.alertDays,
+    items,
+    counts: countBuckets(COURRIER_BUCKETS, tasks),
+    thresholds: ctx.thresholds,
   };
 }
 

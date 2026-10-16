@@ -47,15 +47,6 @@ export async function getBundle(req: Request, res: Response): Promise<void> {
   }
 }
 
-export async function getPaymentQueue(_req: Request, res: Response): Promise<void> {
-  try {
-    const queue = await certificatesService.getPaymentQueue();
-    res.json(queue);
-  } catch (error) {
-    handleCertificatesError(res, error);
-  }
-}
-
 export async function uploadInvoice(req: Request, res: Response): Promise<void> {
   try {
     const { uploadAssetId } = req.body ?? {};

@@ -1,132 +1,129 @@
-/** C2b - Courriers à traiter, two panes: circuit tabs (K7d), ?id= selection,
- *  keyboard, and Entrée never changing the circuit. */
+/** SESSION1-COCKPIT-1 - Courriers cockpit: role landing tab, callout owner and
+ *  CTA by role, « Tous » with inactive rows, Entrée never acting, waiting
+ *  grouping, DOSSIER_CLOSED reload. */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { AxiosError, AxiosHeaders } from 'axios';
+import { OPERATIONAL_OWNERS } from '@aidn/shared';
 import { api } from '../../lib/axios';
 import type { CourrierTask } from '../../lib/api/courrier-tasks';
 import { renderWithProviders } from '../../test/render';
 import CourrierTasksPage from './CourrierTasksPage';
+import { courrier } from '../../test/courrierFixtures';
 
-vi.mock('../../hooks/useAuth', () => ({ useAuth: () => ({ user: { roles: ['reception'] } }) }));
+let roles = ['reception'];
+vi.mock('../../hooks/useAuth', () => ({ useAuth: () => ({ user: { roles } }) }));
 
-const task = (n: number, over: Partial<CourrierTask> = {}): CourrierTask => ({
-  id: `formal_request_letter:${n}`,
-  source: 'formal_request_letter',
-  bucket: 'to_signature',
-  requestId: n,
-  requestReference: `DEM-C2-0${n}`,
-  requestType: 'issuance',
-  organisationName: `OMA ${n}`,
-  applicantName: 'Jean Test',
-  circuitDocumentId: n,
-  circuitStatus: 'submitted',
-  fileUrl: `/api/files/lettre-${n}.pdf`,
-  mimeType: 'application/pdf',
-  depositedAt: `2026-10-0${n}T09:00:00.000Z`,
-  signatureSentAt: null,
-  signedAt: null,
-  pendingReviewAt: null,
-  availableActions: ['print', 'confirm_signature_circuit'],
-  dossierStatus: 'in_progress',
-  dossierClosed: false,
-  actionBlockedReason: null,
-  signatureWorkingDays: null,
-  signatureLate: false,
-  ...over,
-});
+const thresholds = { dgAlertWorkingDays: 3, depositDays: 1 };
+const task = (n: number, over: Partial<CourrierTask> = {}): CourrierTask =>
+  courrier({
+    id: `formal_request_letter:${n}`, requestId: n, requestReference: `DEM-C2-0${n}`, organisationName: `OMA ${n}`,
+    circuitDocumentId: n, fileUrl: `/api/files/lettre-${n}.pdf`, stepSince: `2026-10-0${n}T09:00:00.000Z`,
+    depositedAt: `2026-10-0${n}T09:00:00.000Z`, ...over,
+  });
+const withDg = (n: number, over: Partial<CourrierTask> = {}) =>
+  task(n, {
+    bucket: 'with_dg', actionKey: 'record_dg_annotation', circuitStep: 'with_dg', circuitStatus: 'in_signature_circuit',
+    signatureSentAt: '2026-10-04T09:00:00.000Z', availableActions: ['upload_signed_return'], owner: OPERATIONAL_OWNERS.assistantDg,
+    signatureWorkingDays: 1, ...over,
+  });
+const inactive = (n: number) =>
+  task(n, {
+    bucket: 'inactive', state: 'done', owner: null, actionKey: 'none', blockReason: 'dossier_closed', dossierClosed: true,
+    dossierStatus: 'rejected', availableActions: [],
+  });
 
-const ITEMS: CourrierTask[] = [
-  task(1),
-  task(2),
-  task(3, {
-    bucket: 'in_signature',
-    circuitStatus: 'in_signature_circuit',
-    signatureSentAt: '2026-10-04T09:00:00.000Z',
-    availableActions: ['upload_signed_return'],
-  }),
-  task(4, {
-    bucket: 'legacy_signed',
-    circuitStatus: 'signed',
-    signedAt: '2026-06-12T09:00:00.000Z',
-    availableActions: [],
-  }),
-];
+const ITEMS: CourrierTask[] = [task(1), task(2), withDg(3), inactive(4)];
+const COUNTS = { to_print: 2, with_dg: 1, returned: 0, inactive: 1 };
+const seed = (items: CourrierTask[], counts = COUNTS) => ({ data: { items, counts, thresholds } });
+
+const renderPage = (route = '/courriers') => renderWithProviders(<CourrierTasksPage />, { route });
+const pane = () => screen.getByRole('article');
+const tabBtn = (name: RegExp) => screen.getByRole('button', { name });
 
 beforeEach(() => {
-  vi.spyOn(api, 'get').mockResolvedValue({ data: { items: ITEMS, counts: {} } });
+  roles = ['reception'];
+  vi.spyOn(api, 'get').mockResolvedValue(seed(ITEMS));
   vi.spyOn(api, 'post').mockResolvedValue({ data: null });
 });
 afterEach(() => vi.restoreAllMocks());
 
-const pane = () => screen.getByRole('article');
-const tab = (name: RegExp) => screen.getByRole('button', { name });
+describe('<CourrierTasksPage> cockpit', () => {
+  it('Réception lands on « À imprimer »; Assistant DG alone on « Retour DG attendu »', async () => {
+    roles = ['reception'];
+    renderPage();
+    await screen.findAllByRole('option');
+    expect(tabBtn(/^À imprimer/)).toHaveClass('border-anac-blue');
+    expect(screen.getAllByRole('option')).toHaveLength(2);
+    cleanup();
+    roles = ['assistant_dg'];
+    renderPage();
+    await screen.findAllByRole('option');
+    expect(tabBtn(/^Retour DG attendu/)).toHaveClass('border-anac-blue');
+    expect(screen.getAllByRole('option')).toHaveLength(1);
+  });
 
-describe('<CourrierTasksPage> two panes (C2b)', () => {
-  it('opens on « À imprimer », oldest first; « Ancien signé » has no tab, only « Tous »', async () => {
-    renderWithProviders(<CourrierTasksPage />);
-    const rows = await screen.findAllByRole('option');
-    expect(rows).toHaveLength(2);
-    expect(within(pane()).getByRole('heading', { name: 'DEM-C2-01' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /^Ancien signé/ })).not.toBeInTheDocument();
-    fireEvent.click(tab(/^Tous/));
+  it('callout: owner named, CTA « Ouvrir / imprimer » for Réception', async () => {
+    renderPage();
+    const article = await screen.findByRole('article', { name: /Détail du courrier DEM-C2-01/ });
+    expect(within(article).getByText('Responsable :')).toBeInTheDocument();
+    expect(within(article).getByRole('button', { name: /Ouvrir \/ imprimer/ })).toBeInTheDocument();
+    expect(within(article).getByRole('button', { name: /Voir le document/ })).toBeInTheDocument();
+  });
+
+  it('a role that cannot act gets no CTA but keeps the secondary links', async () => {
+    roles = ['dn_agent'];
+    renderPage();
+    const article = await screen.findByRole('article', { name: /Détail du courrier/ });
+    expect(within(article).queryByRole('button', { name: /Ouvrir \/ imprimer/ })).not.toBeInTheDocument();
+    expect(within(article).getByRole('button', { name: /Voir le document/ })).toBeInTheDocument();
+    expect(within(article).getByRole('link', { name: /Voir le dossier/ })).toBeInTheDocument();
+  });
+
+  it('« Tous » shows an inactive (closed) courrier with its badge and no CTA; action tabs never count it', async () => {
+    renderPage();
+    await screen.findAllByRole('option');
+    expect(tabBtn(/^À imprimer/)).toHaveTextContent('2');
+    expect(tabBtn(/^Retour DG attendu/)).toHaveTextContent('1');
+    fireEvent.click(tabBtn(/^Tous/));
     expect(await screen.findAllByRole('option')).toHaveLength(4);
+    const last = screen.getByRole('article', { name: /DEM-C2-04/ });
+    expect(within(last).getAllByText('Dossier rejeté').length).toBeGreaterThan(0);
+    expect(within(last).queryByRole('button', { name: /Ouvrir \/ imprimer/ })).not.toBeInTheDocument();
+    expect(within(last).getByText('Dossier clos — consultation uniquement')).toBeInTheDocument();
   });
 
-  it('?id= selects the courrier; an id outside the view falls back to the first row', async () => {
-    renderWithProviders(<CourrierTasksPage />, { route: '/courriers?id=formal_request_letter:2' });
-    expect(
-      await within(await screen.findByRole('article')).findByRole('heading', { name: 'DEM-C2-02' })
-    ).toBeInTheDocument();
-  });
-
-  it('↑/↓ move the selection; Entrée only focuses « Ouvrir / imprimer » (no circuit change)', async () => {
-    renderWithProviders(<CourrierTasksPage />);
+  it('Entrée on a row focuses the action button, never prints', async () => {
+    renderPage();
     const first = (await screen.findAllByRole('option'))[0];
     first.focus();
-    fireEvent.keyDown(first, { key: 'ArrowDown' });
-    const second = screen.getAllByRole('option')[1];
-    expect(second).toHaveAttribute('aria-selected', 'true');
-    expect(within(pane()).getByRole('heading', { name: 'DEM-C2-02' })).toBeInTheDocument();
-
-    fireEvent.keyDown(second, { key: 'Enter' });
-    expect(screen.getByRole('button', { name: /Ouvrir \/ imprimer/ })).toHaveFocus();
+    fireEvent.keyDown(first, { key: 'Enter' });
+    expect(within(pane()).getByRole('button', { name: /Ouvrir \/ imprimer/ })).toHaveFocus();
     expect(api.post).not.toHaveBeenCalled();
   });
 
-  it('in signature: Entrée only focuses « Scanner le retour signé »; the modal is not opened', async () => {
-    renderWithProviders(<CourrierTasksPage />);
+  it('« Retour DG attendu » groups a normal item under « En attente », never « À traiter »', async () => {
+    renderPage('/courriers?tab=with_dg');
     await screen.findAllByRole('option');
-    fireEvent.click(tab(/^En signature/));
-    const row = (await screen.findAllByRole('option'))[0];
-    fireEvent.keyDown(row, { key: 'Enter' });
-    expect(screen.getByRole('button', { name: /Scanner le retour signé/ })).toHaveFocus();
-    expect(screen.queryByRole('button', { name: /Enregistrer le retour/ })).not.toBeInTheDocument();
-    expect(api.post).not.toHaveBeenCalled();
+    expect(screen.getByText('En attente')).toBeInTheDocument();
+    expect(screen.queryByText('À traiter')).not.toBeInTheDocument();
   });
 
-  it('/ focuses the search box', async () => {
-    renderWithProviders(<CourrierTasksPage />);
-    const row = (await screen.findAllByRole('option'))[0];
-    fireEvent.keyDown(row, { key: '/' });
-    expect(screen.getByRole('searchbox', { name: 'Rechercher un courrier' })).toHaveFocus();
-  });
-
-  it('phase not open (C2c/C2d): only under « Tous », no action button, the reason is shown', async () => {
-    vi.spyOn(api, 'get').mockResolvedValue({
-      data: {
-        items: [task(1, { availableActions: [], actionBlockedReason: 'phase_not_open' })],
-        counts: {},
-        signatureAlertDays: 3,
-      },
-    });
-    renderWithProviders(<CourrierTasksPage />);
-    // C2d - out of « À imprimer » (empty), listed under « Tous »
-    expect(await screen.findByText('Aucun courrier dans cette vue')).toBeInTheDocument();
-    fireEvent.click(tab(/^Tous/));
-    await screen.findAllByRole('option');
-    expect(screen.queryByRole('button', { name: /Ouvrir \/ imprimer/ })).not.toBeInTheDocument();
-    expect(
-      within(pane()).getByText(/phase M4 de ce dossier n'est pas ouverte/)
-    ).toBeInTheDocument();
+  it('DOSSIER_CLOSED during « Impression OK »: the list reloads and the API message is shown', async () => {
+    const get = vi.spyOn(api, 'get');
+    get.mockResolvedValueOnce(seed([task(1)], { to_print: 1, with_dg: 0, returned: 0, inactive: 0 }));
+    get.mockResolvedValue(seed([inactive(1)], { to_print: 0, with_dg: 0, returned: 0, inactive: 1 }));
+    vi.spyOn(api, 'post').mockRejectedValue(
+      new AxiosError('Conflict', 'ERR_BAD_REQUEST', undefined, undefined, {
+        status: 409, statusText: 'Conflict', headers: {}, config: { headers: new AxiosHeaders() },
+        data: { code: 'DOSSIER_CLOSED', message: 'Le dossier est clos.' },
+      })
+    );
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: /Ouvrir \/ imprimer/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /Impression OK/ }));
+    expect(await screen.findByText('Le dossier est clos.')).toBeInTheDocument();
+    await waitFor(() => expect(get).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.queryByRole('button', { name: /Impression OK/ })).not.toBeInTheDocument());
   });
 });

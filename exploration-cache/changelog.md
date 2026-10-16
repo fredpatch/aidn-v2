@@ -3,6 +3,15 @@
 Commit-level history. Covers `be9fce9` through the 2026-10-09 D3c admin
 unread/activity batch.
 
+## 2026-10-16 SESSION1-COCKPIT-1: role work queues as home cockpits
+
+- Landing: `homeFor` sends Réception / Assistant DG to `/courriers`, Assistante DN to `/circuit-directeur-dn`, Finance to `/paiements-s5`, Cellule Inspection to `/mes-inspections`; DN roles and SU keep the DN dashboard.
+- Shared: operational contract (bucket, state, owner, action key, urgency, `OPERATIONAL_OWNERS`); API queues return `{ items, counts }` with `inactive`; urgency reuses existing parameters only (`DASHBOARD_SLA_DEFAULTS` now in `operational/thresholds.ts`).
+- Admin: queues become cockpits (tabs « À traiter » / « En attente », approved waiting mode; stale `?id=` cleaned up); D7 « Annotation du DG », D8 « preuve de paiement »; Finance uses `FINANCE_BUCKETS[2]` (MEET-1 literal guard).
+- B1-B6 fixed: closed dossiers out of action counts, Finance invoice delay, rejected dossier no longer Finance work, single CI state machine, courrier initial requests handed to the Assistante DN, site visit held requires a validated payment (compare-and-set, 409 `SITE_VISIT_PAYMENT_NOT_VALIDATED` / `MEETING_NOT_SCHEDULED`).
+- Deleted: admin pages R3 / Réception / S5 dashboards and clients; API `GET /dashboard/s5-summary`, `/reception-summary`, `/r3-summary` with their helpers and types (`/dashboard/summary` untouched). Caller audit: the three per-phase payment queues removed, no unexpected consumer. Two DB tests migrated (courrier queue counts, R3 queue after DN scheduling).
+- No migration. See decisions #20.
+
 ## 2026-10-16 SESSION1-UX-1: applicant actions and operational next actions
 
 - Shared: `packages/shared/src/applicant-actions.ts` - 8 action keys, base priorities, `URGENCY_WINDOW_HOURS = 72`,

@@ -1,277 +1,125 @@
-import { useMemo, useState } from 'react';
-import { useForm, type FieldErrors } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Link } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import {
-  CalendarDays,
-  CheckCircle2,
-  ClipboardCheck,
-  ClipboardList,
-  FileText,
-  MapPin,
-  Search,
-  XCircle,
-} from 'lucide-react';
-import { Button, buttonVariants } from '../../components/ui/button';
-import { EmptyState } from '../../components/common/EmptyState';
-import { StatusBadge } from '../../components/common/StatusBadge';
+import { useMemo, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { ClosedDossierBadge } from '../../components/common/ClosedDossierBadge';
+import { AgingBadge } from '../../components/cockpit/AgingBadge';
+import { CockpitPage } from '../../components/cockpit/CockpitPage';
+import { QueueColumn } from '../../components/cockpit/QueueColumn';
+import { useAuth } from '../../hooks/useAuth';
+import { fetchMyQueue } from '../../lib/api/site-inspection.api';
+import type { InspectionQueueItem } from '../../lib/api/site-inspection.types';
 import { apiErrorMessage } from '../../lib/axios';
-import { markSiteVisitHeld, submitVerdict, fetchMyQueue } from '../../lib/api/site-inspection.api';
-import type { MyQueueItem } from '../../lib/api/site-inspection.types';
 import { queryKeys } from '../../lib/react-query/queryKeys';
+import { formatRowDate } from '../../lib/dayGroups';
+import { defaultOrderFor, filterQueue, groupQueue, sortQueue, type AgeOrder } from '../../lib/cockpit/queue';
+import { useQueueTab } from '../../lib/cockpit/useQueueTab';
+import { useUrlSelection } from '../../lib/cockpit/useUrlSelection';
 import { cn } from '../../lib/utils';
+import { InspectionPane } from './InspectionPane';
+import { INSPECTION_TABS, INSPECTION_TAB_MODES, inspectionCallout, inspectionMetrics, type InspectionTab } from './inspectionCopy';
 
-type StatusFilter = 'all' | MyQueueItem['missionStatus'];
-type VerdictValue = 'compliant' | 'non_compliant' | 'compliant_with_reserves';
+const EMPTY_COUNTS = { to_hold: 0, verdict_due: 0, awaiting_payment: 0, closed: 0, inactive: 0 };
 
-const STATUS_LABELS: Record<MyQueueItem['missionStatus'], string> = {
-  planned: 'Planifiée',
-  payment_pending: 'Paiement attendu',
-  to_hold: 'Prévue',
-  report_due: 'Avis attendu',
-  closed: 'Clôturée',
-};
-
-const STATUS_STYLES: Record<MyQueueItem['missionStatus'], string> = {
-  planned: 'border-blue-100 bg-blue-50 text-anac-blue',
-  payment_pending: 'border-orange-100 bg-orange-50 text-anac-warning',
-  to_hold: 'border-blue-100 bg-blue-50 text-anac-blue',
-  report_due: 'border-red-100 bg-red-50 text-anac-danger',
-  closed: 'border-green-100 bg-green-50 text-anac-success',
-};
-
-// Priority is computed by the API (site-inspection.service: visit today or
-// overdue / verdict due -> haute, visit within 2 days -> moyenne, else basse).
-const PRIORITY_STYLES: Record<MyQueueItem['priority'], string> = {
-  haute: 'border-red-100 bg-red-50 text-anac-danger',
-  moyenne: 'border-orange-100 bg-orange-50 text-anac-warning',
-  basse: 'border-green-100 bg-green-50 text-anac-success',
-};
-
-const PRIORITY_LABELS: Record<MyQueueItem['priority'], string> = {
-  haute: 'Priorité haute',
-  moyenne: 'Priorité moyenne',
-  basse: 'Priorité basse',
-};
-
-/** Status, plus the priority while the mission is still open (a closed mission has nothing left to rank). */
-function MissionBadges({ item }: { item: MyQueueItem }) {
-  return (
-    <div className="flex flex-wrap items-center gap-1.5">
-      <StatusBadge label={item.statusLabel || STATUS_LABELS[item.missionStatus]} tone={STATUS_STYLES[item.missionStatus]} />
-      {item.missionStatus !== 'closed' && (
-        <StatusBadge label={PRIORITY_LABELS[item.priority]} tone={PRIORITY_STYLES[item.priority]} />
-      )}
-      {item.dossierClosed && <ClosedDossierBadge status={item.dossierStatus} />}
-    </div>
-  );
-}
-
-const REQUEST_TYPE_LABELS: Record<string, string> = {
-  recognition: 'Reconnaissance',
-  issuance: 'Délivrance',
-  modification: 'Modification',
-  renewal: 'Renouvellement',
-};
-
-const VERDICT_LABELS: Record<VerdictValue, string> = {
-  compliant: 'Conforme',
-  compliant_with_reserves: 'Conforme avec réserves',
-  non_compliant: 'Non conforme',
-};
-
+/** SESSION1-COCKPIT-1 - Cellule Inspection cockpit (home of r3_agent): the
+ *  M6 missions on the shared shell, with the 7-day strip above. The CTA needs
+ *  both the owner role and the assignment (an SU sees the others' missions
+ *  without acting on them). Entrée only focuses the action. */
 export default function MyInspectionsPage() {
+  const { user } = useAuth();
+  const roles = user?.roles ?? [];
+  const query = useQuery({ queryKey: queryKeys.siteInspection.myQueue(), queryFn: fetchMyQueue });
+  const items = useMemo(() => query.data?.items ?? [], [query.data]);
+  const counts = query.data?.counts ?? EMPTY_COUNTS;
+
+  const [tab, setTab] = useQueueTab<InspectionTab>(INSPECTION_TABS.map((t) => t.key), 'to_hold');
+  const mode = INSPECTION_TAB_MODES[tab];
+  const [order, setOrder] = useState<AgeOrder | null>(null);
+  const effectiveOrder = order ?? defaultOrderFor(mode);
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState<StatusFilter>('all');
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const { data = [], isLoading, error } = useQuery({
-    queryKey: queryKeys.siteInspection.myQueue(),
-    queryFn: fetchMyQueue,
-  });
+  const actionButtonRef = useRef<HTMLButtonElement>(null);
 
   const days = useMemo(() => buildSevenDayStrip(), []);
-  const filtered = useMemo(() => {
-    const needle = normalize(search);
-    return data.filter((item) => {
-      const matchesSearch =
-        !needle ||
-        normalize(
-          `${item.requestReference} ${item.organisationName} ${item.siteVisit?.location ?? ''}`
-        ).includes(needle);
-      const matchesStatus = status === 'all' || item.missionStatus === status;
-      const matchesDay = !selectedDay || dayKey(item.siteVisit?.scheduledAt) === selectedDay;
-      return matchesSearch && matchesStatus && matchesDay;
-    });
-  }, [data, search, selectedDay, status]);
-
-  const selected =
-    filtered.find((item) => item.phaseId === selectedId) ?? filtered[0] ?? data[0] ?? null;
-
-  const metrics: Array<{
-    key: string;
-    label: string;
-    value: number;
-    helper: string;
-    icon: typeof CalendarDays;
-    tone: 'info' | 'warning' | 'success';
-  }> = [
-    {
-      key: 'planned',
-      label: 'Inspections prévues',
-      value: data.filter((item) => item.missionStatus === 'to_hold').length,
-      helper: 'Visites planifiées à tenir',
-      icon: CalendarDays,
-      tone: 'success',
-    },
-    {
-      key: 'ongoing',
-      label: 'En cours',
-      value: data.filter((item) => ['payment_pending', 'to_hold', 'report_due'].includes(item.missionStatus)).length,
-      helper: 'Missions non clôturées',
-      icon: ClipboardList,
-      tone: 'info',
-    },
-    {
-      key: 'reports',
-      label: 'Avis à remettre',
-      value: data.filter((item) => item.missionStatus === 'report_due').length,
-      helper: 'Visites tenues sans avis',
-      icon: FileText,
-      tone: 'warning',
-    },
-    {
-      key: 'closed',
-      label: 'Clôturées',
-      value: data.filter((item) => item.missionStatus === 'closed').length,
-      helper: 'Avis d’inspection déjà soumis',
-      icon: CheckCircle2,
-      tone: 'success',
-    },
-  ];
+  const visible = useMemo(
+    () =>
+      sortQueue(
+        filterQueue(items, tab, search, (item) => [item.requestReference, item.organisationName, item.siteVisit.location ?? ''].join(' ')).filter(
+          (item) => !selectedDay || dayKey(item.siteVisit.scheduledAt) === selectedDay
+        ),
+        mode,
+        effectiveOrder
+      ),
+    [items, tab, search, selectedDay, mode, effectiveOrder]
+  );
+  const groups = useMemo(() => groupQueue(visible, mode), [visible, mode]);
+  const { selected, select } = useUrlSelection(visible, !query.isLoading);
 
   return (
-    <div className="-m-6 min-h-full bg-[#f8fafc] text-anac-text">
-      <main
-        className="mx-auto grid max-w-[1500px] gap-5 px-6 py-6"
-        style={{ gridTemplateColumns: 'minmax(0, 1fr) minmax(340px, 380px)' }}
-      >
-        <section className="min-w-0 space-y-5">
-          <header className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-medium text-anac-muted">Direction de la Navigabilité</p>
-              <h1 className="mt-2 text-2xl font-semibold leading-tight text-anac-navy">
-                Mes inspections
-              </h1>
-              <p className="mt-1 text-sm text-anac-muted">
-                Suivez vos missions d’inspection, les visites planifiées et les avis a remettre.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <label className="relative block">
-                <span className="sr-only">Rechercher une inspection</span>
-                <Search
-                  size={14}
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-anac-muted"
-                  aria-hidden="true"
-                />
-                <input
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  className="h-9 w-[280px] rounded-md border border-anac-border bg-white pl-9 pr-3 text-sm outline-none transition focus:border-anac-blue focus:ring-2 focus:ring-anac-blue/15"
-                  placeholder="Rechercher dossier, opérateur, lieu..."
-                />
-              </label>
-              <select
-                value={status}
-                onChange={(event) => setStatus(event.target.value as StatusFilter)}
-                className="h-9 rounded-md border border-anac-border bg-white px-3 text-sm font-medium text-anac-navy outline-none focus:border-anac-blue focus:ring-2 focus:ring-anac-blue/15"
-                aria-label="Filtrer par statut"
-              >
-                <option value="all">Tous les statuts</option>
-                {Object.entries(STATUS_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </header>
-
-          {actionError ? (
-            <div className="rounded-lg border border-anac-danger/20 bg-red-50 px-4 py-3 text-sm text-anac-danger">
-              {actionError}
-            </div>
-          ) : null}
-
-          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {metrics.map((metric) => (
-              <MetricCard key={metric.key} metric={metric} />
-            ))}
-          </section>
-
-          <CalendarStrip
-            days={days}
-            items={data}
-            selectedDay={selectedDay}
-            onSelect={(day) => setSelectedDay((current) => (current === day ? null : day))}
-          />
-
-          <InspectionTable
-            items={filtered}
-            selectedId={selected?.phaseId ?? null}
-            isLoading={isLoading}
-            error={!!error}
-            onSelect={(item) => {
-              setSelectedId(item.phaseId);
-              setActionError(null);
-            }}
-          />
-        </section>
-
-        <InspectionDetailPanel item={selected} setActionError={setActionError} />
-      </main>
-    </div>
+    <CockpitPage
+      title={roles.includes('SU') ? 'Inspections — Cellule Inspection' : 'Mes inspections'}
+      metrics={inspectionMetrics(items, counts)}
+      search={{ value: search, onChange: setSearch, placeholder: 'Dossier, opérateur, lieu...', label: 'Rechercher une inspection' }}
+      errors={[query.error ? apiErrorMessage(query.error, 'Impossible de charger les inspections.') : null, actionError]}
+      above={
+        <CalendarStrip
+          days={days}
+          items={items}
+          selectedDay={selectedDay}
+          onSelect={(day) => setSelectedDay((current) => (current === day ? null : day))}
+        />
+      }
+      list={
+        <QueueColumn
+          tabs={INSPECTION_TABS.map((t) => ({ key: t.key, label: t.label, count: t.key === 'all' ? items.length : counts[t.key] }))}
+          tab={tab}
+          onTabChange={(next) => {
+            setTab(next);
+            setOrder(null);
+            setActionError(null);
+          }}
+          order={effectiveOrder}
+          onOrderChange={setOrder}
+          groups={groups}
+          selectedId={selected?.id ?? null}
+          status={query.isLoading ? 'loading' : query.error ? 'error' : 'ready'}
+          texts={{ loading: 'Chargement des inspections', error: 'Impossible de charger les inspections.', empty: 'Aucune inspection dans cette vue', listLabel: 'Inspections', noun: ['inspection', 'inspections'] }}
+          onSelect={(item) => {
+            setActionError(null);
+            select(item);
+          }}
+          onActivate={() => {
+            const button = actionButtonRef.current;
+            if (button && !button.disabled) button.focus();
+          }}
+          renderRow={(item) => <InspectionRow item={item} />}
+        />
+      }
+      pane={<InspectionPane key={selected?.id ?? 'none'} item={selected} roles={roles} setActionError={setActionError} actionButtonRef={actionButtonRef} />}
+    />
   );
 }
 
-function MetricCard({
-  metric,
-}: {
-  metric: {
-    label: string;
-    value: number;
-    helper: string;
-    icon: typeof CalendarDays;
-    tone: 'info' | 'warning' | 'success';
-  };
-}) {
-  const Icon = metric.icon;
-  const toneClass =
-    metric.tone === 'success'
-      ? 'border-green-100 bg-green-50 text-anac-success'
-      : metric.tone === 'warning'
-        ? 'border-orange-100 bg-orange-50 text-anac-warning'
-        : 'border-blue-100 bg-blue-50 text-anac-blue';
+/** One list row: organisation and visit date, reference and place, badges,
+ *  then the callout title. */
+function InspectionRow({ item }: { item: InspectionQueueItem }) {
   return (
-    <div className="min-h-[128px] rounded-lg border border-anac-border bg-white p-4 shadow-sm">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-[12px] font-semibold text-anac-muted">{metric.label}</p>
-          <p className="mt-2 text-[26px] font-semibold leading-none text-anac-navy">
-            {metric.value}
-          </p>
-        </div>
-        <div className={cn('rounded-lg border p-2.5', toneClass)}>
-          <Icon size={16} strokeWidth={1.8} aria-hidden="true" />
-        </div>
-      </div>
-      <p className="mt-4 text-[11px] text-anac-muted">{metric.helper}</p>
-    </div>
+    <>
+      <span className="truncate text-sm font-medium text-anac-text">{item.organisationName}</span>
+      <span className="whitespace-nowrap text-right text-[11px] text-anac-muted">{formatRowDate(item.siteVisit.scheduledAt)}</span>
+      <span className="truncate text-xs text-anac-text/80">
+        {item.requestReference}
+        {item.siteVisit.location ? ` · ${item.siteVisit.location}` : ''}
+      </span>
+      <span className="flex justify-end gap-1.5">
+        {item.dossierClosed ? <ClosedDossierBadge status={item.dossierStatus} /> : null}
+        {item.bucket === 'to_hold' ? <AgingBadge urgency={item.urgency} since={item.stepSince} dueAt={item.dueAt} /> : null}
+      </span>
+      <span className="col-span-2 truncate text-xs">
+        <span className={cn('font-semibold', item.state === 'action_required' ? 'text-anac-blue' : item.state === 'waiting' || item.state === 'blocked' ? 'text-anac-warning' : 'text-anac-muted')}>
+          {inspectionCallout(item).title}
+        </span>
+      </span>
+    </>
   );
 }
 
@@ -282,7 +130,7 @@ function CalendarStrip({
   onSelect,
 }: {
   days: { key: string; weekday: string; day: string; month: string }[];
-  items: MyQueueItem[];
+  items: InspectionQueueItem[];
   selectedDay: string | null;
   onSelect: (day: string) => void;
 }) {
@@ -304,7 +152,7 @@ function CalendarStrip({
         style={{ gridTemplateColumns: 'repeat(7, minmax(118px, 1fr))' }}
       >
         {days.map((day) => {
-          const count = items.filter((item) => dayKey(item.siteVisit?.scheduledAt) === day.key).length;
+          const count = items.filter((item) => dayKey(item.siteVisit.scheduledAt) === day.key).length;
           const active = selectedDay === day.key;
           return (
             <button
@@ -328,282 +176,6 @@ function CalendarStrip({
   );
 }
 
-function InspectionTable({
-  items,
-  selectedId,
-  isLoading,
-  error,
-  onSelect,
-}: {
-  items: MyQueueItem[];
-  selectedId: number | null;
-  isLoading: boolean;
-  error: boolean;
-  onSelect: (item: MyQueueItem) => void;
-}) {
-  return (
-    <section className="overflow-hidden rounded-lg border border-anac-border bg-white shadow-sm">
-      <div className="flex items-center justify-between border-b border-anac-border px-4 py-3">
-        <div>
-          <h2 className="text-sm font-semibold text-anac-navy">{items.length} inspection(s) trouvee(s)</h2>
-          <p className="text-xs text-anac-muted">Cliquez une ligne pour afficher la mission.</p>
-        </div>
-      </div>
-
-      {isLoading ? (
-        <EmptyState title="Chargement des inspections" description="Récupération de vos missions d’inspection." className="min-h-[150px]" />
-      ) : error ? (
-        <EmptyState title="Chargement impossible" description="Impossible de charger la file de dossiers." danger className="min-h-[150px]" />
-      ) : items.length === 0 ? (
-        <EmptyState title="Aucune inspection dans cette vue" description="Modifiez les filtres ou revenez plus tard." className="min-h-[150px]" />
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[920px] text-sm">
-            <thead className="border-b border-anac-border bg-slate-50 text-left text-[11px] uppercase tracking-wide text-anac-muted">
-              <tr>
-                <th className="px-4 py-3 font-semibold">Référence dossier</th>
-                <th className="px-4 py-3 font-semibold">Opérateur</th>
-                <th className="px-4 py-3 font-semibold">Type</th>
-                <th className="px-4 py-3 font-semibold">Date planifiée</th>
-                <th className="px-4 py-3 font-semibold">Lieu</th>
-                <th className="px-4 py-3 font-semibold">Statut</th>
-                <th className="px-4 py-3 font-semibold">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-anac-border">
-              {items.map((item) => (
-                <tr
-                  key={item.phaseId}
-                  className={cn(
-                    'cursor-pointer transition hover:bg-anac-blue/5',
-                    selectedId === item.phaseId && 'bg-anac-blue/5'
-                  )}
-                  onClick={() => onSelect(item)}
-                >
-                  <td className="px-4 py-3 font-semibold text-anac-navy">{item.requestReference}</td>
-                  <td className="px-4 py-3">{item.organisationName}</td>
-                  <td className="px-4 py-3">{REQUEST_TYPE_LABELS[item.requestType] ?? item.requestType}</td>
-                  <td className="px-4 py-3">{formatDateTime(item.siteVisit?.scheduledAt)}</td>
-                  <td className="px-4 py-3">{item.siteVisit?.location ?? '-'}</td>
-                  <td className="px-4 py-3">
-                    <MissionBadges item={item} />
-                  </td>
-                  <td className="px-4 py-3 text-xs font-semibold text-anac-blue">{item.nextActionLabel}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </section>
-  );
-}
-
-function InspectionDetailPanel({
-  item,
-  setActionError,
-}: {
-  item: MyQueueItem | null;
-  setActionError: (message: string | null) => void;
-}) {
-  const queryClient = useQueryClient();
-  const verdictForm = useForm<{ verdict: VerdictValue; note: string }>({
-    resolver: zodResolver(
-      z.object({
-        verdict: z.enum(['compliant', 'non_compliant', 'compliant_with_reserves']),
-        note: z.string().trim().min(1, "La note est obligatoire pour soumettre l'avis d’inspection."),
-      })
-    ),
-    defaultValues: { verdict: 'compliant', note: '' },
-  });
-
-  const markHeldMutation = useMutation({
-    mutationFn: (meetingId: number) => markSiteVisitHeld(meetingId),
-    onSuccess: async () => {
-      setActionError(null);
-      await queryClient.invalidateQueries({ queryKey: queryKeys.siteInspection.myQueue() });
-    },
-    onError: (err) => setActionError(apiErrorMessage(err, 'Impossible de marquer la visite comme tenue.')),
-  });
-
-  const verdictMutation = useMutation({
-    mutationFn: (params: { phaseId: number; verdict: VerdictValue; note: string }) =>
-      submitVerdict(params.phaseId, params.verdict, params.note),
-    onSuccess: async () => {
-      verdictForm.reset();
-      setActionError(null);
-      await queryClient.invalidateQueries({ queryKey: queryKeys.siteInspection.myQueue() });
-    },
-    onError: (err) => setActionError(apiErrorMessage(err, "Impossible de soumettre l'avis d’inspection.")),
-  });
-
-  async function onVerdictSubmit(values: { verdict: VerdictValue; note: string }) {
-    if (!item) return;
-    await verdictMutation.mutateAsync({ phaseId: item.phaseId, verdict: values.verdict, note: values.note });
-  }
-
-  function onVerdictInvalid(errors: FieldErrors<{ verdict: VerdictValue; note: string }>) {
-    setActionError(errors.note?.message ?? errors.verdict?.message ?? null);
-  }
-
-  if (!item) {
-    return (
-      <aside className="rounded-lg border border-anac-border bg-white p-5 shadow-sm">
-        <EmptyState title="Aucune mission sélectionnée" description="Sélectionnez une inspection dans la liste." className="min-h-[150px]" />
-      </aside>
-    );
-  }
-
-  // K7c - the API already sends nextAction 'consult' on a closed dossier.
-  const canMarkHeld = !item.dossierClosed && item.nextAction === 'mark_held' && !!item.siteVisit;
-  const canSubmitVerdict = !item.dossierClosed && item.nextAction === 'submit_verdict';
-  const busy = markHeldMutation.isPending || verdictMutation.isPending;
-
-  return (
-    <aside className="h-fit rounded-lg border border-anac-border bg-white shadow-sm xl:sticky xl:top-6">
-      <div className="border-b border-anac-border p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold text-anac-muted">Inspection sélectionnée</p>
-            <h2 className="mt-2 text-xl font-semibold text-anac-navy">{item.requestReference}</h2>
-            <p className="mt-1 text-sm text-anac-muted">{item.organisationName}</p>
-          </div>
-          <MissionBadges item={item} />
-        </div>
-        <p className="mt-3 flex items-center gap-2 text-xs text-anac-muted">
-          <CalendarDays size={14} aria-hidden="true" />
-          {formatDateTime(item.siteVisit?.scheduledAt)}
-        </p>
-        <p className="mt-1 flex items-center gap-2 text-xs text-anac-muted">
-          <MapPin size={14} aria-hidden="true" />
-          {item.siteVisit?.location ?? 'Lieu non renseigne'}
-        </p>
-      </div>
-
-      <div className="space-y-4 p-5">
-        <PanelBlock title="Détails de la mission" icon={ClipboardList}>
-          <Info label="Type de demande" value={REQUEST_TYPE_LABELS[item.requestType] ?? item.requestType} />
-          <Info label="Paiement" value={paymentLabel(item.payment?.status)} />
-          <Info label="Visite" value={visitLabel(item.siteVisit?.status)} />
-          <Info
-            label="Avis d’inspection"
-            value={item.inspection ? verdictLabel(item.inspection.verdict) : item.dossierClosed ? 'Non rendu' : 'Attendu'}
-          />
-        </PanelBlock>
-
-        <PanelBlock title="Avancement" icon={ClipboardCheck}>
-          <ProgressStep label="Paiement validé" done={item.payment?.status === 'validated'} />
-          <ProgressStep label="Visite tenue" done={item.siteVisit?.status === 'held'} />
-          <ProgressStep label="Avis d’inspection soumis" done={!!item.inspection} />
-        </PanelBlock>
-
-        {item.inspection ? (
-          <PanelBlock title="Avis soumis" icon={FileText}>
-            <p className="text-sm font-semibold text-anac-navy">{verdictLabel(item.inspection.verdict)}</p>
-            <p className="mt-1 text-xs text-anac-muted">Soumis le {formatDateTime(item.inspection.submittedAt)}</p>
-            <p className="mt-3 whitespace-pre-wrap text-sm text-anac-text">{item.inspection.note}</p>
-          </PanelBlock>
-        ) : canSubmitVerdict ? (
-          <form onSubmit={verdictForm.handleSubmit(onVerdictSubmit, onVerdictInvalid)} className="rounded-lg border border-anac-border p-4">
-            <h3 className="text-sm font-semibold text-anac-navy">Soumettre l&apos;avis d’inspection</h3>
-            <label className="mt-3 block text-xs font-semibold text-anac-muted" htmlFor="r3-verdict">
-              Verdict
-            </label>
-            <select
-              id="r3-verdict"
-              {...verdictForm.register('verdict')}
-              className="mt-1 h-9 w-full rounded-md border border-anac-border bg-white px-3 text-sm outline-none focus:border-anac-blue focus:ring-2 focus:ring-anac-blue/15"
-            >
-              {Object.entries(VERDICT_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-            <label className="mt-3 block text-xs font-semibold text-anac-muted" htmlFor="r3-note">
-              Note
-            </label>
-            <textarea
-              id="r3-note"
-              rows={4}
-              {...verdictForm.register('note')}
-              className="mt-1 w-full rounded-md border border-anac-border bg-white px-3 py-2 text-sm outline-none focus:border-anac-blue focus:ring-2 focus:ring-anac-blue/15"
-              required
-            />
-            <Button type="submit" className="mt-3 w-full" disabled={busy}>
-              {busy ? 'Soumission...' : "Soumettre l'avis"}
-            </Button>
-          </form>
-        ) : (
-          <div className="rounded-lg border border-anac-border bg-slate-50 p-4 text-sm text-anac-muted">
-            {blockedReason(item)}
-          </div>
-        )}
-
-        <div className="grid gap-2">
-          {canMarkHeld ? (
-            <Button
-              type="button"
-              onClick={() => item.siteVisit && markHeldMutation.mutate(item.siteVisit.id)}
-              disabled={busy}
-            >
-              {busy ? 'Mise à jour...' : 'Enregistrer la tenue'}
-            </Button>
-          ) : null}
-          <Link
-            to={`/demandes/${item.requestId}/demonstration-inspection`}
-            className={cn(buttonVariants({ variant: 'secondary' }), 'justify-center')}
-          >
-            Ouvrir la mission
-          </Link>
-        </div>
-      </div>
-    </aside>
-  );
-}
-
-function PanelBlock({
-  title,
-  icon: Icon,
-  children,
-}: {
-  title: string;
-  icon: typeof ClipboardList;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="rounded-lg border border-anac-border p-4">
-      <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-anac-navy">
-        <Icon size={14} aria-hidden="true" />
-        {title}
-      </h3>
-      <div className="space-y-2">{children}</div>
-    </section>
-  );
-}
-
-function Info({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3 text-sm">
-      <span className="text-anac-muted">{label}</span>
-      <span className="text-right font-semibold text-anac-navy">{value}</span>
-    </div>
-  );
-}
-
-function ProgressStep({ label, done }: { label: string; done: boolean }) {
-  return (
-    <div className="flex items-center gap-2 text-sm">
-      {done ? (
-        <CheckCircle2 size={14} className="text-anac-success" aria-hidden="true" />
-      ) : (
-        <XCircle size={14} className="text-anac-muted" aria-hidden="true" />
-      )}
-      <span className={done ? 'text-anac-navy' : 'text-anac-muted'}>{label}</span>
-    </div>
-  );
-}
-
 function buildSevenDayStrip() {
   return Array.from({ length: 7 }).map((_, index) => {
     const date = new Date();
@@ -620,57 +192,4 @@ function buildSevenDayStrip() {
 function dayKey(value: string | null | undefined): string | null {
   if (!value) return null;
   return new Date(value).toISOString().slice(0, 10);
-}
-
-function normalize(value: string): string {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase();
-}
-
-function formatDateTime(value: string | null | undefined): string {
-  if (!value) return '-';
-  return new Date(value).toLocaleString('fr-FR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-function paymentLabel(status: string | undefined): string {
-  if (status === 'validated') return 'Validé';
-  if (status === 'awaiting_invoice') return 'Facture attendue';
-  if (status === 'awaiting_proof') return 'Preuve attendue';
-  if (status === 'pending_validation') return 'Validation Finance attendue';
-  if (status === 'rejected') return 'Rejeté';
-  return 'Non initialise';
-}
-
-function visitLabel(status: string | undefined): string {
-  if (status === 'scheduled') return 'Planifiée';
-  if (status === 'held') return 'Tenue';
-  if (status === 'rescheduled') return 'Reprogrammee';
-  if (status === 'no_show') return 'Absence';
-  if (status === 'file_cancelled') return 'Dossier annulé';
-  return '-';
-}
-
-function verdictLabel(verdict: string): string {
-  return VERDICT_LABELS[verdict as VerdictValue] ?? verdict;
-}
-
-function blockedReason(item: MyQueueItem): string {
-  if (item.dossierClosed) {
-    return 'Dossier clos : la mission reste consultable, aucune action de la Cellule Inspection n’est possible.';
-  }
-  if (item.nextAction === 'wait_payment') {
-    return 'Le paiement doit être validé par Finance avant la tenue opérationnelle et l’avis d’inspection.';
-  }
-  if (item.missionStatus === 'to_hold') {
-    return 'La visite doit être marquée tenue avant de soumettre un avis.';
-  }
-  return 'Aucune action immédiate de la Cellule Inspection sur cette mission.';
 }

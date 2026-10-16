@@ -1,26 +1,12 @@
-import { expectsPaymentProof, type NextActionOwner, type OperationalState } from '@aidn/shared';
+import { OPERATIONAL_OWNERS, expectsPaymentProof, type NextActionOwner, type OperationalState } from '@aidn/shared';
 
-/** SESSION1-UX-1 §7.2 - admin copy of the API cockpit OWNERS
- *  (apps/api/src/modules/requests/cockpit-next-action.ts). staff.roles copies
- *  the requireRole(...) list of the route performing the action. */
-export const DN_OWNER: NextActionOwner = { kind: 'staff', label: 'DN', roles: ['dn_agent', 'dn_supervisor', 'SU'] };
-export const RECEPTION_OWNER: NextActionOwner = {
-  kind: 'staff',
-  label: 'Réception',
-  roles: ['assistant_dg', 'reception', 'SU'],
-};
-export const ASSISTANT_DG_OWNER: NextActionOwner = {
-  kind: 'staff',
-  label: 'Assistant DG',
-  roles: ['assistant_dg', 'reception', 'SU'],
-};
-export const FINANCE_OWNER: NextActionOwner = { kind: 'staff', label: 'Finance', roles: ['s5_agent', 'SU'] };
-export const INSPECTION_OWNER: NextActionOwner = {
-  kind: 'staff',
-  label: 'Cellule Inspection',
-  roles: ['r3_agent', 'SU'],
-};
-export const APPLICANT_OWNER: NextActionOwner = { kind: 'applicant', label: 'Postulant' };
+/** SESSION1-COCKPIT-1 - the owners come from @aidn/shared (single source). */
+export const DN_OWNER: NextActionOwner = OPERATIONAL_OWNERS.dn;
+export const RECEPTION_OWNER: NextActionOwner = OPERATIONAL_OWNERS.reception;
+export const ASSISTANT_DG_OWNER: NextActionOwner = OPERATIONAL_OWNERS.assistantDg;
+export const FINANCE_OWNER: NextActionOwner = OPERATIONAL_OWNERS.finance;
+export const INSPECTION_OWNER: NextActionOwner = OPERATIONAL_OWNERS.inspection;
+export const APPLICANT_OWNER: NextActionOwner = OPERATIONAL_OWNERS.applicant;
 
 interface OwnedState {
   title: string;
@@ -64,8 +50,8 @@ export function scheduledMeetingState(
 export function paymentPendingState(payment: { status: string; invoiceFileUrl: string | null }, validateDescription: string): OwnedState {
   if (expectsPaymentProof(payment)) {
     return {
-      title: 'Quittance attendue du postulant',
-      description: 'Le postulant doit déposer sa quittance de paiement depuis le portail.',
+      title: 'Preuve de paiement attendue du postulant',
+      description: 'Le postulant doit déposer sa preuve de paiement depuis le portail.',
       state: 'waiting',
       owner: APPLICANT_OWNER,
     };
