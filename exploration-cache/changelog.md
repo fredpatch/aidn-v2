@@ -3,6 +3,15 @@
 Commit-level history. Covers `be9fce9` through the 2026-10-09 D3c admin
 unread/activity batch.
 
+## 2026-10-16 BUG-PORTAL-INTAKE-1: shared endpoints choose the session by app
+
+- `authenticateEither`: the calling app (Origin, else Referer origin) is authoritative - portal -> applicant only,
+  admin -> staff only, no cross-fallback; unknown app with two valid sessions -> 401 `AMBIGUOUS_SESSION`.
+- Fixes a portal submission answered « applicantId requis pour une saisie manuelle. » when the applicant token was
+  missing or expired and the same browser held a staff session (now 401, the portal refreshes).
+- Tests: identity matrix over HTTP (`auth-either.http.test.ts`), `POST /api/requests` regression. No migration. See
+  decisions #21, gotchas #19 / #26.
+
 ## 2026-10-16 SESSION1-COCKPIT-1: role work queues as home cockpits
 
 - Landing: `homeFor` sends Réception / Assistant DG to `/courriers`, Assistante DN to `/circuit-directeur-dn`, Finance to `/paiements-s5`, Cellule Inspection to `/mes-inspections`; DN roles and SU keep the DN dashboard.

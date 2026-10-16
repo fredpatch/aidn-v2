@@ -235,6 +235,11 @@ back to the other cookie only if the preferred one is absent or invalid. Request
 with no recognized `Origin` (server-to-server, curl, Postman) keep the previous
 staff-first behaviour. New env var `PORTAL_ORIGIN` required for this to work in
 non-dev environments - confirm it's set alongside the others in `.env`.
+**Superseded (BUG-PORTAL-INTAKE-1, 2026-10-16)**: the fallback itself was the bug - an expired applicant token on a
+portal call fell through to the staff session. The app (Origin, else the origin of Referer, matched against
+`PORTAL_ORIGIN` / `ADMIN_ORIGIN`) is now authoritative: portal -> applicant only, admin -> staff only, no fallback;
+unknown app -> the single valid session, both valid -> 401 `AMBIGUOUS_SESSION`. Referer matters because browsers send
+no Origin on same-origin GETs, and both apps reach the API through a same-origin proxy (Vite in dev, nginx in staging).
 
 ## 20. `requireApplicant` and `requireApplicantOrRole` are mutually exclusive, not stackable
 
@@ -315,6 +320,7 @@ applicant session to the API. `authenticateEither` prefers the applicant session
 `PORTAL_ORIGIN`; without it the staff session wins and the portal call is handled as a reception manual entry.
 
 **Fix / rule**: keep `PORTAL_ORIGIN=http://localhost:5174` and `ADMIN_ORIGIN=http://localhost:5173` in the local
-`.env` (they are in `.env.example`); restart the API after editing `.env`. Known residual: an EXPIRED applicant token
-still falls back to the staff session (same symptom, no 401 to trigger the portal refresh) - hardening proposed,
-not done.
+`.env` (they are in `.env.example`); restart the API after editing `.env`. The expired-token residual is fixed by
+BUG-PORTAL-INTAKE-1 (gotchas #19): a portal call never falls back to the staff session. Without the two variables
+every request is "unknown app", so a browser holding both sessions now gets 401 `AMBIGUOUS_SESSION` instead of the
+wrong identity.

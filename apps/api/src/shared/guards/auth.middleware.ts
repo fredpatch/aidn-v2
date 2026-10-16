@@ -75,60 +75,70 @@ export function authenticateApplicant(req: Request, res: Response, next: NextFun
   }
 }
 
-/** M1 - the demande submission endpoint is reachable from the portal
- *  (applicant) and from reception/assistant_dg entering a physical
- *  drop-off (staff) - see cross-cutting pattern "Circuit DG". Accepts
- *  either a valid applicant session or a valid staff session, attaching
- *  whichever one matched.
- *
- *  Both cookies can legitimately be present at once - admin and portal
- *  run on the same top-level domain (differ only by port in dev, and
- *  possibly by subdomain on-prem), so cookies aren't isolated between
- *  them the way a real cross-domain setup would isolate them. Without
- *  knowing which app actually sent the request, a stale staff session
- *  would silently win even when the caller is genuinely the portal.
- *
- *  Fix: use the standard `Origin` header (sent by the browser on every
- *  fetch/XHR call, no frontend change needed) to check the *matching*
- *  cookie first, falling back to the other one only if that fails or is
- *  absent. Requests with no recognized origin (server-to-server, curl,
- *  Postman) keep the previous staff-first behaviour. */
+export const AMBIGUOUS_SESSION_BODY = {
+  message: 'Session ambiguë : reconnectez-vous depuis l’application concernée.',
+  code: 'AMBIGUOUS_SESSION',
+} as const;
+
+/** Which app sent the request: the `Origin` header, or - when the browser
+ *  omits it (same-origin GET through the dev/nginx proxy) - the origin of
+ *  `Referer`. Matched against ADMIN_ORIGIN / PORTAL_ORIGIN only; anything
+ *  else (or both env vars equal) is unknown. */
+export function requestApp(req: Request): 'admin' | 'portal' | null {
+  const origin = req.get('origin') ?? refererOrigin(req.get('referer'));
+  if (!origin) return null;
+  const isAdmin = !!process.env.ADMIN_ORIGIN && origin === process.env.ADMIN_ORIGIN;
+  const isPortal = !!process.env.PORTAL_ORIGIN && origin === process.env.PORTAL_ORIGIN;
+  if (isAdmin === isPortal) return null;
+  return isAdmin ? 'admin' : 'portal';
+}
+
+function refererOrigin(referer: string | undefined): string | undefined {
+  if (!referer) return undefined;
+  try {
+    return new URL(referer).origin;
+  } catch {
+    return undefined;
+  }
+}
+
+function verifyOrNull<T>(verify: (token: string) => T, token: string | undefined): T | null {
+  if (!token) return null;
+  try {
+    return verify(token);
+  } catch {
+    return null;
+  }
+}
+
+/** Endpoints shared by the portal (applicant) and the admin (staff), e.g.
+ *  M1 submission: portal self-submission or reception/assistant_dg manual
+ *  entry. Both cookies can be present at once (same host, cookies are not
+ *  port-scoped), so the session is chosen by identity domain, never by
+ *  fallback (BUG-PORTAL-INTAKE-1, same rule as STORAGE-0A A1):
+ *  - portal app -> applicant session only (`authenticateApplicant`, so an
+ *    expired token answers TOKEN_EXPIRED and the portal refreshes);
+ *  - admin app -> staff session only (`authenticate`);
+ *  - unknown app (curl, server-to-server) -> the single valid session;
+ *    two valid sessions -> 401 AMBIGUOUS_SESSION; none -> 401. */
 export function authenticateEither(req: Request, res: Response, next: NextFunction): void {
-  const staffToken = req.cookies?.[ACCESS_TOKEN_COOKIE];
-  const applicantToken = req.cookies?.[APPLICANT_ACCESS_TOKEN_COOKIE];
+  const app = requestApp(req);
+  if (app === 'portal') return authenticateApplicant(req, res, next);
+  if (app === 'admin') return authenticate(req, res, next);
 
-  const origin = req.get('origin');
-  const preferApplicant = origin !== undefined && origin === process.env.PORTAL_ORIGIN;
-
-  function tryStaff(): boolean {
-    if (!staffToken) return false;
-    try {
-      req.user = verifyAccessToken(staffToken);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  function tryApplicant(): boolean {
-    if (!applicantToken) return false;
-    try {
-      req.applicant = verifyApplicantAccessToken(applicantToken);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  const first = preferApplicant ? tryApplicant : tryStaff;
-  const second = preferApplicant ? tryStaff : tryApplicant;
-
-  if (first() || second()) {
-    next();
+  const staff = verifyOrNull(verifyAccessToken, req.cookies?.[ACCESS_TOKEN_COOKIE]);
+  const applicant = verifyOrNull(verifyApplicantAccessToken, req.cookies?.[APPLICANT_ACCESS_TOKEN_COOKIE]);
+  if (staff && applicant) {
+    res.status(401).json(AMBIGUOUS_SESSION_BODY);
     return;
   }
-
-  res.status(401).json({ message: 'Non authentifié.' });
+  if (staff) req.user = staff;
+  else if (applicant) req.applicant = applicant;
+  else {
+    res.status(401).json({ message: 'Non authentifié.' });
+    return;
+  }
+  next();
 }
 
 /** Role gate - internal roles only, multi-role aware (see packages/shared

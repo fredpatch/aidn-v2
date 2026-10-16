@@ -273,3 +273,15 @@ Spec: `docs/superpowers/specs/2026-10-16-session1-cockpit-1-design.md`.
 - **Urgency uses only existing parameters** (`DASHBOARD_SLA_DEFAULTS` moved to `operational/thresholds.ts`); no new system parameter. Finance bucket literal: `FINANCE_BUCKETS[2]` is used instead of the literal because of the MEET-1 literal guard.
 - **Finance list stays unbounded** as before (follow-up: server-side history window). Portal DG wording is a follow-up.
 - No migration.
+
+## 21. Shared endpoints choose the session by app, never by fallback (BUG-PORTAL-INTAKE-1, 2026-10-16)
+
+- `authenticateEither` extends STORAGE-0A A1 to every shared endpoint. The calling app is `Origin`, else the origin
+  of `Referer` (browsers omit Origin on same-origin GETs through the proxy), matched exactly against `PORTAL_ORIGIN` /
+  `ADMIN_ORIGIN`; an equal pair of env values counts as unknown.
+- Portal -> `authenticateApplicant` semantics (missing cookie 401 « Non authentifié. », expired or invalid 401
+  `TOKEN_EXPIRED` so the portal refreshes); admin -> `authenticate`. The other session is never consulted.
+- Unknown app (curl, scripts): the single valid session; both valid -> 401 `AMBIGUOUS_SESSION` (A1 message); none -> 401.
+  Staff-first is gone.
+- Root cause of « applicantId requis pour une saisie manuelle. » on a portal submission: an absent or expired applicant
+  token fell back to a valid staff session. No migration, no frontend change.
