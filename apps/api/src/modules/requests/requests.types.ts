@@ -1,3 +1,4 @@
+import type { NextActionOwner, OperationalState } from '@aidn/shared';
 import type { PreparedAttachment } from '../uploads/upload-attachment.js';
 
 export interface SubmitRequestParams {
@@ -84,6 +85,9 @@ export interface RequestCockpitItem {
   nextActionDescription: string;
   nextActionHref: string | null;
   nextActionTone: 'info' | 'warning' | 'success' | 'danger';
+  /** SESSION1-UX-1 §7.4 - operational state and who must act next (null for terminal dossiers). */
+  nextActionState: OperationalState;
+  nextActionOwner: NextActionOwner | null;
   canStartPreliminary: boolean;
   /** D3a - latest events of the dossier, all phases, newest first (max 5). */
   activity: RequestCockpitActivity[];

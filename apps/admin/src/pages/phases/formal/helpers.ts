@@ -1,4 +1,6 @@
+import { expectsFormalDocuments, type NextActionOwner, type OperationalState } from '@aidn/shared';
 import type { ChecklistItem, FormalPhaseBundle } from './types';
+import { APPLICANT_OWNER, ASSISTANT_DG_OWNER, DN_OWNER, RECEPTION_OWNER, scheduledMeetingState } from '../owners';
 
 export function buildChecklist(bundle: FormalPhaseBundle): ChecklistItem[] {
   const allDocsSubmitted = bundle.completionRate === 11;
@@ -47,10 +49,10 @@ export function closureBlockReason(bundle: FormalPhaseBundle | null): string | n
     return 'La lettre de demande officielle est en signature. Le retour signé doit être scanné avant la clôture.';
   }
   if (bundle.letterCircuit.status === 'signed') {
-    return 'Ancien statut intermédiaire: finalisez le retour signé depuis Courriers à traiter avant la clôture.';
+    return 'Ancien statut intermédiaire : finalisez le retour signé depuis Courriers à traiter avant la clôture.';
   }
   if (bundle.letterCircuit.status !== 'pending_review') {
-    return 'Le circuit signature de la lettre doit être finalise avant la clôture.';
+    return 'Le circuit signature de la lettre doit être finalisé avant la clôture.';
   }
   if (bundle.completionRate < 11 && (!bundle.meeting || bundle.meeting.status === 'scheduled')) {
     return `Les 11 documents doivent être soumis (${bundle.completionRate}/11) et la réunion formelle doit être résolue.`;
@@ -67,8 +69,8 @@ export function closureBlockReason(bundle: FormalPhaseBundle | null): string | n
 export interface FormalNextAction {
   title: string;
   description: string;
-  owner: string;
-  tone: 'info' | 'warning' | 'success' | 'muted';
+  state: OperationalState;
+  owner: NextActionOwner;
 }
 
 export function formalNextAction(bundle: FormalPhaseBundle | null): FormalNextAction {
@@ -76,8 +78,8 @@ export function formalNextAction(bundle: FormalPhaseBundle | null): FormalNextAc
     return {
       title: 'Démarrer la phase',
       description: 'La demande formelle peut être ouverte après la clôture de la phase préliminaire.',
-      owner: 'DN',
-      tone: 'info',
+      state: 'action_required',
+      owner: DN_OWNER,
     };
   }
 
@@ -85,26 +87,51 @@ export function formalNextAction(bundle: FormalPhaseBundle | null): FormalNextAc
     return {
       title: 'Phase clôturée',
       description: 'Cette phase est en consultation seule. Les pièces restent disponibles pour audit.',
-      owner: 'DN',
-      tone: 'muted',
+      state: 'done',
+      owner: DN_OWNER,
     };
   }
 
+  // Open phase: same order as the Demandes cockpit (apps/api/src/modules/
+  // requests/cockpit-next-action.ts, D9): DN parallel work, then the
+  // applicant, then the DG letter circuit, then the DN.
+  const meetingScheduled = bundle.meeting?.status === 'scheduled';
+
+  // 0. A counter-proposal awaits the DN: never shown as « en attente ».
+  if (meetingScheduled && bundle.meeting!.negotiation.confirmationStatus === 'awaiting_dn') {
+    return scheduledMeetingState(bundle.meeting!, 'formelle');
+  }
+
+  // 1. Applicant expected.
   if (!bundle.letterCircuit) {
     return {
       title: 'Lettre officielle attendue',
       description: 'Le postulant doit déposer la lettre de demande officielle depuis le portail.',
-      owner: 'Postulant',
-      tone: 'warning',
+      state: 'waiting',
+      owner: APPLICANT_OWNER,
     };
   }
 
+  if (meetingScheduled && bundle.meeting!.negotiation.confirmationStatus === 'awaiting_applicant') {
+    return scheduledMeetingState(bundle.meeting!, 'formelle');
+  }
+
+  if (expectsFormalDocuments(bundle.phase, bundle.documents)) {
+    return {
+      title: 'Pièces attendues du postulant',
+      description: `${bundle.completionRate}/11 documents déposés. Tous les documents obligatoires doivent être déposés.`,
+      state: 'waiting',
+      owner: APPLICANT_OWNER,
+    };
+  }
+
+  // 2. DG letter circuit.
   if (bundle.letterCircuit.status === 'submitted') {
     return {
       title: 'Mise en signature attendue',
-      description: 'Réception / assistant DG imprimé le courrier puis confirme sa mise en signature.',
-      owner: 'Réception / Assistant DG',
-      tone: 'warning',
+      description: 'Réception / assistant DG imprime le courrier puis confirme sa mise en signature.',
+      state: 'action_required',
+      owner: RECEPTION_OWNER,
     };
   }
 
@@ -112,52 +139,39 @@ export function formalNextAction(bundle: FormalPhaseBundle | null): FormalNextAc
     return {
       title: 'Retour signé attendu',
       description: 'Le courrier est en signature. Le scan du retour débloquera la réunion formelle.',
-      owner: 'Réception / Assistant DG',
-      tone: 'warning',
+      state: 'waiting',
+      owner: ASSISTANT_DG_OWNER,
     };
   }
 
   if (bundle.letterCircuit.status === 'signed') {
     return {
       title: 'Finalisation du retour attendue',
-      description: 'Ancien statut intermédiaire: finaliser le retour signé depuis Courriers à traiter.',
-      owner: 'Réception / Assistant DG',
-      tone: 'warning',
+      description: 'Ancien statut intermédiaire : finaliser le retour signé depuis Courriers à traiter.',
+      state: 'waiting',
+      owner: ASSISTANT_DG_OWNER,
     };
   }
 
-  if (bundle.completionRate < 11) {
-    return {
-      title: 'Documents obligatoires manquants',
-      description: `${bundle.completionRate}/11 documents déposés. Tous les documents obligatoires doivent être déposés.`,
-      owner: 'DN',
-      tone: 'warning',
-    };
-  }
-
+  // 3. The DN works the phase.
   if (!bundle.meeting) {
     return {
       title: 'Réunion formelle à planifier',
       description: 'Planifier la réunion formelle. Le compte-rendu reste facultatif pour la clôture.',
-      owner: 'DN',
-      tone: 'info',
+      state: 'action_required',
+      owner: DN_OWNER,
     };
   }
 
   if (bundle.meeting.status === 'scheduled') {
-    return {
-      title: 'Réunion formelle a résoudre',
-      description: 'Marquer la réunion comme tenue, absence constatée, reprogrammee ou dossier annulé.',
-      owner: 'DN',
-      tone: 'info',
-    };
+    return scheduledMeetingState(bundle.meeting, 'formelle');
   }
 
   return {
-    title: 'Phase prête a clôturer',
-    description: 'Les conditions obligatoires sont satisfaites. Le compte-rendu peut être ajoute, mais il est facultatif.',
-    owner: 'DN',
-    tone: 'success',
+    title: 'Phase prête à clôturer',
+    description: 'Les conditions obligatoires sont satisfaites. Le compte-rendu peut être ajouté, mais il est facultatif.',
+    state: 'action_required',
+    owner: DN_OWNER,
   };
 }
 

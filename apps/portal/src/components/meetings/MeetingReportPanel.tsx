@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { useRef, useState, type ChangeEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { FileCheck2, FileText } from 'lucide-react';
 import FileLink from '../files/FileLink';
@@ -9,6 +9,7 @@ import { uploadFile } from '../../lib/uploads';
 import { formatDate, formatDateTime } from '../../lib/format';
 import { submitSignedMeetingReport, type MeetingReportBlock } from '../../lib/api/meetings.api';
 import { queryKeys } from '../../lib/react-query/queryKeys';
+import { useHashScroll } from '../../lib/useHashScroll';
 
 /** SESSION1-MEET-2 - the DN compte-rendu of a held M3/M4 meeting and your
  *  signed return. Visible buttons, never a bare text link. Whether you may
@@ -36,13 +37,8 @@ export function MeetingReportPanel({ meeting }: { meeting: ReportableMeeting }) 
   const signed = meeting.signedCrDocumentUrl;
   const anchor = meetingReportAnchor(meeting.id);
 
-  // Reached from a dashboard / dossier action (#compte-rendu-<id>): the panel
-  // may mount after the navigation, so it brings itself into view.
-  useEffect(() => {
-    if (window.location.hash === `#${anchor}`) {
-      document.getElementById(anchor)?.scrollIntoView?.({ block: 'start' });
-    }
-  }, [anchor]);
+  // Reached from a dashboard / dossier action (#compte-rendu-<id>).
+  useHashScroll(anchor);
 
   async function handleFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];

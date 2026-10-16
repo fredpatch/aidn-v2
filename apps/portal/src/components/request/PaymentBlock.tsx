@@ -20,6 +20,8 @@ export function PaymentBlock(props: PaymentBlockProps) {
 
 interface PaymentBlockProps {
   title?: string;
+  /** Anchor of the payment_proof action (paiement-{phase}), SESSION1-UX-1. */
+  anchor?: string;
   payment: PaymentInfo;
   waitingInvoiceText: string;
   /** Upload the file and attach it to the payment; reload the section afterwards. */
@@ -28,6 +30,7 @@ interface PaymentBlockProps {
 
 function PaymentBlockInner({
   title = 'Paiement',
+  anchor,
   payment,
   waitingInvoiceText,
   onSubmitProof,
@@ -54,7 +57,7 @@ function PaymentBlockInner({
   }
 
   return (
-    <SectionCard icon={CreditCard} title={title}>
+    <SectionCard id={anchor} icon={CreditCard} title={title}>
       <div className="mt-3 space-y-3 text-sm">
         {!payment.invoiceFileUrl ? (
           <p className="text-anac-muted">{waitingInvoiceText}</p>

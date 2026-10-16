@@ -44,7 +44,7 @@ export default function FormalPhasePage() {
     user?.roles.some((role) => ['dn_agent', 'dn_supervisor', 'SU'].includes(role)) ?? false;
 
   const keyInfo = [
-    { label: 'Responsable', value: nextAction.owner },
+    { label: 'Responsable', value: nextAction.owner.label },
     { label: "Date d'ouverture", value: formatDate(bundle?.phase?.openedAt) },
     { label: 'Documents soumis', value: `${bundle?.completionRate ?? 0}/11` },
     {
@@ -134,7 +134,7 @@ export default function FormalPhasePage() {
             {!dossierClosed && bundle.phase.status === 'open' && canClose && !canManageFormal && (
               <div className="card">
                 <p className="text-sm text-anac-muted">
-                  La phase est prête a être clôturée. Action réservée à la DN.
+                  La phase est prête à être clôturée. Action réservée à la DN.
                 </p>
               </div>
             )}

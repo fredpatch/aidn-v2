@@ -4,6 +4,8 @@ export const queryKeys = {
   requests: {
     all: () => ['requests'] as const,
     mine: () => ['requests', 'mine'] as const,
+    /** The applicant's required actions across dossiers (GET /applicant/actions). */
+    actions: () => ['requests', 'actions'] as const,
     /** One phase bundle of one dossier (M3 préliminaire ... M7 délivrance). */
     phase: (requestId: number, code: PhaseCode) => ['requests', requestId, 'phase', code] as const,
   },

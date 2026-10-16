@@ -9,6 +9,8 @@ import type { RequestCockpitItem, RequestCockpitSummary } from '../../lib/api/re
 import { renderWithProviders } from '../../test/render';
 import RequestsPage from './RequestsPage';
 
+vi.mock('../../hooks/useAuth', () => ({ useAuth: () => ({ user: { roles: ['dn_agent'] } }) }));
+
 const item = (over: Partial<RequestCockpitItem>): RequestCockpitItem => ({
   id: 1,
   reference: 'DEM-D1-01',
@@ -38,6 +40,8 @@ const item = (over: Partial<RequestCockpitItem>): RequestCockpitItem => ({
   nextActionDescription: 'Continuer le traitement depuis la phase ouverte.',
   nextActionHref: '/demandes/1/phase-formelle',
   nextActionTone: 'info',
+  nextActionState: 'action_required',
+  nextActionOwner: { kind: 'staff', label: 'DN', roles: ['dn_agent', 'dn_supervisor', 'SU'] },
   canStartPreliminary: false,
   activity: [],
   ...over,

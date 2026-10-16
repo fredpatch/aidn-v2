@@ -2,7 +2,9 @@
 
 **Session date**: 2026-10-08
 
-> **2026-10-15 SESSION1-MEET-2 (implemented, validated; single feature commit at the end of Task 8):** signed CR return - the applicant returns the signed copy of the M3/M4 meeting compte rendu (`POST /meetings/:id/signed-report`, `meeting_report_signed` chain, DN CR frozen once signed; see changelog, decisions #18). Deploy: `npm run db:migrate` (0010). Deferred: notifications, CR rectification mechanism.
+> **2026-10-16 SESSION1-UX-1 (implemented, validated; single feature commit at the end of Task 9):** applicant actions and operational next actions - server-ordered `ApplicantAction[]` (`GET /api/applicant/actions`), portal « Actions requises » replacing the two meeting banners, passive phase wording, admin `OperationalCallout` with typed owners and `canAct`, Demandes cockpit D9 next actions (see changelog, decisions #19). No migration. Deferred: SESSION1-COCKPIT-1 scope, app-wide UTC parser for `timestamp` columns, parked minors in the plan ledger.
+>
+> **2026-10-15 SESSION1-MEET-2 (committed 658435f):** signed CR return - the applicant returns the signed copy of the M3/M4 meeting compte rendu (`POST /meetings/:id/signed-report`, `meeting_report_signed` chain, DN CR frozen once signed; see changelog, decisions #18). Deploy: `npm run db:migrate` (0010). Deferred: notifications, CR rectification mechanism.
 >
 > **2026-10-14 SESSION1-MEET-1 (committed):** applicant confirmation / counter-proposal of M3/M4 meetings - all 9 slices done and validated (see changelog, decisions #17). Deploy: `npm run db:migrate` only (migration 0009, no backfill). Deferred: notifications/e-mail.
 >

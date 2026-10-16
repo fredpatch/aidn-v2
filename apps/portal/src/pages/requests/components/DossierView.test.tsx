@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ApplicantAction } from '@aidn/shared';
 import { api } from '../../../lib/axios';
 import { queryKeys, type PhaseCode } from '../../../lib/react-query/queryKeys';
 import type { RequestView } from '../../../lib/api/requests.types';
@@ -43,13 +44,19 @@ function request(over: Partial<RequestView> = {}): RequestView {
   };
 }
 
-function renderDossier(req: RequestView, onChanged = vi.fn()) {
+function renderDossier(req: RequestView, onChanged = vi.fn(), actions: ApplicantAction[] = []) {
   const seed = (Object.keys(BUNDLES) as PhaseCode[]).map(
     (code) => [queryKeys.requests.phase(req.id, code), BUNDLES[code]] as [readonly unknown[], unknown],
   );
+  seed.push([queryKeys.requests.actions(), actions]);
   renderWithProviders(<DossierView request={req} onChanged={onChanged} />, { seed });
   return { onChanged };
 }
+
+const action = (over: Partial<ApplicantAction>): ApplicantAction => ({
+  id: 'payment_proof:42:1', key: 'payment_proof', requestId: 42, requestReference: 'DEM-2026-10-05-OMAT-02',
+  phaseCode: 'M5', priority: 20, urgent: false, anchor: 'paiement-M5', dueAt: null, ...over,
+});
 
 async function expandAllClosedPhases() {
   for (const summary of document.querySelectorAll('details > summary')) await userEvent.click(summary as HTMLElement);
@@ -85,6 +92,14 @@ describe('<DossierView> - SESSION1-MEET-2 signed compte rendu', () => {
           : BUNDLES[code];
       return [queryKeys.requests.phase(req.id, code), bundle] as [readonly unknown[], unknown];
     });
+    // Server order: payment_proof (20) before signed_meeting_report (80).
+    seed.push([
+      queryKeys.requests.actions(),
+      [
+        action({}),
+        action({ id: 'signed_meeting_report:42:9', key: 'signed_meeting_report', phaseCode: 'M3', priority: 80, anchor: 'compte-rendu-9' }),
+      ],
+    ]);
     renderWithProviders(<DossierView request={req} onChanged={vi.fn()} />, { seed });
   }
 
@@ -93,8 +108,10 @@ describe('<DossierView> - SESSION1-MEET-2 signed compte rendu', () => {
     const panel = screen.getByRole('region', { name: 'Compte rendu de réunion' });
     expect(within(panel).getByRole('button', { name: 'Déposer le compte rendu signé' })).toBeInTheDocument();
     expect(uploadControls()).toHaveLength(3); // M5 payment proof + correction + the signed copy
-    // The open M5 phase's own action (payment proof) keeps the dossier banner...
-    expect(screen.getByRole('status')).toHaveTextContent('Téléchargez la facture puis déposez votre quittance de paiement.');
+    // The first listed action (payment proof) is the dossier banner...
+    const banner = screen.getByRole('status');
+    expect(banner).toHaveTextContent('Téléchargez la facture puis déposez votre quittance de paiement.');
+    expect(within(banner).getByRole('link', { name: 'Déposer la quittance' })).toHaveAttribute('href', '#paiement-M5');
     // ...the M3 summary carries the signed-report action and its link.
     expect(screen.getByText('Action requise — Compte rendu à signer')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Accéder au compte rendu' })).toHaveAttribute('href', '#compte-rendu-9');

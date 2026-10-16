@@ -2,11 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { api } from '../../lib/axios';
-import { queryKeys } from '../../lib/react-query/queryKeys';
-import type { ApplicantMeeting } from '../../lib/api/meetings.api';
 import { renderWithProviders } from '../../test/render';
 import { MeetingConfirmationPanel, type ConfirmableMeeting } from './MeetingConfirmationPanel';
-import { MeetingsToConfirmBanner } from './MeetingsToConfirmBanner';
 
 const SLOT = '2026-11-03T08:30:00.000Z';
 const ALT = '2026-11-05T13:00:00.000Z';
@@ -102,32 +99,5 @@ describe('<MeetingConfirmationPanel>', () => {
     renderWithProviders(<MeetingConfirmationPanel meeting={{ ...base, actions: [] }} />);
     expect(screen.getByRole('region', { name: 'Rendez-vous proposé' })).toBeInTheDocument();
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
-  });
-});
-
-describe('<MeetingsToConfirmBanner>', () => {
-  const mine = (over: Partial<ApplicantMeeting>): ApplicantMeeting => ({
-    ...base,
-    meetingType: 'preliminary',
-    phaseCode: 'M3',
-    requestId: 4,
-    requestReference: 'DEM-2026-10-14-OMA-01',
-    requestType: 'issuance',
-    crDocumentUrl: null,
-    crUploadedAt: null, signedCrDocumentUrl: null, signedCrUploadedAt: null, canSubmitSignedReport: false,
-    ...over,
-  });
-
-  it('shows « Rendez-vous à confirmer » while an answer is expected', () => {
-    renderWithProviders(<MeetingsToConfirmBanner />, { seed: [[queryKeys.meetings.mine(), [mine({})]]] });
-    expect(screen.getByText('Rendez-vous à confirmer')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Répondre' })).toHaveAttribute('href', '/reunions');
-  });
-
-  it('stays hidden when nothing waits for the applicant', () => {
-    renderWithProviders(<MeetingsToConfirmBanner />, {
-      seed: [[queryKeys.meetings.mine(), [mine({ confirmationStatus: 'awaiting_dn', actions: [] })]]],
-    });
-    expect(screen.queryByText(/Rendez-vous à confirmer/)).not.toBeInTheDocument();
   });
 });

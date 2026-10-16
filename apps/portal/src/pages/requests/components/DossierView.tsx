@@ -14,6 +14,7 @@ import { ClosedPhaseRow } from '../../../components/request/ClosedPhaseRow';
 import { ReadOnlyProvider } from '../../../components/request/ReadOnlyContext';
 import { Modal } from '../../../components/ui/modal';
 import { isTerminalDossier } from '../progress';
+import { topPhaseAction } from '../../../lib/actions/selectors';
 import { FormalPhaseSection } from './FormalPhaseSection';
 import { PreliminaryPhaseSection } from './PreliminaryPhaseSection';
 import { DeepEvaluationSection } from './DeepEvaluationSection';
@@ -169,7 +170,7 @@ export function DossierView({
                       label={item.label}
                       summary={item.summary}
                       interrupted={item.stage === 'interrupted'}
-                      defaultOpen={!!item.presentation?.action}
+                      defaultOpen={!!topPhaseAction(progress.actions ?? [], request.id, item.code)}
                     >
                       <ReadOnlyProvider readOnly>
                         <Section requestId={request.id} />

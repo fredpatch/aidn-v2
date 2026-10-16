@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { mkdir, copyFile } from 'node:fs/promises';
 import { eq, and, ne, desc } from 'drizzle-orm';
+import { canApplicantSubmitDeclaration } from '@aidn/shared';
 import { db, type DbTx } from '../../shared/db/index.js';
 import {
   preliminaryEvaluationForms,
@@ -280,7 +281,8 @@ export async function submit(
       target = { ownerType: 'preliminary_evaluation_form', ownerId: row.id };
       if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') return row;
 
-      if (row.submittedFileUrl) throw new Error('DECLARATION_ALREADY_SUBMITTED');
+      // availability is established above: the only remaining refusal is a submitted form.
+      if (!canApplicantSubmitDeclaration(row)) throw new Error('DECLARATION_ALREADY_SUBMITTED');
 
       const [phase] = await tx.select().from(phases).where(eq(phases.id, phaseId));
       if (!phase) throw new Error('PHASE_NOT_FOUND');

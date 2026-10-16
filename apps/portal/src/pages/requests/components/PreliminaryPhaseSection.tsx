@@ -20,8 +20,9 @@ import { PhaseStep, stepState } from '../../../components/request/PhaseStep';
 import { SectionCard } from '../../../components/request/SectionCard';
 import { MeetingDetails, isMeetingResolved } from '../../../components/request/MeetingDetails';
 import { MeetingConfirmationPanel, usesConfirmationPanel } from '../../../components/meetings/MeetingConfirmationPanel';
-import { MeetingReportPanel, meetingReportAnchor, showsReportPanel } from '../../../components/meetings/MeetingReportPanel';
-import { signedReportPresentation, type PhasePresentation } from '../progress';
+import { MeetingReportPanel, showsReportPanel } from '../../../components/meetings/MeetingReportPanel';
+import { useApplicantActions } from '../../../hooks/useApplicantActions';
+import { topPhaseAction } from '../../../lib/actions/selectors';
 
 export function buildPreliminaryPresentation(bundle: PreliminaryBundle) {
   const meeting = bundle.meeting;
@@ -32,35 +33,28 @@ export function buildPreliminaryPresentation(bundle: PreliminaryBundle) {
   const declarationAvailable = !!evaluation?.madeAvailableAt;
   const declarationSubmitted = !!evaluation?.submittedFileUrl;
 
-  // SESSION1-MEET-2 - priority: the declaration (it blocks the closure) first,
-  // then the signed compte rendu (API flag), which outranks every passive
-  // wording, a closed phase included.
-  const declarationPending = declarationAvailable && !declarationSubmitted && !phaseClosed;
-  const signedReportPending = !!meeting?.canSubmitSignedReport;
-
+  // SESSION1-UX-1 - passive state only: the applicant actions (declaration,
+  // rendez-vous, signed compte rendu) come from GET /applicant/actions and
+  // replace this wording in the summary card.
   let title = 'Traitement préliminaire ouvert';
   let description = "La Direction de la Navigabilité a pris votre dossier en charge.";
   let tone: PhaseTone = 'info';
-  let action: PhasePresentation['action'];
 
-  if (signedReportPending && !declarationPending) {
-    ({ title, description, tone, action } = signedReportPresentation(meetingReportAnchor(meeting.id)));
-  } else if (phaseClosed) {
+  if (phaseClosed) {
     title = 'Phase préliminaire clôturée';
     description = 'Votre dossier passe à la phase suivante du traitement.';
     tone = 'success';
   } else if (declarationSubmitted) {
-    title = 'Formulaire transmis';
-    description = "Votre déclaration est en cours de traitement par l'ANAC.";
+    title = 'Déclaration transmise';
+    description =
+      "Votre déclaration a bien été transmise. Vous serez informé dès qu'une nouvelle étape ou une action de votre part sera nécessaire.";
     tone = 'success';
   } else if (declarationAvailable) {
-    title = 'Action requise';
-    description = 'Téléchargez le formulaire, remplissez-le, puis déposez votre déclaration.';
-    tone = 'warning';
+    title = 'Déclaration disponible';
+    description = 'Le formulaire de pré-évaluation est disponible dans cette phase.';
   } else if (meetingScheduled && meeting.confirmationStatus === 'awaiting_applicant') {
-    title = 'Rendez-vous à confirmer';
-    description = 'Confirmez le rendez-vous proposé par la DN ou proposez une autre date.';
-    tone = 'warning';
+    title = 'Rendez-vous proposé';
+    description = 'La DN vous a proposé un rendez-vous pour la réunion préliminaire.';
   } else if (meetingScheduled && meeting.confirmationStatus === 'awaiting_dn') {
     title = 'Nouvelle date proposée';
     description = 'Votre proposition est en attente de validation par la DN.';
@@ -71,7 +65,7 @@ export function buildPreliminaryPresentation(bundle: PreliminaryBundle) {
     tone = 'info';
   } else if (meetingDone) {
     title = 'Déclaration en préparation';
-    description = "L'ANAC prépare le formulaire de pré-évaluation à vous transmettre.";
+    description = 'Le formulaire de pré-évaluation vous sera transmis ici.';
     tone = 'info';
   } else {
     title = 'Réunion à planifier';
@@ -83,7 +77,6 @@ export function buildPreliminaryPresentation(bundle: PreliminaryBundle) {
     title,
     description,
     tone,
-    action,
     steps: [
       {
         key: 'meeting',
@@ -106,7 +99,7 @@ export function buildPreliminaryPresentation(bundle: PreliminaryBundle) {
       {
         key: 'closure',
         label: 'Suite du dossier',
-        detail: phaseClosed ? 'Phase clôturée' : 'Traitement ANAC en cours',
+        detail: phaseClosed ? 'Phase clôturée' : 'Prochaine étape à venir',
         state: stepState(phaseClosed, declarationSubmitted && !phaseClosed),
       },
     ],
@@ -129,6 +122,7 @@ export function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
   const readOnly = useReadOnly();
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const { actions } = useApplicantActions();
   const { bundle, isLoading, loadFailed, isFetching, retry, invalidate } = usePhaseBundle(
     requestId,
     'M3',
@@ -182,7 +176,7 @@ export function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
         title={presentation.title}
         description={presentation.description}
         tone={presentation.tone}
-        action={presentation.action}
+        action={topPhaseAction(actions ?? [], requestId, 'M3')}
         closed={phaseClosed}
       >
         {presentation.steps.map((step) => (
@@ -205,7 +199,7 @@ export function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
           {meeting && showsReportPanel({ ...meeting, meetingType: 'preliminary' }) && <MeetingReportPanel meeting={meeting} />}
         </SectionCard>
 
-        <SectionCard icon={FileText} title="Déclaration de pré-évaluation">
+        <SectionCard id="declaration" icon={FileText} title="Déclaration de pré-évaluation">
           {!declarationAvailable ? (
             <p className="mt-3 text-sm text-anac-muted">
               Le formulaire sera disponible après la réunion préliminaire.
@@ -216,10 +210,7 @@ export function PreliminaryPhaseSection({ requestId }: { requestId: number }) {
                 <FileCheck2 size={16} className="mt-0.5 text-anac-success" aria-hidden="true" />
                 <div>
                   <p className="text-sm font-medium text-anac-navy">Formulaire transmis</p>
-                  <p className="text-xs text-anac-muted">
-                    Transmis le {formatDate(evaluation?.submittedAt)}. Votre déclaration est en
-                    cours de traitement par l&apos;ANAC.
-                  </p>
+                  <p className="text-xs text-anac-muted">Transmise le {formatDate(evaluation?.submittedAt)}.</p>
                 </div>
               </div>
             </div>

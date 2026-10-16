@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import type { ApplicantAction } from '@aidn/shared';
 import type { PhaseCode } from '../../lib/react-query/queryKeys';
 import {
   buildBanner,
@@ -29,7 +30,7 @@ function items(over: Partial<Record<PhaseCode, PhaseSnapshot>> = {}) {
   return buildProgressItems({ ...base, ...over });
 }
 
-const inProgress = { status: 'in_progress', circuitStatus: 'pending_review', rejectionReason: null };
+const inProgress = { id: 42, status: 'in_progress', circuitStatus: 'pending_review', rejectionReason: null };
 
 describe('phaseStage', () => {
   it('not fetched (gated) -> upcoming', () => expect(phaseStage(snap({ enabled: false }))).toBe('upcoming'));
@@ -103,28 +104,108 @@ describe('dossier status helpers', () => {
   });
 });
 
+const action = (over: Partial<ApplicantAction> = {}): ApplicantAction => ({
+  id: 'payment_proof:42:1',
+  key: 'payment_proof',
+  requestId: 42,
+  requestReference: 'DEM-42',
+  phaseCode: 'M5',
+  priority: 20,
+  urgent: false,
+  anchor: 'paiement-M5',
+  dueAt: null,
+  ...over,
+});
+
 describe('buildBanner - active dossier', () => {
   it('waits for every phase before speaking (no flicker)', () => {
-    expect(buildBanner(inProgress, items({ M3: closed(), M4: snap({ isLoading: true }) }))).toBeNull();
+    expect(buildBanner(inProgress, items({ M3: closed(), M4: snap({ isLoading: true }) }), [action()])).toBeNull();
   });
 
-  it('warning tone on the current phase -> "Action requise", with that phase\'s own text', () => {
-    const banner = buildBanner(inProgress, items({ M3: closed(), M4: open({ title: 'Pièces à compléter', description: 'Déposez…', tone: 'warning' }) }));
-    expect(banner).toMatchObject({ kind: 'action', eyebrow: 'Action requise', title: 'Pièces à compléter', description: 'Déposez…' });
+  it('the top action of this dossier wins: "Action requise", its phase wording and a link to its anchor', () => {
+    const banner = buildBanner(
+      inProgress,
+      items({ M3: closed(), M4: open({ title: 'Lettre transmise', description: 'd', tone: 'info' }) }),
+      [
+        action({ id: 'other', requestId: 7, key: 'meeting_confirmation', anchor: 'rendez-vous-1', priority: 10 }),
+        // Server order is kept even when a later action has a lower priority.
+        action({ id: 'f', key: 'formal_missing_documents', phaseCode: 'M4', anchor: 'pieces', priority: 50, count: 3 }),
+        action({ id: 'c', key: 'meeting_confirmation', phaseCode: 'M4', anchor: 'rendez-vous-12', priority: 10 }),
+      ],
+    );
+    expect(banner).toEqual({
+      kind: 'action',
+      eyebrow: 'Action requise',
+      title: 'Pièces à compléter',
+      description: 'Déposez les pièces manquantes du dossier formel (3 manquante(s)).',
+      action: { label: 'Déposer les pièces', href: '#pieces' },
+    });
   });
 
-  it('any other tone -> waiting for ANAC', () => {
-    const banner = buildBanner(inProgress, items({ M5: open({ title: 'Quittance en validation', description: '…', tone: 'info' }) }));
-    expect(banner).toMatchObject({ kind: 'waiting', eyebrow: "En attente de l'ANAC", title: 'Quittance en validation' });
+  it('no action for this dossier -> the open phase passive wording', () => {
+    const banner = buildBanner(
+      inProgress,
+      items({ M5: open({ title: 'Quittance transmise', description: '…', tone: 'info' }) }),
+      [action({ requestId: 7 })],
+    );
+    expect(banner).toEqual({
+      kind: 'waiting',
+      eyebrow: 'Aucune action requise de votre part',
+      title: 'Quittance transmise',
+      description: '…',
+    });
+  });
+
+  it('a warning tone alone never makes an action', () => {
+    const banner = buildBanner(inProgress, items({ M4: open({ title: 'x', description: 'd', tone: 'warning' }) }), []);
+    expect(banner?.kind).toBe('waiting');
+  });
+
+  it('actions not loaded (null, e.g. load failed) -> passive, never kind "action"', () => {
+    const banner = buildBanner(inProgress, items({ M5: open({ title: 'Facture disponible', description: 'd', tone: 'info' }) }), null);
+    expect(banner).toMatchObject({ kind: 'waiting', title: 'Facture disponible' });
+    expect(banner?.action).toBeUndefined();
+  });
+
+  it('actions failed to load -> passive eyebrow « Situation du dossier », never "no action"', () => {
+    const failed = { actionsFailed: true };
+    expect(
+      buildBanner(inProgress, items({ M5: open({ title: 'Facture disponible', description: 'd', tone: 'info' }) }), null, failed),
+    ).toMatchObject({ kind: 'waiting', eyebrow: 'Situation du dossier', title: 'Facture disponible' });
+    expect(buildBanner(inProgress, items({ M3: closed(), M4: closed() }), null, failed)).toMatchObject({
+      kind: 'waiting',
+      eyebrow: 'Situation du dossier',
+    });
+    const gated = items({ M3: snap({ enabled: false }), M4: snap({ enabled: false }), M5: snap({ enabled: false }), M6: snap({ enabled: false }), M7: snap({ enabled: false }) });
+    expect(buildBanner({ id: 42, status: 'submitted', circuitStatus: 'submitted', rejectionReason: null }, gated, null, failed)).toMatchObject({
+      kind: 'waiting',
+      eyebrow: 'Situation du dossier',
+    });
   });
 
   it('between two phases -> announces the next step after the last closed one', () => {
-    const banner = buildBanner(inProgress, items({ M3: closed(), M4: closed() }));
-    expect(banner).toMatchObject({ kind: 'waiting', title: 'Demande formelle : étape clôturée' });
+    const banner = buildBanner(inProgress, items({ M3: closed(), M4: closed() }), []);
+    expect(banner).toEqual({
+      kind: 'waiting',
+      eyebrow: 'Aucune action requise de votre part',
+      title: 'Demande formelle : étape clôturée',
+      description: 'La prochaine étape de votre dossier sera ouverte par la DN.',
+    });
+  });
+
+  it('an action targeting a closed phase (MEET-2) is shown between two phases', () => {
+    const banner = buildBanner(inProgress, items({ M3: closed(), M4: closed() }), [
+      action({ key: 'signed_meeting_report', phaseCode: 'M3', anchor: 'compte-rendu-9', priority: 80 }),
+    ]);
+    expect(banner).toMatchObject({
+      kind: 'action',
+      title: 'Action requise — Compte rendu à signer',
+      action: { label: 'Accéder au compte rendu', href: '#compte-rendu-9' },
+    });
   });
 
   it('a failing phase with nothing current -> no banner rather than a wrong one', () => {
-    expect(buildBanner(inProgress, items({ M3: closed(), M4: snap({ loadFailed: true }) }))).toBeNull();
+    expect(buildBanner(inProgress, items({ M3: closed(), M4: snap({ loadFailed: true }) }), [])).toBeNull();
   });
 
   it.each([
@@ -134,23 +215,23 @@ describe('buildBanner - active dossier', () => {
     ['pending_review', 'Transmise à la Direction de la Navigabilité'],
   ])('intake, circuit %s -> "%s"', (circuitStatus, title) => {
     const gated = items({ M3: snap({ enabled: false }), M4: snap({ enabled: false }), M5: snap({ enabled: false }), M6: snap({ enabled: false }), M7: snap({ enabled: false }) });
-    expect(buildBanner({ status: 'submitted', circuitStatus, rejectionReason: null }, gated)).toMatchObject({ kind: 'waiting', title });
+    expect(buildBanner({ id: 42, status: 'submitted', circuitStatus, rejectionReason: null }, gated, [])).toMatchObject({ kind: 'waiting', title });
   });
 });
 
 describe('buildBanner - terminal dossier (outcome replaces "what now")', () => {
   it('completed -> done, titled with the delivery summary', () => {
-    const banner = buildBanner({ status: 'completed', circuitStatus: 'pending_review', rejectionReason: null }, items({ M7: closed('Certificat retiré le 05/10/2026') }));
+    const banner = buildBanner({ id: 42, status: 'completed', circuitStatus: 'pending_review', rejectionReason: null }, items({ M7: closed('Certificat retiré le 05/10/2026') }), []);
     expect(banner).toMatchObject({ kind: 'done', eyebrow: 'Dossier terminé', title: 'Certificat retiré le 05/10/2026' });
   });
 
   it('rejected -> shows the reason', () => {
-    const banner = buildBanner({ status: 'rejected', circuitStatus: 'pending_review', rejectionReason: 'Manuel MPM non conforme' }, items());
+    const banner = buildBanner({ id: 42, status: 'rejected', circuitStatus: 'pending_review', rejectionReason: 'Manuel MPM non conforme' }, items(), [action()]);
     expect(banner).toMatchObject({ kind: 'rejected', description: 'Motif : Manuel MPM non conforme' });
   });
 
   it('outcome is shown even while phases are still loading', () => {
-    const banner = buildBanner({ status: 'cancelled', circuitStatus: 'submitted', rejectionReason: null }, items({ M3: snap({ isLoading: true }) }));
+    const banner = buildBanner({ id: 42, status: 'cancelled', circuitStatus: 'submitted', rejectionReason: null }, items({ M3: snap({ isLoading: true }) }), null);
     expect(banner).toMatchObject({ kind: 'cancelled', eyebrow: 'Demande annulée' });
   });
 });

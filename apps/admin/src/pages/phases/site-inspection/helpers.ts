@@ -1,5 +1,6 @@
 import type { ChecklistItem, SiteInspectionBundle } from './types';
-import type { PhaseWorkflowSummaryState } from '../components/PhaseWorkflowSummary';
+import type { PhaseWorkflowSummaryState } from '../components/workflow-state';
+import { DN_OWNER, FINANCE_OWNER, INSPECTION_OWNER, paymentPendingState } from '../owners';
 
 export function buildChecklist(bundle: SiteInspectionBundle): ChecklistItem[] {
   const { payment, siteVisit, inspection } = bundle;
@@ -39,8 +40,8 @@ export function siteInspectionWorkflowSummary(
     return {
       title: 'Phase clôturée',
       description: 'Cette phase est en consultation seule. Le paiement, la visite et l’avis d’inspection restent auditables.',
-      owner: 'DN / Cellule Inspection',
-      tone: 'muted',
+      state: 'done',
+      owner: DN_OWNER,
       phaseStatus,
       metrics: [
         { label: 'Paiement', value: paymentLabel },
@@ -54,8 +55,8 @@ export function siteInspectionWorkflowSummary(
     return {
       title: 'Facture à envoyer',
       description: 'Envoyer la facture avant d’attendre la preuve de paiement.',
-      owner: 'DN',
-      tone: 'warning',
+      state: 'action_required',
+      owner: FINANCE_OWNER,
       phaseStatus,
       blockReason: 'La visite ne doit pas être finalisée avant validation du paiement.',
       metrics: [
@@ -68,10 +69,7 @@ export function siteInspectionWorkflowSummary(
 
   if (bundle.payment.status !== 'validated') {
     return {
-      title: 'Paiement à valider',
-      description: 'Valider la preuve de paiement avant l’avis final de l’inspection.',
-      owner: 'DN',
-      tone: 'warning',
+      ...paymentPendingState(bundle.payment, 'Valider la preuve de paiement avant l’avis final de l’inspection.'),
       phaseStatus,
       blockReason: 'L’avis d’inspection ne peut pas finaliser la phase tant que le paiement n’est pas validé.',
       metrics: [
@@ -86,8 +84,8 @@ export function siteInspectionWorkflowSummary(
     return {
       title: 'Visite sur site à planifier',
       description: 'Planifier la visite de démonstration et inspection sur site.',
-      owner: 'DN',
-      tone: 'info',
+      state: 'action_required',
+      owner: DN_OWNER,
       phaseStatus,
       metrics: [
         { label: 'Paiement', value: paymentLabel },
@@ -101,8 +99,8 @@ export function siteInspectionWorkflowSummary(
     return {
       title: 'Visite sur site à résoudre',
       description: 'Marquer la visite comme tenue avant la saisie de l’avis d’inspection.',
-      owner: 'DN',
-      tone: 'info',
+      state: 'action_required',
+      owner: DN_OWNER,
       phaseStatus,
       metrics: [
         { label: 'Paiement', value: paymentLabel },
@@ -116,8 +114,8 @@ export function siteInspectionWorkflowSummary(
     return {
       title: 'Avis d’inspection attendu',
       description: 'Saisir l’avis d’inspection après la visite tenue.',
-      owner: 'Cellule Inspection',
-      tone: 'warning',
+      state: 'action_required',
+      owner: INSPECTION_OWNER,
       phaseStatus,
       metrics: [
         { label: 'Paiement', value: paymentLabel },
@@ -130,8 +128,8 @@ export function siteInspectionWorkflowSummary(
   return {
     title: 'Décision d’inspection enregistrée',
     description: 'L’avis d’inspection est soumis. La suite dépend du verdict enregistré.',
-    owner: 'DN / Cellule Inspection',
-    tone: 'success',
+    state: 'done',
+    owner: DN_OWNER,
     phaseStatus,
     metrics: [
       { label: 'Paiement', value: paymentLabel },

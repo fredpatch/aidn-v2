@@ -1,3 +1,5 @@
+import type { NextActionOwner, OperationalState } from '@aidn/shared';
+
 export interface RequestCockpitMetric {
   key: string;
   label: string;
@@ -57,6 +59,8 @@ export interface RequestCockpitItem {
   nextActionDescription: string;
   nextActionHref: string | null;
   nextActionTone: 'info' | 'warning' | 'success' | 'danger';
+  nextActionState: OperationalState;
+  nextActionOwner: NextActionOwner | null;
   canStartPreliminary: boolean;
   activity: RequestCockpitActivity[];
   /** D3a - latest linked dossier event, or the submission date. */

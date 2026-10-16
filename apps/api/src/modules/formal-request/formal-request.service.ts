@@ -1,4 +1,9 @@
 import { eq, and, ne, desc, inArray } from 'drizzle-orm';
+import {
+  canApplicantSubmitFormalDocument,
+  canApplicantSubmitLetter,
+  missingFormalDocumentCount,
+} from '@aidn/shared';
 import { db } from '../../shared/db/index.js';
 import {
   phases,
@@ -146,8 +151,9 @@ export async function submitFormalLetter(
       target = { ownerType: 'dg_circuit_document', ownerId: existing.id };
       return existing;
     }
-    if (phase.status !== 'open') throw new Error('PHASE_NOT_OPEN');
-    if (existing) throw new Error('LETTER_ALREADY_SUBMITTED');
+    if (!canApplicantSubmitLetter(phase, existing ?? null)) {
+      throw new Error(phase.status !== 'open' ? 'PHASE_NOT_OPEN' : 'LETTER_ALREADY_SUBMITTED');
+    }
 
     const [created] = await tx
       .insert(dgCircuitDocuments)
@@ -286,8 +292,9 @@ export async function submitDocument(
     if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') {
       return { doc: { ...slotRow, fileUrl: null }, updated: slotRow };
     }
-    if (phase.status !== 'open') throw new Error('PHASE_NOT_OPEN');
-    if (slotRow.fileUrl) throw new Error('DOCUMENT_ALREADY_SUBMITTED');
+    if (!canApplicantSubmitFormalDocument(phase, slotRow)) {
+      throw new Error(phase.status !== 'open' ? 'PHASE_NOT_OPEN' : 'DOCUMENT_ALREADY_SUBMITTED');
+    }
 
     await tx.insert(documentVersions).values(versionValues(attachment, 'formal_request_document', slotRow.id));
     await linkLockedAsset(tx, attachment.assetId, target);
@@ -473,8 +480,7 @@ export async function closeFormalPhase(
       .select()
       .from(formalRequestDocuments)
       .where(eq(formalRequestDocuments.phaseId, phaseId));
-    const missing = docs.filter((d) => d.status === 'missing').length;
-    if (missing > 0) throw new Error('DOCUMENTS_INCOMPLETE');
+    if (missingFormalDocumentCount(docs) > 0) throw new Error('DOCUMENTS_INCOMPLETE');
 
     // Gate 3 - formal meeting resolved
     const [currentMeeting] = await tx

@@ -1,4 +1,5 @@
 import { ReactNode } from 'react';
+import type { NextActionOwner, OperationalState } from '@aidn/shared';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -7,11 +8,9 @@ import {
   ChevronRight,
   Circle,
   CircleDashed,
-  Clock3,
   FileArchive,
   HelpCircle,
   History,
-  LockKeyhole,
   Mail,
   ShieldCheck,
 } from 'lucide-react';
@@ -19,6 +18,8 @@ import { PHASE_ROADMAP } from '../preliminary/constants';
 import { fetchPhasesSummary } from '../../../lib/api/phases.api';
 import { queryKeys } from '../../../lib/react-query/queryKeys';
 import { cn } from '../../../lib/utils';
+import { OperationalCallout } from '../../../components/common/OperationalCallout';
+import { useCanAct } from '../../../lib/next-action-owner';
 import type { DossierState } from '../../../lib/api/phases.types';
 import { ClosedDossierBanner, DossierStateValue, useDossierState } from './DossierReadOnly';
 
@@ -47,8 +48,8 @@ export interface WorkflowQuickLink {
 export interface WorkflowActionRailState {
   title: string;
   description: string;
-  owner: string;
-  tone: 'info' | 'warning' | 'success' | 'muted';
+  state: OperationalState;
+  owner: NextActionOwner;
   blockReason?: string | null;
   primaryAction?: {
     label: string;
@@ -73,33 +74,6 @@ interface WorkflowCockpitProps {
   quickLinks?: readonly WorkflowQuickLink[];
   children: ReactNode;
 }
-
-const actionToneStyles = {
-  info: {
-    icon: Clock3,
-    iconClass: 'text-anac-blue',
-    badge: 'bg-anac-blue/10 text-anac-blue',
-    ring: 'border-anac-blue/20 bg-anac-blue/5',
-  },
-  warning: {
-    icon: Clock3,
-    iconClass: 'text-anac-warning',
-    badge: 'bg-anac-warning/10 text-anac-warning',
-    ring: 'border-anac-warning/25 bg-anac-warning/5',
-  },
-  success: {
-    icon: CheckCircle2,
-    iconClass: 'text-anac-success',
-    badge: 'bg-anac-success/10 text-anac-success',
-    ring: 'border-anac-success/25 bg-anac-success/5',
-  },
-  muted: {
-    icon: LockKeyhole,
-    iconClass: 'text-anac-muted',
-    badge: 'bg-anac-muted/10 text-anac-muted',
-    ring: 'border-anac-border bg-white',
-  },
-};
 
 function phaseStatusLabel(status: string | undefined, isCurrent: boolean, dossierClosed: boolean): string {
   if (status === 'closed') return 'Terminée';
@@ -187,8 +161,8 @@ function WorkflowCockpitView({
     ? {
         title: 'Dossier clos',
         description: 'Aucune action a mener sur ce dossier. Consultation uniquement.',
-        owner: '-',
-        tone: 'muted',
+        state: 'information',
+        owner: { kind: 'external', label: '-' },
       }
     : action;
   // "Responsable" is the owner of the next action: none on a closed dossier.
@@ -204,7 +178,30 @@ function WorkflowCockpitView({
         }))
     : keyInfo;
   const completedCount = checklist.filter((item) => item.done).length;
-  const ActionIcon = actionToneStyles[railAction.tone].icon;
+  const allowed = useCanAct(railAction.owner) && !dossierClosed;
+  const callout = (compact: boolean) => (
+    <OperationalCallout
+      compact={compact}
+      state={railAction.state}
+      title={railAction.title}
+      description={railAction.description}
+      owner={dossierClosed ? null : railAction.owner}
+      canAct={allowed}
+      blockReason={railAction.blockReason}
+      cta={
+        railAction.primaryAction ? (
+          <button
+            type="button"
+            onClick={railAction.primaryAction.onClick}
+            disabled={railAction.primaryAction.disabled}
+            className="h-9 rounded border border-anac-border bg-white px-3 text-xs font-semibold text-anac-navy transition-colors hover:bg-anac-gray disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-anac-sky"
+          >
+            {railAction.primaryAction.label}
+          </button>
+        ) : null
+      }
+    />
+  );
 
   return (
     <div className="workflow-cockpit min-h-full -m-6 bg-[#f8fafc] text-anac-text [&_.card]:rounded-lg [&_.card]:border-anac-border [&_.card]:p-4 [&_.card]:shadow-sm">
@@ -416,43 +413,19 @@ function WorkflowCockpitView({
             )}
           </aside>
 
-          <section className="min-w-0 space-y-4">{children}</section>
+          <section className="min-w-0 space-y-4">
+            <div className="xl:hidden">{callout(false)}</div>
+            {children}
+          </section>
 
           <aside className="space-y-4 xl:sticky xl:top-4">
-            <section className={cn('rounded-lg border p-4 shadow-sm', actionToneStyles[railAction.tone].ring)}>
-              <div className="mb-4 flex items-center gap-2">
-                <ActionIcon size={16} className={actionToneStyles[railAction.tone].iconClass} />
-                <h2 className="text-sm font-semibold text-anac-navy">
-                  {dossierClosed ? 'Prochaine action' : 'Prochaine action requise'}
-                </h2>
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-start gap-2">
-                  <CheckCircle2 size={14} className={actionToneStyles[railAction.tone].iconClass} />
-                  <div>
-                    <p className="text-sm font-medium text-anac-navy">{railAction.title}</p>
-                    <p className="mt-1 text-xs leading-relaxed text-anac-muted">{railAction.description}</p>
-                    {railAction.blockReason && (
-                      <p className="mt-2 text-xs font-medium text-anac-warning">{railAction.blockReason}</p>
-                    )}
-                  </div>
-                </div>
-                {!dossierClosed && (
-                  <span className={cn('inline-flex rounded px-2 py-0.5 text-[10px] font-semibold', actionToneStyles[railAction.tone].badge)}>
-                    Responsable: {railAction.owner}
-                  </span>
-                )}
-                {railAction.primaryAction && (
-                  <button
-                    type="button"
-                    onClick={railAction.primaryAction.onClick}
-                    disabled={railAction.primaryAction.disabled}
-                    className="mt-2 h-9 w-full rounded border border-anac-border bg-white text-xs font-semibold text-anac-navy transition-colors hover:bg-anac-gray disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-anac-sky"
-                  >
-                    {railAction.primaryAction.label}
-                  </button>
-                )}
-              </div>
+            <section aria-label="Prochaine action" className="hidden space-y-2 xl:block">
+              <h2 className="text-sm font-semibold text-anac-navy">
+                {!dossierClosed && allowed && railAction.state === 'action_required'
+                  ? 'Prochaine action requise'
+                  : 'Prochaine action'}
+              </h2>
+              {callout(true)}
             </section>
 
             <section className="rounded-lg border border-anac-border bg-white p-4 shadow-sm">

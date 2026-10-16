@@ -15,7 +15,8 @@ export function ClosedPhaseRow({
   label: string;
   summary: string | null;
   interrupted?: boolean;
-  /** Opened from the start - e.g. a closed phase still awaiting the signed compte rendu (SESSION1-MEET-2). */
+  /** Opened when an applicant action targets this phase (SESSION1-UX-1 topPhaseAction; today only the
+   *  signed compte rendu of a closed M3/M4, SESSION1-MEET-2). */
   defaultOpen?: boolean;
   children: ReactNode;
 }) {

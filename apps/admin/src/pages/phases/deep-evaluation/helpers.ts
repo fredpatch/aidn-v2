@@ -1,5 +1,7 @@
+import { expectsDocumentCorrection } from '@aidn/shared';
 import type { ChecklistItem, DeepEvaluationBundle } from './types';
-import type { PhaseWorkflowSummaryState } from '../components/PhaseWorkflowSummary';
+import type { PhaseWorkflowSummaryState } from '../components/workflow-state';
+import { APPLICANT_OWNER, DN_OWNER, FINANCE_OWNER, paymentPendingState } from '../owners';
 
 export function buildChecklist(bundle: DeepEvaluationBundle): ChecklistItem[] {
   const { completionRate, payment } = bundle;
@@ -66,8 +68,8 @@ export function deepEvaluationWorkflowSummary(
     return {
       title: 'Phase clôturée',
       description: 'Cette phase est en consultation seule. Les décisions documentaires restent disponibles pour audit.',
-      owner: 'DN',
-      tone: 'muted',
+      state: 'done',
+      owner: DN_OWNER,
       phaseStatus,
       metrics: [
         { label: 'Paiement', value: paymentLabel },
@@ -77,59 +79,80 @@ export function deepEvaluationWorkflowSummary(
     };
   }
 
+  const metrics = [
+    { label: 'Paiement', value: paymentLabel },
+    { label: 'Documents', value: evaluationLabel },
+    { label: 'À corriger', value: String(bundle.completionRate.needsAction) },
+  ];
+
+  // Open phase: same order as the Demandes cockpit (apps/api/src/modules/
+  // requests/cockpit-next-action.ts, D9). 0. DN parallel work first: the DN
+  // never reads « en attente » while documents await its verdict.
+  if (bundle.completionRate.pending > 0) {
+    return {
+      title: `Évaluer ${bundle.completionRate.pending} document(s)`,
+      description: 'Des documents déposés ou redéposés attendent l’avis de la DN.',
+      state: 'action_required',
+      owner: DN_OWNER,
+      phaseStatus,
+      blockReason,
+      metrics,
+    };
+  }
+
+  // 1. Applicant expected: corrections.
+  if (bundle.phase && expectsDocumentCorrection(bundle.phase, bundle.evaluations)) {
+    return {
+      title: 'Corrections attendues du postulant',
+      description: `${bundle.completionRate.needsAction} document(s) à corriger par le postulant.`,
+      state: 'waiting',
+      owner: APPLICANT_OWNER,
+      phaseStatus,
+      blockReason,
+      metrics,
+    };
+  }
+
+  // 2. Payment (applicant proof / Finance).
   if (!bundle.payment?.invoiceFileUrl) {
     return {
       title: 'Facture à envoyer',
       description: 'Envoyer la facture au postulant avant la validation du paiement.',
-      owner: 'DN',
-      tone: 'warning',
+      state: 'action_required',
+      owner: FINANCE_OWNER,
       phaseStatus,
       blockReason,
-      metrics: [
-        { label: 'Paiement', value: paymentLabel },
-        { label: 'Documents', value: evaluationLabel },
-        { label: 'À corriger', value: String(bundle.completionRate.needsAction) },
-      ],
+      metrics,
     };
   }
 
   if (bundle.payment.status !== 'validated') {
     return {
-      title: 'Paiement à valider',
-      description: 'Valider la preuve de paiement ou demander une nouvelle preuve.',
-      owner: 'DN',
-      tone: 'warning',
+      ...paymentPendingState(bundle.payment, 'Valider la preuve de paiement ou demander une nouvelle preuve.'),
       phaseStatus,
       blockReason,
-      metrics: [
-        { label: 'Paiement', value: paymentLabel },
-        { label: 'Documents', value: evaluationLabel },
-        { label: 'À corriger', value: String(bundle.completionRate.needsAction) },
-      ],
+      metrics,
     };
   }
 
+  // 3. The DN works the phase.
   if (bundle.completionRate.validated < bundle.completionRate.total) {
     return {
       title: 'Évaluation documentaire à terminer',
       description: 'Tous les documents doivent être validés avant la clôture de cette phase.',
-      owner: 'DN',
-      tone: 'warning',
+      state: 'action_required',
+      owner: DN_OWNER,
       phaseStatus,
       blockReason,
-      metrics: [
-        { label: 'Paiement', value: paymentLabel },
-        { label: 'Documents', value: evaluationLabel },
-        { label: 'À corriger', value: String(bundle.completionRate.needsAction) },
-      ],
+      metrics,
     };
   }
 
   return {
     title: 'Phase prête à clôturer',
     description: 'Le paiement est validé et tous les documents ont été validés.',
-    owner: 'DN',
-    tone: 'success',
+    state: 'action_required',
+    owner: DN_OWNER,
     phaseStatus,
     metrics: [
       { label: 'Paiement', value: paymentLabel },

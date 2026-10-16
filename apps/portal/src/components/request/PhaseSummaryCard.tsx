@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react';
+import type { ApplicantAction } from '@aidn/shared';
+import { actionCopy } from '../../lib/actions/copy';
 
 export type PhaseTone = 'info' | 'warning' | 'success' | 'muted';
 
@@ -9,7 +11,11 @@ const TONE_STYLES: Record<PhaseTone, string> = {
   success: 'border-anac-success/30 bg-anac-success/5',
 };
 
-/** Header card of a phase: phase name, current situation, open/closed badge, steps. */
+/**
+ * Header card of a phase: phase name, current situation, open/closed badge, steps.
+ * SESSION1-UX-1 - `action` (the top applicant action of this phase, from the API)
+ * replaces the builder's passive wording, with a link to its anchor.
+ */
 export function PhaseSummaryCard({
   phaseLabel,
   title,
@@ -24,20 +30,21 @@ export function PhaseSummaryCard({
   description: string;
   tone: PhaseTone;
   closed: boolean;
-  /** A link to where the applicant acts (SESSION1-MEET-2 signed compte rendu). */
-  action?: { label: string; href: string };
+  action?: ApplicantAction;
   children: ReactNode;
 }) {
+  const copy = action ? actionCopy(action) : null;
+
   return (
-    <div className={`rounded-lg border p-4 ${TONE_STYLES[tone]}`}>
+    <div className={`rounded-lg border p-4 ${TONE_STYLES[copy ? 'warning' : tone]}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-semibold text-anac-navy">{phaseLabel}</p>
-          <h3 className="mt-1 text-base font-semibold text-anac-navy">{title}</h3>
-          <p className="mt-1 text-sm text-anac-muted">{description}</p>
-          {action && (
-            <a href={action.href} className="btn-primary mt-2 inline-flex rounded px-3 py-1.5 text-xs no-underline">
-              {action.label}
+          <h3 className="mt-1 text-base font-semibold text-anac-navy">{copy ? copy.phaseTitle : title}</h3>
+          <p className="mt-1 text-sm text-anac-muted">{copy ? copy.phaseDescription : description}</p>
+          {action && copy && (
+            <a href={`#${action.anchor}`} className="btn-primary mt-2 inline-flex rounded px-3 py-1.5 text-xs no-underline">
+              {copy.phaseCta}
             </a>
           )}
         </div>

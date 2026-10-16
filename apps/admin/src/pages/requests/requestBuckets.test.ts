@@ -42,6 +42,8 @@ const item = (over: Partial<RequestCockpitItem>): RequestCockpitItem => ({
   nextActionDescription: '',
   nextActionHref: '/demandes/1/phase-formelle',
   nextActionTone: 'info',
+  nextActionState: 'action_required',
+  nextActionOwner: { kind: 'staff', label: 'DN', roles: ['dn_agent', 'dn_supervisor', 'SU'] },
   canStartPreliminary: false,
   activity: [],
   ...over,

@@ -3,6 +3,8 @@ import { EmptyState } from '../../components/common/EmptyState';
 import { MessageList } from '../../components/common/MessageList';
 import type { RequestCockpitItem } from '../../lib/api/requests.types';
 import { cn } from '../../lib/utils';
+import { canAct } from '../../lib/next-action-owner';
+import { useAuth } from '../../hooks/useAuth';
 import { Flag } from 'lucide-react';
 import {
   formatRowDate,
@@ -44,6 +46,7 @@ export function RequestsList({
   onSelect: (item: RequestCockpitItem) => void;
   onActivate: (item: RequestCockpitItem) => void;
 }) {
+  const roles = useAuth().user?.roles ?? [];
   const empty = groups.every((group) => group.items.length === 0);
 
   if (loading) {
@@ -126,6 +129,9 @@ export function RequestsList({
               <span className={cn('font-semibold', NEXT_ACTION_TEXT[item.nextActionTone])}>
                 {item.nextActionLabel}
               </span>
+              {item.nextActionOwner && !canAct(item.nextActionOwner, roles) ? (
+                <span className="text-anac-muted"> · {item.nextActionOwner.label}</span>
+              ) : null}
             </span>
           </>
         );

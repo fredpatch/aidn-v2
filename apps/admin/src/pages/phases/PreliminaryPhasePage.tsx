@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { useAuth } from '../../hooks/useAuth';
+import { DN_OWNER } from './owners';
 import WorkflowCockpit from './components/WorkflowCockpit';
 import { useDossierState } from './components/DossierReadOnly';
 import ClosureCard from './preliminary/components/ClosureCard';
@@ -11,8 +12,9 @@ import {
   buildChecklist,
   canClosePreliminaryPhase,
   formatDate,
-  isMeetingResolved,
+  preliminaryClosureBlockReason,
   preliminaryWorkflowSummary,
+  reportMetricValue,
 } from './preliminary/helpers';
 import { usePreliminaryBundle } from './preliminary/hooks/usePreliminaryBundle';
 import { MEETING_STATUS_LABELS } from './preliminary/constants';
@@ -35,10 +37,7 @@ export default function PreliminaryPhasePage() {
   if (error) return <p className="p-6 text-anac-danger">{error}</p>;
 
   const canClose = canClosePreliminaryPhase(bundle);
-  const meetingResolved = isMeetingResolved(bundle);
-  const blockReason = !meetingResolved
-    ? 'La clôture sera disponible une fois la réunion résolue.'
-    : 'La clôture sera disponible une fois la déclaration retournée par le postulant.';
+  const blockReason = preliminaryClosureBlockReason(bundle);
   const summary = bundle ? preliminaryWorkflowSummary(bundle, canClose ? null : blockReason) : null;
   const checklist = bundle ? buildChecklist(bundle) : [];
   const action = summary
@@ -46,14 +45,14 @@ export default function PreliminaryPhasePage() {
         title: summary.title,
         description: summary.description,
         owner: summary.owner,
-        tone: summary.tone,
+        state: summary.state,
         blockReason: summary.blockReason,
       }
     : {
         title: 'Démarrer la phase',
         description: 'Ouvrir la phase préliminaire pour commencer le traitement opérationnel.',
-        owner: 'DN',
-        tone: 'info' as const,
+        owner: DN_OWNER,
+        state: 'action_required' as const,
         primaryAction: {
           label: startingPhase ? 'Démarrage...' : 'Démarrer la phase',
           onClick: startPhase,
@@ -61,7 +60,7 @@ export default function PreliminaryPhasePage() {
         },
       };
   const keyInfo = [
-    { label: 'Responsable', value: action.owner },
+    { label: 'Responsable', value: action.owner.label },
     { label: "Date d'ouverture", value: formatDate(bundle?.phase?.openedAt) },
     {
       label: 'Réunion',
@@ -78,7 +77,7 @@ export default function PreliminaryPhasePage() {
     },
     {
       label: 'Compte-rendu',
-      value: bundle?.meeting?.crDocumentUrl ? 'Déposé' : 'Facultatif',
+      value: reportMetricValue(bundle?.meeting ?? null),
       tone: bundle?.meeting?.crDocumentUrl ? 'success' : 'muted',
     },
   ] as const;

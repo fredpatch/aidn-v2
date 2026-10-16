@@ -14,6 +14,8 @@ import * as formal from '../formal/constants';
 import * as preliminary from '../preliminary/constants';
 import * as siteInspection from '../site-inspection/constants';
 
+vi.mock('../../../hooks/useAuth', () => ({ useAuth: () => ({ user: { roles: ['dn_agent'] } }) }));
+
 const AT = '2026-10-02T08:00:00.000Z';
 const rejected: DossierState = { status: 'rejected', closed: true, closedAt: AT, rejectionReason: 'Motif' };
 const open: DossierState = { status: 'in_progress', closed: false, closedAt: null, rejectionReason: null };
@@ -35,7 +37,7 @@ function renderKeyInfo(state: DossierState, keyInfo: WorkflowKeyInfoItem[]) {
       onBack={noop}
       checklistTitle="Checklist"
       checklist={[{ label: 'Visite tenue', done: false }]}
-      action={{ title: 'Avis R3', description: 'Le R3 doit rendre son avis.', owner: 'R3', tone: 'warning' }}
+      action={{ title: 'Avis R3', description: 'Le R3 doit rendre son avis.', state: 'action_required', owner: { kind: 'staff', label: 'R3', roles: ['dn_agent'] } }}
       keyInfo={keyInfo}
     >
       <div />

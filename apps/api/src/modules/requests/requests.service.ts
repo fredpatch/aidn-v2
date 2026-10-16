@@ -4,14 +4,17 @@ import {
   auditLogs,
   requests,
   dgCircuitDocuments,
-  documentEvaluations,
   documentVersions,
-  formalRequestDocuments,
   applicants,
   organisations,
   phases,
   requestViews,
+  siteInspections,
 } from '../../shared/db/schema.js';
+import { loadApplicantActionRows } from '../applicant-actions/applicant-actions.rows.js';
+import { buildApplicantActions } from '../applicant-actions/applicant-actions.policy.js';
+import { isAwaitingDn } from '../meetings/meeting-confirmation.js';
+import { phaseHref, resolveCockpitNextAction } from './cockpit-next-action.js';
 import { logAudit } from '../auth/auth.service.js';
 import { generateRequestReference } from './requests.helpers.js';
 import { returnIntakeDgAnnotation } from '../dn-annotation/intake-dg-return.js';
@@ -66,13 +69,6 @@ const PHASE_LABELS: Record<string, string> = {
 const PHASE_CODES = ['M3', 'M4', 'M5', 'M6', 'M7'] as const;
 const TERMINAL_REQUEST_STATUSES = ['rejected', 'completed', 'cancelled'];
 
-function phaseHref(phaseCode: string, requestId: number): string {
-  if (phaseCode === 'M3') return `/demandes/${requestId}/phase-preliminaire`;
-  if (phaseCode === 'M4') return `/demandes/${requestId}/phase-formelle`;
-  if (phaseCode === 'M5') return `/demandes/${requestId}/evaluation-approfondie`;
-  if (phaseCode === 'M6') return `/demandes/${requestId}/demonstration-inspection`;
-  return `/demandes/${requestId}/delivrance`;
-}
 
 /** D3a - French titles of the dossier events shown in the reading pane, all
  *  phases (audit actions linked to a request, modules/auth/audit-request.ts). */
@@ -159,6 +155,16 @@ function activityLabel(
 function utcTimestamp(value: Date | string): Date {
   if (value instanceof Date) return value;
   return new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(value) ? value : `${value.replace(' ', 'T')}Z`);
+}
+
+function groupBy<T, K>(rows: readonly T[], key: (row: T) => K): Map<K, T[]> {
+  const grouped = new Map<K, T[]>();
+  for (const row of rows) {
+    const list = grouped.get(key(row));
+    if (list) list.push(row);
+    else grouped.set(key(row), [row]);
+  }
+  return grouped;
 }
 
 function latestDate(a: Date, b: Date | undefined): Date {
@@ -410,13 +416,14 @@ export function isUnread(params: {
 }
 
 export async function listRequestCockpit(viewerUserId?: number): Promise<RequestCockpitSummary> {
+  // SESSION1-UX-1 - one read per domain per cockpit request: the applicant
+  // action rows (8 queries, closed dossiers included) are the cockpit's
+  // phases, DG circuits (all entity types), formal documents, evaluations,
+  // meetings and payments; only the site inspections are read on top.
   const [
     requestRows,
-    phaseRows,
-    circuitRows,
-    dnCircuitRows,
-    formalDocumentRows,
-    evaluationRows,
+    actionRows,
+    inspectionRows,
     activityResult,
     lastActivityRows,
     viewRows,
@@ -431,11 +438,8 @@ export async function listRequestCockpit(viewerUserId?: number): Promise<Request
       .innerJoin(organisations, eq(requests.organisationId, organisations.id))
       .innerJoin(applicants, eq(requests.applicantId, applicants.id))
       .orderBy(desc(requests.createdAt)),
-    db.select().from(phases),
-    db.select().from(dgCircuitDocuments).where(eq(dgCircuitDocuments.entityType, 'intake_request')),
-    db.select().from(dgCircuitDocuments).where(eq(dgCircuitDocuments.entityType, 'dn_director_annotation')),
-    db.select().from(formalRequestDocuments),
-    db.select().from(documentEvaluations),
+    loadApplicantActionRows({ includeClosedDossiers: true }),
+    db.select({ phaseId: siteInspections.phaseId }).from(siteInspections),
     // D3a - the latest events of every dossier, all phases (was: the 120
     // latest rows of the whole app, M1 only).
     db.execute(sql`
@@ -466,15 +470,19 @@ export async function listRequestCockpit(viewerUserId?: number): Promise<Request
       : db.select().from(requestViews).where(eq(requestViews.userId, viewerUserId)),
   ]);
 
-  const phaseRowsByRequestId = new Map<number, Array<typeof phases.$inferSelect>>();
-  for (const phase of phaseRows) {
-    const list = phaseRowsByRequestId.get(phase.requestId) ?? [];
-    list.push(phase);
-    phaseRowsByRequestId.set(phase.requestId, list);
-  }
-
-  const circuitByRequestId = new Map(circuitRows.map((row) => [row.requestId, row]));
-  const dnCircuitByRequestId = new Map(dnCircuitRows.map((row) => [row.requestId, row]));
+  const phaseRowsByRequestId = groupBy(actionRows.phases, (phase) => phase.requestId);
+  const circuitsOfType = (entityType: string) =>
+    new Map(actionRows.circuits.filter((row) => row.entityType === entityType).map((row) => [row.requestId, row]));
+  const circuitByRequestId = circuitsOfType('intake_request');
+  const dnCircuitByRequestId = circuitsOfType('dn_director_annotation');
+  const dnCircuitRows = [...dnCircuitByRequestId.values()];
+  const letterCircuitByRequestId = circuitsOfType('formal_request_letter');
+  const declarationCircuitByRequestId = circuitsOfType('pre_evaluation');
+  const meetingsByPhaseId = groupBy(actionRows.meetings, (meeting) => meeting.phaseId);
+  const paymentByPhaseId = new Map(actionRows.payments.map((payment) => [payment.phaseId, payment]));
+  const inspectedPhaseIds = new Set(inspectionRows.map((row) => row.phaseId));
+  // Closed dossiers yield no applicant action (buildApplicantActions skips them).
+  const actionsByRequestId = groupBy(buildApplicantActions(actionRows, new Date()), (action) => action.requestId);
   // SESSION1-M1-1 - the returned Directeur DN annotation, readable by the DN agents (staff-only cockpit).
   const dnReturnedIds = dnCircuitRows.filter((row) => row.status === 'pending_review').map((row) => row.id);
   const dnDocumentRows = dnReturnedIds.length
@@ -490,13 +498,8 @@ export async function listRequestCockpit(viewerUserId?: number): Promise<Request
         )
     : [];
   const dnDocumentByCircuitId = new Map(dnDocumentRows.map((row) => [row.ownerId, row.fileUrl]));
-  const formalDocsByPhaseId = new Map<number, Array<typeof formalRequestDocuments.$inferSelect>>();
-  for (const document of formalDocumentRows) {
-    const list = formalDocsByPhaseId.get(document.phaseId) ?? [];
-    list.push(document);
-    formalDocsByPhaseId.set(document.phaseId, list);
-  }
-  const evaluationsByDocumentId = new Map(evaluationRows.map((row) => [row.formalRequestDocumentId, row]));
+  const formalDocsByPhaseId = groupBy(actionRows.formalDocuments, (document) => document.phaseId);
+  const evaluationsByDocumentId = new Map(actionRows.evaluations.map((row) => [row.formalRequestDocumentId, row]));
   const activitiesByRequestId = new Map<number, RequestCockpitActivity[]>();
   for (const raw of activityResult.rows) {
     const activity = raw as {
@@ -574,110 +577,29 @@ export async function listRequestCockpit(viewerUserId?: number): Promise<Request
     };
   }
 
-  function nextAction(params: {
-    requestId: number;
-    status: string;
-    circuitStatus: string | null;
-    dnCircuitStatus: string | null;
-    phasesSummary: RequestCockpitPhase[];
-  }): Pick<
-    RequestCockpitItem,
-    | 'nextActionLabel'
-    | 'nextActionDescription'
-    | 'nextActionHref'
-    | 'nextActionTone'
-    | 'canStartPreliminary'
-  > {
-    const { requestId, status, circuitStatus, dnCircuitStatus, phasesSummary } = params;
-    if (status === 'completed') {
-      return {
-        nextActionLabel: 'Workflow terminé',
-        nextActionDescription: 'Dossier clos : consultation et téléchargement uniquement.',
-        nextActionHref: phaseHref('M7', requestId),
-        nextActionTone: 'success',
-        canStartPreliminary: false,
-      };
+  /** §7.4 / D9 - the open phase's facts, from the same batch rows. */
+  function openPhaseFacts(requestId: number, phasesSummary: RequestCockpitPhase[]) {
+    const open = phasesSummary.find((phase) => phase.status === 'open');
+    const row = open ? phaseRowsByRequestId.get(requestId)?.find((phase) => phase.phaseCode === open.phaseCode) : undefined;
+    if (!open || !row) {
+      return { meetingAwaitingDn: false, openPhasePayment: null, m6VisitHeldWithoutVerdict: false, openPhaseCircuitStatus: null };
     }
-    if (status === 'rejected' || status === 'cancelled') {
-      // D2 - K7: a closed dossier stays viewable. Link to the last phase that
-      // was started (open or closed); none started (closed during the DG
-      // circuit) means there is no phase page to open.
-      const lastStarted = [...phasesSummary].reverse().find((phase) => phase.status !== 'not_started');
-      return {
-        nextActionLabel: status === 'rejected' ? 'Dossier rejeté' : 'Dossier annulé',
-        nextActionDescription: lastStarted
-          ? 'Dossier clos : consultation et téléchargement uniquement.'
-          : 'Dossier clos avant la phase préliminaire : aucune page de phase à consulter.',
-        nextActionHref: lastStarted?.href ?? null,
-        nextActionTone: 'danger',
-        canStartPreliminary: false,
-      };
-    }
-    if (circuitStatus === 'submitted') {
-      return {
-        nextActionLabel: 'Réception doit mettre en circuit DG',
-        nextActionDescription: 'Le dossier attend impression et mise en circuit DG.',
-        nextActionHref: null,
-        nextActionTone: 'warning',
-        canStartPreliminary: false,
-      };
-    }
-    if (circuitStatus === 'in_signature_circuit') {
-      return {
-        nextActionLabel: 'Annotation du DG attendue',
-        nextActionDescription: 'La DN suit le dossier en lecture seule jusqu’au retour annoté du DG.',
-        nextActionHref: null,
-        nextActionTone: 'warning',
-        canStartPreliminary: false,
-      };
-    }
-    if (circuitStatus === 'pending_review' && (status === 'submitted' || status === 'pending_review') && !isPreliminaryOpenable(status, dnCircuitStatus)) {
-      const atDirector = dnCircuitStatus === 'in_signature_circuit';
-      return {
-        nextActionLabel: atDirector ? 'En attente de l’annotation du Directeur DN' : 'Annotation du DG reçue',
-        nextActionDescription: atDirector
-          ? 'Le dossier est en circuit Directeur DN. La DN le suit en lecture seule jusqu’au retour annoté.'
-          : 'Annotation du DG reçue. L’Assistante DN doit transmettre le dossier au Directeur DN.',
-        nextActionHref: null,
-        nextActionTone: 'warning',
-        canStartPreliminary: false,
-      };
-    }
-    if (isPreliminaryOpenable(status, dnCircuitStatus)) {
-      return {
-        nextActionLabel: 'Ouvrir la phase préliminaire',
-        nextActionDescription: 'L’annotation du Directeur DN est reçue. La DN peut démarrer le traitement.',
-        nextActionHref: phaseHref('M3', requestId),
-        nextActionTone: 'info',
-        canStartPreliminary: true,
-      };
-    }
-    const openPhase = phasesSummary.find((phase) => phase.status === 'open');
-    if (openPhase) {
-      return {
-        nextActionLabel: `Poursuivre ${openPhase.label}`,
-        nextActionDescription: 'Continuer le traitement depuis la phase ouverte.',
-        nextActionHref: openPhase.href,
-        nextActionTone: 'info',
-        canStartPreliminary: false,
-      };
-    }
-    const lastClosed = [...phasesSummary].reverse().find((phase) => phase.status === 'closed');
-    if (lastClosed) {
-      return {
-        nextActionLabel: 'Ouvrir la phase suivante',
-        nextActionDescription: 'La dernière phase est clôturée. La DN peut poursuivre le circuit.',
-        nextActionHref: lastClosed.href,
-        nextActionTone: 'info',
-        canStartPreliminary: false,
-      };
-    }
+    const phaseMeetings = meetingsByPhaseId.get(row.id) ?? [];
+    const payment = paymentByPhaseId.get(row.id);
+    const openPhaseCircuit =
+      open.phaseCode === 'M4'
+        ? letterCircuitByRequestId.get(requestId)
+        : open.phaseCode === 'M3'
+          ? declarationCircuitByRequestId.get(requestId)
+          : undefined;
     return {
-      nextActionLabel: 'À vérifier',
-      nextActionDescription: 'Le dossier ne correspond pas encore à une action DN standard.',
-      nextActionHref: null,
-      nextActionTone: 'warning',
-      canStartPreliminary: false,
+      meetingAwaitingDn: phaseMeetings.some((meeting) => meeting.status === 'scheduled' && isAwaitingDn(meeting)),
+      openPhasePayment: payment ? { status: payment.status, invoiceFileUrl: payment.invoiceFileUrl } : null,
+      m6VisitHeldWithoutVerdict:
+        open.phaseCode === 'M6' &&
+        !inspectedPhaseIds.has(row.id) &&
+        phaseMeetings.some((meeting) => meeting.meetingType === 'site_visit' && meeting.status === 'held'),
+      openPhaseCircuitStatus: openPhaseCircuit?.status ?? null,
     };
   }
 
@@ -689,12 +611,17 @@ export async function listRequestCockpit(viewerUserId?: number): Promise<Request
     const currentPhase = currentPhaseLabel(phasesSummary);
     const circuit = circuitByRequestId.get(row.request.id) ?? null;
     const dnCircuit = dnCircuitByRequestId.get(row.request.id) ?? null;
-    const action = nextAction({
+    const summary = documentSummary(row.request.id);
+    const action = resolveCockpitNextAction({
       requestId: row.request.id,
       status: resolvedStatus,
       circuitStatus: circuit?.status ?? null,
       dnCircuitStatus: dnCircuit?.status ?? null,
-      phasesSummary,
+      preliminaryOpenable: isPreliminaryOpenable(resolvedStatus, dnCircuit?.status ?? null),
+      phases: phasesSummary,
+      applicantActions: actionsByRequestId.get(row.request.id) ?? [],
+      m5DocumentsAwaitingVerdict: summary.pending,
+      ...openPhaseFacts(row.request.id, phasesSummary),
     });
     return {
       id: row.request.id,
@@ -717,7 +644,7 @@ export async function listRequestCockpit(viewerUserId?: number): Promise<Request
       applicantPhone: row.applicant.phone,
       ...currentPhase,
       phases: phasesSummary,
-      documentSummary: documentSummary(row.request.id),
+      documentSummary: summary,
       ...action,
       activity: activitiesByRequestId.get(row.request.id) ?? [],
       // D3a - latest dossier event, or the submission when none is linked yet.

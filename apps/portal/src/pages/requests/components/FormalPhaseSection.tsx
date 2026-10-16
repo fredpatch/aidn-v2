@@ -21,8 +21,9 @@ import { PhaseStep, stepState } from '../../../components/request/PhaseStep';
 import { SectionCard } from '../../../components/request/SectionCard';
 import { MeetingDetails, isMeetingResolved } from '../../../components/request/MeetingDetails';
 import { MeetingConfirmationPanel, usesConfirmationPanel } from '../../../components/meetings/MeetingConfirmationPanel';
-import { MeetingReportPanel, meetingReportAnchor, showsReportPanel } from '../../../components/meetings/MeetingReportPanel';
-import { signedReportPresentation, type PhasePresentation } from '../progress';
+import { MeetingReportPanel, showsReportPanel } from '../../../components/meetings/MeetingReportPanel';
+import { useApplicantActions } from '../../../hooks/useApplicantActions';
+import { topPhaseAction } from '../../../lib/actions/selectors';
 
 function letterLabel(status: string | undefined): string {
   if (!status) return 'À déposer';
@@ -46,35 +47,27 @@ export function buildFormalPresentation(bundle: FormalBundle) {
   let description =
     "Cette phase rassemble votre lettre officielle, les pièces du dossier et la réunion formelle.";
   let tone: PhaseTone = 'info';
-  let action: PhasePresentation['action'];
-  // SESSION1-MEET-2 - priority: the letter and the missing pieces (applicant
-  // actions the DN waits for) first, then the signed compte rendu (API flag),
-  // which outranks every passive wording, a closed phase included.
-  const blockingAction = !phaseClosed && (!bundle.letterCircuit || (letterDone && !docsDone));
+  // SESSION1-UX-1 - passive state only: the letter, the missing pieces, the
+  // rendez-vous and the signed compte rendu are applicant actions (GET
+  // /applicant/actions) shown over this wording in the summary card.
 
-  if (bundle.meeting?.canSubmitSignedReport && !blockingAction) {
-    ({ title, description, tone, action } = signedReportPresentation(meetingReportAnchor(bundle.meeting.id)));
-  } else if (phaseClosed) {
+  if (phaseClosed) {
     title = 'Demande formelle clôturée';
     description = 'Votre dossier formel est complet et passe à la phase suivante.';
     tone = 'success';
   } else if (!bundle.letterCircuit) {
-    title = 'Action requise';
-    description = "Déposez votre lettre officielle de demande d'agrément OMA.";
-    tone = 'warning';
+    title = 'Lettre officielle';
+    description = "La lettre officielle de demande d'agrément OMA n'a pas encore été déposée.";
   } else if (!letterDone) {
-    title = 'Courrier en traitement';
+    title = 'Lettre transmise';
     description =
-      "Votre lettre suit le circuit de signature. La réunion formelle sera planifiée après le retour signé.";
-    tone = 'info';
+      "Votre lettre a bien été transmise et suivra le circuit de signature de l'ANAC. La réunion formelle sera planifiée après le retour signé.";
   } else if (!docsDone) {
-    title = 'Pièces à compléter';
-    description = `Déposez les pièces manquantes du dossier formel (${bundle.completionRate}/11).`;
-    tone = 'warning';
+    title = 'Pièces du dossier formel';
+    description = `${bundle.completionRate}/11 pièces déposées.`;
   } else if (bundle.meeting?.status === 'scheduled' && bundle.meeting.confirmationStatus === 'awaiting_applicant') {
-    title = 'Rendez-vous à confirmer';
-    description = 'Confirmez le rendez-vous proposé par la DN ou proposez une autre date.';
-    tone = 'warning';
+    title = 'Rendez-vous proposé';
+    description = 'La DN vous a proposé un rendez-vous pour la réunion formelle.';
   } else if (bundle.meeting?.status === 'scheduled' && bundle.meeting.confirmationStatus === 'awaiting_dn') {
     title = 'Nouvelle date proposée';
     description = 'Votre proposition est en attente de validation par la DN.';
@@ -82,8 +75,8 @@ export function buildFormalPresentation(bundle: FormalBundle) {
     title = 'Réunion formelle planifiée';
     description = "Consultez votre invitation et présentez-vous au rendez-vous indiqué.";
   } else if (!meetingDone) {
-    title = 'Traitement ANAC en cours';
-    description = "La DN poursuit la vérification du dossier et la préparation de la réunion.";
+    title = 'Pièces déposées';
+    description = 'Votre dossier formel est complet. La DN vous proposera une date de réunion formelle.';
   } else {
     title = 'Conditions remplies';
     description = "Les éléments attendus sont disponibles. La DN peut clôturer la phase.";
@@ -94,7 +87,6 @@ export function buildFormalPresentation(bundle: FormalBundle) {
     title,
     description,
     tone,
-    action,
     steps: [
       {
         key: 'letter',
@@ -138,6 +130,7 @@ export function FormalPhaseSection({ requestId }: { requestId: number }) {
   const [letterFile, setLetterFile] = useState<File | null>(null);
   const [submittingLetter, setSubmittingLetter] = useState(false);
   const [submittingDoc, setSubmittingDoc] = useState(false);
+  const { actions } = useApplicantActions();
   const { bundle, isLoading, loadFailed, isFetching, retry, invalidate } = usePhaseBundle(
     requestId,
     'M4',
@@ -210,7 +203,7 @@ export function FormalPhaseSection({ requestId }: { requestId: number }) {
         title={presentation.title}
         description={presentation.description}
         tone={presentation.tone}
-        action={presentation.action}
+        action={topPhaseAction(actions ?? [], requestId, 'M4')}
         closed={phaseClosed}
       >
         {presentation.steps.map((step) => (
@@ -219,7 +212,7 @@ export function FormalPhaseSection({ requestId }: { requestId: number }) {
       </PhaseSummaryCard>
 
       <div className="grid gap-3 md:grid-cols-2">
-        <SectionCard icon={FileText} title="Lettre de demande officielle">
+        <SectionCard id="lettre" icon={FileText} title="Lettre de demande officielle">
 
           {!bundle.letterCircuit && readOnly ? (
             <p className="mt-3 text-sm text-anac-muted">Aucune lettre déposée.</p>
@@ -287,6 +280,7 @@ export function FormalPhaseSection({ requestId }: { requestId: number }) {
       </div>
 
       <SectionCard
+        id="pieces"
         icon={ClipboardList}
         title="Pièces du dossier formel"
         aside={

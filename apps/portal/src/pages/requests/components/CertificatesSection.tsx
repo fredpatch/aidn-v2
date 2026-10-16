@@ -10,6 +10,8 @@ import { PhaseSummaryCard, type PhaseTone } from '../../../components/request/Ph
 import { PhaseStep } from '../../../components/request/PhaseStep';
 import { SectionCard } from '../../../components/request/SectionCard';
 import { PaymentBlock } from '../../../components/request/PaymentBlock';
+import { useApplicantActions } from '../../../hooks/useApplicantActions';
+import { topPhaseAction } from '../../../lib/actions/selectors';
 
 function simplifiedCertificateStatus(status: string | undefined): string {
   if (!status || ['in_preparation', 'printed', 'signed', 'archived'].includes(status)) {
@@ -34,21 +36,18 @@ export function buildCertificatesPresentation(bundle: CertificatesBundle) {
   } else if (simplifiedStatus === 'notified') {
     title = 'Certificat prêt';
     description = "Présentez-vous aux bureaux de l'ANAC pour retirer le certificat en personne.";
-    tone = 'warning';
+    // SESSION1-UX-1 - passive: the certificate_collection action adds the call to action.
+    tone = 'info';
   } else if (!bundle.payment?.invoiceFileUrl) {
     title = 'Facture en préparation';
     description = "La facture finale sera disponible ici lorsqu'elle sera émise.";
-  } else if (!paymentValidated && !bundle.payment.proofFileUrl) {
-    title = 'Action requise';
-    description = 'Téléchargez la facture puis déposez votre quittance de paiement.';
-    tone = 'warning';
+  } else if (bundle.payment.status === 'awaiting_proof') {
+    // D11 - the status decides, never rejectionReason.
+    title = 'Facture disponible';
+    description = 'La facture de cette phase est disponible.';
   } else if (bundle.payment.status === 'pending_validation') {
-    title = 'Quittance en validation';
-    description = "Votre preuve de paiement est en cours de vérification par l'ANAC.";
-  } else if (bundle.payment.rejectionReason) {
-    title = 'Nouvelle quittance requise';
-    description = `Preuve rejetée : ${bundle.payment.rejectionReason}`;
-    tone = 'warning';
+    title = 'Quittance transmise';
+    description = 'Votre quittance a bien été transmise. Elle sera validée par le service Finance.';
   } else if (bundle.certificate) {
     title = 'Certificat en préparation';
     description = 'La DN prépare le certificat. Le portail indiquera quand il sera prêt au retrait.';
@@ -64,6 +63,7 @@ export function summarizeCertificates(bundle: CertificatesBundle): string {
 }
 
 export function CertificatesSection({ requestId }: { requestId: number }) {
+  const { actions } = useApplicantActions();
   const { bundle, loadFailed, isFetching, retry, invalidate } = usePhaseBundle(requestId, 'M7', fetchCertificatesBundle);
 
   if (loadFailed) {
@@ -89,6 +89,7 @@ export function CertificatesSection({ requestId }: { requestId: number }) {
         title={presentation.title}
         description={presentation.description}
         tone={presentation.tone}
+        action={topPhaseAction(actions ?? [], requestId, 'M7')}
         closed={phaseClosed}
       >
         <PhaseStep
@@ -116,6 +117,7 @@ export function CertificatesSection({ requestId }: { requestId: number }) {
 
       {bundle.payment && !cert && (
         <PaymentBlock
+          anchor="paiement-M7"
           title="Paiement final"
           payment={bundle.payment}
           waitingInvoiceText="En attente de la facture du service Finance."
@@ -124,6 +126,7 @@ export function CertificatesSection({ requestId }: { requestId: number }) {
       )}
 
       <SectionCard
+        id="retrait"
         icon={presentation.simplifiedStatus === 'notified' ? PackageCheck : FileBadge2}
         iconClassName={presentation.simplifiedStatus === 'notified' ? 'text-anac-success' : undefined}
         title="Statut du certificat"

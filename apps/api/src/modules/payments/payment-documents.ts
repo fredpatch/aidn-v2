@@ -3,6 +3,7 @@
  *  copies. Each runs in one transaction: payment row locked, then the upload
  *  asset, then version + payment update + link + audit. */
 import { eq } from 'drizzle-orm';
+import { canApplicantUploadProof } from '@aidn/shared';
 import { db, type DbTx } from '../../shared/db/index.js';
 import { documentVersions, payments, phases, requests } from '../../shared/db/schema.js';
 import { logAudit } from '../auth/auth.service.js';
@@ -125,8 +126,9 @@ export async function attachPaymentProof(
 
     target = { ownerType: 'payment_proof', ownerId: payment.id };
     if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') return payment;
-    if (!payment.invoiceFileUrl) throw new Error('INVOICE_NOT_UPLOADED');
-    if (payment.status === 'validated') throw new Error('PAYMENT_ALREADY_VALIDATED');
+    if (!canApplicantUploadProof(payment)) {
+      throw new Error(payment.invoiceFileUrl ? 'PAYMENT_ALREADY_VALIDATED' : 'INVOICE_NOT_UPLOADED');
+    }
 
     // VERSION-CURRENT-DISCIPLINE - a re-uploaded proof must supersede the
     // previous one, never coexist as a second current row.

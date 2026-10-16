@@ -3,6 +3,29 @@
 Commit-level history. Covers `be9fce9` through the 2026-10-09 D3c admin
 unread/activity batch.
 
+## 2026-10-16 SESSION1-UX-1: applicant actions and operational next actions
+
+- Shared: `packages/shared/src/applicant-actions.ts` - 8 action keys, base priorities, `URGENCY_WINDOW_HOURS = 72`,
+  `ApplicantAction`, `NextActionOwner`, `OperationalState`, `can…` / `expects…` predicates (`expects ⇒ can`),
+  `isFormalDocumentMissing` (= M4 closure-gate rule).
+- API: `GET /api/applicant/actions` (`applicant-actions/`: 8 fixed batch queries, pure builder, server ordering);
+  write-service guards reuse the predicates (M3 declaration, M4 letter / pieces / closure gate 2, payment proof, M5
+  resubmit) with unchanged error codes; Demandes cockpit next action extracted to `requests/cockpit-next-action.ts`
+  (typed `nextActionOwner`, `nextActionState`, D9 open-phase order), reusing the action rows instead of re-reading
+  phases / circuits / formal documents / evaluations (13 fixed statements, 14 with a viewer).
+- Portal: « Actions requises » dashboard panel replaces `MeetingsToConfirmBanner` / `ReportsToSignBanner`;
+  dossier banner and phase summaries from the server order; passive phase builders, neutral wording (no
+  « en cours de traitement / analyse / vérification » after an upload), D11 payment fix; dossier anchors with
+  `useHashScroll`.
+- Admin: `OperationalCallout` + `canAct` in the Demandes reading pane / list and the phase rail; phase helpers with
+  typed owners (Finance, applicant, Réception, Assistant DG, DN) aligned with the cockpit order; dead summary
+  components removed.
+- No migration, no data change.
+- Tests: API 575 pass + 1 known Windows failure (K8b `spawn npx ENOENT`) of 576; admin 274/274 (36 files);
+  portal 162/162 (16 files); typecheck, build, lint clean; `db:check:replayable` OK.
+- Deploy: nothing beyond the code.
+- Details: `project/decisions.md` #19.
+
 ## 2026-10-15 SESSION1-MEET-2: applicant returns the signed M3/M4 meeting compte rendu
 
 - Migration 0010: `document_owner_type` += `meeting_report_signed`, `meetings.signed_cr_document_url` /

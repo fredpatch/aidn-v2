@@ -21,6 +21,8 @@ import PaymentCard from '../site-inspection/components/PaymentCard';
 import SiteVisitCard from '../site-inspection/components/SiteVisitCard';
 import VerdictCard from '../site-inspection/components/VerdictCard';
 
+vi.mock('../../../hooks/useAuth', () => ({ useAuth: () => ({ user: { roles: ['dn_agent'] } }) }));
+
 const AT = '2026-10-02T08:00:00.000Z';
 const REASON = 'Paiement rejeté - dossier annulé : preuve non conforme.';
 const rejected: DossierState = { status: 'rejected', closed: true, closedAt: AT, rejectionReason: REASON };
@@ -84,8 +86,8 @@ describe('<WorkflowCockpit> on a closed dossier (K7b)', () => {
         action={{
           title: 'Valider le paiement',
           description: 'S5 doit valider la preuve.',
-          owner: 'S5',
-          tone: 'warning',
+          owner: { kind: 'staff', label: 'S5', roles: ['dn_agent'] },
+          state: 'action_required',
           primaryAction: { label: 'Demarrer la phase', onClick: start },
         }}
         keyInfo={[
@@ -122,9 +124,10 @@ describe('<WorkflowCockpit> on a closed dossier (K7b)', () => {
     expect(within(roadmap).getByText('Non démarrée')).toBeInTheDocument();
     expect(within(roadmap).getAllByText('Terminée')).toHaveLength(3);
     expect(screen.getAllByText('Interrompue')).toHaveLength(2); // roadmap + header badge
-    expect(screen.getByText('Dossier clos')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Prochaine action' })).toBeInTheDocument();
+    expect(screen.getAllByText('Dossier clos').length).toBeGreaterThan(0); // rail + main-column callout
     expect(screen.queryByText('Valider le paiement')).not.toBeInTheDocument();
-    expect(screen.queryByText('Responsable: S5')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Responsable :/)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Demarrer la phase' })).not.toBeInTheDocument();
     expect(screen.getByText('contenu')).toBeInTheDocument();
     // no next-step highlight, no next-action owner
@@ -135,9 +138,10 @@ describe('<WorkflowCockpit> on a closed dossier (K7b)', () => {
 
   it('open dossier: unchanged (next action and its button)', () => {
     renderCockpit(open);
-    expect(screen.queryByRole('status')).not.toBeInTheDocument();
-    expect(screen.getByText('Valider le paiement')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Demarrer la phase' })).toBeInTheDocument();
+    expect(screen.queryByText(/consultation uniquement/)).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Prochaine action requise' })).toBeInTheDocument();
+    expect(screen.getAllByText('Valider le paiement').length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('button', { name: 'Demarrer la phase' }).length).toBeGreaterThan(0);
     expect(screen.getAllByText('En cours').length).toBeGreaterThan(0);
     expect(screen.getByText('Paiement valide').className).toContain('text-anac-blue');
     expect(screen.getByText('Responsable')).toBeInTheDocument();

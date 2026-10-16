@@ -318,7 +318,7 @@ describe('SESSION1-M1-1 Directeur DN annotation circuit (real PostgreSQL)', { sk
       assert.equal(item.circuitStatus, 'pending_review');
       assert.equal(item.dnAnnotationStatus, 'submitted');
       assert.equal(item.circuitStatusLabel, 'À transmettre au Directeur DN');
-      assert.equal(item.nextActionLabel, 'Annotation du DG reçue');
+      assert.equal(item.nextActionLabel, 'À transmettre au Directeur DN');
       assert.equal(item.canStartPreliminary, false);
     });
   });

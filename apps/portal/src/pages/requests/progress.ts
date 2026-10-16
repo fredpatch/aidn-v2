@@ -1,6 +1,9 @@
 import type { PhaseCode } from '../../lib/react-query/queryKeys';
 import type { RequestView } from '../../lib/api/requests.types';
 import type { PhaseTone } from '../../components/request/PhaseSummaryCard';
+import type { ApplicantAction } from '@aidn/shared';
+import { actionCopy } from '../../lib/actions/copy';
+import { topDossierAction } from '../../lib/actions/selectors';
 
 /** The five applicant-visible phases, in workflow order. */
 export const PHASES: ReadonlyArray<{ code: PhaseCode; label: string; shortLabel: string }> = [
@@ -17,33 +20,12 @@ export const PHASES: ReadonlyArray<{ code: PhaseCode; label: string; shortLabel:
  */
 export type PhaseStage = 'upcoming' | 'loading' | 'error' | 'current' | 'closed' | 'interrupted';
 
-/** A link to where the applicant acts (same-page anchor or dossier URL). */
-export interface PhaseAction {
-  label: string;
-  href: string;
-}
-
+/** Passive state of a phase (SESSION1-UX-1): applicant actions come from
+ *  GET /applicant/actions, never from the phase builders. */
 export interface PhasePresentation {
   title: string;
   description: string;
   tone: PhaseTone;
-  /** SESSION1-MEET-2 - set only for the signed compte-rendu to return. */
-  action?: PhaseAction;
-}
-
-/** SESSION1-MEET-2 - the M3 / M4 meeting compte rendu waits for the applicant's
- *  signed copy. Driven by the API's canSubmitSignedReport only. */
-export const SIGNED_REPORT_TITLE = 'Action requise — Compte rendu à signer';
-export const SIGNED_REPORT_DESCRIPTION =
-  'Le compte rendu de votre réunion est disponible. Consultez-le, signez-le puis déposez la version signée.';
-
-export function signedReportPresentation(anchor: string): PhasePresentation {
-  return {
-    title: SIGNED_REPORT_TITLE,
-    description: SIGNED_REPORT_DESCRIPTION,
-    tone: 'warning',
-    action: { label: 'Accéder au compte rendu', href: `#${anchor}` },
-  };
 }
 
 /** What the parent knows about one phase after its query settled. */
@@ -124,7 +106,8 @@ export interface BannerContent {
   eyebrow: string;
   title: string;
   description: string;
-  action?: PhaseAction;
+  /** Same-page link to the action's anchor; set iff kind === 'action'. */
+  action?: { label: string; href: string };
 }
 
 const INTAKE_BANNERS: Record<string, { title: string; description: string }> = {
@@ -146,42 +129,46 @@ const INTAKE_BANNERS: Record<string, { title: string; description: string }> = {
   },
 };
 
-const WAITING = "En attente de l'ANAC";
+const NO_ACTION = 'Aucune action requise de votre part';
+/** Passive eyebrow when the actions could not be loaded: no "no action" claim. */
+const SITUATION = 'Situation du dossier';
 
 /**
- * The single "what now" message at the top of the dossier. Derived from the
- * open phase so it always matches that phase's own summary card.
+ * The single "what now" message at the top of the dossier (SESSION1-UX-1):
+ * terminal outcome, else the top applicant action of this dossier (server
+ * order), else the open phase's passive wording, else the closed-phase /
+ * intake fallbacks. `actions` null = not loaded or load failed: passive only;
+ * `actionsFailed` makes the passive eyebrow neutral (we do not know).
  * Returns null while phases are still loading (avoids a flicker) or when a
  * load error leaves no reliable state - the failing section shows its error.
  */
 export function buildBanner(
-  request: Pick<RequestView, 'status' | 'circuitStatus' | 'rejectionReason'>,
+  request: Pick<RequestView, 'id' | 'status' | 'circuitStatus' | 'rejectionReason'>,
   items: PhaseProgressItem[],
+  actions: readonly ApplicantAction[] | null,
+  { actionsFailed = false }: { actionsFailed?: boolean } = {},
 ): BannerContent | null {
+  const waitingEyebrow = actionsFailed ? SITUATION : NO_ACTION;
   const outcome = buildOutcomeBanner(request, items);
   if (outcome) return outcome;
 
   if (items.some((item) => item.stage === 'loading')) return null;
 
-  // Priority: the open phase's own applicant action (declaration, letter,
-  // pieces, rendez-vous, or its signed compte rendu); then a signed compte
-  // rendu still awaited on another phase, a closed one included (SESSION1-MEET-2);
-  // then the open phase's passive wording.
-  const current = currentPhase(items);
-  const signedReport = items.find(
-    (item) => (item.stage === 'current' || item.stage === 'closed') && item.presentation?.action,
-  );
-  const shown =
-    current?.presentation?.tone === 'warning' ? current.presentation : signedReport?.presentation ?? current?.presentation;
-  if (shown) {
-    const isAction = shown.tone === 'warning';
+  const top = actions ? topDossierAction(actions, request.id) : undefined;
+  if (top) {
+    const copy = actionCopy(top);
     return {
-      kind: isAction ? 'action' : 'waiting',
-      eyebrow: isAction ? 'Action requise' : WAITING,
-      title: shown.title,
-      description: shown.description,
-      ...(shown.action ? { action: shown.action } : {}),
+      kind: 'action',
+      eyebrow: 'Action requise',
+      title: copy.phaseTitle,
+      description: copy.phaseDescription,
+      action: { label: copy.phaseCta, href: `#${top.anchor}` },
     };
+  }
+
+  const current = currentPhase(items);
+  if (current?.presentation) {
+    return { kind: 'waiting', eyebrow: waitingEyebrow, title: current.presentation.title, description: current.presentation.description };
   }
 
   if (items.some((item) => item.stage === 'error')) return null;
@@ -190,15 +177,15 @@ export function buildBanner(
   if (lastClosed) {
     return {
       kind: 'waiting',
-      eyebrow: WAITING,
+      eyebrow: waitingEyebrow,
       title: `${lastClosed.label} : étape clôturée`,
-      description: "L'ANAC prépare l'ouverture de l'étape suivante de votre dossier.",
+      description: 'La prochaine étape de votre dossier sera ouverte par la DN.',
     };
   }
 
   const intake = INTAKE_BANNERS[request.circuitStatus ?? ''];
   if (!intake) return null;
-  return { kind: 'waiting', eyebrow: WAITING, ...intake };
+  return { kind: 'waiting', eyebrow: waitingEyebrow, ...intake };
 }
 
 const ARCHIVED = 'Ce dossier est archivé. Les documents restent consultables.';

@@ -21,6 +21,7 @@ import {
   type PhaseSnapshot,
 } from '../progress';
 import { usePhaseBundle } from './usePhaseBundle';
+import { useApplicantActions } from '../../../hooks/useApplicantActions';
 
 function snapshot<T extends { phase: { status: string } | null }>(
   query: { bundle: T | null; isLoading: boolean; loadFailed: boolean },
@@ -64,10 +65,14 @@ export function useDossierProgress(request: RequestView) {
     M7: snapshot(m7, laterEnabled, buildCertificatesPresentation, summarizeCertificates),
   };
 
+  const { actions, error: actionsError, pending: actionsPending } = useApplicantActions();
   const items = buildProgressItems(snapshots, { rejected: request.status === 'rejected' });
   return {
     items,
-    banner: buildBanner(request, items),
+    // Same no-flicker rule as phases loading: never say "no action" before the actions are known
+    // (nor after they failed to load: the banner then says « Situation du dossier »).
+    banner: actionsPending ? null : buildBanner(request, items, actions, { actionsFailed: actionsError !== null }),
+    actions,
     intakeDone: m3Enabled,
     loading: items.some((item) => item.stage === 'loading'),
   };

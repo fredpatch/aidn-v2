@@ -15,6 +15,8 @@ import { PhaseSummaryCard, type PhaseTone } from '../../../components/request/Ph
 import { PhaseStep } from '../../../components/request/PhaseStep';
 import { SectionCard } from '../../../components/request/SectionCard';
 import { PaymentBlock } from '../../../components/request/PaymentBlock';
+import { useApplicantActions } from '../../../hooks/useApplicantActions';
+import { topPhaseAction } from '../../../lib/actions/selectors';
 
 export function buildDeepEvaluationPresentation(bundle: DeepEvaluationBundle) {
   const phaseClosed = bundle.phase?.status === 'closed';
@@ -28,9 +30,12 @@ export function buildDeepEvaluationPresentation(bundle: DeepEvaluationBundle) {
   );
 
   let title = 'Évaluation approfondie ouverte';
-  let description = "L'ANAC analyse les pièces techniques de votre dossier.";
+  let description = "Les pièces de votre dossier sont soumises à l'évaluation de la DN.";
   let tone: PhaseTone = 'info';
 
+  // SESSION1-UX-1 - passive state only (payment proof and corrections are
+  // applicant actions). D11: the payment branches read the status, never
+  // rejectionReason.
   if (phaseClosed) {
     title = 'Évaluation approfondie clôturée';
     description = 'Les documents requis ont été traités et le dossier passe à la suite.';
@@ -38,21 +43,15 @@ export function buildDeepEvaluationPresentation(bundle: DeepEvaluationBundle) {
   } else if (!payment?.invoiceFileUrl) {
     title = 'Facture en préparation';
     description = "La facture de cette phase sera disponible ici lorsqu'elle sera émise.";
-  } else if (!paymentValidated && !payment.proofFileUrl) {
-    title = 'Action requise';
-    description = 'Téléchargez la facture puis déposez votre quittance de paiement.';
-    tone = 'warning';
+  } else if (payment.status === 'awaiting_proof') {
+    title = 'Facture disponible';
+    description = 'La facture de cette phase est disponible.';
   } else if (payment.status === 'pending_validation') {
-    title = 'Quittance en validation';
-    description = "Votre preuve de paiement est en cours de vérification par l'ANAC.";
-  } else if (payment.rejectionReason) {
-    title = 'Nouvelle quittance requise';
-    description = `Preuve rejetée : ${payment.rejectionReason}`;
-    tone = 'warning';
+    title = 'Quittance transmise';
+    description = 'Votre quittance a bien été transmise. Elle sera validée par le service Finance.';
   } else if (docsNeedingAction.length > 0) {
-    title = 'Corrections requises';
-    description = `${docsNeedingAction.length} document(s) nécessitent une correction.`;
-    tone = 'warning';
+    title = 'Corrections demandées';
+    description = `${docsNeedingAction.length} document(s) font l'objet d'une demande de correction.`;
   } else if (docsComplete) {
     title = 'Documents validés';
     description = 'Tous les documents de cette phase ont été validés.';
@@ -74,6 +73,7 @@ export function DeepEvaluationSection({ requestId }: { requestId: number }) {
   const readOnly = useReadOnly();
   const [resubmitFiles, setResubmitFiles] = useState<Record<number, File>>({});
   const [submitting, setSubmitting] = useState(false);
+  const { actions } = useApplicantActions();
   const { bundle, loadFailed, isFetching, retry, invalidate } = usePhaseBundle(requestId, 'M5', fetchDeepEvaluationBundle);
 
   if (loadFailed) {
@@ -120,6 +120,7 @@ export function DeepEvaluationSection({ requestId }: { requestId: number }) {
         title={presentation.title}
         description={presentation.description}
         tone={presentation.tone}
+        action={topPhaseAction(actions ?? [], requestId, 'M5')}
         closed={phaseClosed}
       >
         <PhaseStep
@@ -134,21 +135,23 @@ export function DeepEvaluationSection({ requestId }: { requestId: number }) {
         />
         <PhaseStep
           label="Suite du dossier"
-          detail={phaseClosed ? 'Phase clôturée' : 'Traitement ANAC en cours'}
+          detail={phaseClosed ? 'Phase clôturée' : 'Prochaine étape à venir'}
           state={phaseClosed ? 'done' : 'waiting'}
         />
       </PhaseSummaryCard>
 
       {bundle.payment && (
         <PaymentBlock
+          anchor="paiement-M5"
           payment={bundle.payment}
-          waitingInvoiceText="En attente de la facture de la DN."
+          waitingInvoiceText="En attente de la facture du service Finance."
           onSubmitProof={submitProof}
         />
       )}
 
       {presentation.docsNeedingAction.length > 0 && (
         <SectionCard
+          id="corrections"
           icon={AlertCircle}
           iconClassName="text-anac-warning"
           className="border-anac-warning/40"
@@ -202,7 +205,7 @@ export function DeepEvaluationSection({ requestId }: { requestId: number }) {
           <p className="mt-3 text-sm text-anac-muted">
             {presentation.docsComplete
               ? 'Tous les documents ont été validés.'
-              : "L'ANAC analyse les documents soumis. Les corrections éventuelles apparaîtront ici."}
+              : 'Les documents soumis seront évalués par la DN. Les corrections éventuelles apparaîtront ici.'}
           </p>
         </SectionCard>
       )}

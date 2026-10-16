@@ -10,6 +10,8 @@ import { PhaseSummaryCard, type PhaseTone } from '../../../components/request/Ph
 import { PhaseStep } from '../../../components/request/PhaseStep';
 import { SectionCard } from '../../../components/request/SectionCard';
 import { PaymentBlock } from '../../../components/request/PaymentBlock';
+import { useApplicantActions } from '../../../hooks/useApplicantActions';
+import { topPhaseAction } from '../../../lib/actions/selectors';
 import { MeetingDetails } from '../../../components/request/MeetingDetails';
 
 export function buildSiteInspectionPresentation(bundle: SiteInspectionBundle) {
@@ -28,17 +30,13 @@ export function buildSiteInspectionPresentation(bundle: SiteInspectionBundle) {
   } else if (!bundle.payment?.invoiceFileUrl) {
     title = 'Facture en préparation';
     description = "La facture de cette phase sera disponible ici lorsqu'elle sera émise.";
-  } else if (!paymentValidated && !bundle.payment.proofFileUrl) {
-    title = 'Action requise';
-    description = 'Téléchargez la facture puis déposez votre quittance de paiement.';
-    tone = 'warning';
+  } else if (bundle.payment.status === 'awaiting_proof') {
+    // SESSION1-UX-1 / D11 - passive; the payment_proof action carries the call to action.
+    title = 'Facture disponible';
+    description = 'La facture de cette phase est disponible.';
   } else if (bundle.payment.status === 'pending_validation') {
-    title = 'Quittance en validation';
-    description = "Votre preuve de paiement est en cours de vérification par l'ANAC.";
-  } else if (bundle.payment.rejectionReason) {
-    title = 'Nouvelle quittance requise';
-    description = `Preuve rejetée : ${bundle.payment.rejectionReason}`;
-    tone = 'warning';
+    title = 'Quittance transmise';
+    description = 'Votre quittance a bien été transmise. Elle sera validée par le service Finance.';
   } else if (!bundle.siteVisit) {
     title = 'Visite en préparation';
     description = "La DN planifie la visite sur site avec l'équipe technique.";
@@ -61,6 +59,7 @@ export function summarizeSiteInspection(bundle: SiteInspectionBundle): string {
 }
 
 export function SiteInspectionSection({ requestId }: { requestId: number }) {
+  const { actions } = useApplicantActions();
   const { bundle, loadFailed, isFetching, retry, invalidate } = usePhaseBundle(requestId, 'M6', fetchSiteInspectionBundle);
 
   if (loadFailed) {
@@ -85,6 +84,7 @@ export function SiteInspectionSection({ requestId }: { requestId: number }) {
         title={presentation.title}
         description={presentation.description}
         tone={presentation.tone}
+        action={topPhaseAction(actions ?? [], requestId, 'M6')}
         closed={phaseClosed}
       >
         <PhaseStep
@@ -106,8 +106,9 @@ export function SiteInspectionSection({ requestId }: { requestId: number }) {
 
       {bundle.payment && (
         <PaymentBlock
+          anchor="paiement-M6"
           payment={bundle.payment}
-          waitingInvoiceText="En attente de la facture de la DN."
+          waitingInvoiceText="En attente de la facture du service Finance."
           onSubmitProof={submitProof}
         />
       )}

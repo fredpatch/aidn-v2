@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../../components/ui/button';
 import { useAuth } from '../../../hooks/useAuth';
+import { DN_OWNER } from '../owners';
 import WorkflowCockpit from '../components/WorkflowCockpit';
 import { ClosedDossierBanner, DossierStateValue, useDossierState } from '../components/DossierReadOnly';
 import DeepEvaluationClosureCard from './components/DeepEvaluationClosureCard';
@@ -94,14 +95,14 @@ export default function DeepEvaluationPhasePage() {
         title: summary.title,
         description: summary.description,
         owner: summary.owner,
-        tone: summary.tone,
+        state: summary.state,
         blockReason: summary.blockReason,
       }
     : {
         title: 'Démarrer la phase',
         description: 'Ouvrir l’évaluation approfondie après la clôture de la demande formelle.',
-        owner: 'DN',
-        tone: 'info' as const,
+        owner: DN_OWNER,
+        state: 'action_required' as const,
         primaryAction: {
           label: startingPhase ? 'Démarrage...' : 'Démarrer la phase',
           onClick: startPhase,
@@ -109,7 +110,7 @@ export default function DeepEvaluationPhasePage() {
         },
       };
   const keyInfo = [
-    { label: 'Responsable', value: action.owner },
+    { label: 'Responsable', value: action.owner.label },
     { label: "Date d'ouverture", value: formatDate(bundle?.phase?.openedAt) },
     {
       label: 'Paiement',

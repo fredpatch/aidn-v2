@@ -11,6 +11,7 @@ import {
 } from '../../lib/api/meetings.api';
 import { queryKeys } from '../../lib/react-query/queryKeys';
 import { TicketLink } from './TicketLink';
+import { useHashScroll } from '../../lib/useHashScroll';
 
 /** SESSION1-MEET-1 - the applicant side of an M3/M4 appointment: proposed by
  *  the DN (confirm or propose another date), counter-proposed (waiting for the
@@ -68,7 +69,22 @@ function Slot({
   );
 }
 
+/** Anchor of a meeting's confirmation panel, for the meeting_confirmation action (SESSION1-UX-1). */
+export function meetingConfirmationAnchor(meetingId: number): string {
+  return `rendez-vous-${meetingId}`;
+}
+
 export function MeetingConfirmationPanel({ meeting }: { meeting: ConfirmableMeeting }) {
+  const anchor = meetingConfirmationAnchor(meeting.id);
+  useHashScroll(anchor);
+  return (
+    <div id={anchor} className="scroll-mt-4">
+      <ConfirmationContent meeting={meeting} />
+    </div>
+  );
+}
+
+function ConfirmationContent({ meeting }: { meeting: ConfirmableMeeting }) {
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
   const [proposing, setProposing] = useState(false);

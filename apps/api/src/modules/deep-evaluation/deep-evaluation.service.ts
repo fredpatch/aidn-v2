@@ -1,4 +1,5 @@
 import { eq, and, inArray, desc } from 'drizzle-orm';
+import { canApplicantResubmit } from '@aidn/shared';
 import { db } from '../../shared/db/index.js';
 import {
   phases,
@@ -329,9 +330,7 @@ export async function resubmitDocument(
     if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') {
       return { updated: evalRow, formalDoc: owner.formalDoc };
     }
-    if (evalRow.verdict !== 'rejected' && evalRow.verdict !== 'needs_correction') {
-      throw new Error('RESUBMISSION_NOT_ALLOWED');
-    }
+    if (!canApplicantResubmit(evalRow)) throw new Error('RESUBMISSION_NOT_ALLOWED');
 
     // VERSION-CURRENT-DISCIPLINE - the corrected document supersedes the
     // original submission for this slot, never coexists as a second current row.

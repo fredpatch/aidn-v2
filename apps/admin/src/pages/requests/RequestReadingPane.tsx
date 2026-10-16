@@ -12,6 +12,8 @@ import { startPreliminaryPhase } from '../../lib/api/requests.api';
 import type { RequestCockpitItem, RequestCockpitPhase } from '../../lib/api/requests.types';
 import { queryKeys } from '../../lib/react-query/queryKeys';
 import { cn } from '../../lib/utils';
+import { OperationalCallout } from '../../components/common/OperationalCallout';
+import { useCanAct } from '../../lib/next-action-owner';
 import { isClosedRequest, nextActionKind } from './requestBuckets';
 
 const STATUS_STYLES: Record<string, string> = {
@@ -48,6 +50,8 @@ export function RequestReadingPane({
       onActionError(apiErrorMessage(err, "Impossible d'ouvrir la phase préliminaire.")),
   });
 
+  const allowed = useCanAct(item?.nextActionOwner);
+
   if (!item) {
     return (
       <article aria-label="Détail de la demande" className={PANE_CLASS}>
@@ -61,6 +65,30 @@ export function RequestReadingPane({
 
   const kind = nextActionKind(item);
   const closed = isClosedRequest(item);
+  const startButton = (
+    <Button
+      ref={startButtonRef}
+      type="button"
+      size="sm"
+      disabled={startMutation.isPending}
+      onClick={() => startMutation.mutate(item.id)}
+    >
+      <ArrowRight size={14} aria-hidden="true" />
+      {startMutation.isPending ? 'Ouverture...' : 'Ouvrir la phase préliminaire'}
+    </Button>
+  );
+  const treatLink = item.nextActionHref ? (
+    <Link to={item.nextActionHref} className={cn(buttonVariants({ size: 'sm' }))}>
+      <ArrowRight size={14} aria-hidden="true" />
+      Traiter
+    </Link>
+  ) : null;
+  const consultLink = item.nextActionHref ? (
+    <Link to={item.nextActionHref} className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }))}>
+      <FolderOpen size={14} aria-hidden="true" />
+      Consulter le dossier
+    </Link>
+  ) : null;
 
   return (
     <article aria-label={`Détail de la demande ${item.reference}`} className={PANE_CLASS}>
@@ -85,42 +113,27 @@ export function RequestReadingPane({
         </p>
       </header>
 
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-anac-border bg-anac-gray/50 px-5 py-2.5">
-        {kind === 'start' ? (
-          <Button
-            ref={startButtonRef}
-            type="button"
-            size="sm"
-            disabled={startMutation.isPending}
-            onClick={() => startMutation.mutate(item.id)}
-          >
-            <ArrowRight size={14} aria-hidden="true" />
-            {startMutation.isPending ? 'Ouverture...' : 'Ouvrir la phase préliminaire'}
-          </Button>
-        ) : null}
-        {kind === 'treat' && item.nextActionHref ? (
-          <Link to={item.nextActionHref} className={cn(buttonVariants({ size: 'sm' }))}>
-            <ArrowRight size={14} aria-hidden="true" />
-            Traiter - {item.nextActionLabel}
-          </Link>
-        ) : null}
-        {kind === 'consult' && item.nextActionHref ? (
-          <Link
-            to={item.nextActionHref}
-            className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }))}
-          >
-            <FolderOpen size={14} aria-hidden="true" />
-            Consulter le dossier
-          </Link>
-        ) : null}
-        {kind === 'readonly' ? (
-          <span className="rounded-md border border-anac-border bg-white px-3 py-1.5 text-xs font-semibold text-anac-muted">
-            {item.nextActionLabel}
-          </span>
-        ) : null}
-        <p className="min-w-0 flex-1 text-right text-xs text-anac-muted">
-          {item.nextActionDescription}
-        </p>
+      <div className="border-b border-anac-border px-5 py-3">
+        <OperationalCallout
+          state={item.nextActionState}
+          title={item.nextActionLabel}
+          description={item.nextActionDescription}
+          owner={item.nextActionOwner}
+          canAct={allowed}
+          cta={kind === 'start' ? startButton : kind === 'treat' && item.nextActionHref ? treatLink : null}
+          secondary={
+            kind === 'consult' && item.nextActionHref ? (
+              consultLink
+            ) : !allowed && item.nextActionHref ? (
+              <Link
+                to={item.nextActionHref}
+                className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }))}
+              >
+                Consulter la phase
+              </Link>
+            ) : null
+          }
+        />
       </div>
 
       <div className="space-y-5 px-5 py-4">

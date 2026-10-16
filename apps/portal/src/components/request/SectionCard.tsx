@@ -1,4 +1,5 @@
 import type { ElementType, ReactNode } from 'react';
+import { useHashScroll } from '../../lib/useHashScroll';
 
 /** White detail card with an icon + title header, used inside every phase section. */
 export function SectionCard({
@@ -7,8 +8,11 @@ export function SectionCard({
   aside,
   iconClassName,
   className = 'border-anac-border',
+  id,
   children,
 }: {
+  /** Anchor of an applicant action (SESSION1-UX-1): the card scrolls itself into view when the hash matches. */
+  id?: string;
   icon: ElementType;
   title: ReactNode;
   /** Optional element on the right of the header (e.g. a counter badge). */
@@ -18,6 +22,8 @@ export function SectionCard({
   className?: string;
   children: ReactNode;
 }) {
+  useHashScroll(id ?? '');
+
   const header = (
     <div className="flex items-center gap-2 text-anac-navy">
       <Icon size={16} className={iconClassName} aria-hidden="true" />
@@ -26,7 +32,7 @@ export function SectionCard({
   );
 
   return (
-    <div className={`rounded-lg border bg-white p-4 ${className}`}>
+    <div id={id} className={`rounded-lg border bg-white p-4 ${id ? 'scroll-mt-4 ' : ''}${className}`}>
       {aside ? (
         <div className="flex flex-wrap items-center justify-between gap-2">
           {header}
