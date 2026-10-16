@@ -2,6 +2,8 @@
 
 **Session date**: 2026-10-08
 
+> **2026-10-16 ROLE-ANALYTICS-1B (implemented, validated; single commit):** DB sessions pinned to UTC, Libreville analytics periods, audit-event catalogue, `/analytics/overview` SLA targets from parameters + B1, role analytics contract and `/api/analytics/roles/:domain` (no provider yet). Next: 1C providers (courrier, DN circuit). Check `SHOW TimeZone` on staging (gotchas #27).
+>
 > **2026-10-16 SESSION1-ACCOUNT-1 (implemented, validated; single feature commit):** admin edits an approved applicant's name, email, phone and contact order (`PATCH /api/account-requests/applicants/:id`), email unique among applicants, update + audit atomic, sessions not revoked (see decisions #22). No migration. Deferred: login input normalisation, optimistic concurrency on the edit form.
 >
 > **2026-10-16 BUG-PORTAL-INTAKE-1 (implemented, validated; single commit):** `authenticateEither` picks the session by calling app (Origin, else Referer) - portal -> applicant only, admin -> staff only, unknown app with two valid sessions -> 401 `AMBIGUOUS_SESSION`. Closes the 2026-10-15 open hardening item below (see decisions #21).

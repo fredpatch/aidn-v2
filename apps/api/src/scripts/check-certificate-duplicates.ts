@@ -14,11 +14,12 @@
  *   or: npm run db:check:certificates -- --check */
 import 'dotenv/config';
 import { Pool } from 'pg';
+import { pgConnectionConfig } from '../shared/db/connection.js';
 import { findCertificateDuplicates } from '../modules/certificates/certificate-duplicates.js';
 
 async function run(): Promise<void> {
   const check = process.argv.includes('--check');
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const pool = new Pool(pgConnectionConfig());
   try {
     const rows = await findCertificateDuplicates(pool);
     if (rows.length === 0) {

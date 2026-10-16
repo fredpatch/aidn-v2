@@ -15,9 +15,10 @@ import 'dotenv/config';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { Pool } from 'pg';
+import { pgConnectionConfig } from '../shared/db/connection.js';
 
 async function run(): Promise<void> {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const pool = new Pool(pgConnectionConfig());
   const db = drizzle(pool);
 
   try {

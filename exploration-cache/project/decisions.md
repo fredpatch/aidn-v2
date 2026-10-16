@@ -296,3 +296,24 @@ Spec: `docs/superpowers/specs/2026-10-16-session1-account-1-design.md`.
 - Update and `APPLICANT_ACCOUNT_UPDATED` audit share one transaction with a row lock; `details = { changedFields, changes: { field: { from, to } } }`, never password data; a no-op returns 200 with no audit row.
 - No forced logout on email change: no authorization reads the token email claim; `/me` and refresh reload by `applicantId`; the next login needs the new email. No token revocation.
 - No migration, no `updatedAt`: history lives in `audit_logs`.
+
+## 23. Analytics time model and role analytics foundation (ROLE-ANALYTICS-1B, 2026-10-16)
+
+Spec: `docs/superpowers/specs/2026-10-16-role-analytics-1b-design.md`.
+
+- Storage basis UTC: every DB session is pinned to `TimeZone=UTC` (gotchas #27). Business/reporting time zone
+  `Africa/Libreville` (fixed UTC+1); role-analytics periods are half-open UTC ranges built from Libreville days
+  (`modules/analytics/period.ts`), never from the server's local time. Custom dates are inclusive for the user,
+  366 days at most.
+- Durations default to calendar days; the DG overdue alert stays in working days, phase SLA in calendar days. Every
+  role-analytics duration states its unit.
+- Phase SLA targets come from `dashboard_sla_phase_m*_days` (`loadThresholds`), the same source as the DN dashboard.
+  The 45-day processing warning, 15-day inactivity and aging buckets stay legacy constants (not parameters).
+- B1 in `/analytics/overview`: closed dossiers are not current blockers (open phases, SLA breaches, DG waiting,
+  payment blockers); history (phases closed in the period, durations, SLA compliance) keeps them.
+- Semantic audit events (`modules/analytics/audit-events.ts`) map business events to current and legacy audit
+  actions, verified against emitters; meeting-type-dependent actions (`MEETING_*`) are not catalogued.
+- Role analytics: `GET /api/analytics/roles/:domain` (semantic keys only), access matrix `ROLE_ANALYTICS_ACCESS`
+  in `@aidn/shared` (inspection `service` = SU only; no `dn_supervisor` role dashboard); `/overview` stays
+  dn_supervisor + SU. Providers arrive with 1C-1E; until then the route answers 501, never placeholder values.
+  No `heldAt` (1E decision), no `/pilotage` UI (1F), no migration.

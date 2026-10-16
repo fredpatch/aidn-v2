@@ -14,6 +14,7 @@
  *  Run: npx tsx src/scripts/check-site-inspection-integrity.ts [--check] */
 import 'dotenv/config';
 import { Pool } from 'pg';
+import { pgConnectionConfig } from '../shared/db/connection.js';
 
 interface Finding {
   inspection_id: number;
@@ -59,7 +60,7 @@ const QUERY = `
 
 async function run(): Promise<void> {
   const check = process.argv.includes('--check');
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const pool = new Pool(pgConnectionConfig());
   try {
     const { rows } = await pool.query<Finding>(QUERY);
     if (rows.length === 0) {

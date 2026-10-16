@@ -13,6 +13,7 @@
 import 'dotenv/config';
 import { readMigrationFiles } from 'drizzle-orm/migrator';
 import { Pool } from 'pg';
+import { pgConnectionConfig } from '../shared/db/connection.js';
 
 interface AppliedRow {
   id: number;
@@ -31,7 +32,7 @@ async function run(): Promise<void> {
   const checkMode = process.argv.includes('--check');
   const repoMigrations = readMigrationFiles({ migrationsFolder: './drizzle' });
 
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const pool = new Pool(pgConnectionConfig());
   try {
     const hasTable = await tableExists(pool);
     const applied: AppliedRow[] = hasTable

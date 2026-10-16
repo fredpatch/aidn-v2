@@ -7,10 +7,11 @@
  *  Run: npx tsx src/scripts/backfill-dn-annotation.ts  (or `npm run db:backfill:dn-annotation`) */
 import 'dotenv/config';
 import { Pool } from 'pg';
+import { pgConnectionConfig } from '../shared/db/connection.js';
 import { backfillLegacyDnAnnotations } from '../modules/dn-annotation/dn-annotation.backfill.js';
 
 async function run(): Promise<void> {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const pool = new Pool(pgConnectionConfig());
   try {
     const { eligible, inserted, alreadyPresent } = await backfillLegacyDnAnnotations(pool);
     console.log(

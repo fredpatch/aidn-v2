@@ -22,6 +22,9 @@ import type {
   AnalyticsTrendPoint,
 } from './analytics.types.js';
 import { awaitsR3Opinion, lacksMeetingReport } from '../meetings/meeting-follow-up.js';
+import { isDossierClosed } from '../requests/dossier-open.js';
+import { loadThresholds, type ThresholdName } from '../operational/thresholds.js';
+import { average, daysBetween, inPeriod, median, percent } from './metrics.js';
 
 const PHASE_LABELS: Record<AnalyticsPhaseCode, string> = {
   M3: 'Préliminaire',
@@ -31,13 +34,30 @@ const PHASE_LABELS: Record<AnalyticsPhaseCode, string> = {
   M7: 'Délivrance',
 };
 
-const PHASE_TARGETS: Record<AnalyticsPhaseCode, number> = {
-  M3: 15,
-  M4: 20,
-  M5: 30,
-  M6: 30,
-  M7: 10,
-};
+/** Phase SLA targets (calendar days): system parameters
+ *  dashboard_sla_phase_m*_days, the same source as the DN dashboard. */
+const PHASE_TARGET_THRESHOLDS = {
+  M3: 'phaseM3Days',
+  M4: 'phaseM4Days',
+  M5: 'phaseM5Days',
+  M6: 'phaseM6Days',
+  M7: 'phaseM7Days',
+} as const satisfies Record<AnalyticsPhaseCode, ThresholdName>;
+
+async function loadPhaseTargets(): Promise<Record<AnalyticsPhaseCode, number>> {
+  const thresholds = await loadThresholds(Object.values(PHASE_TARGET_THRESHOLDS));
+  return {
+    M3: thresholds.phaseM3Days,
+    M4: thresholds.phaseM4Days,
+    M5: thresholds.phaseM5Days,
+    M6: thresholds.phaseM6Days,
+    M7: thresholds.phaseM7Days,
+  };
+}
+
+// Legacy assumptions, not parameters (kept as they were; ROLE-ANALYTICS-1B):
+// the 45-day processing warning, the 15-day inactivity rule and the aging
+// buckets below.
 
 export const ANALYTICS_REPORTS = [
   {
@@ -78,50 +98,8 @@ export const ANALYTICS_REPORTS = [
   },
 ];
 
-function sameOrAfter(date: Date, min: Date): boolean {
-  return date.getTime() >= min.getTime();
-}
-
-function sameOrBefore(date: Date, max: Date): boolean {
-  return date.getTime() <= max.getTime();
-}
-
-function inPeriod(date: Date | string | null, start: Date, end: Date): boolean {
-  if (!date) return false;
-  const parsed = new Date(date);
-  return sameOrAfter(parsed, start) && sameOrBefore(parsed, end);
-}
-
-function daysBetween(start: Date | string | null, end: Date | string | null): number | null {
-  if (!start || !end) return null;
-  const startTime = new Date(start).getTime();
-  const endTime = new Date(end).getTime();
-  if (!Number.isFinite(startTime) || !Number.isFinite(endTime) || endTime < startTime) return null;
-  return Number(((endTime - startTime) / 86_400_000).toFixed(1));
-}
-
-function average(values: Array<number | null>): number | null {
-  const valid = values.filter((value): value is number => value !== null && Number.isFinite(value));
-  if (!valid.length) return null;
-  return Number((valid.reduce((sum, value) => sum + value, 0) / valid.length).toFixed(1));
-}
-
-function median(values: Array<number | null>): number | null {
-  const valid = values
-    .filter((value): value is number => value !== null && Number.isFinite(value))
-    .sort((a, b) => a - b);
-  if (!valid.length) return null;
-  const middle = Math.floor(valid.length / 2);
-  if (valid.length % 2) return Number(valid[middle].toFixed(1));
-  return Number(((valid[middle - 1] + valid[middle]) / 2).toFixed(1));
-}
-
 function formatDays(value: number | null): string {
   return value === null ? '-' : `${value} j`;
-}
-
-function percent(part: number, total: number): string {
-  return total <= 0 ? '-' : `${Math.round((part / total) * 100)}%`;
 }
 
 function requestTypeLabel(type: string): string {
@@ -134,6 +112,8 @@ function requestTypeLabel(type: string): string {
   return labels[type] ?? type;
 }
 
+/** Global overview trend. Steps with the server-local `setDate`, so it stays
+ *  here: role analytics trends need Libreville day buckets (period.ts). */
 function buildTrend(
   completedDurations: Array<{ closedAt: Date; duration: number }>,
   start: Date,
@@ -187,6 +167,7 @@ export async function getAnalyticsOverview(filters: AnalyticsFilters): Promise<A
   const organisationRows = await db.select().from(organisations);
   const inspectionRows = await db.select({ phaseId: siteInspections.phaseId }).from(siteInspections);
   const agentRows = await db.select({ id: users.id, fullName: users.fullName }).from(users);
+  const phaseTargets = await loadPhaseTargets();
 
   const organisationsById = new Map(organisationRows.map((organisation) => [organisation.id, organisation]));
   const phasesByRequest = new Map<number, typeof phaseRows>();
@@ -205,9 +186,12 @@ export async function getAnalyticsOverview(filters: AnalyticsFilters): Promise<A
   });
   const filteredRequestIds = new Set(filteredRequests.map((request) => request.id));
 
-  const activeRequests = filteredRequests.filter(
-    (request) => !['completed', 'cancelled', 'rejected'].includes(request.status)
-  );
+  const activeRequests = filteredRequests.filter((request) => !isDossierClosed(request.status));
+  // B1 - a closed dossier (completed, cancelled, rejected) is never a current
+  // blocker: open phases, DG waiting and payments below only count open
+  // dossiers. Historical figures (phases closed in the period, durations)
+  // keep every dossier.
+  const openDossierIds = new Set(activeRequests.map((request) => request.id));
   const closedDeliveryPhases = phaseRows.filter(
     (phase) =>
       phase.phaseCode === 'M7' &&
@@ -233,14 +217,18 @@ export async function getAnalyticsOverview(filters: AnalyticsFilters): Promise<A
     return true;
   });
 
+  const currentOpenPhases = relevantPhases.filter(
+    (phase) => phase.status === 'open' && openDossierIds.has(phase.requestId)
+  );
+
   const phaseStats: AnalyticsPhaseStat[] = (Object.keys(PHASE_LABELS) as AnalyticsPhaseCode[]).map(
     (phaseCode) => {
       const rows = relevantPhases.filter((phase) => phase.phaseCode === phaseCode);
-      const openRows = rows.filter((phase) => phase.status === 'open');
+      const openRows = currentOpenPhases.filter((phase) => phase.phaseCode === phaseCode);
       const closedRows = rows.filter(
         (phase) => phase.status === 'closed' && inPeriod(phase.closedAt, filters.periodStart, filters.periodEnd)
       );
-      const target = PHASE_TARGETS[phaseCode];
+      const target = phaseTargets[phaseCode];
       const activeAges = openRows.map((phase) => daysBetween(phase.openedAt, new Date()));
       const closedDurations = closedRows.map((phase) => daysBetween(phase.openedAt, phase.closedAt));
       const slaBreachCount = openRows.filter((phase) => {
@@ -261,11 +249,10 @@ export async function getAnalyticsOverview(filters: AnalyticsFilters): Promise<A
     }
   );
 
-  const delayedDossiers: AnalyticsDelayedDossier[] = relevantPhases
-    .filter((phase) => phase.status === 'open')
+  const delayedDossiers: AnalyticsDelayedDossier[] = currentOpenPhases
     .map((phase) => {
       const age = daysBetween(phase.openedAt, new Date()) ?? 0;
-      const target = PHASE_TARGETS[phase.phaseCode as AnalyticsPhaseCode] ?? 0;
+      const target = phaseTargets[phase.phaseCode as AnalyticsPhaseCode] ?? 0;
       const request = requestRows.find((item) => item.id === phase.requestId);
       const organisation = request ? organisationsById.get(request.organisationId) : null;
 
@@ -286,10 +273,10 @@ export async function getAnalyticsOverview(filters: AnalyticsFilters): Promise<A
     .sort((a, b) => b.delayDays - a.delayDays)
     .slice(0, 6);
 
-  const openPhaseRows = relevantPhases.filter((phase) => phase.status === 'open');
+  const openPhaseRows = currentOpenPhases;
   const outsideSla = openPhaseRows.filter((phase) => {
     const age = daysBetween(phase.openedAt, new Date());
-    const target = PHASE_TARGETS[phase.phaseCode as AnalyticsPhaseCode] ?? 0;
+    const target = phaseTargets[phase.phaseCode as AnalyticsPhaseCode] ?? 0;
     return age !== null && age > target;
   });
 
@@ -298,13 +285,13 @@ export async function getAnalyticsOverview(filters: AnalyticsFilters): Promise<A
   );
   const closedPhaseWithinSla = closedPhaseRows.filter((phase) => {
     const duration = daysBetween(phase.openedAt, phase.closedAt);
-    const target = PHASE_TARGETS[phase.phaseCode as AnalyticsPhaseCode] ?? 0;
+    const target = phaseTargets[phase.phaseCode as AnalyticsPhaseCode] ?? 0;
     return duration !== null && duration <= target;
   });
 
   const dgWaiting = circuitRows.filter(
     (row) =>
-      filteredRequestIds.has(row.requestId) &&
+      openDossierIds.has(row.requestId) &&
       ['submitted', 'in_signature_circuit'].includes(row.status)
   );
   const dgWaitingDurations = dgWaiting.map((row) =>
@@ -312,8 +299,11 @@ export async function getAnalyticsOverview(filters: AnalyticsFilters): Promise<A
   );
 
   const phaseIdsByFilteredRequest = new Set(relevantPhases.map((phase) => phase.id));
+  const currentPhaseIds = new Set(
+    relevantPhases.filter((phase) => openDossierIds.has(phase.requestId)).map((phase) => phase.id)
+  );
   const blockingPayments = paymentRows.filter(
-    (payment) => phaseIdsByFilteredRequest.has(payment.phaseId) && payment.status !== 'validated'
+    (payment) => currentPhaseIds.has(payment.phaseId) && payment.status !== 'validated'
   );
 
   // K6 - same rule as the Réunions cockpit (meeting-follow-up.ts): site

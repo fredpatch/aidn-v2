@@ -324,3 +324,32 @@ applicant session to the API. `authenticateEither` prefers the applicant session
 BUG-PORTAL-INTAKE-1 (gotchas #19): a portal call never falls back to the staff session. Without the two variables
 every request is "unknown app", so a browser holding both sessions now gets 401 `AMBIGUOUS_SESSION` instead of the
 wrong identity.
+
+## 27. `defaultNow()` columns follow the PostgreSQL session time zone
+
+**Symptom**: inside one transaction, `audit_logs.created_at` and `payments.validated_at` differed by exactly 120 min
+on a local database (ROLE-ANALYTICS-1A, 2026-10-16). Same for every `defaultNow()` column (`phases.opened_at`,
+`dg_circuit_documents.deposited_at`, `site_inspections.submitted_at`, `created_at` columns...).
+
+**Cause**: columns are `timestamp` without time zone holding UTC. App-written values (`new Date()`) are UTC, but a
+`DEFAULT now()` is converted to the *session* time zone, which defaults to the server's (`Europe/Paris` on the dev
+machine; `postgres:16-alpine` defaults to UTC, but nothing pinned it).
+
+**Fix / rule** (ROLE-ANALYTICS-1B): every app pool and script connects through `pgConnectionConfig()`
+(`apps/api/src/shared/db/connection.ts`), which adds the start-up option `-c TimeZone=UTC` (after any `PGOPTIONS`).
+New pools must use it. A `DATABASE_URL` carrying `?options=` would override it. Historical rows written before the pin
+on a non-UTC server keep their offset (dev/test: accepted; no data rewrite).
+
+**Deployment check** (staging / production, not verified from the dev environment):
+
+```sql
+SHOW TimeZone;                                   -- server default; the app session forces UTC anyway
+SELECT now(), now() AT TIME ZONE 'UTC', localtimestamp;
+-- Representative comparison: an app-written column against its audit row (written in the same transaction).
+SELECT p.validated_at, a.created_at, a.created_at - p.validated_at AS drift
+FROM payments p JOIN audit_logs a ON a.entity_id = p.id AND a.action = 'PAYMENT_VALIDATED'
+WHERE p.validated_at IS NOT NULL ORDER BY a.id DESC LIMIT 5;
+```
+
+A drift of whole hours on rows written before the deployment means that environment's history is offset; decide
+any correction separately (never in place without a backup).

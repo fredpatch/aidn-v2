@@ -3,6 +3,18 @@
 Commit-level history. Covers `be9fce9` through the 2026-10-09 D3c admin
 unread/activity batch.
 
+## 2026-10-16 ROLE-ANALYTICS-1B: time hardening, SLA parameters, role analytics foundation
+
+- DB: every app pool and script pins its session to `TimeZone=UTC` (`shared/db/connection.ts`); `defaultNow()`
+  columns no longer follow the server time zone (gotchas #27, with the staging/production check).
+- Analytics: Libreville periods (`period.ts`), semantic audit-event catalogue (`audit-events.ts`), helpers moved to
+  `metrics.ts`; `/analytics/overview` reads phase SLA targets from the system parameters and no longer counts
+  closed dossiers as current blockers (open phases, SLA breaches, DG waiting, payment blockers). Response shape
+  unchanged (reports), numbers can drop where closed dossiers were counted.
+- Role analytics foundation: shared contract (`@aidn/shared` `role-analytics.ts`), `GET /api/analytics/roles/:domain`
+  with the frozen access matrix; no provider yet (501). Per-route guards: `/overview` stays dn_supervisor + SU.
+- No migration, no UI. See decisions #23.
+
 ## 2026-10-16 SESSION1-ACCOUNT-1: edit an approved applicant account
 
 - API: `PATCH /api/account-requests/applicants/:id` (dn_agent, dn_supervisor, SU) edits `fullName`, `email`, `phone`, `contactOrder` only; email normalised (shared `normalizeEmail` / `isValidEmail` in `shared/utils/email-address.ts`, also used by bootstrap) and unique among applicants case-insensitively (staff `users` never consulted); update + `APPLICANT_ACCOUNT_UPDATED` audit (changed fields with from/to) in one transaction; no-op writes no audit.

@@ -15,6 +15,7 @@
 import 'dotenv/config';
 import { execSync } from 'node:child_process';
 import { Client } from 'pg';
+import { pgConnectionConfig } from '../shared/db/connection.js';
 
 const DENYLIST_PATTERN = /prod|production|staging|stage/i;
 const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
@@ -48,7 +49,7 @@ function assertSafeTarget(databaseUrl: string): { host: string; database: string
 async function dropAndCreate(databaseUrl: string, database: string): Promise<void> {
   const adminUrl = new URL(databaseUrl);
   adminUrl.pathname = '/postgres';
-  const client = new Client({ connectionString: adminUrl.toString() });
+  const client = new Client(pgConnectionConfig(adminUrl.toString()));
   await client.connect();
   try {
     await client.query(`DROP DATABASE IF EXISTS "${database}"`);

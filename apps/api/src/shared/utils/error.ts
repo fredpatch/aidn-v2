@@ -679,6 +679,21 @@ export const handleDocumentTemplatesError = createErrorHandler(
   '[document-templates]'
 );
 
+/** ROLE-ANALYTICS-1B - GET /api/analytics/roles/:domain. */
+export const handleRoleAnalyticsError = createErrorHandler(
+  {
+    INVALID_ANALYTICS_DOMAIN: { status: 400, message: 'Domaine analytique inconnu.' },
+    INVALID_ANALYTICS_SCOPE: { status: 400, message: 'Périmètre analytique invalide (mine ou service).' },
+    ROLE_ANALYTICS_FORBIDDEN: { status: 403, message: 'Accès refusé pour ce rôle.' },
+    INVALID_ANALYTICS_PERIOD: {
+      status: 400,
+      message: 'Période analytique invalide (dates AAAA-MM-JJ, début avant fin, 366 jours au plus).',
+    },
+    ROLE_ANALYTICS_NOT_IMPLEMENTED: { status: 501, message: 'Indicateurs non encore disponibles pour ce domaine.' },
+  },
+  '[role-analytics]'
+);
+
 /** POST /api/seeding/run. A SeedingError carries a descriptive message (it
  *  names the seed and step for the server log), not an error code, so it
  *  cannot go through createErrorHandler. Details stay in the log only. */
