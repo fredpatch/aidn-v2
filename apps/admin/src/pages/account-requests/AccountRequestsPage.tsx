@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity,
   AlertTriangle,
@@ -30,6 +30,11 @@ import {
   TableRow,
 } from '../../components/ui/table';
 import { cn } from '../../lib/utils';
+import { notify } from '../../lib/notify';
+import {
+  ApplicantAccountEditForm,
+  type ApplicantAccountEditValues,
+} from './ApplicantAccountEditForm';
 
 interface OrganisationCandidate {
   id: number;
@@ -57,7 +62,7 @@ interface AccountRequestView {
   candidates: OrganisationCandidate[];
 }
 
-interface ApplicantAccountView {
+export interface ApplicantAccountView {
   id: number;
   organisationId: number;
   organisationName: string;
@@ -191,6 +196,20 @@ export default function AccountRequestsPage() {
     } finally {
       setBusyId(null);
     }
+  }
+
+  async function handleUpdateAccount(
+    id: number,
+    values: ApplicantAccountEditValues
+  ): Promise<string | null> {
+    try {
+      await api.patch(`/account-requests/applicants/${id}`, values);
+    } catch (err) {
+      return apiErrorMessage(err, 'Modification du compte impossible.');
+    }
+    await loadAccounts();
+    notify.success('Compte postulant mis à jour.');
+    return null;
   }
 
   const filteredRequests = useMemo(() => {
@@ -432,6 +451,7 @@ export default function AccountRequestsPage() {
               account={selectedAccount}
               busy={busyId === selectedAccount?.id}
               onToggle={handleToggleAccount}
+              onUpdate={handleUpdateAccount}
             />
           )}
         </section>
@@ -897,15 +917,51 @@ function PendingRequestPanel({
   );
 }
 
+function AccountInfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="font-semibold text-anac-muted">{label}</dt>
+      <dd className="break-words text-anac-navy">{value}</dd>
+    </div>
+  );
+}
+
 function ApprovedAccountPanel({
   account,
   busy,
   onToggle,
+  onUpdate,
 }: {
   account: ApplicantAccountView | null;
   busy: boolean;
   onToggle: (id: number, active: boolean) => void;
+  onUpdate: (id: number, values: ApplicantAccountEditValues) => Promise<string | null>;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const accountId = account?.id ?? null;
+  const currentAccountId = useRef<number | null>(accountId);
+  currentAccountId.current = accountId;
+
+  useEffect(() => {
+    setEditing(false);
+    setSaving(false);
+    setEditError(null);
+  }, [accountId]);
+
+  async function submitEdit(values: ApplicantAccountEditValues) {
+    if (!account) return;
+    setSaving(true);
+    setEditError(null);
+    const requestedId = account.id;
+    const failure = await onUpdate(requestedId, values);
+    if (currentAccountId.current !== requestedId) return;
+    setSaving(false);
+    if (failure) setEditError(failure);
+    else setEditing(false);
+  }
+
   if (!account) {
     return (
       <aside className="rounded-lg border border-anac-border bg-white p-5 shadow-sm">
@@ -943,17 +999,48 @@ function ApprovedAccountPanel({
 
       <div className="space-y-3 p-4">
         <section className="rounded-lg border border-anac-border p-3">
-          <div className="flex items-start gap-2">
-            <UserRound size={14} className="mt-0.5 text-anac-navy" aria-hidden="true" />
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-anac-navy">{account.fullName}</p>
-              <p className="text-xs text-anac-muted">
-                {CONTACT_ORDER_LABELS[account.contactOrder] ?? account.contactOrder}
-              </p>
-              <p className="truncate text-xs text-anac-muted">{account.email}</p>
-              {account.phone ? <p className="text-xs text-anac-muted">{account.phone}</p> : null}
-            </div>
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h3 className="flex items-center gap-2 text-sm font-semibold text-anac-navy">
+              <UserRound size={14} aria-hidden="true" />
+              Informations du compte
+            </h3>
+            {editing ? null : (
+              <button
+                type="button"
+                className="rounded-md border border-anac-border px-2 py-1 text-xs font-semibold text-anac-navy hover:bg-slate-50"
+                onClick={() => {
+                  setEditError(null);
+                  setEditing(true);
+                }}
+              >
+                Modifier
+              </button>
+            )}
           </div>
+          {editing ? (
+            <ApplicantAccountEditForm
+              key={account.id}
+              account={account}
+              busy={saving}
+              error={editError}
+              onCancel={() => {
+                setEditing(false);
+                setEditError(null);
+              }}
+              onSubmit={submitEdit}
+            />
+          ) : (
+            <dl className="space-y-2 text-xs">
+              <AccountInfoRow label="Nom complet" value={account.fullName} />
+              <AccountInfoRow label="Email" value={account.email} />
+              <AccountInfoRow label="Téléphone" value={account.phone || 'Non renseigné'} />
+              <AccountInfoRow
+                label="Rôle de contact"
+                value={CONTACT_ORDER_LABELS[account.contactOrder] ?? account.contactOrder}
+              />
+              <AccountInfoRow label="Organisation" value={account.organisationName} />
+            </dl>
+          )}
         </section>
 
         <section className="rounded-lg border border-anac-border p-3">
@@ -961,29 +1048,25 @@ function ApprovedAccountPanel({
             <LockKeyhole size={14} aria-hidden="true" />
             Actions rapides
           </h3>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2">
             <button
               className="rounded-md border border-anac-border px-2 py-2 text-xs font-semibold text-anac-muted"
               disabled
             >
-              Reinitialiser
-            </button>
-            <button
-              className="rounded-md border border-anac-border px-2 py-2 text-xs font-semibold text-anac-muted"
-              disabled
-            >
-              Modifier
+              Réinitialiser
             </button>
           </div>
-          <Button
-            type="button"
-            variant={account.active ? 'destructive' : 'secondary'}
-            className="mt-2 w-full"
-            disabled={busy}
-            onClick={() => onToggle(account.id, !account.active)}
-          >
-            {account.active ? 'Suspendre le compte' : 'Réactiver le compte'}
-          </Button>
+          {editing ? null : (
+            <Button
+              type="button"
+              variant={account.active ? 'destructive' : 'secondary'}
+              className="mt-2 w-full"
+              disabled={busy}
+              onClick={() => onToggle(account.id, !account.active)}
+            >
+              {account.active ? 'Suspendre le compte' : 'Réactiver le compte'}
+            </Button>
+          )}
         </section>
 
         <section className="rounded-lg border border-anac-border p-3">

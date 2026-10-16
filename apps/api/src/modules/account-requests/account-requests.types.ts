@@ -55,6 +55,14 @@ export interface AccountRequestView {
   candidates: OrganisationCandidate[];
 }
 
+/** Raw PATCH values: the service validates types. Absent key = unchanged. */
+export interface UpdateApplicantAccountInput {
+  fullName?: unknown;
+  email?: unknown;
+  phone?: unknown;
+  contactOrder?: unknown;
+}
+
 export interface ApplicantAccountView {
   id: number;
   organisationId: number;

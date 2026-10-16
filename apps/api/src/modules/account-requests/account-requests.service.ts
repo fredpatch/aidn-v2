@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
-import { eq, ilike, or, desc } from 'drizzle-orm';
-import { db } from '../../shared/db/index.js';
+import { and, eq, ilike, ne, or, desc, sql } from 'drizzle-orm';
+import { db, type DbExecutor } from '../../shared/db/index.js';
+import { EMAIL_MAX_LENGTH, isValidEmail, normalizeEmail } from '../../shared/utils/email-address.js';
 import { accountRequests, applicants, organisations } from '../../shared/db/schema.js';
 import { logAudit } from '../auth/auth.service.js';
 import type {
@@ -10,6 +11,7 @@ import type {
   OrganisationCandidate,
   RejectAccountRequestParams,
   SubmitAccountRequestParams,
+  UpdateApplicantAccountInput,
 } from './account-requests.types.js';
 
 const MIN_FORM_ELAPSED_MS = 3000;
@@ -25,7 +27,7 @@ function normalizeOrganisationName(value: string): string {
 }
 
 function cleanEmail(email: string): string {
-  return email.trim().toLowerCase();
+  return normalizeEmail(email);
 }
 
 function acronymForOrganisationName(value: string): string {
@@ -355,24 +357,37 @@ export async function rejectAccountRequest(
   return toAccountRequestView(updated);
 }
 
+const applicantAccountColumns = {
+  id: applicants.id,
+  organisationId: applicants.organisationId,
+  organisationName: organisations.name,
+  fullName: applicants.fullName,
+  email: applicants.email,
+  phone: applicants.phone,
+  contactOrder: applicants.contactOrder,
+  active: applicants.active,
+  createdAt: applicants.createdAt,
+};
+
 export async function listApplicantAccounts(): Promise<ApplicantAccountView[]> {
-  const rows = await db
-    .select({
-      id: applicants.id,
-      organisationId: applicants.organisationId,
-      organisationName: organisations.name,
-      fullName: applicants.fullName,
-      email: applicants.email,
-      phone: applicants.phone,
-      contactOrder: applicants.contactOrder,
-      active: applicants.active,
-      createdAt: applicants.createdAt,
-    })
+  return db
+    .select(applicantAccountColumns)
     .from(applicants)
     .innerJoin(organisations, eq(applicants.organisationId, organisations.id))
     .orderBy(desc(applicants.createdAt));
+}
 
-  return rows;
+async function getApplicantAccountView(
+  id: number,
+  executor: DbExecutor = db
+): Promise<ApplicantAccountView> {
+  const [account] = await executor
+    .select(applicantAccountColumns)
+    .from(applicants)
+    .innerJoin(organisations, eq(applicants.organisationId, organisations.id))
+    .where(eq(applicants.id, id));
+  if (!account) throw new Error('APPLICANT_NOT_FOUND');
+  return account;
 }
 
 export async function setApplicantAccountActive(
@@ -395,7 +410,104 @@ export async function setApplicantAccountActive(
     entityId: id,
   });
 
-  const account = (await listApplicantAccounts()).find((row) => row.id === id);
-  if (!account) throw new Error('APPLICANT_NOT_FOUND');
-  return account;
+  return getApplicantAccountView(id);
+}
+
+const CONTACT_ORDERS = ['primary', 'secondary', 'tertiary'] as const;
+type ContactOrder = (typeof CONTACT_ORDERS)[number];
+const INT4_MAX = 2147483647;
+
+export async function updateApplicantAccount(
+  id: number,
+  input: UpdateApplicantAccountInput,
+  actorUserId: number
+): Promise<ApplicantAccountView> {
+  if (!Number.isInteger(id) || id <= 0 || id > INT4_MAX) throw new Error('APPLICANT_NOT_FOUND');
+  const has = (key: keyof UpdateApplicantAccountInput) =>
+    Object.prototype.hasOwnProperty.call(input, key) && input[key] !== undefined;
+
+  try {
+    return await db.transaction(async (tx) => {
+      const [current] = await tx.select().from(applicants).where(eq(applicants.id, id)).for('update');
+      if (!current) throw new Error('APPLICANT_NOT_FOUND');
+
+      const changes: Record<string, { from: unknown; to: unknown }> = {};
+      const patch: Partial<typeof applicants.$inferInsert> = {};
+
+      if (has('fullName')) {
+        if (typeof input.fullName !== 'string' || !input.fullName.trim()) {
+          throw new Error('APPLICANT_NAME_REQUIRED');
+        }
+        const fullName = input.fullName.trim();
+        if (fullName.length > 200) throw new Error('APPLICANT_NAME_TOO_LONG');
+        if (fullName !== current.fullName) {
+          patch.fullName = fullName;
+          changes.fullName = { from: current.fullName, to: fullName };
+        }
+      }
+
+      let emailToCheck: string | null = null;
+      if (has('email')) {
+        if (typeof input.email !== 'string') throw new Error('INVALID_APPLICANT_EMAIL');
+        const email = normalizeEmail(input.email);
+        if (!email || email.length > EMAIL_MAX_LENGTH || !isValidEmail(email)) {
+          throw new Error('INVALID_APPLICANT_EMAIL');
+        }
+        if (email !== current.email) emailToCheck = email;
+      }
+
+      if (has('phone')) {
+        let phone: string | null;
+        if (input.phone === null) phone = null;
+        else if (typeof input.phone === 'string') phone = input.phone.trim() || null;
+        else throw new Error('INVALID_APPLICANT_PHONE');
+        if (phone !== null && phone.length > 50) throw new Error('APPLICANT_PHONE_TOO_LONG');
+        if (phone !== current.phone) {
+          patch.phone = phone;
+          changes.phone = { from: current.phone, to: phone };
+        }
+      }
+
+      if (has('contactOrder')) {
+        if (!CONTACT_ORDERS.includes(input.contactOrder as ContactOrder)) {
+          throw new Error('INVALID_CONTACT_ORDER');
+        }
+        const contactOrder = input.contactOrder as ContactOrder;
+        if (contactOrder !== current.contactOrder) {
+          patch.contactOrder = contactOrder;
+          changes.contactOrder = { from: current.contactOrder, to: contactOrder };
+        }
+      }
+
+      if (emailToCheck !== null) {
+        const [clash] = await tx
+          .select({ id: applicants.id })
+          .from(applicants)
+          .where(and(sql`lower(${applicants.email}) = ${emailToCheck}`, ne(applicants.id, id)))
+          .limit(1);
+        if (clash) throw new Error('APPLICANT_EMAIL_EXISTS');
+        patch.email = emailToCheck;
+        changes.email = { from: current.email, to: emailToCheck };
+      }
+
+      const changedFields = Object.keys(changes);
+      if (changedFields.length === 0) return getApplicantAccountView(id, tx);
+
+      await tx.update(applicants).set(patch).where(eq(applicants.id, id));
+      await logAudit(
+        {
+          userId: actorUserId,
+          action: 'APPLICANT_ACCOUNT_UPDATED',
+          module: 'M13',
+          entityId: id,
+          details: { changedFields, changes },
+        },
+        tx
+      );
+      return getApplicantAccountView(id, tx);
+    });
+  } catch (error) {
+    if (isUniqueViolation(error)) throw new Error('APPLICANT_EMAIL_EXISTS');
+    throw error;
+  }
 }

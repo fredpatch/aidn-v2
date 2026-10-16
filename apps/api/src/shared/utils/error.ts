@@ -198,6 +198,18 @@ export const handleAccountRequestsError = createErrorHandler(
       message: 'Un compte postulant existe déjà pour cet email.',
     },
     APPLICANT_NOT_FOUND: { status: 404, message: 'Compte postulant introuvable.' },
+    INVALID_APPLICANT_EMAIL: { status: 400, message: 'Adresse email invalide.' },
+    APPLICANT_NAME_REQUIRED: { status: 400, message: 'Le nom complet est requis.' },
+    APPLICANT_NAME_TOO_LONG: {
+      status: 400,
+      message: 'Le nom complet ne doit pas dépasser 200 caractères.',
+    },
+    INVALID_APPLICANT_PHONE: { status: 400, message: 'Téléphone invalide.' },
+    APPLICANT_PHONE_TOO_LONG: {
+      status: 400,
+      message: 'Le téléphone ne doit pas dépasser 50 caractères.',
+    },
+    INVALID_CONTACT_ORDER: { status: 400, message: 'Ordre de contact invalide.' },
     ORGANISATION_NOT_FOUND: { status: 404, message: 'Organisme introuvable.' },
     ORGANISATION_ALREADY_EXISTS: {
       status: 409,

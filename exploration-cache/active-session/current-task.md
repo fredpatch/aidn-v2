@@ -2,6 +2,8 @@
 
 **Session date**: 2026-10-08
 
+> **2026-10-16 SESSION1-ACCOUNT-1 (implemented, validated; single feature commit):** admin edits an approved applicant's name, email, phone and contact order (`PATCH /api/account-requests/applicants/:id`), email unique among applicants, update + audit atomic, sessions not revoked (see decisions #22). No migration. Deferred: login input normalisation, optimistic concurrency on the edit form.
+>
 > **2026-10-16 BUG-PORTAL-INTAKE-1 (implemented, validated; single commit):** `authenticateEither` picks the session by calling app (Origin, else Referer) - portal -> applicant only, admin -> staff only, unknown app with two valid sessions -> 401 `AMBIGUOUS_SESSION`. Closes the 2026-10-15 open hardening item below (see decisions #21).
 >
 > **2026-10-16 SESSION1-COCKPIT-1 (implemented, validated; single feature commit after the whole-branch review):** role work queues as home cockpits - Réception / Assistant DG, Assistante DN, Finance and Cellule Inspection land on their queue (`homeFor`), shared operational contract with `{ items, counts }`, role dashboards and their three API summaries deleted, B1-B6 fixed (see changelog, decisions #20). No migration. Deferred: Finance server-side history window, portal DG wording.

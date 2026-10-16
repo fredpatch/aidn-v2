@@ -14,6 +14,7 @@ router.get('/organisations/search', accountRequestsController.searchOrganisation
 router.get('/:id', accountRequestsController.get);
 router.post('/:id/approve', accountRequestsController.approve);
 router.post('/:id/reject', accountRequestsController.reject);
+router.patch('/applicants/:id', accountRequestsController.updateApplicant);
 router.patch('/applicants/:id/activation', accountRequestsController.setApplicantActive);
 
 export default router;

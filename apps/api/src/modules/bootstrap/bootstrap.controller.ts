@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import * as bootstrapService from "./bootstrap.service.js";
+import { isValidEmail } from "../../shared/utils/email-address.js";
 
 /** GET /api/bootstrap/status - checked by the React client on startup to
  *  decide whether to show the bootstrap screen or the login screen. */
@@ -35,8 +36,7 @@ export async function init(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!isValidEmail(email)) {
       res.status(400).json({ message: "Email invalide." });
       return;
     }

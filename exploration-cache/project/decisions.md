@@ -285,3 +285,14 @@ Spec: `docs/superpowers/specs/2026-10-16-session1-cockpit-1-design.md`.
   Staff-first is gone.
 - Root cause of « applicantId requis pour une saisie manuelle. » on a portal submission: an absent or expired applicant
   token fell back to a valid staff session. No migration, no frontend change.
+
+## 22. Applicant account edit (SESSION1-ACCOUNT-1, 2026-10-16)
+
+Spec: `docs/superpowers/specs/2026-10-16-session1-account-1-design.md`.
+
+- Staff and applicant are separate identity domains: applicant-email uniqueness checks `applicants` only (on `lower(email)`, tolerant of legacy mixed-case rows); a staff `users.email` never blocks it.
+- Editable from admin: `fullName`, `email`, `phone`, `contactOrder` (descriptive only). `organisationId` (dossier ownership), password and `active` are not editable there; unknown body keys are ignored (whitelist). PATCH semantics: absent = unchanged, `phone: null`/blank clears.
+- Every field is validated before the duplicate check (400 wins over 409); a unique-index race maps to 409 `APPLICANT_EMAIL_EXISTS`.
+- Update and `APPLICANT_ACCOUNT_UPDATED` audit share one transaction with a row lock; `details = { changedFields, changes: { field: { from, to } } }`, never password data; a no-op returns 200 with no audit row.
+- No forced logout on email change: no authorization reads the token email claim; `/me` and refresh reload by `applicantId`; the next login needs the new email. No token revocation.
+- No migration, no `updatedAt`: history lives in `audit_logs`.

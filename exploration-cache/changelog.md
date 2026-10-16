@@ -3,6 +3,13 @@
 Commit-level history. Covers `be9fce9` through the 2026-10-09 D3c admin
 unread/activity batch.
 
+## 2026-10-16 SESSION1-ACCOUNT-1: edit an approved applicant account
+
+- API: `PATCH /api/account-requests/applicants/:id` (dn_agent, dn_supervisor, SU) edits `fullName`, `email`, `phone`, `contactOrder` only; email normalised (shared `normalizeEmail` / `isValidEmail` in `shared/utils/email-address.ts`, also used by bootstrap) and unique among applicants case-insensitively (staff `users` never consulted); update + `APPLICANT_ACCOUNT_UPDATED` audit (changed fields with from/to) in one transaction; no-op writes no audit.
+- Sessions untouched: `/me` and refresh read the applicant by id, so an email change takes effect at the next refresh / login without logout.
+- Admin: « Comptes approuvés » panel gets « Informations du compte » and an edit form (organisation read-only); suspend/reactivate stays separate.
+- Tests: service/DB, HTTP, session regression, admin page. No migration. See decisions #22.
+
 ## 2026-10-16 BUG-PORTAL-INTAKE-1: shared endpoints choose the session by app
 
 - `authenticateEither`: the calling app (Origin, else Referer origin) is authoritative - portal -> applicant only,

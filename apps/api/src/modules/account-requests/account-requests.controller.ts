@@ -1,6 +1,27 @@
 import { Request, Response } from 'express';
 import * as accountRequestsService from './account-requests.service.js';
+import type { UpdateApplicantAccountInput } from './account-requests.types.js';
 import { handleAccountRequestsError } from '../../shared/utils/error.js';
+
+const UPDATABLE_APPLICANT_FIELDS = ['fullName', 'email', 'phone', 'contactOrder'] as const;
+
+export async function updateApplicant(req: Request, res: Response): Promise<void> {
+  try {
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const input: UpdateApplicantAccountInput = {};
+    for (const key of UPDATABLE_APPLICANT_FIELDS) {
+      if (Object.prototype.hasOwnProperty.call(body, key)) input[key] = body[key];
+    }
+    const result = await accountRequestsService.updateApplicantAccount(
+      Number(req.params.id),
+      input,
+      req.user!.userId
+    );
+    res.json(result);
+  } catch (error) {
+    handleAccountRequestsError(res, error);
+  }
+}
 
 export async function submit(req: Request, res: Response): Promise<void> {
   try {
