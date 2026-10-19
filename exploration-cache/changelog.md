@@ -3,6 +3,17 @@
 Commit-level history. Covers `be9fce9` through the 2026-10-09 D3c admin
 unread/activity batch.
 
+## 2026-10-19 M3-OPEN-ATOMIC-1: atomic opening of the preliminary phase
+
+- `openPreliminaryPhase` runs in one transaction: request row locked (`FOR UPDATE`), then existing M3, request
+  status and Directeur DN gate (`isPreliminaryOpenable`, unchanged), then M3 insert, request -> `in_progress` and the
+  `PHASE_OPENED` audit (`logAudit(..., tx)`). Any failure rolls back all three writes.
+- Concurrent openings serialize on the lock; the second sees the M3 and gets `PHASE_ALREADY_OPEN`. The existing
+  `phases_request_phase_idx` unique index stays as backstop, its violation mapped to `PHASE_ALREADY_OPEN`.
+- One application timestamp for `phases.opened_at` and `requests.updated_at`.
+- Error order unchanged (`REQUEST_NOT_FOUND`, `PHASE_ALREADY_OPEN`, `REQUEST_NOT_READY_FOR_PHASE`,
+  `DN_ANNOTATION_REQUIRED`). No workflow, gate or UI change, no migration.
+
 ## 2026-10-19 BRAND-AIDN-OMA-1: visible product name « AIDN - OMA »
 
 - Shared presentation constants (`@aidn/shared` `branding.ts`): `PRODUCT_NAME` « AIDN - OMA », `PRODUCT_SUBTITLE`

@@ -46,50 +46,74 @@ function toPhaseView(row: typeof phases.$inferSelect): PhaseView {
 
 /** M3 - opens the Preliminary phase once M1's DG circuit reaches
  *  pending_review. This is the moment DN actually "starts working" a
- *  dossier - see project/modules-feasibility.md M1/M3. */
+ *  dossier - see project/modules-feasibility.md M1/M3.
+ *  M3-OPEN-ATOMIC-1 - one transaction: the request row is locked first so
+ *  concurrent openings serialize (the second one then sees the M3 and gets
+ *  PHASE_ALREADY_OPEN); the M3 row, the request projection and the audit
+ *  commit together or not at all. */
 export async function openPreliminaryPhase(
   requestId: number,
   actorUserId: number
 ): Promise<PhaseView> {
-  const [request] = await db.select().from(requests).where(eq(requests.id, requestId));
-  if (!request) throw new Error('REQUEST_NOT_FOUND');
+  return db.transaction(async (tx) => {
+    const [request] = await tx.select().from(requests).where(eq(requests.id, requestId)).for('update');
+    if (!request) throw new Error('REQUEST_NOT_FOUND');
 
-  const [existing] = await db
-    .select()
-    .from(phases)
-    .where(and(eq(phases.requestId, requestId), eq(phases.phaseCode, 'M3')));
-  if (existing) throw new Error('PHASE_ALREADY_OPEN');
+    const [existing] = await tx
+      .select({ id: phases.id })
+      .from(phases)
+      .where(and(eq(phases.requestId, requestId), eq(phases.phaseCode, 'M3')));
+    if (existing) throw new Error('PHASE_ALREADY_OPEN');
 
-  if (request.status !== 'pending_review') throw new Error('REQUEST_NOT_READY_FOR_PHASE');
+    if (request.status !== 'pending_review') throw new Error('REQUEST_NOT_READY_FOR_PHASE');
 
-  // SESSION1-M1-1 - final gate: the Directeur DN circuit is authoritative,
-  // requests.status is its projection. If they disagree, M3 stays closed.
-  const [dnCircuit] = await db
-    .select({ status: dgCircuitDocuments.status })
-    .from(dgCircuitDocuments)
-    .where(
-      and(eq(dgCircuitDocuments.requestId, requestId), eq(dgCircuitDocuments.entityType, 'dn_director_annotation'))
+    // SESSION1-M1-1 - final gate: the Directeur DN circuit is authoritative,
+    // requests.status is its projection. If they disagree, M3 stays closed.
+    const [dnCircuit] = await tx
+      .select({ status: dgCircuitDocuments.status })
+      .from(dgCircuitDocuments)
+      .where(
+        and(eq(dgCircuitDocuments.requestId, requestId), eq(dgCircuitDocuments.entityType, 'dn_director_annotation'))
+      );
+    if (!isPreliminaryOpenable(request.status, dnCircuit?.status ?? null)) {
+      throw new Error('DN_ANNOTATION_REQUIRED');
+    }
+
+    // One logical action time for the phase and the request projection.
+    const openedAt = new Date();
+    let phase: typeof phases.$inferSelect;
+    try {
+      [phase] = await tx.insert(phases).values({ requestId, phaseCode: 'M3', openedAt }).returning();
+    } catch (error) {
+      // Backstop behind the lock: phases_request_phase_idx (request_id, phase_code).
+      if (isUniqueViolation(error)) throw new Error('PHASE_ALREADY_OPEN');
+      throw error;
+    }
+
+    await tx
+      .update(requests)
+      .set({ status: 'in_progress', updatedAt: openedAt })
+      .where(eq(requests.id, requestId));
+
+    await logAudit(
+      {
+        userId: actorUserId,
+        action: 'PHASE_OPENED',
+        module: 'M3',
+        entityId: phase.id,
+        details: { requestId, phaseCode: 'M3' },
+      },
+      tx
     );
-  if (!isPreliminaryOpenable(request.status, dnCircuit?.status ?? null)) {
-    throw new Error('DN_ANNOTATION_REQUIRED');
-  }
 
-  const [phase] = await db.insert(phases).values({ requestId, phaseCode: 'M3' }).returning();
-
-  await db
-    .update(requests)
-    .set({ status: 'in_progress', updatedAt: new Date() })
-    .where(eq(requests.id, requestId));
-
-  await logAudit({
-    userId: actorUserId,
-    action: 'PHASE_OPENED',
-    module: 'M3',
-    entityId: phase.id,
-    details: { requestId, phaseCode: 'M3' },
+    return toPhaseView(phase);
   });
+}
 
-  return toPhaseView(phase);
+function isUniqueViolation(error: unknown): boolean {
+  const pgCode = (error as { code?: string })?.code;
+  const causeCode = (error as { cause?: { code?: string } })?.cause?.code;
+  return pgCode === '23505' || causeCode === '23505';
 }
 
 export async function getPhase(phaseId: number): Promise<PhaseView> {
