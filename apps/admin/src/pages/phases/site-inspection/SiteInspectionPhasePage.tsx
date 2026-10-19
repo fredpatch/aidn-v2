@@ -4,6 +4,7 @@ import { Button } from '../../../components/ui/button';
 import { useAuth } from '../../../hooks/useAuth';
 import { DN_OWNER } from '../owners';
 import WorkflowCockpit from '../components/WorkflowCockpit';
+import { PhaseDossierContext } from '../components/PhaseDossierContext';
 import { ClosedDossierBanner, DossierStateValue, useDossierState } from '../components/DossierReadOnly';
 import PaymentCard from './components/PaymentCard';
 import SiteVisitCard from './components/SiteVisitCard';
@@ -61,7 +62,7 @@ export default function SiteInspectionPhasePage() {
             <h1 className="text-xl font-semibold text-anac-navy">
               Paiement - Demonstration / Inspection
             </h1>
-            <p className="text-sm text-anac-muted">Demande #{requestId}</p>
+            <PhaseDossierContext requestId={requestId} />
           </div>
 
           <ClosedDossierBanner />
@@ -101,7 +102,7 @@ export default function SiteInspectionPhasePage() {
 
           <div>
             <h1 className="text-xl font-semibold text-anac-navy">Avis d’inspection - Inspection sur site</h1>
-            <p className="text-sm text-anac-muted">Demande #{requestId}</p>
+            <PhaseDossierContext requestId={requestId} />
           </div>
 
           <ClosedDossierBanner />
@@ -185,9 +186,8 @@ export default function SiteInspectionPhasePage() {
       requestId={requestId}
       currentCode="M6"
       title="Phase - Démonstration / Inspection"
-      subtitle={`Demande #${requestId ?? '-'}`}
       phaseStatus={bundle?.phase?.status}
-      onBack={() => navigate('/')}
+      onBack={() => navigate(requestId ? `/demandes?id=${requestId}` : '/demandes')}
       checklistTitle="Checklist - phase en cours"
       checklist={checklist}
       action={action}

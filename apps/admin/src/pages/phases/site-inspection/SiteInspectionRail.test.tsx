@@ -45,7 +45,6 @@ describe('M6 rail callout (final review I1)', () => {
         requestId="9"
         currentCode="M6"
         title="Phase - Demonstration / Inspection"
-        subtitle="Demande #9"
         phaseStatus="open"
         onBack={() => undefined}
         checklistTitle="Checklist"

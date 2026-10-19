@@ -65,9 +65,8 @@ export default function FormalPhasePage() {
       requestId={requestId}
       currentCode="M4"
       title="Phase - Demande Formelle"
-      subtitle={`Demande #${requestId ?? '-'}`}
       phaseStatus={bundle?.phase?.status}
-      onBack={() => navigate('/')}
+      onBack={() => navigate(requestId ? `/demandes?id=${requestId}` : '/demandes')}
       checklistTitle="Checklist - phase en cours"
       checklist={checklist}
       action={{

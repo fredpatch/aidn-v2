@@ -3,6 +3,18 @@
 Commit-level history. Covers `be9fce9` through the 2026-10-09 D3c admin
 unread/activity batch.
 
+## 2026-10-19 DOSSIER-CONTEXT-UX-1: dossier identity on treatment screens
+
+- Phase pages name their dossier: reference, organisation, applicant and status (« DEM-… · Organisation », badge)
+  under the title, and the reference in the breadcrumb, instead of « Demande #id ». Shared
+  `components/dossier/DossierContextHeader` (presentation only) for the DN cockpit (M3-M7), the Finance-only
+  M5/M6/M7 views and the CI M6 view. Skeleton while loading, degraded « Dossier #id » if the read fails.
+- Data: `GET /phases/requests/:id/dossier-state` (already read by every phase page, same cache entry: no extra
+  request) gains `identity`, only for roles that can open a phase page (DN, SU, s5_agent, r3_agent). Labels and
+  effective status shared with the Demandes reading pane (`requests/request-labels.ts`).
+- DN cockpit « Retour au dossier » now opens the dossier in /demandes (`?id=`); Finance and CI back links unchanged.
+- No workflow, authorization or migration change. Unused `PhaseHeader` removed.
+
 ## 2026-10-19 DASH-DN-UX-1: dashboard durations and recent activity dossier
 
 - Durations use the shared `formatCalendarDuration`: global duration metric (`value` « 4 j 22 h » plus

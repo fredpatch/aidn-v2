@@ -38,25 +38,15 @@ import {
 } from '../uploads/upload-attachment.js';
 import { relocateDossierAssetAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
 import { assertDossierOpen, dossierFlags } from './dossier-open.js';
+import {
+  effectiveRequestStatus,
+  REQUEST_STATUS_LABELS,
+  REQUEST_TYPE_LABELS,
+  TERMINAL_REQUEST_STATUSES,
+} from './request-labels.js';
 
 export type { SubmitRequestParams, RequestView } from './requests.types.js';
-
-const REQUEST_TYPE_LABELS: Record<string, string> = {
-  recognition: 'Reconnaissance',
-  issuance: 'Délivrance',
-  modification: 'Modification',
-  renewal: 'Renouvellement',
-};
-
-const REQUEST_STATUS_LABELS: Record<string, string> = {
-  submitted: 'Déposé',
-  signed: 'Signé',
-  pending_review: 'En attente de traitement',
-  in_progress: 'En cours',
-  rejected: 'Rejeté',
-  completed: 'Terminé',
-  cancelled: 'Annulé',
-};
+export { effectiveRequestStatus } from './request-labels.js';
 
 const PHASE_LABELS: Record<string, string> = {
   M3: 'Préliminaire',
@@ -67,7 +57,6 @@ const PHASE_LABELS: Record<string, string> = {
 };
 
 const PHASE_CODES = ['M3', 'M4', 'M5', 'M6', 'M7'] as const;
-const TERMINAL_REQUEST_STATUSES = ['rejected', 'completed', 'cancelled'];
 
 
 /** D3a - French titles of the dossier events shown in the reading pane, all
@@ -224,16 +213,6 @@ async function toRequestView(
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
-}
-
-/** Effective status: a closed M7 (Délivrance) completes the dossier even if
- *  requests.status was not updated; terminal statuses are kept as stored.
- *  Pure, so the cockpit applies it to the phases it already loaded (D2: no
- *  query per dossier). */
-export function effectiveRequestStatus(storedStatus: string, deliveryPhaseStatus: string | null): string {
-  if (TERMINAL_REQUEST_STATUSES.includes(storedStatus)) return storedStatus;
-  if (deliveryPhaseStatus === 'closed') return 'completed';
-  return storedStatus;
 }
 
 async function resolveRequestStatus(row: typeof requests.$inferSelect): Promise<string> {

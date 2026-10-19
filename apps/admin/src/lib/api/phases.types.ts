@@ -11,4 +11,15 @@ export interface DossierState {
   closed: boolean;
   closedAt: string | null;
   rejectionReason: string | null;
+  /** DOSSIER-CONTEXT-UX-1 - which dossier the page is about (null for a role
+   *  that cannot open a phase page). */
+  identity?: DossierIdentity | null;
+}
+
+export interface DossierIdentity {
+  reference: string;
+  organisationName: string;
+  applicantName: string | null;
+  /** Same label as the Demandes reading pane. */
+  statusLabel: string;
 }

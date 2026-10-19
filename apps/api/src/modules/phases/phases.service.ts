@@ -7,6 +7,8 @@ import {
   meetings,
   preliminaryEvaluationForms,
   dgCircuitDocuments,
+  organisations,
+  applicants,
 } from '../../shared/db/schema.js';
 import { logAudit } from '../auth/auth.service.js';
 import {
@@ -19,6 +21,7 @@ import {
 import { relocateDossierAssetAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
 import { assertPhaseDossierOpen, isDossierClosed } from '../requests/dossier-open.js';
 import { isPreliminaryOpenable } from '../dn-annotation/dn-annotation.stage.js';
+import { effectiveRequestStatus, requestStatusLabel } from '../requests/request-labels.js';
 
 export interface PhaseView {
   id: number;
@@ -177,27 +180,59 @@ export interface DossierStateView {
   closedAt: Date | null;
   /** Set on a rejected dossier; a cancellation stores no reason. */
   rejectionReason: string | null;
+  /** DOSSIER-CONTEXT-UX-1 - which dossier the page is about; null for a role
+   *  that cannot open any phase page. */
+  identity: DossierIdentityView | null;
 }
+
+/** Identification only (no dossier content), labelled like the Demandes
+ *  reading pane. */
+export interface DossierIdentityView {
+  reference: string;
+  organisationName: string;
+  applicantName: string | null;
+  statusLabel: string;
+}
+
+/** Roles that can land on a phase page (M3-M7 for DN, the Finance M5/M6/M7
+ *  views, the CI M6 view). Others keep the bare state, as before. */
+export const PHASE_PAGE_ROLES = ['dn_agent', 'dn_supervisor', 'SU', 's5_agent', 'r3_agent'];
 
 /** K7b - lets every phase page tell whether the dossier is closed (then the
  *  page is read-only). Same audience as getPhasesSummary: any staff role that
  *  can open a phase page, while GET /requests/:id stays DN-only. */
-export async function getDossierState(requestId: number): Promise<DossierStateView> {
+export async function getDossierState(requestId: number, viewerRoles: string[] = []): Promise<DossierStateView> {
   const [row] = await db
     .select({
       status: requests.status,
       updatedAt: requests.updatedAt,
       rejectionReason: requests.rejectionReason,
+      reference: requests.reference,
+      organisationName: organisations.name,
+      applicantName: applicants.fullName,
+      deliveryPhaseStatus: phases.status,
     })
     .from(requests)
+    .leftJoin(organisations, eq(organisations.id, requests.organisationId))
+    .leftJoin(applicants, eq(applicants.id, requests.applicantId))
+    .leftJoin(phases, and(eq(phases.requestId, requests.id), eq(phases.phaseCode, 'M7')))
     .where(eq(requests.id, requestId));
   if (!row) throw new Error('REQUEST_NOT_FOUND');
   const closed = isDossierClosed(row.status);
+  const showIdentity = viewerRoles.some((role) => PHASE_PAGE_ROLES.includes(role));
   return {
     status: row.status,
     closed,
     closedAt: closed ? row.updatedAt : null,
     rejectionReason: row.status === 'rejected' ? row.rejectionReason : null,
+    identity: showIdentity
+      ? {
+          reference: row.reference,
+          organisationName: row.organisationName ?? '',
+          applicantName: row.applicantName,
+          statusLabel: requestStatusLabel(effectiveRequestStatus(row.status, row.deliveryPhaseStatus)),
+        }
+      : null,
   };
 }
 

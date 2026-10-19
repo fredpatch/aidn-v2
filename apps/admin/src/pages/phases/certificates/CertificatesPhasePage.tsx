@@ -4,6 +4,7 @@ import { Button } from '../../../components/ui/button';
 import { useAuth } from '../../../hooks/useAuth';
 import { DN_OWNER } from '../owners';
 import WorkflowCockpit from '../components/WorkflowCockpit';
+import { PhaseDossierContext } from '../components/PhaseDossierContext';
 import { ClosedDossierBanner, DossierStateValue, useDossierState } from '../components/DossierReadOnly';
 import CertificateFieldsCard from './components/CertificateFieldsCard';
 import LifecycleCard from './components/LifecycleCard';
@@ -56,7 +57,7 @@ export default function CertificatesPhasePage() {
 
           <div>
             <h1 className="text-xl font-semibold text-anac-navy">Paiement - Délivrance</h1>
-            <p className="text-sm text-anac-muted">Demande #{requestId}</p>
+            <PhaseDossierContext requestId={requestId} />
           </div>
 
           <ClosedDossierBanner />
@@ -128,9 +129,8 @@ export default function CertificatesPhasePage() {
       requestId={requestId}
       currentCode="M7"
       title="Phase - Délivrance"
-      subtitle={`Demande #${requestId ?? '-'}`}
       phaseStatus={bundle?.phase?.status}
-      onBack={() => navigate('/')}
+      onBack={() => navigate(requestId ? `/demandes?id=${requestId}` : '/demandes')}
       checklistTitle="Checklist - phase en cours"
       checklist={checklist}
       action={action}

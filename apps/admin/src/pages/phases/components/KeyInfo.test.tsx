@@ -32,7 +32,6 @@ function renderKeyInfo(state: DossierState, keyInfo: WorkflowKeyInfoItem[]) {
       requestId="9"
       currentCode="M6"
       title="Phase - Demonstration / Inspection"
-      subtitle="Demande #9"
       phaseStatus="open"
       onBack={noop}
       checklistTitle="Checklist"

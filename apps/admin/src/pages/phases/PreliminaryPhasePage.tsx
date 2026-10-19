@@ -87,9 +87,8 @@ export default function PreliminaryPhasePage() {
       requestId={requestId}
       currentCode="M3"
       title="Phase - Préliminaire"
-      subtitle={`Demande #${requestId ?? '-'}`}
       phaseStatus={bundle?.phase?.status}
-      onBack={() => navigate('/')}
+      onBack={() => navigate(requestId ? `/demandes?id=${requestId}` : '/demandes')}
       checklistTitle="Checklist - phase en cours"
       checklist={checklist}
       action={action}

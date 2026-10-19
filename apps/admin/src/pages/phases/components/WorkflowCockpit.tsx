@@ -22,6 +22,7 @@ import { OperationalCallout } from '../../../components/common/OperationalCallou
 import { useCanAct } from '../../../lib/next-action-owner';
 import type { DossierState } from '../../../lib/api/phases.types';
 import { ClosedDossierBanner, DossierStateValue, useDossierState } from './DossierReadOnly';
+import { PhaseDossierContext, useDossierIdentity } from './PhaseDossierContext';
 
 export interface WorkflowChecklistItem {
   label: string;
@@ -62,8 +63,6 @@ interface WorkflowCockpitProps {
   requestId?: string;
   currentCode: string;
   title: string;
-  dossierReference?: string;
-  subtitle: string;
   phaseStatus?: string | null;
   backLabel?: string;
   onBack: () => void;
@@ -136,8 +135,6 @@ function WorkflowCockpitView({
   requestId,
   currentCode,
   title,
-  dossierReference,
-  subtitle,
   phaseStatus,
   backLabel = 'Retour au dossier',
   onBack,
@@ -150,6 +147,7 @@ function WorkflowCockpitView({
   dossierState,
 }: WorkflowCockpitProps & { dossierState: DossierState | null }) {
   const navigate = useNavigate();
+  const { identity } = useDossierIdentity(requestId);
   const { data: phaseSummary } = useQuery({
     queryKey: requestId ? queryKeys.phases.summary(requestId) : queryKeys.phases.all,
     queryFn: () => fetchPhasesSummary(requestId!),
@@ -210,7 +208,8 @@ function WorkflowCockpitView({
           <nav className="flex items-center gap-2 text-xs text-anac-muted" aria-label="Fil d'Ariane">
             <span>Direction de la Navigabilité</span>
             <ChevronRight size={14} aria-hidden="true" />
-            <span>{dossierReference ?? `Demande #${requestId ?? '-'}`}</span>
+            {/* DOSSIER-CONTEXT-UX-1 - the business reference, never the numeric id. */}
+            <span>{identity?.reference ?? 'Dossier'}</span>
             <ChevronRight size={14} aria-hidden="true" />
             <span className="font-medium text-anac-navy">{title}</span>
           </nav>
@@ -246,7 +245,7 @@ function WorkflowCockpitView({
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <h1 className="text-2xl font-semibold leading-tight text-anac-navy">{title}</h1>
-              <p className="mt-1 text-sm text-anac-muted">{subtitle}</p>
+              <PhaseDossierContext requestId={requestId} />
             </div>
             {phaseStatus && (
               <span
