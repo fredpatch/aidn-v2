@@ -13,6 +13,8 @@ import {
   type RoleAnalyticsScope,
 } from '@aidn/shared';
 import { resolveAnalyticsPeriod } from './period.js';
+import { courrierAnalyticsProvider } from './providers/courrier.provider.js';
+import { dnCircuitAnalyticsProvider } from './providers/dn-circuit.provider.js';
 
 export interface RoleAnalyticsViewer {
   userId: number;
@@ -34,8 +36,11 @@ export interface RoleAnalyticsProvider {
 
 export type RoleAnalyticsRegistry = Partial<Record<RoleAnalyticsDomain, RoleAnalyticsProvider>>;
 
-/** Providers registered by 1C-1E. Empty in 1B. */
-export const ROLE_ANALYTICS_PROVIDERS: RoleAnalyticsRegistry = {};
+/** 1C: courrier, dn_circuit. finance (1D) and inspection (1E) still answer 501. */
+export const ROLE_ANALYTICS_PROVIDERS: RoleAnalyticsRegistry = {
+  courrier: courrierAnalyticsProvider,
+  dn_circuit: dnCircuitAnalyticsProvider,
+};
 
 export interface RoleAnalyticsRequest {
   domain: unknown;

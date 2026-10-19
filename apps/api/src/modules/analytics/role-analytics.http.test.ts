@@ -1,12 +1,19 @@
-/** ROLE-ANALYTICS-1B - GET /api/analytics/roles/:domain and /overview over
- *  real HTTP (the router behind cookie-parser, as in server.ts). Role
- *  analytics need no database (no provider is registered yet: 501); the
- *  /overview 200 case does (skipped without DATABASE_URL). */
+/** ROLE-ANALYTICS-1B / 1C - GET /api/analytics/roles/:domain and /overview
+ *  over real HTTP (the router behind cookie-parser, as in server.ts). Access
+ *  (400 / 403 / 401) and the unimplemented domains (finance, inspection: 501)
+ *  need no database; the 1C providers (courrier, dn_circuit) and /overview
+ *  answer 200 against one (those checks are skipped without DATABASE_URL). */
 import { after, before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import type { AddressInfo } from 'node:net';
 import type { Server } from 'node:http';
-import { ROLE_ANALYTICS_DOMAINS, ROLE_ANALYTICS_SCOPES, type RoleAnalyticsDomain, type RoleAnalyticsScope } from '@aidn/shared';
+import {
+  ROLE_ANALYTICS_DOMAINS,
+  ROLE_ANALYTICS_SCOPES,
+  type RoleAnalyticsDomain,
+  type RoleAnalyticsOverview,
+  type RoleAnalyticsScope,
+} from '@aidn/shared';
 
 process.env.JWT_SECRET ??= 'role-analytics-http-test-secret';
 
@@ -17,6 +24,8 @@ const ALLOWED: Record<RoleAnalyticsDomain, Record<RoleAnalyticsScope, string[]>>
   finance: { mine: ['s5_agent', 'SU'], service: ['s5_agent', 'SU'] },
   inspection: { mine: ['r3_agent', 'SU'], service: ['SU'] },
 };
+const IMPLEMENTED: readonly string[] = ['courrier', 'dn_circuit'];
+const HAS_DB = Boolean(process.env.DATABASE_URL);
 const ROLES = ['reception', 'assistant_dg', 'assistant_dn', 'dn_agent', 'dn_supervisor', 'r3_agent', 's5_agent', 'SU'];
 
 describe('analytics routes (HTTP)', () => {
@@ -58,12 +67,21 @@ describe('analytics routes (HTTP)', () => {
 
   const roleUrl = (domain: string, scope: string, extra = '&period=this_month') => `/roles/${domain}?scope=${scope}${extra}`;
 
-  it('the frozen matrix: allowed roles reach the provider stage (501), others get 403', async () => {
+  it('the frozen matrix: allowed roles reach the provider (200 for the 1C domains, 501 otherwise), others get 403', async () => {
     for (const domain of ROLE_ANALYTICS_DOMAINS) {
       for (const scope of ROLE_ANALYTICS_SCOPES) {
         for (const role of ROLES) {
+          const allowed = ALLOWED[domain][scope].includes(role);
+          const implemented = IMPLEMENTED.includes(domain);
+          if (allowed && implemented && !HAS_DB) continue;
           const { status, body } = await get(roleUrl(domain, scope), [role]);
-          if (ALLOWED[domain][scope].includes(role)) {
+          if (allowed && implemented) {
+            assert.equal(status, 200, `${role} ${domain}/${scope}`);
+            const overview = body as unknown as RoleAnalyticsOverview;
+            assert.equal(overview.domain, domain);
+            assert.equal(overview.scope, scope);
+            if (scope === 'mine') assert.ok(overview.metrics.every((m) => m.basis === 'period'), 'no shared queue under mine');
+          } else if (allowed) {
             assert.equal(status, 501, `${role} ${domain}/${scope}`);
             assert.equal(body.code, 'ROLE_ANALYTICS_NOT_IMPLEMENTED');
           } else {
@@ -85,7 +103,7 @@ describe('analytics routes (HTTP)', () => {
 
   it('multi-role users get every domain one of their roles grants', async () => {
     const roles = ['reception', 's5_agent'];
-    assert.equal((await get(roleUrl('courrier', 'mine'), roles)).status, 501);
+    if (HAS_DB) assert.equal((await get(roleUrl('courrier', 'mine'), roles)).status, 200);
     assert.equal((await get(roleUrl('finance', 'service'), roles)).status, 501);
     assert.equal((await get(roleUrl('dn_circuit', 'mine'), roles)).status, 403);
     assert.equal((await get(roleUrl('inspection', 'service'), ['r3_agent', 'dn_agent'])).status, 403);

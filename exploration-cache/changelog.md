@@ -3,6 +3,20 @@
 Commit-level history. Covers `be9fce9` through the 2026-10-09 D3c admin
 unread/activity batch.
 
+## 2026-10-19 ROLE-ANALYTICS-1C: Courrier and Assistante DN analytics providers
+
+- `GET /api/analytics/roles/courrier` and `/roles/dn_circuit` now answer 200 (providers in
+  `modules/analytics/providers/`); finance and inspection still 501.
+- History = circuit row timestamp (when) + correlated audit (who): `courrier.sent_to_dg`,
+  `courrier.dg_return_recorded`, `dn_circuit.sent_to_director`, `dn_circuit.return_recorded` (with the same-length
+  previous period), service durations `courrier.average_dg_circuit_duration`, `dn_circuit.average_director_duration`,
+  `dn_circuit.average_handoff_delay` (calendar days, completed in the period, sample size), recent activity (10, newest
+  first, in the period).
+- Current state (service only) read from the Courriers / Circuit Directeur DN queues: `courrier.to_print_backlog`,
+  `courrier.dg_return_overdue` (+ danger warning), `courrier.dg_return_oldest` and `dn_circuit.with_director_oldest`
+  (info), `dn_circuit.with_director`.
+- No migration, no UI. See decisions #24.
+
 ## 2026-10-19 BUG-MEETING-SITE-VISIT-STATUS-1: generic meeting status refuses site visits
 
 - `PATCH /api/meetings/:id/status` (`markMeetingStatus`) now rejects a site visit for every status (`held`, `no_show`, `file_cancelled`) with 409 `MEETING_STATUS_NOT_APPLICABLE_TO_SITE_VISIT`, right after the row lock and before any write. Site visits go through the Cellule Inspection workflow only (`markAssignedSiteVisitHeld`: assignment, validated payment, B4). Closes a direct-API bypass of B4 (the UI never offered it: `canManage` is false for site visits) and a `file_cancelled` path that could reject the dossier.

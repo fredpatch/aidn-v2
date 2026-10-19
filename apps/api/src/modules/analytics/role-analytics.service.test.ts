@@ -14,8 +14,12 @@ import {
 const NOW = new Date('2026-10-16T09:00:00Z');
 
 describe('getRoleAnalyticsOverview', () => {
-  it('no provider is registered in 1B: nothing is fabricated', async () => {
-    assert.deepEqual(Object.keys(ROLE_ANALYTICS_PROVIDERS), []);
+  it('1C registers courrier and dn_circuit only: finance and inspection are not fabricated', async () => {
+    assert.deepEqual(Object.keys(ROLE_ANALYTICS_PROVIDERS).sort(), ['courrier', 'dn_circuit']);
+    await assert.rejects(
+      getRoleAnalyticsOverview({ domain: 'inspection', scope: 'mine', period: 'today' }, { userId: 7, roles: ['r3_agent'] }),
+      /ROLE_ANALYTICS_NOT_IMPLEMENTED/
+    );
     await assert.rejects(
       getRoleAnalyticsOverview({ domain: 'finance', scope: 'mine', period: 'today' }, { userId: 7, roles: ['s5_agent'] }),
       /ROLE_ANALYTICS_NOT_IMPLEMENTED/

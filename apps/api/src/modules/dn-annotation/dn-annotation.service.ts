@@ -23,6 +23,8 @@ import type {
 type Circuit = typeof dgCircuitDocuments.$inferSelect;
 
 const ENTITY_TYPE = 'dn_director_annotation' as const;
+/** The Circuit Directeur DN rows (ROLE-ANALYTICS-1C history). */
+export const DN_CIRCUIT_ENTITY_TYPE = ENTITY_TYPE;
 
 /** The only task id shape: `dn_director_annotation:<requestId>`. */
 function parseTaskId(taskId: string): number {

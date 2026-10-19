@@ -317,3 +317,22 @@ Spec: `docs/superpowers/specs/2026-10-16-role-analytics-1b-design.md`.
   in `@aidn/shared` (inspection `service` = SU only; no `dn_supervisor` role dashboard); `/overview` stays
   dn_supervisor + SU. Providers arrive with 1C-1E; until then the route answers 501, never placeholder values.
   No `heldAt` (1E decision), no `/pilotage` UI (1F), no migration.
+
+## 24. Courrier and Assistante DN role analytics (ROLE-ANALYTICS-1C, 2026-10-19)
+
+- Event time = the circuit row's business timestamp (`signature_sent_at`, `signed_at`, `pending_review_at`), never
+  the audit time nor `requests.updated_at`. Actor = the latest audit row of the event's catalogued actions (current
+  + legacy) for that circuit: `circuit` actions by `entity_id = circuit id`, legacy `request` actions
+  (`DG_CIRCUIT_SENT_TO_SIGNATURE`, `DG_CIRCUIT_SIGNED`, `DG_CIRCUIT_SIGNED_RETURNED`) by `entity_id = request id` on
+  the intake circuit; narrowed by `audit_logs.request_id` (indexed, backfilled by 0005). One event per circuit row,
+  whatever the aliases. A row without a correlated audit counts for the service, for nobody's `mine`, no actor shown.
+- DG return = `signed_at` on every path; the hand-over to the DN (`pending_review_at` only) is never a DG return.
+  Directeur DN return = `pending_review_at` on a row that was sent (grandfathered rows excluded).
+- Scope: `mine` = attributed event counts + activity only. Durations (process time at the DG / Directeur DN, not an
+  agent's performance) and the shared current queues are `service` only, never shown as personal numbers.
+- Durations: calendar days, completed in the period (end timestamp in range), negative or incomplete samples left out.
+  Directeur DN durations are informational (no SLA, D10): info severity only.
+- Current state = the cockpit queues (`listCourrierTasks`, `listDnAnnotationTasks`): buckets, urgency and closed
+  dossiers (B1) are not recomputed. History keeps now-closed dossiers.
+- `previousValue` on event counts only: the same-length range just before (Libreville days; a month preset compares
+  with the same number of days, not the previous calendar month).

@@ -39,7 +39,8 @@ import { getPublicHolidays } from '../system-parameters/system-parameters.servic
 import { loadThresholds } from '../operational/thresholds.js';
 import { calendarDaysSince } from '../operational/aging.js';
 
-const MANAGED_ENTITY_TYPES: CourrierTaskSource[] = [
+/** The reception-family circuits (Courriers cockpit; ROLE-ANALYTICS-1C history). */
+export const MANAGED_ENTITY_TYPES: readonly CourrierTaskSource[] = [
   'intake_request',
   'formal_request_letter',
   'pre_evaluation',
