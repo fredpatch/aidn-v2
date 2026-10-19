@@ -7,6 +7,7 @@ import {
   Hourglass,
   ShieldCheck,
 } from 'lucide-react';
+import { formatCalendarDuration } from '@aidn/shared';
 import type { AnalyticsMetric } from '../../lib/api/analytics.types';
 
 export const PHASE_LABELS = {
@@ -106,6 +107,17 @@ export const TONE_STYLES: Record<AnalyticsMetric['tone'], string> = {
   danger: 'border-red-100 bg-red-50 text-red-700',
   neutral: 'border-slate-100 bg-slate-50 text-slate-600',
 };
+
+/** A KPI as shown: a duration from its raw calendar days (one formatter for
+ *  every analytics screen, @aidn/shared), any other metric as the API wrote it. */
+export function metricDisplayValue(metric: AnalyticsMetric): string {
+  return metric.unit === 'calendar_days' ? formatCalendarDuration(metric.rawValue ?? null) : metric.value;
+}
+
+/** SLA phase targets are whole calendar days: never turned into hours. */
+export function formatSlaTarget(days: number): string {
+  return `${days} ${days === 1 ? 'jour calendaire' : 'jours calendaires'}`;
+}
 
 export function formatDisplayDate(value: string): string {
   return new Intl.DateTimeFormat('fr-FR', {

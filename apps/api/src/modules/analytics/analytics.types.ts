@@ -16,6 +16,10 @@ export interface AnalyticsMetric {
   tone: 'info' | 'success' | 'warning' | 'danger' | 'neutral';
   sampleSize?: number;
   warning?: string;
+  /** ANALYTICS-GLOBAL-UX-1 - the number behind `value` for duration metrics
+   *  (`value` stays the legacy text): calendar days, one decimal; null = no sample. */
+  rawValue?: number | null;
+  unit?: 'calendar_days';
 }
 
 export interface AnalyticsPhaseStat {

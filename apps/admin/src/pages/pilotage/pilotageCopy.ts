@@ -16,6 +16,7 @@ import {
   XCircle,
   type LucideIcon,
 } from 'lucide-react';
+import { formatCalendarDuration } from '@aidn/shared';
 import type {
   RoleAnalyticsActivity,
   RoleAnalyticsDomain,
@@ -137,26 +138,8 @@ export function caveatText(key: string | undefined): string {
 const integer = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 });
 const decimal = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 });
 
-const MINUTES_PER_DAY = 24 * 60;
-
-/** A duration in calendar days (24 h each, the API's unit) for humans: from
- *  one day on, days and hours (rounded to the hour); below, hours and
- *  minutes (rounded to the minute). 0.1 -> « 2 h 24 min », 2.5 -> « 2 j 12 h ».
- *  Only the display changes: the value is the API's. */
-export function formatCalendarDuration(days: number | null): string {
-  if (days === null) return '—';
-  const minutes = Math.round(days * MINUTES_PER_DAY);
-  if (minutes >= MINUTES_PER_DAY) {
-    const hours = Math.round(days * 24);
-    const whole = Math.floor(hours / 24);
-    const rest = hours % 24;
-    return rest ? `${whole} j ${rest} h` : `${whole} j`;
-  }
-  const hours = Math.floor(minutes / 60);
-  const rest = minutes % 60;
-  if (!hours) return `${rest} min`;
-  return rest ? `${hours} h ${rest} min` : `${hours} h`;
-}
+/** One calendar-duration formatter for every analytics screen and report (@aidn/shared). */
+export { formatCalendarDuration };
 
 /** The API value as is, with its unit; null = not computable. Working days
  *  stay in working days (no hours-per-working-day rule exists). */

@@ -3,6 +3,20 @@
 Commit-level history. Covers `be9fce9` through the 2026-10-09 D3c admin
 unread/activity batch.
 
+## 2026-10-19 ANALYTICS-GLOBAL-UX-1: readable /analytique and enriched analytics PDF
+
+- One calendar-duration formatter and one analytics glossary in `@aidn/shared` (`analytics-format.ts`), used by
+  /pilotage, /analytique and the PDF: « 2 h 24 min », « 4 j 19 h »; SLA targets stay whole calendar days.
+- API (backwards-compatible): duration metrics of `/analytics/overview` add `rawValue` + `unit: 'calendar_days'`;
+  `value` keeps its legacy text. No calculation, SLA or workflow change.
+- /analytique: « AIDN — OMA » identity, readable KPI cards / phase list / delayed dossiers, « Comprendre les
+  indicateurs » with the glossary (KPI, SLA, moyenne, médiane, jours calendaires / ouvrés), charts with unit, readable
+  tooltips and an explicit « Cible SLA » series.
+- Analytics PDF: « AIDN — OMA » + « Service OMA · Direction de la Navigabilité · ANAC Gabon », « Repères de lecture »,
+  inline SVG charts (trend: full_report, processing_delay; phase vs SLA: full_report, processing_delay, sla), readable
+  durations and clearer table headers, sections kept on one page. Excel unchanged (numeric cells stay numeric).
+- No migration, no new dependency.
+
 ## 2026-10-19 ROLE-ANALYTICS-1G: /pilotage QA and print
 
 - « Points d’attention » keeps its own height next to a long « Activité récente » (grid `items-start`).

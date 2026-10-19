@@ -16,7 +16,7 @@ import type {
   AnalyticsPhaseStat,
   AnalyticsTrendPoint,
 } from '../../../lib/api/analytics.types';
-import { PHASE_LABELS } from '../analytics.helpers';
+import { phaseChartData, phaseChartOptions, trendChartData, trendChartOptions } from './analyticsChartConfig';
 import { AnalyticsSection } from './AnalyticsSection';
 
 ChartJS.register(
@@ -31,9 +31,6 @@ ChartJS.register(
   Tooltip
 );
 
-const chartTextColor = '#1E3A8A';
-const gridColor = '#E2E8F0';
-
 function hasSeriesData(values: Array<number | null | undefined>): boolean {
   return values.some((value) => typeof value === 'number' && value > 0);
 }
@@ -47,50 +44,19 @@ function EmptyChart({ label }: { label: string }) {
 }
 
 export function DurationTrendChart({ points }: { points: AnalyticsTrendPoint[] }) {
-  const values = points.map((point) => point.averageDurationDays);
-  const medianValues = points.map((point) => point.medianDurationDays);
-  const hasData = hasSeriesData(values) || hasSeriesData(medianValues);
+  const hasData =
+    hasSeriesData(points.map((point) => point.averageDurationDays)) ||
+    hasSeriesData(points.map((point) => point.medianDurationDays));
 
   return (
     <AnalyticsSection
-      title="Évolution du délai moyen de traitement"
-      subtitle="Dossiers clôturés sur la période sélectionnée"
+      title="Évolution du délai de traitement"
+      subtitle="Moyenne et médiane des dossiers clôturés, en jours calendaires"
       className="p-0"
     >
       <div className="p-4">
         {hasData ? (
-          <Line
-            height={210}
-            data={{
-              labels: points.map((point) => point.date.slice(5)),
-              datasets: [
-                {
-                  label: 'Délai moyen',
-                  data: values,
-                  borderColor: '#1D4ED8',
-                  backgroundColor: 'rgba(29, 78, 216, 0.08)',
-                  fill: true,
-                  tension: 0.35,
-                },
-                {
-                  label: 'Médiane',
-                  data: medianValues,
-                  borderColor: '#16A34A',
-                  borderDash: [5, 5],
-                  tension: 0.35,
-                },
-              ],
-            }}
-            options={{
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: { legend: { labels: { color: chartTextColor, boxWidth: 10 } } },
-              scales: {
-                y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: chartTextColor } },
-                x: { grid: { display: false }, ticks: { color: chartTextColor } },
-              },
-            }}
-          />
+          <Line height={210} data={trendChartData(points)} options={trendChartOptions()} />
         ) : (
           <EmptyChart label="Aucun dossier clôturé pour tracer une évolution." />
         )}
@@ -100,41 +66,26 @@ export function DurationTrendChart({ points }: { points: AnalyticsTrendPoint[] }
 }
 
 export function PhaseDurationChart({ phases }: { phases: AnalyticsPhaseStat[] }) {
-  const hasData = hasSeriesData(phases.map((phase) => phase.averageClosedDurationDays));
+  const hasAverage = hasSeriesData(phases.map((phase) => phase.averageClosedDurationDays));
 
   return (
-    <AnalyticsSection title="Temps moyen par phase" subtitle="En jours" className="p-0">
+    <AnalyticsSection
+      title="Durée moyenne par phase et cible SLA"
+      subtitle="Phases clôturées sur la période, comparées à leur délai cible"
+      className="p-0"
+    >
       <div className="p-4">
-        {hasData ? (
-          <Bar
-            height={210}
-            data={{
-              labels: phases.map((phase) => PHASE_LABELS[phase.phaseCode]),
-              datasets: [
-                {
-                  label: 'Durée moyenne',
-                  data: phases.map((phase) => phase.averageClosedDurationDays ?? 0),
-                  backgroundColor: phases.map((phase) =>
-                    (phase.averageClosedDurationDays ?? 0) > phase.slaTargetDays ? '#DC2626' : '#2563EB'
-                  ),
-                  borderRadius: 8,
-                  barThickness: 13,
-                },
-              ],
-            }}
-            options={{
-              indexAxis: 'y',
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: { legend: { display: false } },
-              scales: {
-                y: { grid: { display: false }, ticks: { color: chartTextColor, font: { size: 11 } } },
-                x: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: chartTextColor } },
-              },
-            }}
-          />
+        {phases.length ? (
+          <>
+            {hasAverage ? null : (
+              <p className="mb-2 text-[11px] text-anac-muted">Aucune phase clôturée sur cette période : seules les cibles SLA sont affichées.</p>
+            )}
+            <div className="h-[230px]">
+              <Bar data={phaseChartData(phases)} options={phaseChartOptions()} />
+            </div>
+          </>
         ) : (
-          <EmptyChart label="Aucune phase clôturée sur cette période." />
+          <EmptyChart label="Aucune phase sur cette période." />
         )}
       </div>
     </AnalyticsSection>

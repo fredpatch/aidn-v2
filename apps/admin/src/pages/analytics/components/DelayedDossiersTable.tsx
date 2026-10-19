@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
+import { formatCalendarDuration } from '@aidn/shared';
 import type { AnalyticsDelayedDossier } from '../../../lib/api/analytics.types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../components/ui/table';
 import { PHASE_LABELS, formatDisplayDate } from '../analytics.helpers';
@@ -21,7 +22,7 @@ export function DelayedDossiersTable({ dossiers }: { dossiers: AnalyticsDelayedD
               <TableHead>Dossier</TableHead>
               <TableHead>Organisation</TableHead>
               <TableHead>Étape actuelle</TableHead>
-              <TableHead>Retard</TableHead>
+              <TableHead>Dépassement SLA</TableHead>
               <TableHead>Dernière action</TableHead>
               <TableHead>Action</TableHead>
             </TableRow>
@@ -34,7 +35,7 @@ export function DelayedDossiersTable({ dossiers }: { dossiers: AnalyticsDelayedD
                 <TableCell className="text-anac-navy">
                   {PHASE_LABELS[dossier.phaseCode] ?? dossier.phaseLabel}
                 </TableCell>
-                <TableCell className="font-semibold text-red-600">{dossier.delayDays} j</TableCell>
+                <TableCell className="font-semibold text-red-600">{formatCalendarDuration(dossier.delayDays)}</TableCell>
                 <TableCell className="text-anac-muted">{formatDisplayDate(dossier.lastActionAt)}</TableCell>
                 <TableCell>
                   <Link to="/demandes" className="inline-flex items-center gap-1 font-semibold text-anac-blue">

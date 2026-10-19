@@ -1,6 +1,7 @@
 import { db } from '../../shared/db/index.js';
 import { RECEPTION_CIRCUIT_ENTITY_TYPES } from '../dn-annotation/dn-annotation.stage.js';
 import { inArray } from 'drizzle-orm';
+import { formatCalendarDuration } from '@aidn/shared';
 import {
   dgCircuitDocuments,
   meetings,
@@ -153,6 +154,12 @@ function buildMetric(
   warning?: string
 ): AnalyticsMetric {
   return { key, label, value, helper, tone, sampleSize, warning };
+}
+
+/** ANALYTICS-GLOBAL-UX-1 - a duration metric also carries its raw calendar
+ *  days, so screens and reports format them (`value` keeps the legacy text). */
+function withDays(metric: AnalyticsMetric, days: number | null): AnalyticsMetric {
+  return { ...metric, rawValue: days, unit: 'calendar_days' };
 }
 
 export async function getAnalyticsOverview(filters: AnalyticsFilters): Promise<AnalyticsOverview> {
@@ -365,15 +372,20 @@ export async function getAnalyticsOverview(filters: AnalyticsFilters): Promise<A
     }).length,
   }));
 
+  const dgWaitDays = average(dgWaitingDurations);
+  const inactivityDays = average(inactiveRequests.map((request) => daysBetween(request.updatedAt, new Date())));
   const metrics: AnalyticsMetric[] = [
-    buildMetric(
-      'average_processing_duration',
-      'Délai moyen de traitement',
-      formatDays(averageGlobalDuration),
-      'Dépôt initial -> clôture délivrance',
-      averageGlobalDuration === null ? 'neutral' : averageGlobalDuration > 45 ? 'warning' : 'info',
-      completedDurations.length,
-      completedDurations.length < 5 ? 'Échantillon faible' : undefined
+    withDays(
+      buildMetric(
+        'average_processing_duration',
+        'Délai moyen de traitement',
+        formatDays(averageGlobalDuration),
+        'Dépôt initial -> clôture délivrance',
+        averageGlobalDuration === null ? 'neutral' : averageGlobalDuration > 45 ? 'warning' : 'info',
+        completedDurations.length,
+        completedDurations.length < 5 ? 'Échantillon faible' : undefined
+      ),
+      averageGlobalDuration
     ),
     buildMetric(
       'outside_sla',
@@ -392,29 +404,38 @@ export async function getAnalyticsOverview(filters: AnalyticsFilters): Promise<A
       closedPhaseRows.length,
       closedPhaseRows.length < 5 ? 'Échantillon faible' : undefined
     ),
-    buildMetric(
-      'dg_wait',
-      'Temps moyen en attente DG',
-      formatDays(average(dgWaitingDurations)),
-      'Courriers en dépôt ou en signature',
-      dgWaiting.length > 0 ? 'warning' : 'success',
-      dgWaiting.length
+    withDays(
+      buildMetric(
+        'dg_wait',
+        'Temps moyen en attente DG',
+        formatDays(dgWaitDays),
+        'Courriers en dépôt ou en signature',
+        dgWaiting.length > 0 ? 'warning' : 'success',
+        dgWaiting.length
+      ),
+      dgWaitDays
     ),
-    buildMetric(
-      'inactivity',
-      "Temps d'inactivité moyen",
-      formatDays(average(inactiveRequests.map((request) => daysBetween(request.updatedAt, new Date())))),
-      'Dossiers actifs sans action depuis plus de 15 jours',
-      inactiveRequests.length > 0 ? 'warning' : 'success',
-      inactiveRequests.length
+    withDays(
+      buildMetric(
+        'inactivity',
+        "Temps d'inactivité moyen",
+        formatDays(inactivityDays),
+        'Dossiers actifs sans action depuis plus de 15 jours',
+        inactiveRequests.length > 0 ? 'warning' : 'success',
+        inactiveRequests.length
+      ),
+      inactivityDays
     ),
-    buildMetric(
-      'median_processing_duration',
-      'Médiane de traitement',
-      formatDays(medianGlobalDuration),
-      'Médiane des dossiers clôturés',
-      'neutral',
-      completedDurations.length
+    withDays(
+      buildMetric(
+        'median_processing_duration',
+        'Médiane de traitement',
+        formatDays(medianGlobalDuration),
+        'Médiane des dossiers clôturés',
+        'neutral',
+        completedDurations.length
+      ),
+      medianGlobalDuration
     ),
   ];
 
@@ -457,7 +478,7 @@ export async function getAnalyticsOverview(filters: AnalyticsFilters): Promise<A
         key: 'dg_waiting',
         label: 'Dossiers en attente DG',
         value: String(dgWaiting.length),
-        helper: `Délai moyen: ${formatDays(average(dgWaitingDurations))}`,
+        helper: `Délai moyen : ${formatCalendarDuration(dgWaitDays)}`,
         tone: dgWaiting.length > 0 ? 'warning' : 'info',
         href: '/courriers',
       },

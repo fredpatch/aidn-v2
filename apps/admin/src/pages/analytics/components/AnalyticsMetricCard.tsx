@@ -1,7 +1,7 @@
 import { AlertTriangle } from 'lucide-react';
 import type { AnalyticsMetric } from '../../../lib/api/analytics.types';
 import { cn } from '../../../lib/utils';
-import { METRIC_ICONS, TONE_STYLES } from '../analytics.helpers';
+import { METRIC_ICONS, TONE_STYLES, metricDisplayValue } from '../analytics.helpers';
 
 export function AnalyticsMetricCard({ metric }: { metric: AnalyticsMetric }) {
   const Icon = METRIC_ICONS[metric.key] ?? AlertTriangle;
@@ -11,7 +11,7 @@ export function AnalyticsMetricCard({ metric }: { metric: AnalyticsMetric }) {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[12px] font-semibold text-anac-muted">{metric.label}</p>
-          <p className="mt-2 text-[25px] font-semibold leading-none text-anac-navy">{metric.value}</p>
+          <p className="mt-2 text-[25px] font-semibold leading-none text-anac-navy">{metricDisplayValue(metric)}</p>
         </div>
         <div className={cn('rounded-lg border p-2.5', TONE_STYLES[metric.tone])}>
           <Icon size={16} strokeWidth={1.8} aria-hidden="true" />
