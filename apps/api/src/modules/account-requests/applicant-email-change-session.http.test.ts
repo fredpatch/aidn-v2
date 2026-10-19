@@ -174,4 +174,17 @@ describe('applicant session across a staff email change (HTTP)', { skip: dbSkip 
     assert.equal(payload.applicantId, applicantId);
     assert.equal(payload.kind, 'applicant');
   });
+
+  it('AUTH-LOGIN-NORMALIZE-1: normalisation never revives the old email; the new one works in any casing', async () => {
+    for (const typed of [oldEmail.toUpperCase(), `  ${oldEmail} `]) {
+      const stale = await login(typed);
+      assert.equal(stale.status, 401, typed);
+      assert.equal(((await stale.json()) as { message: string }).message, 'Compte introuvable ou inactif.');
+    }
+    const fresh = await login(` ${newEmail.toUpperCase()} `);
+    assert.equal(fresh.status, 200);
+    const payload = decode(cookiesOf(fresh)[accessName]);
+    assert.equal(payload.email, newEmail, 'token carries the stored email, not the typed one');
+    assert.equal(payload.applicantId, applicantId);
+  });
 });

@@ -3,6 +3,15 @@
 Commit-level history. Covers `be9fce9` through the 2026-10-09 D3c admin
 unread/activity batch.
 
+## 2026-10-19 AUTH-LOGIN-NORMALIZE-1: applicant login email normalisation
+
+- Applicant login looks up `normalizeEmail(email)` (trim + lowercase, the existing `email-address.ts` convention used
+  for stored emails), so `JOHN@EXAMPLE.COM` or `  John@Example.com ` match the stored `john@example.com`. The password
+  is compared exactly as typed. Failure responses, inactive-account handling, tokens and cookies unchanged; the
+  token / `/me` email still comes from the stored row.
+- Portal login form trims and lowercases the email before sending (UX only).
+- Staff login untouched. No migration, no schema change (no CITEXT / lower() index).
+
 ## 2026-10-19 M3-OPEN-ATOMIC-1: atomic opening of the preliminary phase
 
 - `openPreliminaryPhase` runs in one transaction: request row locked (`FOR UPDATE`), then existing M3, request

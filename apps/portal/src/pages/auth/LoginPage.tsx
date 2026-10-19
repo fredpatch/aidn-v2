@@ -16,7 +16,8 @@ import { fadeUp } from './animations';
 import { GridPattern, FormField, EyeToggle, ServerError } from './components';
 
 const loginSchema = z.object({
-  email: z.string().min(1, "L'email est requis").email('Adresse email invalide'),
+  // UX only: the API normalises the identifier too (AUTH-LOGIN-NORMALIZE-1).
+  email: z.string().trim().toLowerCase().min(1, "L'email est requis").email('Adresse email invalide'),
   password: z.string().min(1, 'Le mot de passe est requis'),
 });
 

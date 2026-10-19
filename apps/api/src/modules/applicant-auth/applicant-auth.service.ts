@@ -9,6 +9,7 @@ import {
   ApplicantTokenPayload,
 } from "../../shared/utils/jwt.js";
 import { logAudit } from "../auth/auth.service.js";
+import { normalizeEmail } from "../../shared/utils/email-address.js";
 
 export interface ApplicantPublic {
   id: number;
@@ -51,7 +52,9 @@ export async function login(params: {
   email: string;
   password: string;
 }): Promise<{ tokens: { accessToken: string; refreshToken: string }; applicant: ApplicantPublic }> {
-  const [applicant] = await db.select().from(applicants).where(eq(applicants.email, params.email));
+  // Stored emails are normalised (trim + lowercase); the typed identifier is
+  // matched the same way. The password is compared exactly as typed.
+  const [applicant] = await db.select().from(applicants).where(eq(applicants.email, normalizeEmail(String(params.email))));
 
   if (!applicant || !applicant.active) {
     throw new Error("ACCOUNT_NOT_FOUND");
