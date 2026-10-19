@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, lt, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, lt, notLike, sql } from 'drizzle-orm';
 import { RECEPTION_CIRCUIT_ENTITY_TYPES } from '../dn-annotation/dn-annotation.stage.js';
 import { db } from '../../shared/db/index.js';
 import {
@@ -17,7 +17,6 @@ import {
 } from '../../shared/db/schema.js';
 import type {
   DashboardActionItem,
-  DashboardActivityItem,
   DashboardAlert,
   DashboardMetric,
   DashboardMeetingItem,
@@ -27,7 +26,13 @@ import type {
   DashboardStatusStat,
   DashboardSummary,
 } from './dashboard.types.js';
-import { workingDaysBetween, type PublicHolidays } from '@aidn/shared';
+import { formatCalendarDuration, workingDaysBetween, type PublicHolidays } from '@aidn/shared';
+import {
+  buildActivityItems,
+  calendarDurationMetricValue,
+  TECHNICAL_AUDIT_ACTIONS,
+  type ActivityLookup,
+} from './dashboard.activity.js';
 import { getIntegerValue, getPublicHolidays } from '../system-parameters/system-parameters.service.js';
 import { isMeetingOperationallyConfirmed } from '../meetings/meeting-confirmation.js';
 import { DASHBOARD_SLA_DEFAULTS } from '../operational/thresholds.js';
@@ -51,10 +56,17 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const TERMINAL_REQUEST_STATUSES = ['rejected', 'completed', 'cancelled'];
-const TECHNICAL_AUDIT_ACTIONS = ['LOGIN', 'AUTH_REFRESH', 'LOGOUT'];
 const DASHBOARD_MONITORING_ROLES = ['dn_agent', 'dn_supervisor', 'SU'];
 
 type DashboardSlaStatus = DashboardActionItem['slaStatus'];
+
+const PHASE_SLA_STATUS_LABELS: Record<NonNullable<DashboardSlaStatus>, string> = {
+  on_track: 'Dans les temps',
+  warning: 'Échéance proche',
+  overdue: 'Délai dépassé',
+  blocked: 'Blocage opérationnel',
+  unknown: 'Délai non mesuré',
+};
 
 interface DashboardSlaConfig {
   phaseTargets: Record<string, number>;
@@ -230,8 +242,12 @@ function slaLabel(
   overdueDays?: number | null,
   unit = 'j'
 ): string {
-  if (status === 'unknown') return 'Délai non mesure';
-  if (status === 'overdue') return `Délai dépassé${overdueDays ? ` de ${overdueDays} ${unit}` : ''}`;
+  if (status === 'unknown') return 'Délai non mesuré';
+  if (status === 'overdue') {
+    // Calendar overruns read like /analytique; working days stay a count.
+    const overrun = unit === 'j' ? formatCalendarDuration(overdueDays) : `${overdueDays} ${unit}`;
+    return `Délai dépassé${overdueDays ? ` de ${overrun}` : ''}`;
+  }
   if (status === 'warning') return `Échéance proche (${targetDays} ${unit} cible)`;
   if (status === 'blocked') return 'Blocage opérationnel';
   return `Dans les temps (${targetDays} ${unit} cible)`;
@@ -310,50 +326,9 @@ function hrefForRoles(
 
 function waitingLabel(date: Date | string | null): string {
   const waitingDays = daysBetween(date, new Date());
-  if (waitingDays === null) return 'Délai non mesure';
+  if (waitingDays === null) return 'Délai non mesuré';
   if (waitingDays < 1) return "Aujourd'hui";
-  return `${waitingDays} j d'attente`;
-}
-
-function activityTone(action: string): DashboardActivityItem['tone'] {
-  if (action.includes('REJECT') || action.includes('CANCEL')) return 'danger';
-  if (action.includes('VALIDATED') || action.includes('CLOSED') || action.includes('COLLECTED')) {
-    return 'success';
-  }
-  if (action.includes('SIGN') || action.includes('PAYMENT')) return 'warning';
-  return 'info';
-}
-
-
-function businessActivityLabel(action: string): string | null {
-  if (TECHNICAL_AUDIT_ACTIONS.some((technicalAction) => action.includes(technicalAction))) {
-    return null;
-  }
-  if (action.includes('PHASE') && action.includes('CLOSED')) return 'Phase clôturée';
-  if (action.includes('CERTIFICATE') && action.includes('STATUS')) {
-    return 'Statut certificat mis à jour';
-  }
-  if (action.includes('CERTIFICATE') && action.includes('COLLECTED')) {
-    return 'Certificat retire';
-  }
-  if (action.includes('PAYMENT') && action.includes('VALIDATED')) {
-    return 'Paiement validé';
-  }
-  if (action.includes('PAYMENT') && action.includes('REJECT')) {
-    return 'Paiement rejeté';
-  }
-  if (action.includes('DOCUMENT') && action.includes('VALIDATED')) {
-    return 'Document accepte';
-  }
-  if (action.includes('DOCUMENT') && action.includes('REJECT')) {
-    return 'Document à reprendre';
-  }
-  if (action.includes('SIGN') || action.includes('CIRCUIT')) {
-    return 'Circuit signature mis à jour';
-  }
-  if (action.includes('MEETING')) return 'Réunion mise à jour';
-  if (action.includes('REQUEST')) return 'Demande mise à jour';
-  return action.replaceAll('_', ' ').toLowerCase();
+  return `${formatCalendarDuration(waitingDays)} d'attente`;
 }
 
 function resolveDashboardRequestStatus(
@@ -414,6 +389,8 @@ export async function getDashboardSummary(
         id: auditLogs.id,
         action: auditLogs.action,
         entityId: auditLogs.entityId,
+        requestId: auditLogs.requestId,
+        details: auditLogs.details,
         module: auditLogs.module,
         createdAt: auditLogs.createdAt,
         // SESSION1-MEET-1 - portal actions are audited with the applicant as actor.
@@ -422,7 +399,9 @@ export async function getDashboardSummary(
       .from(auditLogs)
       .leftJoin(users, eq(auditLogs.userId, users.id))
       .leftJoin(applicants, eq(auditLogs.applicantId, applicants.id))
-      .orderBy(desc(auditLogs.createdAt))
+      // Connections are not business activity: filtered here so the 3 shown are never crowded out.
+      .where(and(...TECHNICAL_AUDIT_ACTIONS.map((action) => notLike(auditLogs.action, `%${action}%`))))
+      .orderBy(desc(auditLogs.createdAt), desc(auditLogs.id))
       .limit(12),
     countRequestsBetween(start, end),
     countRequestsBetween(previous.start, previous.end),
@@ -510,11 +489,11 @@ export async function getDashboardSummary(
     {
       key: 'average_global_duration',
       label: 'Durée moyenne globale',
-      value: averageGlobalDuration === null ? '-' : `${averageGlobalDuration} j`,
+      ...calendarDurationMetricValue(averageGlobalDuration),
       helper: 'Entrée -> retrait physique',
       definition:
-        'Durée calendaire moyenne entre la création de la demande et le retrait du certificat, calculée sur les certificats déjà retires.',
-      periodLabel: 'Historique retire',
+        'Durée calendaire moyenne entre la création de la demande et le retrait du certificat, calculée sur les certificats déjà retirés.',
+      periodLabel: 'Historique retiré',
       sampleSize: completedGlobalDurations.filter((value) => value !== null).length,
     },
     {
@@ -574,10 +553,9 @@ export async function getDashboardSummary(
       slaTargetDays,
       slaBreachCount,
       slaStatus: status,
-      slaLabel:
-        openCount === 0
-          ? `Cible de suivi: ${slaTargetDays} j`
-          : slaLabel(status, slaTargetDays, slaBreachCount > 0 ? slaBreachCount : null),
+      // Concise status badge; the target is its own line (wording of /analytique).
+      slaLabel: openCount === 0 ? undefined : PHASE_SLA_STATUS_LABELS[status],
+      slaTargetLabel: `Cible SLA : ${slaTargetDays} jours calendaires`,
       emptyLabel: openCount === 0 ? 'Aucun dossier actif' : undefined,
       durationLabel:
         closedDurations.filter((duration): duration is number => duration !== null).length === 0
@@ -734,21 +712,22 @@ export async function getDashboardSummary(
       };
     });
 
-  const activity: DashboardActivityItem[] = recentAuditRows
-    .map((row) => {
-      const title = businessActivityLabel(row.action);
-      if (!title) return null;
-      return {
-        id: row.id,
-        title,
-        requestReference: row.entityId ? `#${row.entityId}` : null,
-        actor: row.actor ?? 'Système',
-        createdAt: row.createdAt.toISOString(),
-        tone: activityTone(row.action),
-      };
-    })
-    .filter((item): item is DashboardActivityItem => item !== null)
-    .slice(0, 3);
+  // DASH-DN-UX-1 - the dossier of each event, from what is already loaded.
+  const activityLookup: ActivityLookup = {
+    requestReferenceById: new Map(requestRows.map((request) => [request.id, request.reference])),
+    phaseRequestId: new Map(phaseRows.map((phase) => [phase.id, phase.requestId])),
+    paymentPhaseId: new Map(paymentRows.map((payment) => [payment.id, payment.phaseId])),
+    meetingPhaseId: new Map(meetingRows.map((meeting) => [meeting.id, meeting.phaseId])),
+    certificateRequestId: new Map(certificateRows.map((certificate) => [certificate.id, certificate.requestId])),
+    circuitRequestId: new Map(circuitRows.map((circuit) => [circuit.id, circuit.requestId])),
+    formalDocumentPhaseId: new Map(formalDocumentRows.map((document) => [document.id, document.phaseId])),
+    evaluationDocumentId: new Map(
+      evaluationRows.map((evaluation) => [evaluation.id, evaluation.formalRequestDocumentId])
+    ),
+  };
+  const activity = buildActivityItems(recentAuditRows, activityLookup, (requestId) =>
+    hrefForRoles(userRoles, ['dn_agent', 'dn_supervisor', 'SU'], `/demandes?id=${requestId}`)
+  );
 
   const missingFormalDocumentRequests = new Set(
     formalDocumentRows

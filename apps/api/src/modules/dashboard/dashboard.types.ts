@@ -5,6 +5,9 @@ export interface DashboardMetric {
   key: string;
   label: string;
   value: string | number;
+  /** DASH-DN-UX-1 - duration metrics: the raw number behind `value`. */
+  rawValue?: number | null;
+  unit?: 'calendar_days';
   helper?: string;
   definition?: string;
   periodLabel?: string;
@@ -28,6 +31,8 @@ export interface DashboardPhaseStat {
   slaBreachCount?: number;
   slaStatus?: DashboardSlaStatus;
   slaLabel?: string;
+  /** « Cible SLA : 15 jours calendaires ». */
+  slaTargetLabel?: string;
   emptyLabel?: string;
   durationLabel?: string;
 }
@@ -76,7 +81,11 @@ export interface DashboardMeetingItem {
 export interface DashboardActivityItem {
   id: number;
   title: string;
+  /** DASH-DN-UX-1 - the dossier of the event (never the audit entity id); null when unresolved. */
+  requestId: number | null;
   requestReference: string | null;
+  /** Dossier link, when the viewer may open it. */
+  href?: string;
   actor: string;
   createdAt: string;
   tone: 'success' | 'info' | 'warning' | 'danger';

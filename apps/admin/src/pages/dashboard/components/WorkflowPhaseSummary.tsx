@@ -1,4 +1,5 @@
 import { CheckCircle2 } from 'lucide-react';
+import { formatCalendarDuration } from '@aidn/shared';
 import { cn } from '../../../lib/utils';
 import type { DashboardPhaseStat } from '../../../lib/api/dashboard.types';
 import { SLA_STYLES } from '../dashboard.helpers';
@@ -44,7 +45,7 @@ export function WorkflowPhaseSummary({ phases }: { phases: DashboardPhaseStat[] 
                 <p className="text-[11px] text-anac-blue">
                   {phase.averageDurationDays === null
                     ? phase.durationLabel ?? 'Durée non disponible'
-                    : `${phase.averageDurationDays} j moyen`}
+                    : `Moyenne : ${formatCalendarDuration(phase.averageDurationDays)}`}
                 </p>
                 {phase.slaLabel ? (
                   <span
@@ -55,6 +56,9 @@ export function WorkflowPhaseSummary({ phases }: { phases: DashboardPhaseStat[] 
                   >
                     {phase.slaBreachCount ? `${phase.slaBreachCount} hors délai` : phase.slaLabel}
                   </span>
+                ) : null}
+                {phase.slaTargetLabel ? (
+                  <p className="mt-1 text-[10px] text-anac-muted">{phase.slaTargetLabel}</p>
                 ) : null}
               </div>
             </div>

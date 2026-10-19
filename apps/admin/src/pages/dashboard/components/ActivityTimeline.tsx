@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { Activity, Circle } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import type { DashboardActivityItem } from '../../../lib/api/dashboard.types';
@@ -29,11 +30,23 @@ export function ActivityTimeline({ activity }: { activity: DashboardActivityItem
               >
                 <Circle size={12} fill="currentColor" aria-hidden="true" />
               </span>
-              <div>
-                <p className="text-sm font-medium capitalize text-anac-navy">{item.title}</p>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-anac-navy first-letter:uppercase">{item.title}</p>
+                {/* DASH-DN-UX-1 - the dossier, never the audit entity id. */}
+                {item.requestReference ? (
+                  item.href ? (
+                    <Link
+                      to={item.href}
+                      className="block truncate text-[12px] font-medium text-anac-blue hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-anac-sky"
+                    >
+                      {item.requestReference}
+                    </Link>
+                  ) : (
+                    <p className="truncate text-[12px] font-medium text-anac-navy">{item.requestReference}</p>
+                  )
+                ) : null}
                 <p className="text-[12px] text-anac-muted">
-                  {item.requestReference ? `${item.requestReference} - ` : ''}
-                  {formatDateTime(item.createdAt)} par {item.actor}
+                  {formatDateTime(item.createdAt)} · {item.actor}
                 </p>
               </div>
             </div>

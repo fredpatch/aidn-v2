@@ -3,6 +3,18 @@
 Commit-level history. Covers `be9fce9` through the 2026-10-09 D3c admin
 unread/activity batch.
 
+## 2026-10-19 DASH-DN-UX-1: dashboard durations and recent activity dossier
+
+- Durations use the shared `formatCalendarDuration`: global duration metric (`value` « 4 j 22 h » plus
+  `rawValue` / `unit: 'calendar_days'`), workflow « Moyenne : 16 h 48 min », action waiting time and calendar overruns.
+  Workflow SLA: concise status badge plus « Cible SLA : N jours calendaires » (`slaTargetLabel`). No calculation,
+  period or target changed.
+- Recent activity names the real dossier: `audit_logs.request_id` (D3a), then `details.requestId`, then the entity
+  through the maps already loaded (same action -> entity map as `logAudit`), each checked against existing requests.
+  New `requestId` / `href` (`/demandes?id=`, DN roles only); no more `#entityId`. Connections are excluded in SQL so
+  three business events are always shown when they exist. Label accents fixed.
+- No workflow, SLA, analytics or migration change; « base N » wording left for ANALYTICS-POLISH-1.
+
 ## 2026-10-19 AUTH-LOGIN-NORMALIZE-1: applicant login email normalisation
 
 - Applicant login looks up `normalizeEmail(email)` (trim + lowercase, the existing `email-address.ts` convention used
