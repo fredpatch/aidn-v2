@@ -16,6 +16,7 @@ import { resolveAnalyticsPeriod } from './period.js';
 import { courrierAnalyticsProvider } from './providers/courrier.provider.js';
 import { dnCircuitAnalyticsProvider } from './providers/dn-circuit.provider.js';
 import { financeAnalyticsProvider } from './providers/finance.provider.js';
+import { inspectionAnalyticsProvider } from './providers/inspection.provider.js';
 
 export interface RoleAnalyticsViewer {
   userId: number;
@@ -37,11 +38,13 @@ export interface RoleAnalyticsProvider {
 
 export type RoleAnalyticsRegistry = Partial<Record<RoleAnalyticsDomain, RoleAnalyticsProvider>>;
 
-/** 1C: courrier, dn_circuit; 1D: finance. inspection (1E) still answers 501. */
+/** 1C: courrier, dn_circuit; 1D: finance; 1E: inspection. A domain without a
+ *  provider would answer 501. */
 export const ROLE_ANALYTICS_PROVIDERS: RoleAnalyticsRegistry = {
   courrier: courrierAnalyticsProvider,
   dn_circuit: dnCircuitAnalyticsProvider,
   finance: financeAnalyticsProvider,
+  inspection: inspectionAnalyticsProvider,
 };
 
 export interface RoleAnalyticsRequest {

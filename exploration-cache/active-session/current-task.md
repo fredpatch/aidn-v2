@@ -2,6 +2,8 @@
 
 **Session date**: 2026-10-08
 
+> **2026-10-19 ROLE-ANALYTICS-1E (implemented, validated; single commit):** inspection role analytics provider (planned visits, recorded-held visits with caveat, opinions + verdicts by M6 closure, CI queue state incl. payment-blocked); every role domain now answers 200. No heldAt migration (decisions #26). Next: 1F /pilotage UI. Open: `submitInspectionVerdict` not transactional.
+>
 > **2026-10-19 ROLE-ANALYTICS-1D (implemented, validated; single commit):** finance role analytics provider (validations from the payment row, invoice / proof / rejection audit events with the `legacy_db_timezone` caveat, latest-proof validation delay, Finance queue current state); inspection still 501 (1E). See decisions #25. No migration, no UI.
 >
 > **2026-10-19 ROLE-ANALYTICS-1C (implemented, validated; single commit):** courrier and dn_circuit role analytics providers (history by circuit timestamp + audit actor, service durations, current queue state, recent activity); finance / inspection still 501 (1D / 1E). See decisions #24. No migration, no UI.

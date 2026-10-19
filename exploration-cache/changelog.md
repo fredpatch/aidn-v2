@@ -3,6 +3,18 @@
 Commit-level history. Covers `be9fce9` through the 2026-10-09 D3c admin
 unread/activity batch.
 
+## 2026-10-19 ROLE-ANALYTICS-1E: Cellule Inspection analytics provider
+
+- `GET /api/analytics/roles/inspection` now answers 200 (`providers/inspection.provider.ts`, `inspection-events.ts`):
+  every role domain has a provider, none answers 501. Access unchanged (r3_agent mine only, SU mine + service).
+- History: `inspection.visits_planned` (assigned visits by scheduled date, superseded slots excluded),
+  `inspection.visit_held_recorded` (SITE_VISIT_HELD audit, caveat `recorded_time_not_actual_visit_time`),
+  `inspection.opinion_submitted` + `inspection.verdict_compliant` / `_compliant_with_reserves` / `_non_compliant`
+  (M6 closure time, `site_inspections.r3AgentId`); recent activity = held + verdict (never DN scheduling).
+- Current state from the CI queue, `mine` = assigned visits: `inspection.visit_overdue` (danger),
+  `inspection.blocked_by_payment` (info, waiting on Finance / applicant), `inspection.awaiting_opinion` (info).
+- No `meetings.heldAt`, no migration, no UI. See decisions #26.
+
 ## 2026-10-19 ROLE-ANALYTICS-1D: Finance analytics provider
 
 - `GET /api/analytics/roles/finance` now answers 200 (`providers/finance.provider.ts`, `finance-events.ts`);

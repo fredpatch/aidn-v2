@@ -3,7 +3,7 @@
  *  returned without one. */
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import type { RoleAnalyticsOverview } from '@aidn/shared';
+import { ROLE_ANALYTICS_DOMAINS, type RoleAnalyticsOverview } from '@aidn/shared';
 import {
   ROLE_ANALYTICS_PROVIDERS,
   getRoleAnalyticsOverview,
@@ -14,12 +14,8 @@ import {
 const NOW = new Date('2026-10-16T09:00:00Z');
 
 describe('getRoleAnalyticsOverview', () => {
-  it('1C-1D register courrier, dn_circuit and finance: inspection is not fabricated', async () => {
-    assert.deepEqual(Object.keys(ROLE_ANALYTICS_PROVIDERS).sort(), ['courrier', 'dn_circuit', 'finance']);
-    await assert.rejects(
-      getRoleAnalyticsOverview({ domain: 'inspection', scope: 'mine', period: 'today' }, { userId: 7, roles: ['r3_agent'] }),
-      /ROLE_ANALYTICS_NOT_IMPLEMENTED/
-    );
+  it('1C-1E register a provider for every role domain', () => {
+    assert.deepEqual(Object.keys(ROLE_ANALYTICS_PROVIDERS).sort(), [...ROLE_ANALYTICS_DOMAINS].sort());
   });
 
   it('passes the resolved context to the domain provider', async () => {

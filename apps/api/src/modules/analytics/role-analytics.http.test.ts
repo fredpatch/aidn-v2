@@ -1,8 +1,8 @@
-/** ROLE-ANALYTICS-1B / 1C - GET /api/analytics/roles/:domain and /overview
+/** ROLE-ANALYTICS-1B to 1E - GET /api/analytics/roles/:domain and /overview
  *  over real HTTP (the router behind cookie-parser, as in server.ts). Access
- *  (400 / 403 / 401) and the unimplemented domain (inspection: 501) need no
- *  database; the 1C-1D providers (courrier, dn_circuit, finance) and /overview
- *  answer 200 against one (those checks are skipped without DATABASE_URL). */
+ *  (400 / 403 / 401) needs no database; every role domain has a provider
+ *  since 1E, so allowed calls answer 200 against one (those checks are
+ *  skipped without DATABASE_URL). */
 import { after, before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import type { AddressInfo } from 'node:net';
@@ -24,7 +24,6 @@ const ALLOWED: Record<RoleAnalyticsDomain, Record<RoleAnalyticsScope, string[]>>
   finance: { mine: ['s5_agent', 'SU'], service: ['s5_agent', 'SU'] },
   inspection: { mine: ['r3_agent', 'SU'], service: ['SU'] },
 };
-const IMPLEMENTED: readonly string[] = ['courrier', 'dn_circuit', 'finance'];
 const HAS_DB = Boolean(process.env.DATABASE_URL);
 const ROLES = ['reception', 'assistant_dg', 'assistant_dn', 'dn_agent', 'dn_supervisor', 'r3_agent', 's5_agent', 'SU'];
 
@@ -67,23 +66,22 @@ describe('analytics routes (HTTP)', () => {
 
   const roleUrl = (domain: string, scope: string, extra = '&period=this_month') => `/roles/${domain}?scope=${scope}${extra}`;
 
-  it('the frozen matrix: allowed roles reach the provider (200 for the 1C-1D domains, 501 otherwise), others get 403', async () => {
+  it('the frozen matrix: allowed roles get 200 (every domain has a provider since 1E), others get 403', async () => {
     for (const domain of ROLE_ANALYTICS_DOMAINS) {
       for (const scope of ROLE_ANALYTICS_SCOPES) {
         for (const role of ROLES) {
           const allowed = ALLOWED[domain][scope].includes(role);
-          const implemented = IMPLEMENTED.includes(domain);
-          if (allowed && implemented && !HAS_DB) continue;
+          if (allowed && !HAS_DB) continue;
           const { status, body } = await get(roleUrl(domain, scope), [role]);
-          if (allowed && implemented) {
+          if (allowed) {
             assert.equal(status, 200, `${role} ${domain}/${scope}`);
             const overview = body as unknown as RoleAnalyticsOverview;
             assert.equal(overview.domain, domain);
             assert.equal(overview.scope, scope);
-            if (scope === 'mine') assert.ok(overview.metrics.every((m) => m.basis === 'period'), 'no shared queue under mine');
-          } else if (allowed) {
-            assert.equal(status, 501, `${role} ${domain}/${scope}`);
-            assert.equal(body.code, 'ROLE_ANALYTICS_NOT_IMPLEMENTED');
+            // Shared queues never appear under mine; CI missions are assigned to one agent, so they do.
+            if (scope === 'mine' && domain !== 'inspection') {
+              assert.ok(overview.metrics.every((m) => m.basis === 'period'), 'no shared queue under mine');
+            }
           } else {
             assert.equal(status, 403, `${role} ${domain}/${scope}`);
             assert.equal(body.code, 'ROLE_ANALYTICS_FORBIDDEN');
@@ -95,7 +93,11 @@ describe('analytics routes (HTTP)', () => {
 
   it('inspection service stays SU-only; dn_supervisor has no role dashboard', async () => {
     assert.equal((await get(roleUrl('inspection', 'service'), ['r3_agent'])).status, 403);
-    assert.equal((await get(roleUrl('inspection', 'mine'), ['r3_agent'])).status, 501);
+    if (HAS_DB) {
+      assert.equal((await get(roleUrl('inspection', 'mine'), ['r3_agent'])).status, 200);
+      assert.equal((await get(roleUrl('inspection', 'mine'), ['SU'])).status, 200);
+      assert.equal((await get(roleUrl('inspection', 'service'), ['SU'])).status, 200);
+    }
     for (const domain of ROLE_ANALYTICS_DOMAINS) {
       assert.equal((await get(roleUrl(domain, 'service'), ['dn_supervisor'])).status, 403);
     }
@@ -126,7 +128,7 @@ describe('analytics routes (HTTP)', () => {
       assert.equal(body.code, 'INVALID_ANALYTICS_PERIOD');
     }
     assert.equal((await get(roleUrl('inspection', 'mine', '&period=yesterday'), ['dn_agent'])).status, 403);
-    assert.equal((await get(roleUrl('inspection', 'mine', '&period=custom&from=2026-10-01&to=2026-10-31'), ['r3_agent'])).status, 501);
+    if (HAS_DB) assert.equal((await get(roleUrl('inspection', 'mine', '&period=custom&from=2026-10-01&to=2026-10-31'), ['r3_agent'])).status, 200);
   });
 
   it('unauthenticated calls are 401', async () => {

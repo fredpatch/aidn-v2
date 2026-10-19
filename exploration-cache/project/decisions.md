@@ -353,3 +353,22 @@ Spec: `docs/superpowers/specs/2026-10-16-role-analytics-1b-design.md`.
   `latest_proof_only` (earlier proofs of a rejection cycle left no timestamp).
 - Deferred: rejection delay (a rejection cannot be tied to the proof it refused once a new proof overwrote the
   timestamp), applicant proof deadline (no parameter), index on `payments.validated_at` (small table; no migration).
+
+## 26. Cellule Inspection role analytics (ROLE-ANALYTICS-1E, 2026-10-19)
+
+- heldAt: no migration (option A). The only held path for a site visit is `markAssignedSiteVisitHeld` (generic status
+  refused since BUG-MEETING-SITE-VISIT-STATUS-1), audited SITE_VISIT_HELD by the assigned agent. The metric is named
+  `inspection.visit_held_recorded`: the time the system recorded it, caveat `recorded_time_not_actual_visit_time`
+  (also covers the pre-UTC audit offset). A future `meetings.heldAt` would still be a recording time, so it would not
+  make the metric more honest; revisit only if a business need for the physical visit time appears.
+- Opinion time = the M6 closure (`phases.closed_at`, app-written by `submitInspectionVerdict`; a closed M6 takes no
+  verdict), actor = `site_inspections.r3_agent_id`; not `site_inspections.submitted_at` (DB default, offset in
+  pre-UTC history). Verdicts reported under their stored enum values.
+- Planned visits: `scheduled_at` in the period, superseded slots (`rescheduled`) excluded; one key (workload, not
+  work done); mine = assigned agent (`meetings.dn_agent_id`), never the DN scheduler.
+- Current state comes from `getMyQueue`, in both scopes: CI missions are assigned to one agent (D14), so `mine` is a
+  real personal queue. Payment-blocked visits are a separate info warning (waiting on Finance / the applicant), never
+  an overdue visit. Awaiting-opinion carries no `oldest`: the queue's step start there is the scheduled date.
+- Deferred: visit -> opinion delay (no actual held time), site-visit no-shows (no path records one any more), a
+  transaction around `submitInspectionVerdict` (insert + phase closure + audits are separate statements: workflow fix,
+  out of scope).
