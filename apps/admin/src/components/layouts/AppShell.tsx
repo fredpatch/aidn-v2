@@ -129,11 +129,11 @@ export default function AppShell() {
     .toUpperCase();
 
   return (
-    <div className="flex h-screen bg-anac-gray overflow-hidden">
+    <div className="flex h-screen bg-anac-gray overflow-hidden print:block print:h-auto print:overflow-visible print:bg-white">
       <motion.aside
         animate={{ width: sidebarOpen ? 226 : 60 }}
         transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-        className="flex flex-col bg-anac-navy overflow-hidden flex-shrink-0"
+        className="flex flex-col bg-anac-navy overflow-hidden flex-shrink-0 print:hidden"
       >
         <div className="flex items-center gap-3 px-3 py-4 border-b border-white/10 h-[57px] overflow-hidden">
           <div className="w-8 h-8 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center flex-shrink-0">
@@ -191,8 +191,8 @@ export default function AppShell() {
         </button>
       </motion.aside>
 
-      <div className="flex flex-col flex-1 overflow-hidden min-w-0">
-        <header className="bg-white border-b border-anac-border flex items-center justify-between px-6 h-[57px] flex-shrink-0">
+      <div className="flex flex-col flex-1 overflow-hidden min-w-0 print:block print:overflow-visible">
+        <header className="bg-white border-b border-anac-border flex items-center justify-between px-6 h-[57px] flex-shrink-0 print:hidden">
           <h1 className="text-anac-navy font-semibold text-sm truncate">
             Application Informatique de la Direction de la Navigabilité - Service des OMA
           </h1>
@@ -227,7 +227,7 @@ export default function AppShell() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 overflow-y-auto p-6 print:overflow-visible print:p-0">
           <Outlet />
         </main>
       </div>

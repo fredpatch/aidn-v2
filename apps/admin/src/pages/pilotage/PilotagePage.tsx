@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { ArrowRight, BarChart3, Info, RefreshCcw } from 'lucide-react';
+import { ArrowRight, BarChart3, ChevronLeft, ChevronRight, Info, Printer, RefreshCcw } from 'lucide-react';
 import type {
   RoleAnalyticsActivity,
   RoleAnalyticsDomain,
@@ -35,6 +35,7 @@ import {
   formatCalendarDate,
   formatDate,
   formatDateTime,
+  formatGeneratedAt,
   formatMetricValue,
   metricCopy,
   previousPeriodText,
@@ -83,20 +84,26 @@ export default function PilotagePage() {
 
   return (
     <div className="space-y-4">
-      <header className="flex flex-wrap items-end justify-between gap-3">
+      <header className="flex flex-wrap items-end justify-between gap-3 print:hidden">
         <div>
           <h1 className="text-xl font-semibold text-anac-navy">Pilotage</h1>
           <p className="text-sm text-anac-muted">Activité, délais et alertes de votre périmètre</p>
         </div>
-        {canOpenGlobalAnalytics ? (
-          <Link to="/analytique" className="inline-flex items-center gap-1.5 text-sm font-medium text-anac-blue hover:underline">
-            <BarChart3 size={14} aria-hidden="true" />
-            Voir l’analyse globale
-          </Link>
-        ) : null}
+        <div className="flex items-center gap-3">
+          {canOpenGlobalAnalytics ? (
+            <Link to="/analytique" className="inline-flex items-center gap-1.5 text-sm font-medium text-anac-blue hover:underline">
+              <BarChart3 size={14} aria-hidden="true" />
+              Voir l’analyse globale
+            </Link>
+          ) : null}
+          <Button variant="secondary" size="sm" onClick={() => window.print()} disabled={!overview.data}>
+            <Printer size={14} aria-hidden="true" />
+            Imprimer
+          </Button>
+        </div>
       </header>
 
-      <section aria-label="Filtres" className="flex flex-wrap items-center gap-3 rounded-lg border border-anac-border bg-white p-3 shadow-sm">
+      <section aria-label="Filtres" className="flex flex-wrap items-center gap-3 rounded-lg border border-anac-border bg-white p-3 shadow-sm print:hidden">
         {domains.length > 1 ? (
           <Segmented
             label="Domaine"
@@ -245,15 +252,43 @@ function OverviewView({ data }: { data: RoleAnalyticsOverview }) {
   const quietPeriod = data.recentActivity.length === 0 && periodMetrics.every((metric) => !metric.value);
   return (
     <>
+      <PrintHeader data={data} />
       <MetricSection title="Sur la période" metrics={periodMetrics}>
         {quietPeriod ? <p className="text-sm text-anac-muted">Aucune activité sur cette période.</p> : null}
       </MetricSection>
       {currentMetrics.length ? <MetricSection title="Situation actuelle" metrics={currentMetrics} /> : null}
-      <div className="grid gap-4 lg:grid-cols-2">
+      {/* items-start: each card keeps its own height (no stretched empty card). */}
+      <div className="grid items-start gap-4 lg:grid-cols-2 print:block print:space-y-4">
         <WarningsSection warnings={data.warnings} />
-        <ActivitySection activity={data.recentActivity} />
+        {/* A new response (domain, scope or period) starts again at page 1. */}
+        <ActivitySection
+          key={`${data.domain}:${data.scope}:${data.period.start}:${data.period.end}`}
+          activity={data.recentActivity}
+        />
       </div>
     </>
+  );
+}
+
+/** Printed report heading: the filters of the response being printed. */
+function PrintHeader({ data }: { data: RoleAnalyticsOverview }) {
+  const preset = PERIOD_OPTIONS.find((option) => option.value === data.period.preset)?.label;
+  return (
+    <section aria-label="En-tête d’impression" className="hidden border-b border-black pb-2 text-sm text-black print:block">
+      <h1 className="text-lg font-semibold">AIDN — Rapport de pilotage</h1>
+      <dl className="mt-1 grid grid-cols-[auto_1fr] gap-x-3">
+        <dt>Périmètre :</dt>
+        <dd>{DOMAIN_LABELS[data.domain]}</dd>
+        <dt>Vue :</dt>
+        <dd>{SCOPE_LABELS[data.scope]}</dd>
+        <dt>Période :</dt>
+        <dd>
+          {preset ? `${preset} — ` : ''}Du {formatCalendarDate(data.period.displayFrom)} au {formatCalendarDate(data.period.displayTo)}
+        </dd>
+        <dt>Généré le :</dt>
+        <dd>{formatGeneratedAt(data.generatedAt)}</dd>
+      </dl>
+    </section>
   );
 }
 
@@ -263,7 +298,7 @@ function MetricSection({ title, metrics, children }: { title: string; metrics: R
     <section aria-label={title} className="space-y-2">
       <h2 className="text-sm font-semibold uppercase tracking-wide text-anac-muted">{title}</h2>
       {children}
-      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 print:grid-cols-3 print:gap-2">
         {metrics.map((metric) => (
           <MetricCard key={metric.key} metric={metric} />
         ))}
@@ -278,7 +313,7 @@ function MetricCard({ metric }: { metric: RoleAnalyticsMetric }) {
   const trend = previousPeriodText(metric);
   const sample = sampleSizeText(metric.sampleSize);
   return (
-    <li className="rounded-lg border border-anac-border bg-white p-3 shadow-sm">
+    <li className="rounded-lg border border-anac-border bg-white p-3 shadow-sm print:break-inside-avoid print:border-gray-400 print:p-2 print:shadow-none">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="text-xs font-semibold text-anac-muted" title={copy.description}>
@@ -309,7 +344,10 @@ const SEVERITY_STYLES: Record<RoleAnalyticsWarning['severity'], string> = {
 
 function WarningsSection({ warnings }: { warnings: RoleAnalyticsWarning[] }) {
   return (
-    <section aria-label="Points d’attention" className="rounded-lg border border-anac-border bg-white p-4 shadow-sm">
+    <section
+      aria-label="Points d’attention"
+      className="rounded-lg border border-anac-border bg-white p-4 shadow-sm print:break-inside-avoid print:border-gray-400 print:p-3 print:shadow-none"
+    >
       <h2 className="text-sm font-semibold text-anac-navy">Points d’attention</h2>
       {warnings.length === 0 ? (
         <p className="mt-2 text-sm text-anac-muted">Aucun point d’attention actuellement.</p>
@@ -325,7 +363,7 @@ function WarningsSection({ warnings }: { warnings: RoleAnalyticsWarning[] }) {
                   Plus ancien : {warning.oldest.requestReference} · depuis le {formatDate(warning.oldest.since)}
                 </p>
               ) : null}
-              <Link to={warning.href} className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-anac-blue hover:underline">
+              <Link to={warning.href} className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-anac-blue hover:underline print:hidden">
                 Voir dans {cockpitName(warning.href)}
                 <ArrowRight size={12} aria-hidden="true" />
               </Link>
@@ -337,41 +375,86 @@ function WarningsSection({ warnings }: { warnings: RoleAnalyticsWarning[] }) {
   );
 }
 
+/** Activity rows shown per screen page; the printed report lists them all. */
+const ACTIVITY_PAGE_SIZE = 5;
+
 function ActivitySection({ activity }: { activity: RoleAnalyticsActivity[] }) {
+  const [page, setPage] = useState(0);
+  const pageCount = Math.ceil(activity.length / ACTIVITY_PAGE_SIZE);
+  const visible = activity.slice(page * ACTIVITY_PAGE_SIZE, (page + 1) * ACTIVITY_PAGE_SIZE);
   return (
-    <section aria-label="Activité récente" className="rounded-lg border border-anac-border bg-white p-4 shadow-sm">
-      <h2 className="text-sm font-semibold text-anac-navy">Activité récente</h2>
+    <section
+      aria-label="Activité récente"
+      className="rounded-lg border border-anac-border bg-white p-4 shadow-sm print:border-gray-400 print:p-3 print:shadow-none"
+    >
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-sm font-semibold text-anac-navy">Activité récente</h2>
+        {pageCount > 1 ? (
+          <nav aria-label="Pages de l’activité récente" className="flex items-center gap-1 text-xs text-anac-muted print:hidden">
+            <button
+              type="button"
+              aria-label="Page précédente"
+              disabled={page === 0}
+              onClick={() => setPage(page - 1)}
+              className="rounded p-1 hover:bg-anac-gray disabled:opacity-40"
+            >
+              <ChevronLeft size={14} aria-hidden="true" />
+            </button>
+            <span>
+              {page + 1} / {pageCount}
+            </span>
+            <button
+              type="button"
+              aria-label="Page suivante"
+              disabled={page >= pageCount - 1}
+              onClick={() => setPage(page + 1)}
+              className="rounded p-1 hover:bg-anac-gray disabled:opacity-40"
+            >
+              <ChevronRight size={14} aria-hidden="true" />
+            </button>
+          </nav>
+        ) : null}
+      </div>
       {activity.length === 0 ? (
         <p className="mt-2 text-sm text-anac-muted">Aucune activité récente sur cette période.</p>
       ) : (
-        <ul className="mt-2 divide-y divide-anac-border">
-          {activity.map((item, index) => (
-            <li key={`${item.eventKey}-${item.requestId}-${item.at}-${index}`} className="grid grid-cols-[auto_1fr] gap-x-3 py-2 text-sm">
-              <time dateTime={item.at} className="text-xs text-anac-muted">
-                {formatDateTime(item.at)}
-              </time>
-              <div className="min-w-0">
-                <p className="font-medium text-anac-navy">{EVENT_LABELS[item.eventKey] ?? 'Événement'}</p>
-                <p className="text-xs text-anac-muted">
-                  {item.requestReference ? (
-                    item.href ? (
-                      <Link to={item.href} className="text-anac-blue hover:underline">
-                        {item.requestReference}
-                      </Link>
-                    ) : (
-                      item.requestReference
-                    )
-                  ) : (
-                    '—'
-                  )}
-                  {' · '}
-                  {actorText(item.actor)}
-                </p>
-              </div>
-            </li>
-          ))}
-        </ul>
+        <>
+          <ActivityList items={visible} label="Activité récente (écran)" className="print:hidden" />
+          <ActivityList items={activity} label="Activité récente (impression)" className="hidden print:block" />
+        </>
       )}
     </section>
+  );
+}
+
+function ActivityList({ items, label, className }: { items: RoleAnalyticsActivity[]; label: string; className: string }) {
+  return (
+    <ul aria-label={label} className={cn('mt-2 divide-y divide-anac-border', className)}>
+      {items.map((item, index) => (
+        <li key={`${item.eventKey}-${item.requestId}-${item.at}-${index}`} className="grid grid-cols-[auto_1fr] gap-x-3 py-2 text-sm print:break-inside-avoid print:py-1">
+          <time dateTime={item.at} className="text-xs text-anac-muted">
+            {formatDateTime(item.at)}
+          </time>
+          <div className="min-w-0">
+            <p className="font-medium text-anac-navy">{EVENT_LABELS[item.eventKey] ?? 'Événement'}</p>
+            <p className="text-xs text-anac-muted">
+              {item.requestReference ? (
+                item.href ? (
+                  <Link to={item.href} className="text-anac-blue hover:underline">
+                    {item.requestReference}
+                  </Link>
+                ) : (
+                  item.requestReference
+                )
+              ) : (
+                '—'
+              )}
+              {' · '}
+              {actorText(item.actor)}
+            </p>
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }

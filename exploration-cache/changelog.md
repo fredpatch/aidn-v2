@@ -3,6 +3,17 @@
 Commit-level history. Covers `be9fce9` through the 2026-10-09 D3c admin
 unread/activity batch.
 
+## 2026-10-19 ROLE-ANALYTICS-1G: /pilotage QA and print
+
+- « Points d’attention » keeps its own height next to a long « Activité récente » (grid `items-start`).
+- Recent activity: 5 rows per page (‹ 1 / 2 ›, hidden for 5 rows or fewer), back to page 1 on any domain / scope /
+  period change; the API still returns up to 10.
+- Calendar-day durations read as hours and minutes below one day (« 2 h 24 min ») and as days and hours from one day
+  (« 2 j 12 h »); working days stay « X j ouvrés »; display only.
+- « Imprimer » (`window.print()`): A4 portrait print layout (Tailwind `print:`), sidebar / top bar / filters /
+  pagination / links hidden, a print header (AIDN — Rapport de pilotage, périmètre, vue, période, généré le) and every
+  loaded activity row. No API change, no migration, no new dependency.
+
 ## 2026-10-19 ROLE-ANALYTICS-1F: /pilotage admin page
 
 - New admin page « Pilotage » (`/pilotage`, `pages/pilotage/`): role analytics per domain (Courrier, Circuit

@@ -8,6 +8,7 @@ import type { RoleAnalyticsOverview } from '@aidn/shared';
 import { api } from '../../lib/axios';
 import { renderWithProviders } from '../../test/render';
 import { PILOTAGE_ROLES, pilotageDomains, pilotageScopes } from './pilotage.access';
+import { formatCalendarDuration, formatMetricValue } from './pilotageCopy';
 
 let roles: string[] = [];
 vi.mock('../../hooks/useAuth', () => ({ useAuth: () => ({ user: { roles, fullName: 'Agent Test' } }) }));
@@ -104,7 +105,7 @@ describe('<PilotagePage> domain and scope', () => {
     renderWithProviders(<PilotagePage />);
     await screen.findByText('Mis en circuit DG');
     expect(screen.queryByRole('group', { name: 'Domaine' })).toBeNull();
-    expect(screen.getByText('Courrier')).toBeInTheDocument();
+    expect(screen.getByText('Courrier', { selector: 'span' })).toBeInTheDocument();
     const scope = screen.getByRole('group', { name: 'Périmètre' });
     expect(within(scope).getByRole('button', { name: 'Mon activité' })).toHaveAttribute('aria-pressed', 'true');
     expect(lastCall(get)).toEqual({ url: '/analytics/roles/courrier', params: { scope: 'mine', period: 'this_month', from: undefined, to: undefined } });
@@ -115,7 +116,7 @@ describe('<PilotagePage> domain and scope', () => {
     const get = mockApi(overview({ domain: 'inspection', scope: 'mine' }));
     renderWithProviders(<PilotagePage />);
     await screen.findByText('Aucun point d’attention actuellement.');
-    expect(screen.getByText('Cellule Inspection')).toBeInTheDocument();
+    expect(screen.getByText('Cellule Inspection', { selector: 'span' })).toBeInTheDocument();
     expect(screen.queryByRole('group', { name: 'Périmètre' })).toBeNull();
     expect(screen.queryByText('Activité du service')).toBeNull();
     expect(lastCall(get).params.scope).toBe('mine');
@@ -196,7 +197,7 @@ describe('<PilotagePage> rendering', () => {
     expect(within(sent).getByText('+3 vs période précédente')).toBeInTheDocument();
     expect(within(within(period).getByText('Retours DG enregistrés').closest('li')!).getByText('Stable vs période précédente')).toBeInTheDocument();
     const duration = within(period).getByText('Durée moyenne du circuit DG').closest('li')!;
-    expect(within(duration).getByText('6,8 j')).toBeInTheDocument();
+    expect(within(duration).getByText('6 j 19 h')).toBeInTheDocument();
     expect(within(duration).getByText('Basé sur 5 dossiers')).toBeInTheDocument();
     const invoices = within(period).getByText('Factures transmises').closest('li')!;
     expect(within(invoices).getByText('−4 vs période précédente')).toBeInTheDocument();
@@ -223,8 +224,8 @@ describe('<PilotagePage> rendering', () => {
     roles = ['reception'];
     mockApi();
     renderWithProviders(<PilotagePage />);
-    const activity = await screen.findByRole('region', { name: 'Activité récente' });
-    const rows = within(activity).getAllByRole('listitem');
+    await screen.findByRole('region', { name: 'Activité récente' });
+    const rows = within(screen.getByRole('list', { name: 'Activité récente (écran)' })).getAllByRole('listitem');
     expect(rows).toHaveLength(3);
     expect(within(rows[0]).getByText('Mise en circuit DG')).toBeInTheDocument();
     expect(within(rows[0]).getByRole('link', { name: 'DEM-2026-0012' })).toHaveAttribute('href', '/courriers?tab=all&id=intake_request:12');
@@ -251,6 +252,137 @@ describe('<PilotagePage> rendering', () => {
     expect(screen.getByText('Aucune activité récente sur cette période.')).toBeInTheDocument();
     expect(within(screen.getByText('Durée moyenne du circuit DG').closest('li')!).getByText('—')).toBeInTheDocument();
     expect(within(screen.getByRole('region', { name: 'Situation actuelle' })).getByText('4')).toBeInTheDocument();
+  });
+});
+
+describe('formatCalendarDuration (ROLE-ANALYTICS-1G)', () => {
+  it.each([
+    [0.1, '2 h 24 min'],
+    [0.5, '12 h'],
+    [0.01, '14 min'],
+    [0, '0 min'],
+    [1, '1 j'],
+    [1.25, '1 j 6 h'],
+    [2.5, '2 j 12 h'],
+    [3, '3 j'],
+    [0.9999, '1 j'],
+    [null, '—'],
+  ])('%s day(s) -> %s', (days, expected) => {
+    expect(formatCalendarDuration(days)).toBe(expected);
+  });
+
+  it('only calendar days become hours: working days, counts and percents keep their unit', () => {
+    expect(formatMetricValue({ value: 1.5, unit: 'calendar_days' })).toBe('1 j 12 h');
+    expect(formatMetricValue({ value: 2.5, unit: 'working_days' })).toBe('2,5 j ouvrés');
+    expect(formatMetricValue({ value: 12, unit: 'count' })).toBe('12');
+    expect(formatMetricValue({ value: 37.5, unit: 'percent' })).toBe('37,5 %');
+  });
+});
+
+const TEN_EVENTS = overview({
+  recentActivity: Array.from({ length: 10 }, (_, index) => ({
+    at: new Date(Date.UTC(2026, 9, 18 - index, 9)).toISOString(),
+    eventKey: 'courrier.sent_to_dg' as const,
+    actor: null,
+    requestId: index + 1,
+    requestReference: `DEM-${index + 1}`,
+    href: null,
+  })),
+});
+const screenRefs = () =>
+  within(screen.getByRole('list', { name: 'Activité récente (écran)' }))
+    .getAllByRole('listitem')
+    .map((row) => row.textContent?.match(/DEM-\d+/)?.[0]);
+
+describe('<PilotagePage> recent activity pages (ROLE-ANALYTICS-1G)', () => {
+  it('10 events: 5 per page, newest first; next and previous', async () => {
+    roles = ['reception'];
+    mockApi(TEN_EVENTS);
+    renderWithProviders(<PilotagePage />);
+    await screen.findByText('1 / 2');
+    expect(screenRefs()).toEqual(['DEM-1', 'DEM-2', 'DEM-3', 'DEM-4', 'DEM-5']);
+    expect(screen.getByRole('button', { name: 'Page précédente' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Page suivante' }));
+    expect(screen.getByText('2 / 2')).toBeInTheDocument();
+    expect(screenRefs()).toEqual(['DEM-6', 'DEM-7', 'DEM-8', 'DEM-9', 'DEM-10']);
+    expect(screen.getByRole('button', { name: 'Page suivante' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Page précédente' }));
+    expect(screenRefs()[0]).toBe('DEM-1');
+  });
+
+  it('5 events or fewer: no page controls', async () => {
+    roles = ['reception'];
+    mockApi();
+    renderWithProviders(<PilotagePage />);
+    await screen.findByRole('list', { name: 'Activité récente (écran)' });
+    expect(screen.queryByRole('navigation', { name: 'Pages de l’activité récente' })).toBeNull();
+  });
+
+  it('changing scope or period starts again at page 1', async () => {
+    roles = ['reception'];
+    const get = vi.spyOn(api, 'get').mockImplementation(async (_url, config) => {
+      const params = (config as { params: { scope: string; period: string } }).params;
+      return {
+        data: {
+          ...TEN_EVENTS,
+          scope: params.scope,
+          period: { ...PERIOD, preset: params.period, start: params.period === 'today' ? '2026-10-18T23:00:00.000Z' : PERIOD.start },
+        },
+      };
+    });
+    renderWithProviders(<PilotagePage />);
+    await screen.findByText('1 / 2');
+    fireEvent.click(screen.getByRole('button', { name: 'Page suivante' }));
+    expect(screen.getByText('2 / 2')).toBeInTheDocument();
+    fireEvent.click(within(screen.getByRole('group', { name: 'Périmètre' })).getByRole('button', { name: 'Activité du service' }));
+    await waitFor(() => expect(lastCall(get).params.scope).toBe('service'));
+    expect(await screen.findByText('1 / 2')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Page suivante' }));
+    fireEvent.change(screen.getByLabelText('Période'), { target: { value: 'today' } });
+    await waitFor(() => expect(lastCall(get).params.period).toBe('today'));
+    expect(await screen.findByText('1 / 2')).toBeInTheDocument();
+  });
+});
+
+describe('<PilotagePage> print (ROLE-ANALYTICS-1G)', () => {
+  it('« Imprimer » calls window.print; the print header states the current filters; every loaded event is in the print list', async () => {
+    roles = ['SU'];
+    const print = vi.spyOn(window, 'print').mockImplementation(() => {});
+    vi.spyOn(api, 'get').mockImplementation(async (url, config) => {
+      const params = (config as { params: { scope: string } }).params;
+      return { data: { ...TEN_EVENTS, domain: url.split('/').pop(), scope: params.scope, generatedAt: '2026-10-19T08:30:00.000Z' } };
+    });
+    renderWithProviders(<PilotagePage />);
+    await screen.findByText('1 / 2');
+    fireEvent.click(within(screen.getByRole('group', { name: 'Domaine' })).getByRole('button', { name: 'Cellule Inspection' }));
+    await screen.findByText('Cellule Inspection', { selector: 'dd' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Imprimer' }));
+    expect(print).toHaveBeenCalledTimes(1);
+
+    const header = screen.getByRole('region', { name: 'En-tête d’impression' });
+    expect(header).toHaveTextContent('AIDN — Rapport de pilotage');
+    expect(header).toHaveTextContent('Périmètre :Cellule Inspection');
+    expect(header).toHaveTextContent('Vue :Mon activité');
+    expect(header).toHaveTextContent('Période :Ce mois — Du 01/10/2026 au 31/10/2026');
+    expect(header).toHaveTextContent('Généré le :19/10/2026 à 09:30');
+    expect(header).not.toHaveTextContent('inspection');
+
+    expect(within(screen.getByRole('list', { name: 'Activité récente (impression)' })).getAllByRole('listitem')).toHaveLength(10);
+    expect(within(screen.getByRole('list', { name: 'Activité récente (écran)' })).getAllByRole('listitem')).toHaveLength(5);
+  });
+
+  it('Points d’attention and Activité récente stay two separate cards', async () => {
+    roles = ['reception'];
+    mockApi(TEN_EVENTS);
+    renderWithProviders(<PilotagePage />);
+    const activity = await screen.findByRole('region', { name: 'Activité récente' });
+    const warnings = screen.getByRole('region', { name: 'Points d’attention' });
+    expect(warnings.contains(activity)).toBe(false);
+    expect(activity.contains(warnings)).toBe(false);
+    expect(warnings.parentElement).toBe(activity.parentElement);
+    expect(warnings.parentElement?.className).toContain('items-start');
   });
 });
 

@@ -137,14 +137,36 @@ export function caveatText(key: string | undefined): string {
 const integer = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 });
 const decimal = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 });
 
-/** The API value as is, with its unit; null = not computable. */
+const MINUTES_PER_DAY = 24 * 60;
+
+/** A duration in calendar days (24 h each, the API's unit) for humans: from
+ *  one day on, days and hours (rounded to the hour); below, hours and
+ *  minutes (rounded to the minute). 0.1 -> « 2 h 24 min », 2.5 -> « 2 j 12 h ».
+ *  Only the display changes: the value is the API's. */
+export function formatCalendarDuration(days: number | null): string {
+  if (days === null) return '—';
+  const minutes = Math.round(days * MINUTES_PER_DAY);
+  if (minutes >= MINUTES_PER_DAY) {
+    const hours = Math.round(days * 24);
+    const whole = Math.floor(hours / 24);
+    const rest = hours % 24;
+    return rest ? `${whole} j ${rest} h` : `${whole} j`;
+  }
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  if (!hours) return `${rest} min`;
+  return rest ? `${hours} h ${rest} min` : `${hours} h`;
+}
+
+/** The API value as is, with its unit; null = not computable. Working days
+ *  stay in working days (no hours-per-working-day rule exists). */
 export function formatMetricValue(metric: Pick<RoleAnalyticsMetric, 'value' | 'unit'>): string {
   if (metric.value === null) return '—';
   switch (metric.unit) {
     case 'count':
       return integer.format(metric.value);
     case 'calendar_days':
-      return `${decimal.format(metric.value)} j`;
+      return formatCalendarDuration(metric.value);
     case 'working_days':
       return `${decimal.format(metric.value)} j ouvrés`;
     case 'percent':
@@ -183,6 +205,10 @@ const dateTime = new Intl.DateTimeFormat('fr-FR', {
 const dateOnly = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Africa/Libreville' });
 
 export const formatDateTime = (iso: string) => dateTime.format(new Date(iso));
+
+const timeOnly = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Libreville' });
+/** « 19/10/2026 à 09:30 » (Libreville). */
+export const formatGeneratedAt = (iso: string) => `${dateOnly.format(new Date(iso))} à ${timeOnly.format(new Date(iso))}`;
 export const formatDate = (iso: string) => dateOnly.format(new Date(iso));
 
 /** « 2026-10-01 » -> « 01/10/2026 » (the API's display dates are calendar dates). */
