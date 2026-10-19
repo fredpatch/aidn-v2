@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { motion } from 'framer-motion';
 import { Loader2, Plane } from 'lucide-react';
 
+import { PORTAL_PRODUCT_SUBTITLE, PRODUCT_NAME } from '@aidn/shared';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { api, apiErrorMessage } from '../../lib/axios';
@@ -131,10 +132,8 @@ export default function LoginPage() {
             <div className="absolute inset-0 bg-gradient-to-br from-anac-blue/40 to-transparent" />
             <Plane className="text-white relative z-10" size={22} strokeWidth={1.75} />
           </motion.div>
-          <h1 className="text-xl font-bold text-anac-navy tracking-tight">AIDN</h1>
-          <p className="text-anac-muted text-[11px] mt-0.5 leading-relaxed">
-            Portail Postulant - Organismes de Maintenance des Aéronefs
-          </p>
+          <h1 className="text-xl font-bold text-anac-navy tracking-tight">{PRODUCT_NAME}</h1>
+          <p className="text-anac-muted text-[11px] mt-0.5 leading-relaxed">{PORTAL_PRODUCT_SUBTITLE}</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-anac-border overflow-hidden">

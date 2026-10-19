@@ -21,7 +21,7 @@ import {
   Route as RouteIcon,
 } from 'lucide-react';
 
-import { internalRoleLabel, type InternalRole } from '@aidn/shared';
+import { PRODUCT_NAME, PRODUCT_SERVICE_LINE, internalRoleLabel, type InternalRole } from '@aidn/shared';
 import { cn } from '../../lib/utils';
 import { Button } from '../ui/button';
 import { useAuth } from '../../hooks/useAuth';
@@ -145,7 +145,7 @@ export default function AppShell() {
               sidebarOpen ? 'opacity-100' : 'opacity-0'
             )}
           >
-            <p className="text-white font-bold text-sm leading-tight">AIDN</p>
+            <p className="text-white font-bold text-sm leading-tight">{PRODUCT_NAME}</p>
             <p className="text-anac-sky text-[10px] leading-tight">ANAC Gabon</p>
           </div>
         </div>
@@ -193,9 +193,10 @@ export default function AppShell() {
 
       <div className="flex flex-col flex-1 overflow-hidden min-w-0 print:block print:overflow-visible">
         <header className="bg-white border-b border-anac-border flex items-center justify-between px-6 h-[57px] flex-shrink-0 print:hidden">
-          <h1 className="text-anac-navy font-semibold text-sm truncate">
-            Application Informatique de la Direction de la Navigabilité - Service des OMA
-          </h1>
+          <div className="min-w-0">
+            <h1 className="text-anac-navy font-semibold text-sm leading-tight truncate">{PRODUCT_NAME}</h1>
+            <p className="text-anac-muted text-[11px] leading-tight truncate">{PRODUCT_SERVICE_LINE}</p>
+          </div>
 
           <div className="flex items-center gap-1 flex-shrink-0 ml-4">
             <div className="flex items-center gap-2.5 px-1.5">

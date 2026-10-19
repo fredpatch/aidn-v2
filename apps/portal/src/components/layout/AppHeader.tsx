@@ -1,5 +1,6 @@
 import { Link, NavLink } from 'react-router-dom';
 import { LogOut, Plane } from 'lucide-react';
+import { PRODUCT_NAME } from '@aidn/shared';
 import { Button } from '../ui/button';
 
 const NAV_ITEMS = [
@@ -35,15 +36,15 @@ export function AppHeader({ fullName, onLogout }: { fullName: string; onLogout: 
       <div className="flex h-[57px] items-center gap-6 px-6">
         <Link
           to="/"
-          aria-label="AIDN - retour au tableau de bord"
+          aria-label={`${PRODUCT_NAME} - retour au tableau de bord`}
           className="flex items-center gap-2.5 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-anac-sky"
         >
           <div className="w-8 h-8 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center">
             <Plane size={15} strokeWidth={1.75} aria-hidden="true" />
           </div>
           <div>
-            <p className="font-bold text-sm leading-tight">AIDN</p>
-            <p className="text-anac-sky text-[10px] leading-tight">Portail Postulant</p>
+            <p className="font-bold text-sm leading-tight">{PRODUCT_NAME}</p>
+            <p className="text-anac-sky text-[10px] leading-tight">Portail postulant</p>
           </div>
         </Link>
         <div className="hidden md:block">{nav}</div>

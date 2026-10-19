@@ -1,3 +1,8 @@
+import { PRODUCT_NAME, PRODUCT_SUBTITLE } from '@aidn/shared';
+
+/** Email subject / heading: « AIDN - OMA : <topic> » (BRAND-AIDN-OMA-1). */
+export const emailTitle = (topic: string): string => `${PRODUCT_NAME} : ${topic}`;
+
 /** Minimal, dependency-free HTML templates. Kept deliberately plain -
  *  ANAC branding/styling can be layered on later without touching the
  *  sending logic in email.ts. */
@@ -8,7 +13,7 @@ function baseLayout(title: string, bodyHtml: string): string {
       <h2 style="color: #1b2a5e;">${title}</h2>
       ${bodyHtml}
       <p style="color: #6b7a99; font-size: 12px; margin-top: 24px;">
-        AIDN - Direction de la Navigabilite - OMA Service
+        ${PRODUCT_NAME}<br />${PRODUCT_SUBTITLE}
       </p>
     </div>
   `;
@@ -20,7 +25,7 @@ export function otpEmailTemplate(params: {
   otp: string;
 }): string {
   return baseLayout(
-    'AIDN - Activation de votre compte',
+    emailTitle('Activation de votre compte'),
     `
       <p>Bonjour ${params.fullName},</p>
       <p>Votre code d'activation (matricule <strong>${params.employeeCode}</strong>) est :</p>
@@ -37,7 +42,7 @@ export function accountActivatedEmailTemplate(params: {
   ip?: string;
 }): string {
   return baseLayout(
-    "AIDN - Confirmation d'activation de votre compte",
+    emailTitle("Confirmation d'activation de votre compte"),
     `
       <p>Bonjour ${params.fullName},</p>
       <p>Votre compte (matricule <strong>${params.employeeCode}</strong>) a été activé le ${params.dateTime}.</p>
@@ -51,7 +56,7 @@ export function dgCircuitAlertEmailTemplate(params: {
   daysStuck: number;
 }): string {
   return baseLayout(
-    `AIDN - Demande ${params.reference} en attente d’annotation du DG`,
+    emailTitle(`Demande ${params.reference} en attente d’annotation du DG`),
     `
       <p>La demande <strong>${params.reference}</strong> est en attente d’annotation du DG
       depuis ${params.daysStuck} jour(s).</p>
@@ -62,7 +67,7 @@ export function dgCircuitAlertEmailTemplate(params: {
 
 export function certificateReadyEmailTemplate(params: { reference: string }): string {
   return baseLayout(
-    'AIDN - Votre certificat est disponible',
+    emailTitle('Votre certificat est disponible'),
     `<p>Votre certificat (référence <strong>${params.reference}</strong>) est prêt. Merci de vous présenter à la Direction de la Navigabilité pour le retrait.</p>`
   );
 }
@@ -72,7 +77,7 @@ export function dossierRejectedEmailTemplate(params: {
   reason: string;
 }): string {
   return baseLayout(
-    'AIDN - Dossier rejeté',
+    emailTitle('Dossier rejeté'),
     `<p>Votre dossier (référence <strong>${params.reference}</strong>) a été rejeté.</p>
      <p><strong>Motif :</strong> ${params.reason}</p>`
   );
@@ -83,7 +88,7 @@ export function documentNeedsCorrectionEmailTemplate(params: {
   deadline: string;
 }): string {
   return baseLayout(
-    'AIDN - Document à corriger',
+    emailTitle('Document à corriger'),
     `<p>Un document de votre dossier (référence <strong>${params.reference}</strong>) nécessite une correction.</p>
      <p>Merci de le retransmettre avant le <strong>${params.deadline}</strong>.</p>`
   );

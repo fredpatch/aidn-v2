@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { motion } from 'framer-motion';
 import { Loader2, Settings2, CheckCircle2, AlertTriangle } from 'lucide-react';
 
+import { PRODUCT_NAME, PRODUCT_SUBTITLE } from '@aidn/shared';
 import { cn } from '../../lib/utils';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -147,10 +148,8 @@ export default function BootstrapPage() {
             <div className="absolute inset-0 bg-gradient-to-br from-anac-blue/40 to-transparent" />
             <Settings2 className="text-white relative z-10" size={22} strokeWidth={1.75} />
           </motion.div>
-          <h1 className="text-xl font-bold text-anac-navy tracking-tight">AIDN</h1>
-          <p className="text-anac-muted text-[11px] mt-0.5 leading-relaxed">
-            Application Informatique de la Direction de la Navigabilité
-          </p>
+          <h1 className="text-xl font-bold text-anac-navy tracking-tight">{PRODUCT_NAME}</h1>
+          <p className="text-anac-muted text-[11px] mt-0.5 leading-relaxed">{PRODUCT_SUBTITLE}</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-anac-border overflow-hidden">
@@ -161,7 +160,7 @@ export default function BootstrapPage() {
               <AlertTriangle size={14} className="text-amber-600 mt-0.5 shrink-0" />
               <div>
                 <p className="text-amber-800 font-semibold text-[11px]">
-                  Initialisation d&apos;AIDN
+                  Initialisation d&apos;{PRODUCT_NAME}
                 </p>
                 <p className="text-amber-700 text-[11px] mt-0.5 leading-relaxed">
                   Aucun compte administrateur n&apos;existe encore. Creez le premier Super Admin.

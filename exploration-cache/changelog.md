@@ -3,6 +3,20 @@
 Commit-level history. Covers `be9fce9` through the 2026-10-09 D3c admin
 unread/activity batch.
 
+## 2026-10-19 BRAND-AIDN-OMA-1: visible product name « AIDN - OMA »
+
+- Shared presentation constants (`@aidn/shared` `branding.ts`): `PRODUCT_NAME` « AIDN - OMA », `PRODUCT_SUBTITLE`
+  « Service OMA · Direction de la Navigabilité · ANAC Gabon », `PRODUCT_SERVICE_LINE`, `PORTAL_PRODUCT_SUBTITLE`
+  « Portail postulant OMA · ANAC Gabon », browser titles. Hyphen « - » as separator (no em dash, per 612ed8b).
+- Admin: sidebar, top bar (replaces the long « Application Informatique ... Service des OMA » sentence), login,
+  bootstrap, tab title « AIDN - OMA | Administration ». Portal: login, signed-in header, tab title
+  « AIDN - OMA | Portail postulant ». /analytique and the /pilotage print header use the constant.
+- Reports and system messages: analytics PDF / Excel header and creator, staff emails (« AIDN - OMA : <sujet> »,
+  institutional footer, default sender name), the « généré automatiquement par AIDN - OMA » note of the meeting
+  invitation. Official ANAC headers and « Direction de la Navigabilité » business text unchanged.
+- No technical identifier renamed (packages, routes, cookies, JWT audience, env, DB), no workflow / API behaviour change,
+  no migration.
+
 ## 2026-10-19 ANALYTICS-GLOBAL-UX-1: readable /analytique and enriched analytics PDF
 
 - One calendar-duration formatter and one analytics glossary in `@aidn/shared` (`analytics-format.ts`), used by

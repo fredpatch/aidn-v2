@@ -6,7 +6,9 @@ import {
   certificateReadyEmailTemplate,
   dossierRejectedEmailTemplate,
   documentNeedsCorrectionEmailTemplate,
+  emailTitle,
 } from "./email.templates.js";
+import { PRODUCT_NAME } from "@aidn/shared";
 
 // Env var names match SICOT's (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS,
 // SMTP_FROM) so existing SICOT SMTP credentials can be reused as-is.
@@ -37,7 +39,7 @@ interface EmailOptions {
 
 async function sendEmail(options: EmailOptions): Promise<void> {
   await transporter.sendMail({
-    from: process.env.SMTP_FROM ?? "AIDN <aidn@anac.ga>",
+    from: process.env.SMTP_FROM ?? `${PRODUCT_NAME} <aidn@anac.ga>`,
     ...options,
   });
 }
@@ -51,7 +53,7 @@ export async function sendOTPEmail(params: {
   const { to, ...templateParams } = params;
   await sendEmail({
     to,
-    subject: "AIDN - Activation de votre compte",
+    subject: emailTitle("Activation de votre compte"),
     html: otpEmailTemplate(templateParams),
   });
 }
@@ -66,7 +68,7 @@ export async function sendAccountActivatedEmail(params: {
   const { to, ...templateParams } = params;
   await sendEmail({
     to,
-    subject: "AIDN - Confirmation d'activation de votre compte",
+    subject: emailTitle("Confirmation d'activation de votre compte"),
     html: accountActivatedEmailTemplate(templateParams),
   });
 }
@@ -80,7 +82,7 @@ export async function sendDgCircuitAlertEmail(params: {
   const { to, ...templateParams } = params;
   await sendEmail({
     to,
-    subject: `AIDN - Demande ${params.reference} en attente d’annotation du DG`,
+    subject: emailTitle(`Demande ${params.reference} en attente d’annotation du DG`),
     html: dgCircuitAlertEmailTemplate(templateParams),
   });
 }
@@ -93,7 +95,7 @@ export async function sendCertificateReadyEmail(params: {
   const { to, ...templateParams } = params;
   await sendEmail({
     to,
-    subject: "AIDN - Votre certificat est disponible",
+    subject: emailTitle("Votre certificat est disponible"),
     html: certificateReadyEmailTemplate(templateParams),
   });
 }
@@ -106,7 +108,7 @@ export async function sendDossierRejectedEmail(params: {
   const { to, ...templateParams } = params;
   await sendEmail({
     to,
-    subject: "AIDN - Dossier rejeté",
+    subject: emailTitle("Dossier rejeté"),
     html: dossierRejectedEmailTemplate(templateParams),
   });
 }
@@ -119,7 +121,7 @@ export async function sendDocumentNeedsCorrectionEmail(params: {
   const { to, ...templateParams } = params;
   await sendEmail({
     to,
-    subject: "AIDN - Document à corriger",
+    subject: emailTitle("Document à corriger"),
     html: documentNeedsCorrectionEmailTemplate(templateParams),
   });
 }

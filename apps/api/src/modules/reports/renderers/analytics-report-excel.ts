@@ -1,4 +1,5 @@
 import ExcelJS from 'exceljs';
+import { PRODUCT_NAME, PRODUCT_SUBTITLE } from '@aidn/shared';
 import type { AnalyticsMetric } from '../../analytics/analytics.types.js';
 import type { ReportSnapshot } from '../reports.types.js';
 
@@ -31,7 +32,8 @@ function autoFit(sheet: ExcelJS.Worksheet): void {
 }
 
 function addTitle(sheet: ExcelJS.Worksheet, snapshot: ReportSnapshot): void {
-  sheet.addRow(['AIDN - Direction de la Navigabilité']);
+  sheet.addRow([PRODUCT_NAME]);
+  sheet.addRow([PRODUCT_SUBTITLE]);
   sheet.addRow([snapshot.reportTitle]);
   sheet.addRow([
     'Période',
@@ -206,7 +208,7 @@ function populateWorkbook(workbook: ExcelJS.Workbook, snapshot: ReportSnapshot):
 
 export async function renderAnalyticsReportExcel(snapshot: ReportSnapshot): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = 'AIDN';
+  workbook.creator = PRODUCT_NAME;
   workbook.created = new Date(snapshot.generatedAt);
   workbook.modified = new Date(snapshot.generatedAt);
 

@@ -60,7 +60,7 @@ describe('meeting invitation - content', () => {
   });
 
   it('footer says the document is generated automatically and unsigned, with Libreville time', () => {
-    assert.match(html(), /Document généré automatiquement par AIDN, sans signature, le 07\/10\/2026 à 09:15 \(heure de Libreville\)/);
+    assert.match(html(), /Document généré automatiquement par AIDN - OMA, sans signature, le 07\/10\/2026 à 09:15 \(heure de Libreville\)/);
   });
 
   it('names no ANAC staff member (decision 2026-10-07)', () => {

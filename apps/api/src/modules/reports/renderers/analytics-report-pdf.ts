@@ -1,13 +1,12 @@
-import { ANALYTICS_GLOSSARY, formatCalendarDuration } from '@aidn/shared';
+import { ANALYTICS_GLOSSARY, PRODUCT_NAME, PRODUCT_SUBTITLE, formatCalendarDuration } from '@aidn/shared';
 import { escapeHtml, logoDataUri, renderHtmlToPdf } from '../../../shared/pdf/html-pdf.js';
 import type { AnalyticsMetric } from '../../analytics/analytics.types.js';
 import type { ReportKey, ReportSnapshot } from '../reports.types.js';
 import { renderPhaseDurationSvg, renderTrendSvg } from './analytics-report-svg.js';
 
-/** ANALYTICS-GLOBAL-UX-1 - analytics report identity (the application-wide
- *  branding sweep is BRAND-AIDN-OMA-1). */
-export const REPORT_BRAND = 'AIDN - OMA';
-export const REPORT_INSTITUTION = 'Service OMA · Direction de la Navigabilité · ANAC Gabon';
+/** Analytics report identity: the shared product branding (BRAND-AIDN-OMA-1). */
+export const REPORT_BRAND = PRODUCT_NAME;
+export const REPORT_INSTITUTION = PRODUCT_SUBTITLE;
 
 const REPORT_NOTES: Record<ReportKey, string> = {
   full_report: 'Vue complète des indicateurs DN sur la période sélectionnée.',

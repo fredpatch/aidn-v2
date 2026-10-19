@@ -510,7 +510,7 @@ describe('<PilotagePage> print (ROLE-ANALYTICS-1G)', () => {
     expect(print).toHaveBeenCalledTimes(1);
 
     const header = screen.getByRole('region', { name: 'En-tête d’impression' });
-    expect(header).toHaveTextContent('AIDN - Rapport de pilotage');
+    expect(header).toHaveTextContent('AIDN - OMA · Rapport de pilotage');
     expect(header).toHaveTextContent('Périmètre :Cellule Inspection');
     expect(header).toHaveTextContent('Vue :Mon activité');
     expect(header).toHaveTextContent('Période :Ce mois - Du 01/10/2026 au 31/10/2026');

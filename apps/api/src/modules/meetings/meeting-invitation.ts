@@ -1,3 +1,4 @@
+import { PRODUCT_NAME } from '@aidn/shared';
 import { escapeHtml } from '../../shared/pdf/html-pdf.js';
 
 /** Meetings are stored as UTC instants; the invitation states Libreville time
@@ -178,7 +179,7 @@ export function buildMeetingInvitationHtml(
     <li>En cas d'empêchement, prévenez la Direction de la Navigabilité au plus tôt : une absence non justifiée peut entraîner l'annulation du dossier.</li>
   </ul></div>
   <footer>
-    <span>Document généré automatiquement par AIDN, sans signature, le ${e(formatGeneratedAt(generatedAt))} (heure de Libreville)</span>
+    <span>Document généré automatiquement par ${e(PRODUCT_NAME)}, sans signature, le ${e(formatGeneratedAt(generatedAt))} (heure de Libreville)</span>
     <span>Invitation n° ${e(number)}</span>
   </footer>
 </body>

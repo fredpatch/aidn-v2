@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, ShieldCheck } from 'lucide-react';
 
+import { PRODUCT_NAME, PRODUCT_SUBTITLE } from '@aidn/shared';
 import { cn } from '../../lib/utils';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -181,10 +182,8 @@ export default function LoginPage() {
             <div className="absolute inset-0 bg-gradient-to-br from-anac-blue/40 to-transparent" />
             <ShieldCheck className="text-white relative z-10" size={24} strokeWidth={1.75} />
           </motion.div>
-          <h1 className="text-xl font-bold text-anac-navy tracking-tight">AIDN</h1>
-          <p className="text-anac-muted text-[11px] mt-0.5 leading-relaxed">
-            Direction de la Navigabilité - ANAC Gabon
-          </p>
+          <h1 className="text-xl font-bold text-anac-navy tracking-tight">{PRODUCT_NAME}</h1>
+          <p className="text-anac-muted text-[11px] mt-0.5 leading-relaxed">{PRODUCT_SUBTITLE}</p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-anac-border overflow-hidden">

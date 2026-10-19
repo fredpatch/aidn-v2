@@ -24,6 +24,7 @@ import type {
   RoleAnalyticsScope,
   RoleAnalyticsWarning,
 } from '@aidn/shared';
+import { PRODUCT_NAME } from '@aidn/shared';
 import { Button } from '../../components/ui/button';
 import { useAuth } from '../../hooks/useAuth';
 import { apiErrorMessage } from '../../lib/axios';
@@ -316,7 +317,7 @@ function PrintHeader({ data }: { data: RoleAnalyticsOverview }) {
       aria-label="En-tête d’impression"
       className="hidden border-b border-black pb-2 text-sm text-black print:block"
     >
-      <h1 className="text-lg font-semibold">AIDN - Rapport de pilotage</h1>
+      <h1 className="text-lg font-semibold">{PRODUCT_NAME} · Rapport de pilotage</h1>
       <dl className="mt-1 grid grid-cols-[auto_1fr] gap-x-3">
         <dt>Périmètre :</dt>
         <dd>{DOMAIN_LABELS[data.domain]}</dd>
