@@ -2,7 +2,7 @@
 
 **Session date**: 2026-10-08
 
-> **2026-10-19 ROLE-ANALYTICS-1E (implemented, validated; single commit):** inspection role analytics provider (planned visits, recorded-held visits with caveat, opinions + verdicts by M6 closure, CI queue state incl. payment-blocked); every role domain now answers 200. No heldAt migration (decisions #26). Next: 1F /pilotage UI. (`submitInspectionVerdict` made atomic by BUG-M6-VERDICT-ATOMIC-1.)
+> **2026-10-19 ROLE-ANALYTICS-1E (implemented, validated; single commit):** inspection role analytics provider (planned visits, recorded-held visits with caveat, opinions + verdicts by M6 closure, CI queue state incl. payment-blocked); every role domain now answers 200. No heldAt migration (decisions #26). (`submitInspectionVerdict` made atomic by BUG-M6-VERDICT-ATOMIC-1.) 1F: `/pilotage` admin page done (role analytics UI).
 >
 > **2026-10-19 ROLE-ANALYTICS-1D (implemented, validated; single commit):** finance role analytics provider (validations from the payment row, invoice / proof / rejection audit events with the `legacy_db_timezone` caveat, latest-proof validation delay, Finance queue current state); inspection still 501 (1E). See decisions #25. No migration, no UI.
 >

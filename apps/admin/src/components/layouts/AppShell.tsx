@@ -17,6 +17,7 @@ import {
   LayoutDashboard,
   CalendarDays,
   BarChart3,
+  Activity,
   Route as RouteIcon,
 } from 'lucide-react';
 
@@ -24,6 +25,7 @@ import { internalRoleLabel, type InternalRole } from '@aidn/shared';
 import { cn } from '../../lib/utils';
 import { Button } from '../ui/button';
 import { useAuth } from '../../hooks/useAuth';
+import { PILOTAGE_ROLES } from '../../pages/pilotage/pilotage.access';
 
 interface NavItem {
   to: string;
@@ -76,6 +78,8 @@ const NAV_ITEMS: NavItem[] = [
     icon: CalendarDays,
     roles: ['dn_agent', 'dn_supervisor', 'SU'],
   },
+  /** ROLE-ANALYTICS-1F - role analytics, for every role that opens a domain. */
+  { to: '/pilotage', label: 'Pilotage', icon: Activity, roles: PILOTAGE_ROLES },
   {
     to: '/analytique',
     label: 'Analytique',

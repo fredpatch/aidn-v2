@@ -22,6 +22,8 @@ import S5PaymentsPage from './pages/payments/S5PaymentsPage';
 import DashboardPage from './pages/dashboard/DashboardPage';
 import MeetingsPage from './pages/meetings/MeetingsPage';
 import AnalyticsPage from './pages/analytics/AnalyticsPage';
+import PilotagePage from './pages/pilotage/PilotagePage';
+import { PILOTAGE_ROLES } from './pages/pilotage/pilotage.access';
 import { homeFor } from './lib/home-for';
 
 const DN_ROLES: InternalRole[] = ['dn_agent', 'dn_supervisor', 'SU'];
@@ -186,6 +188,14 @@ function Gate() {
           element={
             <RoleRoute roles={DN_ROLES}>
               <MeetingsPage />
+            </RoleRoute>
+          }
+        />
+        <Route
+          path="pilotage"
+          element={
+            <RoleRoute roles={PILOTAGE_ROLES}>
+              <PilotagePage />
             </RoleRoute>
           }
         />

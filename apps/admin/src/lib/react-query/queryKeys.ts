@@ -54,6 +54,12 @@ export const queryKeys = {
     all: ['requests'] as const,
     cockpit: () => ['requests', 'cockpit'] as const,
   },
+  roleAnalytics: {
+    all: ['role-analytics'] as const,
+    /** One entry per domain / scope / period / custom dates. */
+    overview: (query: { domain: string; scope: string; period: string; from?: string; to?: string }) =>
+      ['role-analytics', query.domain, query.scope, query.period, query.from ?? null, query.to ?? null] as const,
+  },
   analytics: {
     all: ['analytics-overview'] as const,
     overview: (filters: unknown) => ['analytics-overview', filters] as const,

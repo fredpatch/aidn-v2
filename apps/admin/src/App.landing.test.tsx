@@ -43,16 +43,18 @@ describe('assistant_dn-only account', () => {
     expect(screen.queryByText('Accès refusé')).not.toBeInTheDocument();
   });
 
-  it('sees only « Circuit Directeur DN » in the sidebar', async () => {
+  it('sees only « Circuit Directeur DN » and its « Pilotage » in the sidebar', async () => {
     mockRoles = ['assistant_dn'];
     renderWithProviders(<App />, { route: '/' });
     await screen.findByRole('heading', { name: 'Circuit Directeur DN' });
     const labels = sidebarLabels();
     expect(labels.some((label) => label.includes('Circuit Directeur DN'))).toBe(true);
+    // ROLE-ANALYTICS-1F - the role analytics of its own domain.
+    expect(labels.some((label) => label.includes('Pilotage'))).toBe(true);
     for (const forbidden of ['Tableau de bord', 'Demandes', 'Comptes postulants', 'Courriers à traiter', 'Mes inspections', 'Paiements', 'Réunions', 'Analytique', 'Modèles', 'utilisateurs', 'Paramètres']) {
       expect(labels.some((label) => label.includes(forbidden)), forbidden).toBe(false);
     }
-    expect(labels).toHaveLength(1);
+    expect(labels).toHaveLength(2);
   });
 
   it('is refused the other workspaces by URL (no widened access)', async () => {

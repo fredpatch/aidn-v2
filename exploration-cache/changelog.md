@@ -3,6 +3,19 @@
 Commit-level history. Covers `be9fce9` through the 2026-10-09 D3c admin
 unread/activity batch.
 
+## 2026-10-19 ROLE-ANALYTICS-1F: /pilotage admin page
+
+- New admin page « Pilotage » (`/pilotage`, `pages/pilotage/`): role analytics per domain (Courrier, Circuit
+  Directeur DN, Finance, Cellule Inspection) from `GET /api/analytics/roles/:domain` only. Domains and scopes come from
+  the shared access matrix (`ROLE_ANALYTICS_ACCESS`): r3_agent sees « Mon activité » only, SU every domain and scope,
+  DN-only roles (dn_agent, dn_supervisor) no entry. « Analytique » (`/analytique`) is unchanged.
+- Period presets and custom YYYY-MM-DD dates are sent as chosen (the API resolves them; the resolved dates are shown).
+  Metric cards (« Sur la période » / « Situation actuelle ») show API values with units, sample size, previous-period
+  delta (neutral styling) and caveats in plain French; « Points d’attention » link to the cockpit given by the API;
+  « Activité récente » shows staff names, « Postulant » or « — ».
+- Typed client `lib/api/role-analytics.api.ts` (shared types), query key per domain / scope / period / dates.
+- No API change, no migration.
+
 ## 2026-10-19 BUG-M6-VERDICT-ATOMIC-1: the CI opinion is one atomic M6 action
 
 - `submitInspectionVerdict` runs in one transaction: checks, `site_inspections` insert, M6 closure and both audits
