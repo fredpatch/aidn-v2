@@ -184,7 +184,9 @@ describe('SESSION1-MEET-1 meeting negotiation (real PostgreSQL)', { skip }, () =
       assert.ok(queue.items.some((item: { siteVisit: { id: number } }) => item.siteVisit.id === meeting.id));
     });
 
-    it('a site visit can still be marked held (not_required counts as confirmed), audited under M6', async () => {
+    // BUG-MEETING-SITE-VISIT-STATUS-1 - this used to pass through the generic
+    // status (not_required counts as confirmed), bypassing the CI workflow.
+    it('a site visit is refused by the generic status, whatever the status, and nothing is written', async () => {
       const d = await dossier();
       const r3 = await user();
       const { meeting } = await site.scheduleSiteVisit({
@@ -193,9 +195,13 @@ describe('SESSION1-MEET-1 meeting negotiation (real PostgreSQL)', { skip }, () =
         scheduledAt: slot().toISOString(),
         actorUserId: r3,
       });
-      await meetings.markMeetingStatus(meeting.id, r3, 'held');
-      assert.equal((await row(meeting.id)).status, 'held');
-      assert.equal((await audits(meeting.id, 'MEETING_HELD'))[0].module, 'M6');
+      for (const status of ['held', 'no_show', 'file_cancelled'] as const) {
+        await assert.rejects(meetings.markMeetingStatus(meeting.id, r3, status), /MEETING_STATUS_NOT_APPLICABLE_TO_SITE_VISIT/);
+      }
+      assert.equal((await row(meeting.id)).status, 'scheduled');
+      for (const action of ['MEETING_HELD', 'MEETING_NO_SHOW', 'MEETING_FILE_CANCELLED']) {
+        assert.equal((await audits(meeting.id, action)).length, 0);
+      }
     });
 
     it('a confirmed formal meeting can be marked no_show, audited under M4 (no hard-coded M3)', async () => {

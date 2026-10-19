@@ -327,6 +327,10 @@ export const handleMeetingsError = createErrorHandler(
       status: 409,
       message: "Ce rendez-vous n'est pas encore confirmé par le postulant.",
     },
+    MEETING_STATUS_NOT_APPLICABLE_TO_SITE_VISIT: {
+      status: 409,
+      message: 'Les visites sur site sont gérées depuis le workflow Cellule Inspection.',
+    },
     MEETING_NOT_AWAITING_CONFIRMATION: {
       status: 409,
       message: "Ce rendez-vous n'attend plus votre réponse.",

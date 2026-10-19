@@ -535,6 +535,10 @@ export async function markMeetingStatus(
   return db.transaction(async (tx) => {
     // K7 - closed dossier: read-only (requests/dossier-open.ts).
     const meeting = await lockMeeting(tx, meetingId);
+    // BUG-MEETING-SITE-VISIT-STATUS-1 - preliminary and formal meetings only:
+    // a site visit is held through the Cellule Inspection workflow
+    // (markAssignedSiteVisitHeld: assignment, validated payment, B4).
+    if (meeting.meetingType === 'site_visit') throw new Error('MEETING_STATUS_NOT_APPLICABLE_TO_SITE_VISIT');
     if (meeting.status !== 'scheduled') throw new Error('MEETING_NOT_SCHEDULED');
     // SESSION1-MEET-1 - nobody is marked absent from an appointment they never confirmed.
     if (!isMeetingOperationallyConfirmed(meeting)) throw new Error('MEETING_NOT_CONFIRMED');

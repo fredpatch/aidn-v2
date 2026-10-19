@@ -3,6 +3,11 @@
 Commit-level history. Covers `be9fce9` through the 2026-10-09 D3c admin
 unread/activity batch.
 
+## 2026-10-19 BUG-MEETING-SITE-VISIT-STATUS-1: generic meeting status refuses site visits
+
+- `PATCH /api/meetings/:id/status` (`markMeetingStatus`) now rejects a site visit for every status (`held`, `no_show`, `file_cancelled`) with 409 `MEETING_STATUS_NOT_APPLICABLE_TO_SITE_VISIT`, right after the row lock and before any write. Site visits go through the Cellule Inspection workflow only (`markAssignedSiteVisitHeld`: assignment, validated payment, B4). Closes a direct-API bypass of B4 (the UI never offered it: `canManage` is false for site visits) and a `file_cancelled` path that could reject the dossier.
+- The MEET-1 test that pinned the old behaviour now asserts the refusal. No migration, no UI change.
+
 ## 2026-10-16 ROLE-ANALYTICS-1B: time hardening, SLA parameters, role analytics foundation
 
 - DB: every app pool and script pins its session to `TimeZone=UTC` (`shared/db/connection.ts`); `defaultNow()`
