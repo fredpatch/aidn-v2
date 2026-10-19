@@ -6,7 +6,15 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import { ArrowRight, BarChart3, ChevronLeft, ChevronRight, Info, Printer, RefreshCcw } from 'lucide-react';
+import {
+  ArrowRight,
+  BarChart3,
+  ChevronLeft,
+  ChevronRight,
+  Info,
+  Printer,
+  RefreshCcw,
+} from 'lucide-react';
 import type {
   RoleAnalyticsActivity,
   RoleAnalyticsDomain,
@@ -75,7 +83,9 @@ export default function PilotagePage() {
     return (
       <div className="mx-auto max-w-xl rounded-lg border border-anac-border bg-white p-6">
         <h1 className="text-lg font-semibold text-anac-navy">Pilotage indisponible</h1>
-        <p className="mt-2 text-sm text-anac-muted">Aucun tableau de pilotage n’est associé à votre rôle.</p>
+        <p className="mt-2 text-sm text-anac-muted">
+          Aucun tableau de pilotage n’est associé à votre rôle.
+        </p>
       </div>
     );
   }
@@ -91,19 +101,30 @@ export default function PilotagePage() {
         </div>
         <div className="flex items-center gap-3">
           {canOpenGlobalAnalytics ? (
-            <Link to="/analytique" className="inline-flex items-center gap-1.5 text-sm font-medium text-anac-blue hover:underline">
+            <Link
+              to="/analytique"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-anac-blue hover:underline"
+            >
               <BarChart3 size={14} aria-hidden="true" />
               Voir l’analyse globale
             </Link>
           ) : null}
-          <Button variant="secondary" size="sm" onClick={() => window.print()} disabled={!overview.data}>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => window.print()}
+            disabled={!overview.data}
+          >
             <Printer size={14} aria-hidden="true" />
             Imprimer
           </Button>
         </div>
       </header>
 
-      <section aria-label="Filtres" className="flex flex-wrap items-center gap-3 rounded-lg border border-anac-border bg-white p-3 shadow-sm print:hidden">
+      <section
+        aria-label="Filtres"
+        className="flex flex-wrap items-center gap-3 rounded-lg border border-anac-border bg-white p-3 shadow-sm print:hidden"
+      >
         {domains.length > 1 ? (
           <Segmented
             label="Domaine"
@@ -112,7 +133,9 @@ export default function PilotagePage() {
             onChange={setChosenDomain}
           />
         ) : (
-          <span className="rounded-full bg-anac-gray px-3 py-1 text-sm font-semibold text-anac-navy">{DOMAIN_LABELS[domain]}</span>
+          <span className="rounded-full bg-anac-gray px-3 py-1 text-sm font-semibold text-anac-navy">
+            {DOMAIN_LABELS[domain]}
+          </span>
         )}
         {scopes.length > 1 ? (
           <Segmented
@@ -167,7 +190,8 @@ export default function PilotagePage() {
         ) : null}
         {overview.data ? (
           <span className="ml-auto text-xs text-anac-muted">
-            Du {formatCalendarDate(overview.data.period.displayFrom)} au {formatCalendarDate(overview.data.period.displayTo)}
+            Du {formatCalendarDate(overview.data.period.displayFrom)} au{' '}
+            {formatCalendarDate(overview.data.period.displayTo)}
           </span>
         ) : null}
       </section>
@@ -177,7 +201,9 @@ export default function PilotagePage() {
           Choisissez une date de début et une date de fin, puis appliquez.
         </p>
       ) : overview.isLoading ? (
-        <div className="rounded-lg border border-anac-border bg-white p-6 text-sm text-anac-muted">Chargement du tableau de pilotage...</div>
+        <div className="rounded-lg border border-anac-border bg-white p-6 text-sm text-anac-muted">
+          Chargement du tableau de pilotage...
+        </div>
       ) : overview.isError || !overview.data ? (
         <LoadError error={overview.error} onRetry={() => overview.refetch()} />
       ) : (
@@ -199,7 +225,11 @@ function Segmented<T extends string>({
   onChange: (value: T) => void;
 }) {
   return (
-    <div role="group" aria-label={label} className="inline-flex rounded-md border border-anac-border bg-anac-gray p-0.5">
+    <div
+      role="group"
+      aria-label={label}
+      className="inline-flex rounded-md border border-anac-border bg-anac-gray p-0.5"
+    >
       {options.map((option) => (
         <button
           key={option.value}
@@ -208,7 +238,9 @@ function Segmented<T extends string>({
           onClick={() => onChange(option.value)}
           className={cn(
             'rounded px-3 py-1 text-sm font-medium transition-colors',
-            option.value === value ? 'bg-white text-anac-navy shadow-sm' : 'text-anac-muted hover:text-anac-navy'
+            option.value === value
+              ? 'bg-white text-anac-navy shadow-sm'
+              : 'text-anac-muted hover:text-anac-navy'
           )}
         >
           {option.label}
@@ -224,7 +256,8 @@ function LoadError({ error, onRetry }: { error: unknown; onRetry: () => void }) 
   let message = 'Impossible de charger le tableau de pilotage.';
   if (status === 403) {
     title = 'Accès non autorisé';
-    message = 'Vos droits ne permettent pas d’ouvrir ce tableau. Si votre rôle a changé, reconnectez-vous.';
+    message =
+      'Vos droits ne permettent pas d’ouvrir ce tableau. Si votre rôle a changé, reconnectez-vous.';
   } else if (status === 400) {
     title = 'Période invalide';
     message = apiErrorMessage(error, 'Vérifiez les dates choisies.');
@@ -249,14 +282,19 @@ function LoadError({ error, onRetry }: { error: unknown; onRetry: () => void }) 
 function OverviewView({ data }: { data: RoleAnalyticsOverview }) {
   const periodMetrics = data.metrics.filter((metric) => metric.basis === 'period');
   const currentMetrics = data.metrics.filter((metric) => metric.basis === 'current');
-  const quietPeriod = data.recentActivity.length === 0 && periodMetrics.every((metric) => !metric.value);
+  const quietPeriod =
+    data.recentActivity.length === 0 && periodMetrics.every((metric) => !metric.value);
   return (
     <>
       <PrintHeader data={data} />
       <MetricSection title="Sur la période" metrics={periodMetrics}>
-        {quietPeriod ? <p className="text-sm text-anac-muted">Aucune activité sur cette période.</p> : null}
+        {quietPeriod ? (
+          <p className="text-sm text-anac-muted">Aucune activité sur cette période.</p>
+        ) : null}
       </MetricSection>
-      {currentMetrics.length ? <MetricSection title="Situation actuelle" metrics={currentMetrics} /> : null}
+      {currentMetrics.length ? (
+        <MetricSection title="Situation actuelle" metrics={currentMetrics} />
+      ) : null}
       {/* items-start: each card keeps its own height (no stretched empty card). */}
       <div className="grid items-start gap-4 lg:grid-cols-2 print:block print:space-y-4">
         <WarningsSection warnings={data.warnings} />
@@ -274,8 +312,11 @@ function OverviewView({ data }: { data: RoleAnalyticsOverview }) {
 function PrintHeader({ data }: { data: RoleAnalyticsOverview }) {
   const preset = PERIOD_OPTIONS.find((option) => option.value === data.period.preset)?.label;
   return (
-    <section aria-label="En-tête d’impression" className="hidden border-b border-black pb-2 text-sm text-black print:block">
-      <h1 className="text-lg font-semibold">AIDN — Rapport de pilotage</h1>
+    <section
+      aria-label="En-tête d’impression"
+      className="hidden border-b border-black pb-2 text-sm text-black print:block"
+    >
+      <h1 className="text-lg font-semibold">AIDN - Rapport de pilotage</h1>
       <dl className="mt-1 grid grid-cols-[auto_1fr] gap-x-3">
         <dt>Périmètre :</dt>
         <dd>{DOMAIN_LABELS[data.domain]}</dd>
@@ -283,7 +324,8 @@ function PrintHeader({ data }: { data: RoleAnalyticsOverview }) {
         <dd>{SCOPE_LABELS[data.scope]}</dd>
         <dt>Période :</dt>
         <dd>
-          {preset ? `${preset} — ` : ''}Du {formatCalendarDate(data.period.displayFrom)} au {formatCalendarDate(data.period.displayTo)}
+          {preset ? `${preset} - ` : ''}Du {formatCalendarDate(data.period.displayFrom)} au{' '}
+          {formatCalendarDate(data.period.displayTo)}
         </dd>
         <dt>Généré le :</dt>
         <dd>{formatGeneratedAt(data.generatedAt)}</dd>
@@ -292,7 +334,15 @@ function PrintHeader({ data }: { data: RoleAnalyticsOverview }) {
   );
 }
 
-function MetricSection({ title, metrics, children }: { title: string; metrics: RoleAnalyticsMetric[]; children?: React.ReactNode }) {
+function MetricSection({
+  title,
+  metrics,
+  children,
+}: {
+  title: string;
+  metrics: RoleAnalyticsMetric[];
+  children?: React.ReactNode;
+}) {
   if (!metrics.length) return null;
   return (
     <section aria-label={title} className="space-y-2">
@@ -319,12 +369,16 @@ function MetricCard({ metric }: { metric: RoleAnalyticsMetric }) {
           <p className="text-xs font-semibold text-anac-muted" title={copy.description}>
             {copy.label}
           </p>
-          <p className="mt-1 text-2xl font-semibold leading-tight text-anac-navy">{formatMetricValue(metric)}</p>
+          <p className="mt-1 text-2xl font-semibold leading-tight text-anac-navy">
+            {formatMetricValue(metric)}
+          </p>
         </div>
         <Icon size={16} className="mt-0.5 shrink-0 text-anac-blue" aria-hidden="true" />
       </div>
       {trend || sample ? (
-        <p className="mt-1 text-[11px] text-anac-muted">{[trend, sample].filter(Boolean).join(' · ')}</p>
+        <p className="mt-1 text-[11px] text-anac-muted">
+          {[trend, sample].filter(Boolean).join(' · ')}
+        </p>
       ) : null}
       {metric.reliability === 'caveat' ? (
         <p className="mt-1.5 flex items-start gap-1 text-[11px] text-anac-muted">
@@ -354,16 +408,26 @@ function WarningsSection({ warnings }: { warnings: RoleAnalyticsWarning[] }) {
       ) : (
         <ul className="mt-2 space-y-2">
           {warnings.map((warning) => (
-            <li key={warning.key} className={cn('rounded-md border border-anac-border border-l-4 px-3 py-2', SEVERITY_STYLES[warning.severity])}>
+            <li
+              key={warning.key}
+              className={cn(
+                'rounded-md border border-anac-border border-l-4 px-3 py-2',
+                SEVERITY_STYLES[warning.severity]
+              )}
+            >
               <p className="text-sm font-semibold text-anac-navy">
                 {warning.count} · {WARNING_LABELS[warning.key] ?? 'Point d’attention'}
               </p>
               {warning.oldest ? (
                 <p className="text-xs text-anac-muted">
-                  Plus ancien : {warning.oldest.requestReference} · depuis le {formatDate(warning.oldest.since)}
+                  Plus ancien : {warning.oldest.requestReference} · depuis le{' '}
+                  {formatDate(warning.oldest.since)}
                 </p>
               ) : null}
-              <Link to={warning.href} className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-anac-blue hover:underline print:hidden">
+              <Link
+                to={warning.href}
+                className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-anac-blue hover:underline print:hidden"
+              >
                 Voir dans {cockpitName(warning.href)}
                 <ArrowRight size={12} aria-hidden="true" />
               </Link>
@@ -390,7 +454,10 @@ function ActivitySection({ activity }: { activity: RoleAnalyticsActivity[] }) {
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-sm font-semibold text-anac-navy">Activité récente</h2>
         {pageCount > 1 ? (
-          <nav aria-label="Pages de l’activité récente" className="flex items-center gap-1 text-xs text-anac-muted print:hidden">
+          <nav
+            aria-label="Pages de l’activité récente"
+            className="flex items-center gap-1 text-xs text-anac-muted print:hidden"
+          >
             <button
               type="button"
               aria-label="Page précédente"
@@ -420,23 +487,40 @@ function ActivitySection({ activity }: { activity: RoleAnalyticsActivity[] }) {
       ) : (
         <>
           <ActivityList items={visible} label="Activité récente (écran)" className="print:hidden" />
-          <ActivityList items={activity} label="Activité récente (impression)" className="hidden print:block" />
+          <ActivityList
+            items={activity}
+            label="Activité récente (impression)"
+            className="hidden print:block"
+          />
         </>
       )}
     </section>
   );
 }
 
-function ActivityList({ items, label, className }: { items: RoleAnalyticsActivity[]; label: string; className: string }) {
+function ActivityList({
+  items,
+  label,
+  className,
+}: {
+  items: RoleAnalyticsActivity[];
+  label: string;
+  className: string;
+}) {
   return (
     <ul aria-label={label} className={cn('mt-2 divide-y divide-anac-border', className)}>
       {items.map((item, index) => (
-        <li key={`${item.eventKey}-${item.requestId}-${item.at}-${index}`} className="grid grid-cols-[auto_1fr] gap-x-3 py-2 text-sm print:break-inside-avoid print:py-1">
+        <li
+          key={`${item.eventKey}-${item.requestId}-${item.at}-${index}`}
+          className="grid grid-cols-[auto_1fr] gap-x-3 py-2 text-sm print:break-inside-avoid print:py-1"
+        >
           <time dateTime={item.at} className="text-xs text-anac-muted">
             {formatDateTime(item.at)}
           </time>
           <div className="min-w-0">
-            <p className="font-medium text-anac-navy">{EVENT_LABELS[item.eventKey] ?? 'Événement'}</p>
+            <p className="font-medium text-anac-navy">
+              {EVENT_LABELS[item.eventKey] ?? 'Événement'}
+            </p>
             <p className="text-xs text-anac-muted">
               {item.requestReference ? (
                 item.href ? (
@@ -447,7 +531,7 @@ function ActivityList({ items, label, className }: { items: RoleAnalyticsActivit
                   item.requestReference
                 )
               ) : (
-                '—'
+                '-'
               )}
               {' · '}
               {actorText(item.actor)}

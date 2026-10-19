@@ -26,7 +26,7 @@ const ACTION_COPY: Record<ApplicantActionKey, CopyBuilder> = {
     title: 'Compte rendu à signer',
     description: 'Un compte rendu de réunion est disponible et doit être retourné signé.',
     cta: 'Voir le dossier',
-    phaseTitle: 'Action requise — Compte rendu à signer',
+    phaseTitle: 'Action requise - Compte rendu à signer',
     phaseDescription:
       'Le compte rendu de votre réunion est disponible. Consultez-le, signez-le puis déposez la version signée.',
     phaseCta: 'Accéder au compte rendu',
@@ -85,7 +85,8 @@ const ACTION_COPY: Record<ApplicantActionKey, CopyBuilder> = {
     description: "Votre certificat est prêt. Présentez-vous aux bureaux de l'ANAC pour le retirer.",
     cta: 'Voir le dossier',
     phaseTitle: 'Certificat prêt',
-    phaseDescription: "Présentez-vous aux bureaux de l'ANAC pour retirer le certificat en personne.",
+    phaseDescription:
+      "Présentez-vous aux bureaux de l'ANAC pour retirer le certificat en personne.",
     phaseCta: 'Voir le retrait',
   }),
 };

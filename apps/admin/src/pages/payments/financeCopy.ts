@@ -27,14 +27,23 @@ export const PHASE_LABELS: Record<FinanceQueueItem['phaseCode'], string> = {
   M7: 'Délivrance',
 };
 
-export function financeCallout(item: FinanceQueueItem): { title: string; description: string; blockReason: string | null } {
+export function financeCallout(item: FinanceQueueItem): {
+  title: string;
+  description: string;
+  blockReason: string | null;
+} {
   if (item.payment.status === 'rejected') {
-    return { title: 'Dossier rejeté — paiement clos', description: 'Le paiement et ses pièces restent consultables.', blockReason: null };
+    return {
+      title: 'Dossier rejeté - paiement clos',
+      description: 'Le paiement et ses pièces restent consultables.',
+      blockReason: null,
+    };
   }
   if (item.blockReason === 'dossier_closed') {
     return {
-      title: 'Dossier clos — consultation uniquement',
-      description: 'Le paiement et ses pièces restent consultables. Aucune action Finance n’est possible.',
+      title: 'Dossier clos - consultation uniquement',
+      description:
+        'Le paiement et ses pièces restent consultables. Aucune action Finance n’est possible.',
       blockReason: null,
     };
   }
@@ -42,7 +51,8 @@ export function financeCallout(item: FinanceQueueItem): { title: string; descrip
     case 'send_invoice':
       return {
         title: 'Facture à transmettre',
-        description: 'Joignez la facture transmise au postulant : la preuve de paiement sera ensuite attendue.',
+        description:
+          'Joignez la facture transmise au postulant : la preuve de paiement sera ensuite attendue.',
         blockReason: null,
       };
     case 'validate_payment_proof':
@@ -61,7 +71,11 @@ export function financeCallout(item: FinanceQueueItem): { title: string; descrip
         blockReason: null,
       };
     default:
-      return { title: 'Paiement validé', description: 'Le paiement ne requiert plus d’action Finance.', blockReason: null };
+      return {
+        title: 'Paiement validé',
+        description: 'Le paiement ne requiert plus d’action Finance.',
+        blockReason: null,
+      };
   }
 }
 
@@ -69,16 +83,37 @@ const DAY_MS = 86_400_000;
 
 /** Action buckets only (counts.inactive is never shown); « validés (30 j) »
  *  counts the validations present in the rows. */
-export function financeMetrics(items: FinanceQueueItem[], counts: Record<FinanceBucket, number>, now: Date = new Date()): CockpitMetric[] {
-  const late = (bucket: FinanceBucket) => items.filter((i) => i.bucket === bucket && i.urgency === 'overdue').length;
+export function financeMetrics(
+  items: FinanceQueueItem[],
+  counts: Record<FinanceBucket, number>,
+  now: Date = new Date()
+): CockpitMetric[] {
+  const late = (bucket: FinanceBucket) =>
+    items.filter((i) => i.bucket === bucket && i.urgency === 'overdue').length;
   const lateDetail = (n: number) => (n > 0 ? `dont ${n} en retard` : null);
-  const newProof = items.filter((i) => i.bucket === 'awaiting_applicant' && i.newProofRequested).length;
+  const newProof = items.filter(
+    (i) => i.bucket === 'awaiting_applicant' && i.newProofRequested
+  ).length;
   const validated30 = items.filter(
-    (i) => i.payment.validatedAt && now.getTime() - new Date(i.payment.validatedAt).getTime() <= 30 * DAY_MS
+    (i) =>
+      i.payment.validatedAt &&
+      now.getTime() - new Date(i.payment.validatedAt).getTime() <= 30 * DAY_MS
   ).length;
   return [
-    { key: 'invoice_to_send', label: 'factures à transmettre', value: counts.invoice_to_send, detail: lateDetail(late('invoice_to_send')), tone: 'info' },
-    { key: 'proof_to_validate', label: 'preuves à valider', value: counts.proof_to_validate, detail: lateDetail(late('proof_to_validate')), tone: 'warning' },
+    {
+      key: 'invoice_to_send',
+      label: 'factures à transmettre',
+      value: counts.invoice_to_send,
+      detail: lateDetail(late('invoice_to_send')),
+      tone: 'info',
+    },
+    {
+      key: 'proof_to_validate',
+      label: 'preuves à valider',
+      value: counts.proof_to_validate,
+      detail: lateDetail(late('proof_to_validate')),
+      tone: 'warning',
+    },
     {
       key: 'awaiting_applicant',
       label: 'en attente du postulant',
@@ -86,6 +121,12 @@ export function financeMetrics(items: FinanceQueueItem[], counts: Record<Finance
       detail: newProof > 0 ? `dont ${newProof} nouvelle preuve demandée` : null,
       tone: 'neutral',
     },
-    { key: 'validated_30', label: 'validés (30 j)', value: validated30, detail: null, tone: 'success' },
+    {
+      key: 'validated_30',
+      label: 'validés (30 j)',
+      value: validated30,
+      detail: null,
+      tone: 'success',
+    },
   ];
 }

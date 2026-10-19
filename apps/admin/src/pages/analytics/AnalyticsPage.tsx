@@ -92,7 +92,7 @@ export default function AnalyticsPage() {
     <div className="mx-auto max-w-[1580px] space-y-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-[12px] font-semibold tracking-wide text-anac-blue">AIDN — OMA</p>
+          <p className="text-[12px] font-semibold tracking-wide text-anac-blue">AIDN - OMA</p>
           <h1 className="mt-1 text-2xl font-semibold text-anac-navy">Analytique & rapports</h1>
           <p className="mt-1 text-sm text-anac-muted">
             Vue globale des délais, volumes, SLA et points de blocage du processus OMA.
@@ -154,9 +154,16 @@ export default function AnalyticsPage() {
         <PhaseDurationList phases={data.phaseStats} />
       </div>
 
-      <ReportCards reports={data.reports} generatingKey={generatingKey} onGenerate={handleGenerateReport} />
+      <ReportCards
+        reports={data.reports}
+        generatingKey={generatingKey}
+        onGenerate={handleGenerateReport}
+      />
 
-      <GeneratedReportsHistory reports={generatedReportsQuery.data ?? []} loading={generatedReportsQuery.isLoading} />
+      <GeneratedReportsHistory
+        reports={generatedReportsQuery.data ?? []}
+        loading={generatedReportsQuery.isLoading}
+      />
     </div>
   );
 }

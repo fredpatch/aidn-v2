@@ -240,7 +240,7 @@ refuses (mandatory reason), or confirms on the applicant's behalf (mandatory not
 - Two independent chains on the same meeting id: `meeting_report` (DN, `meetings.cr_document_url`) and `meeting_report_signed` (applicant, `meetings.signed_cr_document_url`).
 - The DN CR is frozen once a signed copy exists (409 `MEETING_REPORT_FROZEN_SIGNED`). Exceptional corrections are handled manually outside the workflow until a rectification mechanism is validated.
 - The applicant uploads the signed copy once (D3 revised before push): a second file is a 409 `MEETING_SIGNED_REPORT_ALREADY_SUBMITTED` (« … contactez la Direction de la Navigabilité »), nothing is trashed. A correction workflow is a future task.
-- Portal surfaces the pending signed copy from `canSubmitSignedReport` only: M3/M4 phase summary (« Action requise — Compte rendu à signer », after the phase-blocking actions), dossier banner, dashboard `ReportsToSignBanner`. A closed phase still awaiting it opens by default and allows the upload (exception to read-only closed rows, because the API rule is dossier-open).
+- Portal surfaces the pending signed copy from `canSubmitSignedReport` only: M3/M4 phase summary (« Action requise - Compte rendu à signer », after the phase-blocking actions), dossier banner, dashboard `ReportsToSignBanner`. A closed phase still awaiting it opens by default and allows the upload (exception to read-only closed rows, because the API rule is dossier-open).
 - No DN validation, no notification, no cockpit metric; phase closure needs neither file.
 - Audit `MEETING_SIGNED_REPORT_SUBMITTED` (applicant actor), one per meeting, one activity label.
 - Migration 0010: ADD VALUE + two nullable columns + check; no backfill.
@@ -322,10 +322,10 @@ Spec: `docs/superpowers/specs/2026-10-16-role-analytics-1b-design.md`.
 
 - Event time = the circuit row's business timestamp (`signature_sent_at`, `signed_at`, `pending_review_at`), never
   the audit time nor `requests.updated_at`. Actor = the latest audit row of the event's catalogued actions (current
-  + legacy) for that circuit: `circuit` actions by `entity_id = circuit id`, legacy `request` actions
-  (`DG_CIRCUIT_SENT_TO_SIGNATURE`, `DG_CIRCUIT_SIGNED`, `DG_CIRCUIT_SIGNED_RETURNED`) by `entity_id = request id` on
-  the intake circuit; narrowed by `audit_logs.request_id` (indexed, backfilled by 0005). One event per circuit row,
-  whatever the aliases. A row without a correlated audit counts for the service, for nobody's `mine`, no actor shown.
+  - legacy) for that circuit: `circuit` actions by `entity_id = circuit id`, legacy `request` actions
+    (`DG_CIRCUIT_SENT_TO_SIGNATURE`, `DG_CIRCUIT_SIGNED`, `DG_CIRCUIT_SIGNED_RETURNED`) by `entity_id = request id` on
+    the intake circuit; narrowed by `audit_logs.request_id` (indexed, backfilled by 0005). One event per circuit row,
+    whatever the aliases. A row without a correlated audit counts for the service, for nobody's `mine`, no actor shown.
 - DG return = `signed_at` on every path; the hand-over to the DN (`pending_review_at` only) is never a DG return.
   Directeur DN return = `pending_review_at` on a row that was sent (grandfathered rows excluded).
 - Scope: `mine` = attributed event counts + activity only. Durations (process time at the DG / Directeur DN, not an

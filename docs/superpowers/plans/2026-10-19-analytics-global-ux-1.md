@@ -1,7 +1,7 @@
 # ANALYTICS-GLOBAL-UX-1 Implementation Plan
 
 **Goal:** make `/analytique` and the analytics PDF readable (human durations, explicit SLA comparison, glossary,
-AIDN — OMA branding, SVG charts) without touching any calculation, SLA value, workflow or dependency.
+AIDN - OMA branding, SVG charts) without touching any calculation, SLA value, workflow or dependency.
 
 **Architecture:** one calendar-duration formatter in `@aidn/shared` (moved from `/pilotage`), used by admin and the
 PDF renderer. The overview metrics gain a backwards-compatible numeric `rawValue` + `unit` (duration metrics only);
@@ -30,10 +30,10 @@ labels only.
    `dg_waiting` blocker helper uses the shared formatter. No calculation change.
 3. **Admin `/analytique`**: metric cards show `formatCalendarDuration(rawValue)` for `calendar_days`; phase list
    « Moyenne : … · Cible SLA : N jours calendaires »; delayed table humanized; KPI panel = glossary + targets; page
-   identity « AIDN — OMA · Analytique & rapports »; charts: trend tooltip / y-axis title / « Moyenne » « Médiane »,
+   identity « AIDN - OMA · Analytique & rapports »; charts: trend tooltip / y-axis title / « Moyenne » « Médiane »,
    phase chart with a « Cible SLA » dataset (red average above target kept), pure chart builders exported for tests.
 4. **PDF** (`renderers/analytics-report-svg.ts` + `analytics-report-pdf.ts`): exported pure `renderTrendSvg`,
-   `renderPhaseDurationSvg`, `renderAnalyticsReportHtml`; branding « AIDN — OMA » + institutional line; « Repères de
+   `renderPhaseDurationSvg`, `renderAnalyticsReportHtml`; branding « AIDN - OMA » + institutional line; « Repères de
    lecture »; charts per report (full_report: trend + phases; processing_delay: trend + phases; sla: phases; others:
    none); clearer table headers; humanized durations; `page-break-inside: avoid`; escaped text, finite coordinates.
 5. **Excel**: unchanged (numeric cells stay numeric).

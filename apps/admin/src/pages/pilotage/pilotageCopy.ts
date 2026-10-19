@@ -56,13 +56,25 @@ interface MetricCopy {
 export const METRIC_COPY: Record<string, MetricCopy> = {
   'courrier.sent_to_dg': { label: 'Mis en circuit DG', icon: Send },
   'courrier.dg_return_recorded': { label: 'Retours DG enregistrés', icon: Undo2 },
-  'courrier.average_dg_circuit_duration': { label: 'Durée moyenne du circuit DG', icon: Timer, description: 'De la mise en circuit au retour du DG.' },
+  'courrier.average_dg_circuit_duration': {
+    label: 'Durée moyenne du circuit DG',
+    icon: Timer,
+    description: 'De la mise en circuit au retour du DG.',
+  },
   'courrier.to_print_backlog': { label: 'À imprimer', icon: Printer },
   'courrier.dg_return_overdue': { label: 'Retours DG en retard', icon: AlarmClock },
   'dn_circuit.sent_to_director': { label: 'Transmis au Directeur DN', icon: Send },
   'dn_circuit.return_recorded': { label: 'Retours Directeur DN enregistrés', icon: Undo2 },
-  'dn_circuit.average_director_duration': { label: 'Durée moyenne chez le Directeur DN', icon: Timer, description: 'Indicatif : aucun délai cible n’est fixé.' },
-  'dn_circuit.average_handoff_delay': { label: 'Délai avant transmission au Directeur DN', icon: Clock, description: 'Du retour du DG à la transmission au Directeur DN.' },
+  'dn_circuit.average_director_duration': {
+    label: 'Durée moyenne chez le Directeur DN',
+    icon: Timer,
+    description: 'Indicatif : aucun délai cible n’est fixé.',
+  },
+  'dn_circuit.average_handoff_delay': {
+    label: 'Délai avant transmission au Directeur DN',
+    icon: Clock,
+    description: 'Du retour du DG à la transmission au Directeur DN.',
+  },
   'dn_circuit.with_director': { label: 'Actuellement chez le Directeur DN', icon: Inbox },
   'finance.payment_validated': { label: 'Paiements validés', icon: CheckCircle2 },
   'finance.m5_validated': { label: 'Validations M5', icon: CreditCard },
@@ -71,15 +83,25 @@ export const METRIC_COPY: Record<string, MetricCopy> = {
   'finance.invoice_uploaded': { label: 'Factures transmises', icon: FileText },
   'finance.payment_rejected': { label: 'Paiements rejetés', icon: XCircle },
   'finance.proof_received': { label: 'Preuves reçues', icon: Inbox },
-  'finance.average_validation_delay': { label: 'Délai moyen de validation', icon: Timer, description: 'Du dépôt de la preuve à sa validation.' },
+  'finance.average_validation_delay': {
+    label: 'Délai moyen de validation',
+    icon: Timer,
+    description: 'Du dépôt de la preuve à sa validation.',
+  },
   'finance.proof_to_validate': { label: 'Preuves à valider', icon: ClipboardCheck },
   'finance.proof_overdue': { label: 'Validations en retard', icon: AlarmClock },
   'finance.invoice_to_send': { label: 'Factures à transmettre', icon: FileText },
   'inspection.visits_planned': { label: 'Visites planifiées', icon: Activity },
-  'inspection.visit_held_recorded': { label: 'Visites enregistrées comme tenues', icon: CheckCircle2 },
+  'inspection.visit_held_recorded': {
+    label: 'Visites enregistrées comme tenues',
+    icon: CheckCircle2,
+  },
   'inspection.opinion_submitted': { label: 'Avis transmis', icon: Send },
   'inspection.verdict_compliant': { label: 'Avis conformes', icon: CheckCircle2 },
-  'inspection.verdict_compliant_with_reserves': { label: 'Avis conformes avec réserves', icon: ClipboardCheck },
+  'inspection.verdict_compliant_with_reserves': {
+    label: 'Avis conformes avec réserves',
+    icon: ClipboardCheck,
+  },
   'inspection.verdict_non_compliant': { label: 'Avis non conformes', icon: XCircle },
   'inspection.visit_overdue': { label: 'Visites en retard', icon: AlarmClock },
   'inspection.blocked_by_payment': { label: 'Visites bloquées par paiement', icon: CreditCard },
@@ -144,7 +166,7 @@ export { formatCalendarDuration };
 /** The API value as is, with its unit; null = not computable. Working days
  *  stay in working days (no hours-per-working-day rule exists). */
 export function formatMetricValue(metric: Pick<RoleAnalyticsMetric, 'value' | 'unit'>): string {
-  if (metric.value === null) return '—';
+  if (metric.value === null) return '-';
   switch (metric.unit) {
     case 'count':
       return integer.format(metric.value);
@@ -158,8 +180,15 @@ export function formatMetricValue(metric: Pick<RoleAnalyticsMetric, 'value' | 'u
 }
 
 /** « +3 vs période précédente », « −2 … », « Stable »; null when absent. */
-export function previousPeriodText(metric: Pick<RoleAnalyticsMetric, 'value' | 'previousValue' | 'unit'>): string | null {
-  if (metric.unit !== 'count' || metric.previousValue === undefined || metric.previousValue === null || metric.value === null) {
+export function previousPeriodText(
+  metric: Pick<RoleAnalyticsMetric, 'value' | 'previousValue' | 'unit'>
+): string | null {
+  if (
+    metric.unit !== 'count' ||
+    metric.previousValue === undefined ||
+    metric.previousValue === null ||
+    metric.value === null
+  ) {
     return null;
   }
   const delta = metric.value - metric.previousValue;
@@ -169,12 +198,14 @@ export function previousPeriodText(metric: Pick<RoleAnalyticsMetric, 'value' | '
 
 export function sampleSizeText(sampleSize: number | undefined): string | null {
   if (sampleSize === undefined) return null;
-  return sampleSize === 1 ? 'Basé sur 1 dossier' : `Basé sur ${integer.format(sampleSize)} dossiers`;
+  return sampleSize === 1
+    ? 'Basé sur 1 dossier'
+    : `Basé sur ${integer.format(sampleSize)} dossiers`;
 }
 
 export function actorText(actor: RoleAnalyticsActivity['actor']): string {
-  if (!actor) return '—';
-  return actor.kind === 'applicant' ? 'Postulant' : actor.fullName || '—';
+  if (!actor) return '-';
+  return actor.kind === 'applicant' ? 'Postulant' : actor.fullName || '-';
 }
 
 const dateTime = new Intl.DateTimeFormat('fr-FR', {
@@ -185,13 +216,23 @@ const dateTime = new Intl.DateTimeFormat('fr-FR', {
   minute: '2-digit',
   timeZone: 'Africa/Libreville',
 });
-const dateOnly = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Africa/Libreville' });
+const dateOnly = new Intl.DateTimeFormat('fr-FR', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  timeZone: 'Africa/Libreville',
+});
 
 export const formatDateTime = (iso: string) => dateTime.format(new Date(iso));
 
-const timeOnly = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Libreville' });
+const timeOnly = new Intl.DateTimeFormat('fr-FR', {
+  hour: '2-digit',
+  minute: '2-digit',
+  timeZone: 'Africa/Libreville',
+});
 /** « 19/10/2026 à 09:30 » (Libreville). */
-export const formatGeneratedAt = (iso: string) => `${dateOnly.format(new Date(iso))} à ${timeOnly.format(new Date(iso))}`;
+export const formatGeneratedAt = (iso: string) =>
+  `${dateOnly.format(new Date(iso))} à ${timeOnly.format(new Date(iso))}`;
 export const formatDate = (iso: string) => dateOnly.format(new Date(iso));
 
 /** « 2026-10-01 » -> « 01/10/2026 » (the API's display dates are calendar dates). */

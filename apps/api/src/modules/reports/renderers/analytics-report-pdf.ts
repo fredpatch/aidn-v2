@@ -6,7 +6,7 @@ import { renderPhaseDurationSvg, renderTrendSvg } from './analytics-report-svg.j
 
 /** ANALYTICS-GLOBAL-UX-1 - analytics report identity (the application-wide
  *  branding sweep is BRAND-AIDN-OMA-1). */
-export const REPORT_BRAND = 'AIDN — OMA';
+export const REPORT_BRAND = 'AIDN - OMA';
 export const REPORT_INSTITUTION = 'Service OMA · Direction de la Navigabilité · ANAC Gabon';
 
 const REPORT_NOTES: Record<ReportKey, string> = {
@@ -38,14 +38,20 @@ function formatDate(value: string): string {
 
 function formatDateTime(value: string): string {
   const date = new Date(value);
-  const time = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Libreville' }).format(date);
+  const time = new Intl.DateTimeFormat('fr-FR', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Africa/Libreville',
+  }).format(date);
   return `${formatDate(value)} à ${time}`;
 }
 
 /** Display of a metric: a duration metric is formatted from its raw days;
  *  any other metric keeps the API text. */
 export function metricDisplayValue(metric: AnalyticsMetric): string {
-  return metric.unit === 'calendar_days' ? formatCalendarDuration(metric.rawValue ?? null) : metric.value;
+  return metric.unit === 'calendar_days'
+    ? formatCalendarDuration(metric.rawValue ?? null)
+    : metric.value;
 }
 
 function metricsByKey(snapshot: ReportSnapshot, keys: string[]): AnalyticsMetric[] {
@@ -74,7 +80,7 @@ function metricsTable(metrics: AnalyticsMetric[]): string {
           <td>${escapeHtml(metric.label)}</td>
           <td class="value">${escapeHtml(metricDisplayValue(metric))}</td>
           <td>${escapeHtml(metric.helper)}</td>
-          <td>${escapeHtml(metric.sampleSize ?? '—')}</td>
+          <td>${escapeHtml(metric.sampleSize ?? '-')}</td>
         </tr>`
     )
     .join('');
@@ -96,7 +102,7 @@ function renderGlossary(): string {
   const items = ANALYTICS_GLOSSARY.map(
     (entry) => `
         <div class="term">
-          <strong>${escapeHtml(entry.term)}</strong>${entry.meaning ? ` — ${escapeHtml(entry.meaning)}` : ''}
+          <strong>${escapeHtml(entry.term)}</strong>${entry.meaning ? ` - ${escapeHtml(entry.meaning)}` : ''}
           <span>${escapeHtml(entry.definition)}</span>
         </div>`
   ).join('');
@@ -151,7 +157,11 @@ function phaseRows(snapshot: ReportSnapshot, phaseCodes?: string[]): string {
     .join('');
 }
 
-function renderPhaseSection(snapshot: ReportSnapshot, title = 'Lecture par phase', phaseCodes?: string[]): string {
+function renderPhaseSection(
+  snapshot: ReportSnapshot,
+  title = 'Lecture par phase',
+  phaseCodes?: string[]
+): string {
   return `
     <section class="keep">
     <h2>${escapeHtml(title)}</h2>
@@ -182,7 +192,11 @@ function blockerCards(snapshot: ReportSnapshot, keys?: string[]): string {
     .join('');
 }
 
-function renderBlockersSection(snapshot: ReportSnapshot, title = 'Points de blocage', keys?: string[]): string {
+function renderBlockersSection(
+  snapshot: ReportSnapshot,
+  title = 'Points de blocage',
+  keys?: string[]
+): string {
   const cards = blockerCards(snapshot, keys);
   if (!cards) return '';
   return `<h2>${escapeHtml(title)}</h2><div class="blockers keep">${cards}</div>`;
@@ -213,7 +227,11 @@ function delayedRows(snapshot: ReportSnapshot, phaseCodes?: string[]): string {
     .join('');
 }
 
-function renderDelayedSection(snapshot: ReportSnapshot, title = 'Dossiers les plus en retard', phaseCodes?: string[]): string {
+function renderDelayedSection(
+  snapshot: ReportSnapshot,
+  title = 'Dossiers les plus en retard',
+  phaseCodes?: string[]
+): string {
   return `
     <section class="keep">
     <h2>${escapeHtml(title)}</h2>
@@ -243,7 +261,7 @@ function trendRows(snapshot: ReportSnapshot): string {
 function renderTrendTable(snapshot: ReportSnapshot): string {
   return `
     <section class="keep">
-    <h2>Évolution du délai de traitement — détail</h2>
+    <h2>Évolution du délai de traitement - détail</h2>
     <table>
       <thead><tr><th>Période débutant le</th><th>Délai moyen</th><th>Médiane</th></tr></thead>
       <tbody>${trendRows(snapshot)}</tbody>
@@ -254,7 +272,11 @@ function renderTrendTable(snapshot: ReportSnapshot): string {
 function reportMetrics(snapshot: ReportSnapshot): AnalyticsMetric[] {
   switch (snapshot.reportKey) {
     case 'processing_delay':
-      return metricsByKey(snapshot, ['average_processing_duration', 'median_processing_duration', 'inactivity']);
+      return metricsByKey(snapshot, [
+        'average_processing_duration',
+        'median_processing_duration',
+        'inactivity',
+      ]);
     case 'sla':
       return metricsByKey(snapshot, ['sla_compliance', 'outside_sla']);
     case 'bottlenecks':

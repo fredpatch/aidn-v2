@@ -40,14 +40,27 @@ afterEach(() => vi.restoreAllMocks());
 
 const payment = (over: Partial<FinanceQueueItem>): FinanceQueueItem =>
   finance({
-    requestReference: 'DEM-K7C-01', organisationName: 'OMA K7c', bucket: 'proof_to_validate', actionKey: 'validate_payment_proof',
+    requestReference: 'DEM-K7C-01',
+    organisationName: 'OMA K7c',
+    bucket: 'proof_to_validate',
+    actionKey: 'validate_payment_proof',
     payment: financePayment({
-      status: 'pending_validation', invoiceFileUrl: '/api/files/facture.pdf', invoiceUploadedAt: AT,
-      proofFileUrl: '/api/files/preuve.pdf', proofUploadedAt: AT,
+      status: 'pending_validation',
+      invoiceFileUrl: '/api/files/facture.pdf',
+      invoiceUploadedAt: AT,
+      proofFileUrl: '/api/files/preuve.pdf',
+      proofUploadedAt: AT,
     }),
-    ...open, ...over,
+    ...open,
+    ...over,
   });
-const FINANCE_COUNTS = { invoice_to_send: 0, proof_to_validate: 1, awaiting_applicant: 0, done: 0, inactive: 0 };
+const FINANCE_COUNTS = {
+  invoice_to_send: 0,
+  proof_to_validate: 1,
+  awaiting_applicant: 0,
+  done: 0,
+  inactive: 0,
+};
 const queue = (item: FinanceQueueItem, counts = FINANCE_COUNTS) => ({ items: [item], counts });
 
 describe('<S5PaymentsPage> (K7c)', () => {
@@ -57,14 +70,23 @@ describe('<S5PaymentsPage> (K7c)', () => {
 
   it('closed dossier: badge, "Dossier clos" note, no validate / reject, documents still listed', async () => {
     responses['/payments/finance-queue'] = queue(
-      payment({ ...closed, bucket: 'inactive', state: 'done', owner: null, actionKey: 'none', blockReason: 'dossier_closed' }),
+      payment({
+        ...closed,
+        bucket: 'inactive',
+        state: 'done',
+        owner: null,
+        actionKey: 'none',
+        blockReason: 'dossier_closed',
+      }),
       { ...FINANCE_COUNTS, proof_to_validate: 0, inactive: 1 }
     );
     renderWithProviders(<S5PaymentsPage />, { route: '/paiements-s5?tab=all' });
     const article = await screen.findByRole('article', { name: /DEM-K7C-01/ });
-    expect(within(article).getByText('Dossier clos — consultation uniquement')).toBeInTheDocument();
+    expect(within(article).getByText('Dossier clos - consultation uniquement')).toBeInTheDocument();
     expect(screen.getAllByText('Dossier rejeté').length).toBeGreaterThan(0);
-    expect(screen.queryByRole('button', { name: /Valider la preuve de paiement/ })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Valider la preuve de paiement/ })
+    ).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Rejeter/ })).not.toBeInTheDocument();
     expect(screen.getAllByText('Facture transmise').length).toBeGreaterThan(0); // documents still listed
   });
@@ -72,38 +94,83 @@ describe('<S5PaymentsPage> (K7c)', () => {
   it('open dossier: actions unchanged', async () => {
     responses['/payments/finance-queue'] = queue(payment({}));
     renderWithProviders(<S5PaymentsPage />, { route: '/paiements-s5?tab=proof_to_validate' });
-    expect(await screen.findByRole('button', { name: /Valider la preuve de paiement/ })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: /Valider la preuve de paiement/ })
+    ).toBeInTheDocument();
     expect(screen.queryByText(/Dossier rejeté/)).not.toBeInTheDocument();
   });
 
   it('SESSION1-MEET-2 - a held site visit shows no compte-rendu rows', async () => {
     responses['/meetings'] = cockpit(
-      meeting({ meetingType: 'site_visit', meetingTypeLabel: 'Visite sur site', phaseCode: 'M6', canManage: false, crDocumentUrl: null, crUploadedAt: null })
+      meeting({
+        meetingType: 'site_visit',
+        meetingTypeLabel: 'Visite sur site',
+        phaseCode: 'M6',
+        canManage: false,
+        crDocumentUrl: null,
+        crUploadedAt: null,
+      })
     );
     renderWithProviders(<MeetingsPage />);
     fireEvent.click(await screen.findByText('Liste'));
     fireEvent.click(await screen.findByText('DEM-K7C-01'));
     expect(screen.queryByRole('region', { name: 'Compte rendu DN' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('region', { name: 'Compte rendu signé par le postulant' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('region', { name: 'Compte rendu signé par le postulant' })
+    ).not.toBeInTheDocument();
   });
 });
 
 const meeting = (over: Partial<MeetingCockpitItem>): MeetingCockpitItem => ({
-  id: 7, phaseId: 3, phaseCode: 'M3', phaseLabel: 'Préliminaire', phaseStatus: 'open', requestId: 1,
-  requestReference: 'DEM-K7C-01', requestType: 'issuance', organisationName: 'OMA K7c', applicantName: 'P',
-  meetingType: 'preliminary', meetingTypeLabel: 'Reunion preliminaire', status: 'held', statusLabel: 'Tenue',
-  scheduledAt: SOON, location: 'Salle A', dnAgentId: 5, dnAgentName: 'Agent DN', crDocumentUrl: '/api/files/41',
-  crUploadedAt: AT, signedCrDocumentUrl: null, signedCrUploadedAt: null, ticketUrl: '/api/meetings/7/ticket', phaseHref: '/demandes/1/phase-preliminaire',
-  canManage: true, actionLabel: 'Compte-rendu depose', negotiation: CONFIRMED_NEGOTIATION, ...open, ...over,
+  id: 7,
+  phaseId: 3,
+  phaseCode: 'M3',
+  phaseLabel: 'Préliminaire',
+  phaseStatus: 'open',
+  requestId: 1,
+  requestReference: 'DEM-K7C-01',
+  requestType: 'issuance',
+  organisationName: 'OMA K7c',
+  applicantName: 'P',
+  meetingType: 'preliminary',
+  meetingTypeLabel: 'Reunion preliminaire',
+  status: 'held',
+  statusLabel: 'Tenue',
+  scheduledAt: SOON,
+  location: 'Salle A',
+  dnAgentId: 5,
+  dnAgentName: 'Agent DN',
+  crDocumentUrl: '/api/files/41',
+  crUploadedAt: AT,
+  signedCrDocumentUrl: null,
+  signedCrUploadedAt: null,
+  ticketUrl: '/api/meetings/7/ticket',
+  phaseHref: '/demandes/1/phase-preliminaire',
+  canManage: true,
+  actionLabel: 'Compte-rendu depose',
+  negotiation: CONFIRMED_NEGOTIATION,
+  ...open,
+  ...over,
 });
 
 function cockpit(item: MeetingCockpitItem): MeetingCockpitSummary {
-  return { periodStart: AT, periodEnd: AT, metrics: [], items: [item], upcoming: [item], missingReports: [], pendingNegotiations: [], updatedAt: AT };
+  return {
+    periodStart: AT,
+    periodEnd: AT,
+    metrics: [],
+    items: [item],
+    upcoming: [item],
+    missingReports: [],
+    pendingNegotiations: [],
+    updatedAt: AT,
+  };
 }
 
 describe('<MeetingsPage> (K7c)', () => {
   it('closed dossier: badge, no held / report actions, the CR stays viewable', async () => {
-    responses['/meetings'] = cockpit(meeting({ ...closed, canManage: false, actionLabel: 'Dossier clos' }));
+    responses['/meetings'] = cockpit(
+      meeting({ ...closed, canManage: false, actionLabel: 'Dossier clos' })
+    );
     renderWithProviders(<MeetingsPage />);
     fireEvent.click(await screen.findByText('Liste'));
     fireEvent.click(await screen.findByText('DEM-K7C-01'));
@@ -111,8 +178,12 @@ describe('<MeetingsPage> (K7c)', () => {
     expect(screen.getByText(/la réunion reste consultable, aucune action/)).toBeInTheDocument();
     const dnReport = screen.getByRole('region', { name: 'Compte rendu DN' });
     expect(within(dnReport).getByRole('button', { name: 'Consulter' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Remplacer le compte rendu/ })).not.toBeInTheDocument();
-    expect(screen.queryByText(/Les actions de la Cellule Inspection restent disponibles/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Remplacer le compte rendu/ })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Les actions de la Cellule Inspection restent disponibles/)
+    ).not.toBeInTheDocument();
   });
 
   it('open dossier: report form unchanged', async () => {
@@ -126,18 +197,38 @@ describe('<MeetingsPage> (K7c)', () => {
 });
 
 const task = (over: Partial<CourrierTask>): CourrierTask =>
-  courrier({ requestReference: 'DEM-K7C-01', organisationName: 'OMA K7c', applicantName: 'P', stepSince: AT, depositedAt: AT, ...open, ...over });
+  courrier({
+    requestReference: 'DEM-K7C-01',
+    organisationName: 'OMA K7c',
+    applicantName: 'P',
+    stepSince: AT,
+    depositedAt: AT,
+    ...open,
+    ...over,
+  });
 const COUNTS = { to_print: 1, with_dg: 0, returned: 0, inactive: 0 };
-const tasks = (item: CourrierTask, counts = COUNTS) => ({ items: [item], counts, thresholds: { dgAlertWorkingDays: 3, depositDays: 1 } });
+const tasks = (item: CourrierTask, counts = COUNTS) => ({
+  items: [item],
+  counts,
+  thresholds: { dgAlertWorkingDays: 3, depositDays: 1 },
+});
 
 describe('<CourrierTasksPage> (K7c)', () => {
   it('closed dossier: badge, no print, the document stays viewable', async () => {
     responses['/courrier-tasks'] = tasks(
-      task({ ...closed, bucket: 'inactive', state: 'done', owner: null, actionKey: 'none', blockReason: 'dossier_closed', availableActions: [] }),
+      task({
+        ...closed,
+        bucket: 'inactive',
+        state: 'done',
+        owner: null,
+        actionKey: 'none',
+        blockReason: 'dossier_closed',
+        availableActions: [],
+      }),
       { to_print: 0, with_dg: 0, returned: 0, inactive: 1 }
     );
     renderWithProviders(<CourrierTasksPage />, { route: '/courriers?tab=all' });
-    expect(await screen.findByText('Dossier clos — consultation uniquement')).toBeInTheDocument();
+    expect(await screen.findByText('Dossier clos - consultation uniquement')).toBeInTheDocument();
     expect(screen.getAllByText('Dossier rejeté').length).toBeGreaterThan(0);
     expect(screen.queryByRole('button', { name: /Ouvrir \/ imprimer/ })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Voir le document/ })).toBeInTheDocument();
@@ -152,7 +243,12 @@ describe('<CourrierTasksPage> (K7c)', () => {
 });
 
 const mission = (over: Partial<InspectionQueueItem>) =>
-  inspectionMission({ requestReference: 'DEM-K7C-01', organisationName: 'OMA K7c', ...open, ...over });
+  inspectionMission({
+    requestReference: 'DEM-K7C-01',
+    organisationName: 'OMA K7c',
+    ...open,
+    ...over,
+  });
 const MISSION_COUNTS = { to_hold: 0, verdict_due: 0, awaiting_payment: 0, closed: 0, inactive: 0 };
 
 describe('<MyInspectionsPage> (K7c)', () => {
@@ -162,18 +258,34 @@ describe('<MyInspectionsPage> (K7c)', () => {
 
   it('closed dossier: listed as closed, no "Enregistrer la tenue", reason shown', async () => {
     responses['/site-inspection/my-queue'] = {
-      items: [mission({ ...closed, bucket: 'inactive', state: 'done', owner: null, actionKey: 'none', blockReason: 'dossier_closed' })],
+      items: [
+        mission({
+          ...closed,
+          bucket: 'inactive',
+          state: 'done',
+          owner: null,
+          actionKey: 'none',
+          blockReason: 'dossier_closed',
+        }),
+      ],
       counts: { ...MISSION_COUNTS, inactive: 1 },
     };
     renderWithProviders(<MyInspectionsPage />, { route: '/mes-inspections?tab=all' });
-    expect((await screen.findAllByText('Dossier clos — consultation uniquement')).length).toBeGreaterThan(0);
+    expect(
+      (await screen.findAllByText('Dossier clos - consultation uniquement')).length
+    ).toBeGreaterThan(0);
     expect(screen.getAllByText('Dossier rejeté').length).toBeGreaterThan(0);
-    expect(screen.getByText(/Aucune action de la Cellule Inspection n’est possible/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Aucune action de la Cellule Inspection n’est possible/)
+    ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Enregistrer la tenue/ })).not.toBeInTheDocument();
   });
 
   it('open dossier: unchanged', async () => {
-    responses['/site-inspection/my-queue'] = { items: [mission({})], counts: { ...MISSION_COUNTS, to_hold: 1 } };
+    responses['/site-inspection/my-queue'] = {
+      items: [mission({})],
+      counts: { ...MISSION_COUNTS, to_hold: 1 },
+    };
     renderWithProviders(<MyInspectionsPage />);
     expect(await screen.findByRole('button', { name: /Enregistrer la tenue/ })).toBeInTheDocument();
     expect(screen.queryByText(/Dossier rejeté/)).not.toBeInTheDocument();
@@ -184,12 +296,19 @@ describe('queryClient: DOSSIER_CLOSED also reloads the staff work lists (K7c)', 
   it('invalidates the Finance queue, the R3 queue and the meetings', async () => {
     const invalidate = vi.spyOn(appQueryClient, 'invalidateQueries').mockResolvedValue();
     const error = new AxiosError('refused', 'ERR_BAD_REQUEST', undefined, undefined, {
-      status: 409, statusText: '', headers: {}, config: { headers: new AxiosHeaders() },
+      status: 409,
+      statusText: '',
+      headers: {},
+      config: { headers: new AxiosHeaders() },
       data: { message: 'refused', code: 'DOSSIER_CLOSED' },
     });
-    const mutation = appQueryClient.getMutationCache().build(appQueryClient, { mutationFn: () => Promise.reject(error) });
+    const mutation = appQueryClient
+      .getMutationCache()
+      .build(appQueryClient, { mutationFn: () => Promise.reject(error) });
     await mutation.execute(undefined).catch(() => undefined);
-    await waitFor(() => expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.meetings.all }));
+    await waitFor(() =>
+      expect(invalidate).toHaveBeenCalledWith({ queryKey: queryKeys.meetings.all })
+    );
     for (const queryKey of [
       queryKeys.payments.financeQueue(),
       queryKeys.siteInspection.myQueue(),

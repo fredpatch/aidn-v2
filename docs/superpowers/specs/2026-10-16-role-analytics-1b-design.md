@@ -1,4 +1,4 @@
-# ROLE-ANALYTICS-1B — Durcissement temps, SLA et fondation analytics rôle
+# ROLE-ANALYTICS-1B - Durcissement temps, SLA et fondation analytics rôle
 
 Status: implemented. Base: `e2250fc`. Source audit: ROLE-ANALYTICS-1A (conversation report, 2026-10-16).
 
@@ -24,16 +24,16 @@ Not done: rewriting historical rows. Dev/test simply use the corrected behaviour
 
 `modules/analytics/period.ts`: `resolveAnalyticsPeriod({ period, from, to }, now)` → `RoleAnalyticsPeriod`.
 
-Libreville = fixed UTC+1 (no DST), the convention already used by `@aidn/shared` `workingDays.ts`; all arithmetic is `Date.UTC` on shifted instants — never server-local `new Date(y, m, d)`.
+Libreville = fixed UTC+1 (no DST), the convention already used by `@aidn/shared` `workingDays.ts`; all arithmetic is `Date.UTC` on shifted instants - never server-local `new Date(y, m, d)`.
 
-| Preset | Range (Libreville midnight boundaries) |
-|---|---|
-| `today` | [D, D+1) |
-| `last_7_days` | [D−6, D+1) |
-| `last_30_days` | [D−29, D+1) |
-| `this_month` | [1st of month, 1st of next month) |
-| `previous_month` | [1st of previous month, 1st of month) |
-| `custom` | [from, to+1) — `from`/`to` = `YYYY-MM-DD`, inclusive |
+| Preset           | Range (Libreville midnight boundaries)               |
+| ---------------- | ---------------------------------------------------- |
+| `today`          | [D, D+1)                                             |
+| `last_7_days`    | [D−6, D+1)                                           |
+| `last_30_days`   | [D−29, D+1)                                          |
+| `this_month`     | [1st of month, 1st of next month)                    |
+| `previous_month` | [1st of previous month, 1st of month)                |
+| `custom`         | [from, to+1) - `from`/`to` = `YYYY-MM-DD`, inclusive |
 
 `displayFrom` / `displayTo` are the inclusive Libreville dates (`this_month` shows the whole month). Rejected with `400 INVALID_ANALYTICS_PERIOD`: missing/unknown preset, custom without both dates, not a real `YYYY-MM-DD`, `from > to`, more than 366 calendar days.
 
@@ -41,20 +41,20 @@ Libreville = fixed UTC+1 (no DST), the convention already used by `@aidn/shared`
 
 `modules/analytics/audit-events.ts`: semantic event → current and legacy audit actions, verified against emitters (not names). `actionsFor(event)` returns both lists. Each action belongs to at most one event; each is in `AUDIT_ENTITY_BY_ACTION` (dossier link resolvable).
 
-| Event | Current | Legacy | Actor |
-|---|---|---|---|
-| `courrier.sent_to_dg` | `COURRIER_SENT_TO_SIGNATURE` (courrier cockpit), `DG_CIRCUIT_SENT_TO_SIGNATURE` (requests route) | — | staff |
-| `courrier.dg_return_recorded` | `DG_ANNOTATION_RETURNED` (intake), `COURRIER_SIGNED_RETURNED` (M3 declaration, M4 letter), `FORMAL_LETTER_SIGNED` (M4 two-step) | `DG_CIRCUIT_SIGNED`, `DG_CIRCUIT_SIGNED_RETURNED` | staff |
-| `dn_circuit.sent_to_director` | `DN_ANNOTATION_SENT_TO_DIRECTOR` | — | staff |
-| `dn_circuit.return_recorded` | `DN_ANNOTATION_RETURNED` | — | staff |
-| `finance.invoice_uploaded` | `INVOICE_UPLOADED` | — | staff |
-| `finance.proof_uploaded` | `PAYMENT_PROOF_UPLOADED` | — | applicant (not recorded) |
-| `finance.payment_validated` | `PAYMENT_VALIDATED` | — | staff |
-| `finance.payment_rejected` | `PAYMENT_REJECTED` | — | staff |
-| `inspection.visit_held` | `SITE_VISIT_HELD` | — | staff |
-| `inspection.verdict_submitted` | `INSPECTION_VERDICT_SUBMITTED` | — | staff |
+| Event                          | Current                                                                                                                         | Legacy                                            | Actor                    |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- | ------------------------ |
+| `courrier.sent_to_dg`          | `COURRIER_SENT_TO_SIGNATURE` (courrier cockpit), `DG_CIRCUIT_SENT_TO_SIGNATURE` (requests route)                                | -                                                 | staff                    |
+| `courrier.dg_return_recorded`  | `DG_ANNOTATION_RETURNED` (intake), `COURRIER_SIGNED_RETURNED` (M3 declaration, M4 letter), `FORMAL_LETTER_SIGNED` (M4 two-step) | `DG_CIRCUIT_SIGNED`, `DG_CIRCUIT_SIGNED_RETURNED` | staff                    |
+| `dn_circuit.sent_to_director`  | `DN_ANNOTATION_SENT_TO_DIRECTOR`                                                                                                | -                                                 | staff                    |
+| `dn_circuit.return_recorded`   | `DN_ANNOTATION_RETURNED`                                                                                                        | -                                                 | staff                    |
+| `finance.invoice_uploaded`     | `INVOICE_UPLOADED`                                                                                                              | -                                                 | staff                    |
+| `finance.proof_uploaded`       | `PAYMENT_PROOF_UPLOADED`                                                                                                        | -                                                 | applicant (not recorded) |
+| `finance.payment_validated`    | `PAYMENT_VALIDATED`                                                                                                             | -                                                 | staff                    |
+| `finance.payment_rejected`     | `PAYMENT_REJECTED`                                                                                                              | -                                                 | staff                    |
+| `inspection.visit_held`        | `SITE_VISIT_HELD`                                                                                                               | -                                                 | staff                    |
+| `inspection.verdict_submitted` | `INSPECTION_VERDICT_SUBMITTED`                                                                                                  | -                                                 | staff                    |
 
-Deliberately not catalogued: `FORMAL_LETTER_TRANSMITTED` / `DG_CIRCUIT_PENDING_REVIEW` (hand-over to DN exists only on the two-step paths — a count would be partial); `MEETING_SCHEDULED` / `MEETING_HELD` / `MEETING_NO_SHOW` (shared by all meeting types; needs the meeting row to know it is a site visit).
+Deliberately not catalogued: `FORMAL_LETTER_TRANSMITTED` / `DG_CIRCUIT_PENDING_REVIEW` (hand-over to DN exists only on the two-step paths - a count would be partial); `MEETING_SCHEDULED` / `MEETING_HELD` / `MEETING_NO_SHOW` (shared by all meeting types; needs the meeting row to know it is a site visit).
 
 ## 5. Analytics helpers, SLA parameters, B1
 
@@ -67,12 +67,12 @@ Deliberately not catalogued: `FORMAL_LETTER_TRANSMITTED` / `DG_CIRCUIT_PENDING_R
 
 Shared (`packages/shared/src/role-analytics.ts`): domains, scopes, presets, units, reliability, `RoleAnalyticsPeriod`, `…Metric`, `…Warning` (deep link `href`, no label), `…Activity` (`eventKey`), `…TrendPoint`, `…Trend`, `…Overview`, event-key union, and the access matrix:
 
-| Domain | mine | service |
-|---|---|---|
-| courrier | reception, assistant_dg, SU | reception, assistant_dg, SU |
-| dn_circuit | assistant_dn, SU | assistant_dn, SU |
-| finance | s5_agent, SU | s5_agent, SU |
-| inspection | r3_agent, SU | SU |
+| Domain     | mine                        | service                     |
+| ---------- | --------------------------- | --------------------------- |
+| courrier   | reception, assistant_dg, SU | reception, assistant_dg, SU |
+| dn_circuit | assistant_dn, SU            | assistant_dn, SU            |
+| finance    | s5_agent, SU                | s5_agent, SU                |
+| inspection | r3_agent, SU                | SU                          |
 
 (SU `mine` = SU's own actions.)
 

@@ -125,7 +125,7 @@ export function RequestsList({
               {isClosedRequest(item) ? <ClosedDossierBadge status={item.status} /> : null}
             </span>
             <span className="col-span-2 truncate text-xs">
-              <span className="text-anac-muted">{item.currentPhaseLabel} — </span>
+              <span className="text-anac-muted">{item.currentPhaseLabel} - </span>
               <span className={cn('font-semibold', NEXT_ACTION_TEXT[item.nextActionTone])}>
                 {item.nextActionLabel}
               </span>

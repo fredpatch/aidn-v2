@@ -1,7 +1,7 @@
-# SESSION1-MEET-2 — Retour du compte rendu signé par le postulant
+# SESSION1-MEET-2 - Retour du compte rendu signé par le postulant
 
 **Date**: 2026-10-15 · **Status**: design approved (D1–D6), spec approved with corrections (one activity label, M6 DB check); amended before push (§14: one signed upload only, workflow and dashboard visibility)
-**Depends on**: SESSION1-MEET-1 (`2721c0c`) — not redesigned here.
+**Depends on**: SESSION1-MEET-1 (`2721c0c`) - not redesigned here.
 
 ## 1. Goal
 
@@ -25,13 +25,13 @@ MEET-2 adds documentary traceability only. Out of scope:
 
 ## 2. Frozen rules
 
-| Situation | Applicant | DN (`dn_agent`, `dn_supervisor`, `SU`) |
-|---|---|---|
-| M3/M4, dossier open, `held`, no DN CR | sees "pas encore disponible", no upload | uploads the CR |
-| M3/M4, dossier open, `held`, DN CR present, no signed copy | consults/downloads the CR, **uploads** the signed copy | consults, **replaces** the CR |
-| M3/M4, dossier open, `held`, DN CR + signed copy | consults both; **no** second upload (D3 revised, §14) | consults both; CR replacement **frozen** (D2) |
-| Dossier closed | read only | read only |
-| M6 `site_visit` | no DN CR, no signed copy | no DN CR (D1, now enforced by the API) |
+| Situation                                                  | Applicant                                              | DN (`dn_agent`, `dn_supervisor`, `SU`)        |
+| ---------------------------------------------------------- | ------------------------------------------------------ | --------------------------------------------- |
+| M3/M4, dossier open, `held`, no DN CR                      | sees "pas encore disponible", no upload                | uploads the CR                                |
+| M3/M4, dossier open, `held`, DN CR present, no signed copy | consults/downloads the CR, **uploads** the signed copy | consults, **replaces** the CR                 |
+| M3/M4, dossier open, `held`, DN CR + signed copy           | consults both; **no** second upload (D3 revised, §14)  | consults both; CR replacement **frozen** (D2) |
+| Dossier closed                                             | read only                                              | read only                                     |
+| M6 `site_visit`                                            | no DN CR, no signed copy                               | no DN CR (D1, now enforced by the API)        |
 
 - **Phase closure is unchanged.** M3/M4 can be closed without a DN CR and without a signed copy. `closePhase` gains no new gate.
 - **Exceptional corrections.** Correcting a DN CR after a signed return is handled manually, outside the workflow, until a real rectification mechanism is validated. No recovery route or action is built, and the UI does not promise one.
@@ -61,10 +61,10 @@ The third condition makes it physically impossible for an M6 meeting to hold a s
 
 New value in `document_owner_type`: `meeting_report_signed`.
 
-| Chain | `ownerType` | `ownerId` | Current file |
-|---|---|---|---|
-| DN original | `meeting_report` (unchanged) | meetingId | `meetings.cr_document_url` |
-| Applicant signed copy | `meeting_report_signed` | meetingId | `meetings.signed_cr_document_url` |
+| Chain                 | `ownerType`                  | `ownerId` | Current file                      |
+| --------------------- | ---------------------------- | --------- | --------------------------------- |
+| DN original           | `meeting_report` (unchanged) | meetingId | `meetings.cr_document_url`        |
+| Applicant signed copy | `meeting_report_signed`      | meetingId | `meetings.signed_cr_document_url` |
 
 The chains are independent by construction:
 
@@ -79,7 +79,7 @@ In `apps/api/src/modules/meetings/meeting-confirmation.ts`:
 
 ```ts
 /** SESSION1-MEET-2 - M3/M4 have a DN compte-rendu and its signed return; M6 has neither (K6). */
-export function acceptsMeetingReport(meetingType: MeetingType): boolean  // preliminary | formal
+export function acceptsMeetingReport(meetingType: MeetingType): boolean; // preliminary | formal
 ```
 
 It is used by two places:
@@ -91,7 +91,7 @@ For M6, both answer `409 MEETING_REPORT_NOT_APPLICABLE`.
 
 ## 5. API
 
-### 5.1 DN upload — `POST /api/meetings/:id/report` (changed)
+### 5.1 DN upload - `POST /api/meetings/:id/report` (changed)
 
 The existing order is unchanged:
 
@@ -106,7 +106,7 @@ Two checks are added after the claim, before the `held` check:
 
 The freeze is checked under the meeting row lock, so it is transactional against a concurrent applicant upload.
 
-### 5.2 Applicant upload — `POST /api/meetings/:id/signed-report` (new)
+### 5.2 Applicant upload - `POST /api/meetings/:id/signed-report` (new)
 
 - **Middleware:** `authenticateApplicant` only.
 - **Body:** `z.object({ uploadAssetId }).strict()`; an unknown key is a 400 `VALIDATION_ERROR`.
@@ -173,10 +173,10 @@ After commit: `relocateDossierAssetAfterCommit(assetId, target)`.
 
 ## 7. Audit
 
-| Action | Actor | `audit-request.ts` | Activity label |
-|---|---|---|---|
-| `MEETING_REPORT_ATTACHED` (unchanged) | user | `meeting` | Compte-rendu de réunion joint |
-| `MEETING_SIGNED_REPORT_SUBMITTED` | applicant | `meeting` | Compte rendu signé transmis par le postulant |
+| Action                                | Actor     | `audit-request.ts` | Activity label                               |
+| ------------------------------------- | --------- | ------------------ | -------------------------------------------- |
+| `MEETING_REPORT_ATTACHED` (unchanged) | user      | `meeting`          | Compte-rendu de réunion joint                |
+| `MEETING_SIGNED_REPORT_SUBMITTED`     | applicant | `meeting`          | Compte rendu signé transmis par le postulant |
 
 One label, one event per meeting (a replacement no longer exists, §14). `activityLabel()` maps action and module only, and is not extended for this task.
 
@@ -191,12 +191,12 @@ A new `components/meetings/MeetingReportPanel.tsx` is rendered for held M3/M4 me
 
 It replaces the weak "Consulter le compte-rendu" / "compte-rendu" text links. Actions are visible buttons.
 
-| State | Content |
-|---|---|
-| No DN CR | **Compte rendu de réunion** — « Le compte rendu n'est pas encore disponible. » |
-| DN CR, no signed copy | **Compte rendu transmis par la DN** · déposé le {date} · [Consulter le compte rendu] [Télécharger] · « Après signature, téléversez le compte rendu signé. » · [Déposer le compte rendu signé] |
-| Signed copy sent | Original block as above, then **Compte rendu signé transmis** · le {date à heure} · [Consulter] [Télécharger] · « Pour toute correction, contactez la Direction de la Navigabilité. » (no replacement, §14) |
-| Dossier closed | Same documents, no upload button |
+| State                 | Content                                                                                                                                                                                                     |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| No DN CR              | **Compte rendu de réunion** - « Le compte rendu n'est pas encore disponible. »                                                                                                                              |
+| DN CR, no signed copy | **Compte rendu transmis par la DN** · déposé le {date} · [Consulter le compte rendu] [Télécharger] · « Après signature, téléversez le compte rendu signé. » · [Déposer le compte rendu signé]               |
+| Signed copy sent      | Original block as above, then **Compte rendu signé transmis** · le {date à heure} · [Consulter] [Télécharger] · « Pour toute correction, contactez la Direction de la Navigabilité. » (no replacement, §14) |
+| Dossier closed        | Same documents, no upload button                                                                                                                                                                            |
 
 - **Upload flow:** the existing `lib/uploads.ts` helper (`POST /api/uploads`), then `POST /meetings/:id/signed-report`. The `meetings` and `requests` queries are invalidated afterwards.
 - **Button visibility:** driven by `canSubmitSignedReport` from the server.
@@ -211,7 +211,7 @@ A new shared `components/meetings/MeetingReportRows.tsx` is used in:
 
 It replaces the current inline CR block and shows two separated rows.
 
-**Row 1 — Compte rendu DN.**
+**Row 1 - Compte rendu DN.**
 
 - Badge: « Non déposé » or « Disponible ».
 - Actions:
@@ -221,7 +221,7 @@ It replaces the current inline CR block and shows two separated rows.
 - After a signed return, show instead of the action:
   > Le compte rendu ne peut plus être remplacé car une version signée a déjà été retournée par le postulant.
 
-**Row 2 — Compte rendu signé par le postulant.** Shown only once the DN CR exists.
+**Row 2 - Compte rendu signé par le postulant.** Shown only once the DN CR exists.
 
 - Badge: « En attente du postulant » (neutral) or « Reçu le {date} » (success tone, not an alert).
 - Actions once received: [Consulter] [Télécharger].
@@ -229,7 +229,7 @@ It replaces the current inline CR block and shows two separated rows.
 
 The row is not shown for M6. There is no new cockpit metric (D5), and K6's `lacksMeetingReport` is unchanged.
 
-## 10. Migration — `0010_session1_meet2_signed_report.sql`
+## 10. Migration - `0010_session1_meet2_signed_report.sql`
 
 ```sql
 ALTER TYPE "public"."document_owner_type" ADD VALUE 'meeting_report_signed';
@@ -249,14 +249,14 @@ ALTER TABLE "meetings" ADD CONSTRAINT "meetings_signed_cr_coherent_chk" CHECK (.
 
 ## 11. Concurrency and idempotency
 
-| Case | Outcome |
-|---|---|
-| Same asset submitted twice | `attached_here` → current view, no new version/audit |
-| Asset linked to another owner | `UPLOAD_ASSET_ALREADY_LINKED` |
-| Asset of another applicant / orphaned | `UPLOAD_ASSET_NOT_OWNED` / `UPLOAD_ASSET_ORPHANED` |
-| Two different signed uploads | Serialized on meeting `FOR UPDATE`; the second gets `MEETING_SIGNED_REPORT_ALREADY_SUBMITTED`, the first stays current (§14) |
-| DN replaces CR while the applicant signs | Same row lock. DN first → applicant signs the new CR; applicant first → DN gets `MEETING_REPORT_FROZEN_SIGNED` |
-| Dossier closes during upload | Dossier `FOR SHARE` blocks closure until commit, or upload sees `DOSSIER_CLOSED` |
+| Case                                     | Outcome                                                                                                                      |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Same asset submitted twice               | `attached_here` → current view, no new version/audit                                                                         |
+| Asset linked to another owner            | `UPLOAD_ASSET_ALREADY_LINKED`                                                                                                |
+| Asset of another applicant / orphaned    | `UPLOAD_ASSET_NOT_OWNED` / `UPLOAD_ASSET_ORPHANED`                                                                           |
+| Two different signed uploads             | Serialized on meeting `FOR UPDATE`; the second gets `MEETING_SIGNED_REPORT_ALREADY_SUBMITTED`, the first stays current (§14) |
+| DN replaces CR while the applicant signs | Same row lock. DN first → applicant signs the new CR; applicant first → DN gets `MEETING_REPORT_FROZEN_SIGNED`               |
+| Dossier closes during upload             | Dossier `FOR SHARE` blocks closure until commit, or upload sees `DOSSIER_CLOSED`                                             |
 
 ## 12. Tests
 
@@ -347,7 +347,7 @@ Decided after the first implementation, before any push. It supersedes D3 and th
 
 ### 14.3 Workflow and dashboard visibility (portal, from `canSubmitSignedReport` only)
 
-- **M3 / M4 phase summary**: « Action requise — Compte rendu à signer » / « Le compte rendu de votre réunion est disponible. Consultez-le, signez-le puis déposez la version signée. », with a link « Accéder au compte rendu » to the report panel (`#compte-rendu-<meetingId>`).
+- **M3 / M4 phase summary**: « Action requise - Compte rendu à signer » / « Le compte rendu de votre réunion est disponible. Consultez-le, signez-le puis déposez la version signée. », with a link « Accéder au compte rendu » to the report panel (`#compte-rendu-<meetingId>`).
 - **Priority in the phase summary**: the applicant actions that hold the phase back stay first (M3: the declaration to return, which gates the closure; M4: the letter to deposit and the missing pieces). Then the signed CR, which outranks every passive wording - « clôturée » included. Rendez-vous states cannot coexist with it (it needs a held meeting).
 - **Dossier banner**: the open phase's own action first; then a signed CR awaited on any phase, a closed one included; then the open phase's passive wording.
 - **Closed phase**: the API accepts the signed copy while the dossier is open, even after the M3 / M4 phase closed. Such a closed-phase row opens by default and its report panel offers the upload, driven by the API flag - a deliberate exception to "closed phase rows are read-only".

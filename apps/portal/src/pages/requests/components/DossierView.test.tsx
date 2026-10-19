@@ -10,26 +10,64 @@ import { DossierView } from './DossierView';
 
 const DAY = '2026-10-06T09:00:00.000Z';
 const payment = (status: string, proof: string | null = 'u/proof') => ({
-  id: 1, status, invoiceFileUrl: 'u/invoice', proofFileUrl: proof, rejectionReason: null,
+  id: 1,
+  status,
+  invoiceFileUrl: 'u/invoice',
+  proofFileUrl: proof,
+  rejectionReason: null,
 });
 const closed = (id: number) => ({ id, status: 'closed' });
 const BUNDLES: Record<PhaseCode, unknown> = {
   M3: {
     phase: closed(3),
-    meeting: { id: 9, scheduledAt: DAY, location: 'Salle', status: 'held', crDocumentUrl: null, crUploadedAt: null, signedCrDocumentUrl: null, signedCrUploadedAt: null, canSubmitSignedReport: false },
-    evaluation: { templateFileUrl: 'u/t', madeAvailableAt: DAY, returnDeadline: DAY, submittedFileUrl: null, submittedAt: null },
+    meeting: {
+      id: 9,
+      scheduledAt: DAY,
+      location: 'Salle',
+      status: 'held',
+      crDocumentUrl: null,
+      crUploadedAt: null,
+      signedCrDocumentUrl: null,
+      signedCrUploadedAt: null,
+      canSubmitSignedReport: false,
+    },
+    evaluation: {
+      templateFileUrl: 'u/t',
+      madeAvailableAt: DAY,
+      returnDeadline: DAY,
+      submittedFileUrl: null,
+      submittedAt: null,
+    },
   },
   M4: {
     phase: closed(4),
     letterCircuit: null,
-    documents: [{ id: null, slot: 's1', label: 'Manuel MPM', status: 'missing', fileUrl: null, submittedAt: null }],
+    documents: [
+      {
+        id: null,
+        slot: 's1',
+        label: 'Manuel MPM',
+        status: 'missing',
+        fileUrl: null,
+        submittedAt: null,
+      },
+    ],
     meeting: null,
     completionRate: 10,
   },
   M5: {
     phase: { id: 5, status: 'open' },
     payment: payment('awaiting_proof', null),
-    evaluations: [{ id: 1, slot: 'a', label: 'Doc A', currentFileUrl: null, verdict: 'needs_correction', correctionDeadline: null }],
+    evaluations: [
+      {
+        id: 1,
+        slot: 'a',
+        label: 'Doc A',
+        currentFileUrl: null,
+        verdict: 'needs_correction',
+        correctionDeadline: null,
+      },
+    ],
     completionRate: { total: 11, validated: 10 },
   },
   M6: { phase: null },
@@ -38,15 +76,24 @@ const BUNDLES: Record<PhaseCode, unknown> = {
 
 function request(over: Partial<RequestView> = {}): RequestView {
   return {
-    id: 42, reference: 'DEM-2026-10-05-OMAT-02', requestType: 'issuance', message: null, status: 'in_progress',
-    rejectionReason: null, circuitStatus: 'pending_review', circuitDocumentUrl: null, circuitDocumentMimeType: null,
-    createdAt: DAY, ...over,
+    id: 42,
+    reference: 'DEM-2026-10-05-OMAT-02',
+    requestType: 'issuance',
+    message: null,
+    status: 'in_progress',
+    rejectionReason: null,
+    circuitStatus: 'pending_review',
+    circuitDocumentUrl: null,
+    circuitDocumentMimeType: null,
+    createdAt: DAY,
+    ...over,
   };
 }
 
 function renderDossier(req: RequestView, onChanged = vi.fn(), actions: ApplicantAction[] = []) {
   const seed = (Object.keys(BUNDLES) as PhaseCode[]).map(
-    (code) => [queryKeys.requests.phase(req.id, code), BUNDLES[code]] as [readonly unknown[], unknown],
+    (code) =>
+      [queryKeys.requests.phase(req.id, code), BUNDLES[code]] as [readonly unknown[], unknown]
   );
   seed.push([queryKeys.requests.actions(), actions]);
   renderWithProviders(<DossierView request={req} onChanged={onChanged} />, { seed });
@@ -54,12 +101,21 @@ function renderDossier(req: RequestView, onChanged = vi.fn(), actions: Applicant
 }
 
 const action = (over: Partial<ApplicantAction>): ApplicantAction => ({
-  id: 'payment_proof:42:1', key: 'payment_proof', requestId: 42, requestReference: 'DEM-2026-10-05-OMAT-02',
-  phaseCode: 'M5', priority: 20, urgent: false, anchor: 'paiement-M5', dueAt: null, ...over,
+  id: 'payment_proof:42:1',
+  key: 'payment_proof',
+  requestId: 42,
+  requestReference: 'DEM-2026-10-05-OMAT-02',
+  phaseCode: 'M5',
+  priority: 20,
+  urgent: false,
+  anchor: 'paiement-M5',
+  dueAt: null,
+  ...over,
 });
 
 async function expandAllClosedPhases() {
-  for (const summary of document.querySelectorAll('details > summary')) await userEvent.click(summary as HTMLElement);
+  for (const summary of document.querySelectorAll('details > summary'))
+    await userEvent.click(summary as HTMLElement);
 }
 const uploadControls = () => document.querySelectorAll('input[type=file]');
 
@@ -76,7 +132,9 @@ describe('<DossierView> - read-only rules', () => {
     renderDossier(request({ status: 'rejected', rejectionReason: 'Manuel MPM non conforme' }));
     await expandAllClosedPhases();
     expect(uploadControls()).toHaveLength(0);
-    expect(screen.queryByRole('button', { name: /Soumettre|Joindre|Annuler ma demande/ })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Soumettre|Joindre|Annuler ma demande/ })
+    ).not.toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent('Motif : Manuel MPM non conforme');
     expect(screen.getByText('Consulter la facture')).toBeInTheDocument(); // files stay viewable
   });
@@ -88,7 +146,15 @@ describe('<DossierView> - SESSION1-MEET-2 signed compte rendu', () => {
     const seed = (Object.keys(BUNDLES) as PhaseCode[]).map((code) => {
       const bundle =
         code === 'M3'
-          ? { ...m3, meeting: { ...m3.meeting, crDocumentUrl: '/api/files/101', crUploadedAt: DAY, canSubmitSignedReport: true } }
+          ? {
+              ...m3,
+              meeting: {
+                ...m3.meeting,
+                crDocumentUrl: '/api/files/101',
+                crUploadedAt: DAY,
+                canSubmitSignedReport: true,
+              },
+            }
           : BUNDLES[code];
       return [queryKeys.requests.phase(req.id, code), bundle] as [readonly unknown[], unknown];
     });
@@ -97,7 +163,13 @@ describe('<DossierView> - SESSION1-MEET-2 signed compte rendu', () => {
       queryKeys.requests.actions(),
       [
         action({}),
-        action({ id: 'signed_meeting_report:42:9', key: 'signed_meeting_report', phaseCode: 'M3', priority: 80, anchor: 'compte-rendu-9' }),
+        action({
+          id: 'signed_meeting_report:42:9',
+          key: 'signed_meeting_report',
+          phaseCode: 'M3',
+          priority: 80,
+          anchor: 'compte-rendu-9',
+        }),
       ],
     ]);
     renderWithProviders(<DossierView request={req} onChanged={vi.fn()} />, { seed });
@@ -106,20 +178,31 @@ describe('<DossierView> - SESSION1-MEET-2 signed compte rendu', () => {
   it('a closed M3 whose compte rendu awaits the signed copy (API flag): row opened, the only extra control is that upload', () => {
     renderWithReportToSign(request());
     const panel = screen.getByRole('region', { name: 'Compte rendu de réunion' });
-    expect(within(panel).getByRole('button', { name: 'Déposer le compte rendu signé' })).toBeInTheDocument();
+    expect(
+      within(panel).getByRole('button', { name: 'Déposer le compte rendu signé' })
+    ).toBeInTheDocument();
     expect(uploadControls()).toHaveLength(3); // M5 payment proof + correction + the signed copy
     // The first listed action (payment proof) is the dossier banner...
     const banner = screen.getByRole('status');
-    expect(banner).toHaveTextContent('Téléchargez la facture puis déposez votre quittance de paiement.');
-    expect(within(banner).getByRole('link', { name: 'Déposer la quittance' })).toHaveAttribute('href', '#paiement-M5');
+    expect(banner).toHaveTextContent(
+      'Téléchargez la facture puis déposez votre quittance de paiement.'
+    );
+    expect(within(banner).getByRole('link', { name: 'Déposer la quittance' })).toHaveAttribute(
+      'href',
+      '#paiement-M5'
+    );
     // ...the M3 summary carries the signed-report action and its link.
-    expect(screen.getByText('Action requise — Compte rendu à signer')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Accéder au compte rendu' })).toHaveAttribute('href', '#compte-rendu-9');
+    expect(screen.getByText('Action requise - Compte rendu à signer')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Accéder au compte rendu' })).toHaveAttribute(
+      'href',
+      '#compte-rendu-9'
+    );
   });
 });
 
 describe('<DossierView> - rejected dossier', () => {
-  const rejected = () => request({ status: 'rejected', rejectionReason: 'Manuel MPM non conforme' });
+  const rejected = () =>
+    request({ status: 'rejected', rejectionReason: 'Manuel MPM non conforme' });
 
   it('the phase open at rejection reads "Interrompue", never "En cours"', () => {
     renderDossier(rejected());
@@ -132,7 +215,9 @@ describe('<DossierView> - rejected dossier', () => {
 
   it('the interrupted phase is listed with the closed ones, not as an open card', () => {
     renderDossier(rejected());
-    const rows = Array.from(document.querySelectorAll('details > summary')).map((el) => el.textContent);
+    const rows = Array.from(document.querySelectorAll('details > summary')).map(
+      (el) => el.textContent
+    );
     expect(rows).toHaveLength(3);
     expect(rows[0]).toContain('Évaluation approfondie');
     expect(rows[0]).toContain('Interrompue');
@@ -143,7 +228,10 @@ describe('<DossierView> - rejected dossier', () => {
     renderDossier(request());
     expect(screen.queryByText('Interrompue')).not.toBeInTheDocument();
     const strip = screen.getByRole('list', { name: 'Avancement du dossier' });
-    expect(within(strip).getByText('Évaluation').closest('li')).toHaveAttribute('aria-current', 'step');
+    expect(within(strip).getByText('Évaluation').closest('li')).toHaveAttribute(
+      'aria-current',
+      'step'
+    );
   });
 });
 
@@ -164,7 +252,9 @@ describe('<DossierView> - cancel confirmation', () => {
     const post = vi.spyOn(api, 'post');
     renderDossier(fresh());
     await userEvent.click(screen.getByRole('button', { name: 'Annuler ma demande' }));
-    const dialog = screen.getByRole('dialog', { name: /Annuler la demande DEM-2026-10-05-OMAT-02/ });
+    const dialog = screen.getByRole('dialog', {
+      name: /Annuler la demande DEM-2026-10-05-OMAT-02/,
+    });
     expect(dialog).toHaveAttribute('aria-modal', 'true');
     expect(within(dialog).getByRole('button', { name: 'Garder ma demande' })).toHaveFocus();
     expect(post).not.toHaveBeenCalled();

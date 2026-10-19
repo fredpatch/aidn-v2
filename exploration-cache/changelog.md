@@ -9,10 +9,10 @@ unread/activity batch.
   /pilotage, /analytique and the PDF: « 2 h 24 min », « 4 j 19 h »; SLA targets stay whole calendar days.
 - API (backwards-compatible): duration metrics of `/analytics/overview` add `rawValue` + `unit: 'calendar_days'`;
   `value` keeps its legacy text. No calculation, SLA or workflow change.
-- /analytique: « AIDN — OMA » identity, readable KPI cards / phase list / delayed dossiers, « Comprendre les
+- /analytique: « AIDN - OMA » identity, readable KPI cards / phase list / delayed dossiers, « Comprendre les
   indicateurs » with the glossary (KPI, SLA, moyenne, médiane, jours calendaires / ouvrés), charts with unit, readable
   tooltips and an explicit « Cible SLA » series.
-- Analytics PDF: « AIDN — OMA » + « Service OMA · Direction de la Navigabilité · ANAC Gabon », « Repères de lecture »,
+- Analytics PDF: « AIDN - OMA » + « Service OMA · Direction de la Navigabilité · ANAC Gabon », « Repères de lecture »,
   inline SVG charts (trend: full_report, processing_delay; phase vs SLA: full_report, processing_delay, sla), readable
   durations and clearer table headers, sections kept on one page. Excel unchanged (numeric cells stay numeric).
 - No migration, no new dependency.
@@ -25,7 +25,7 @@ unread/activity batch.
 - Calendar-day durations read as hours and minutes below one day (« 2 h 24 min ») and as days and hours from one day
   (« 2 j 12 h »); working days stay « X j ouvrés »; display only.
 - « Imprimer » (`window.print()`): A4 portrait print layout (Tailwind `print:`), sidebar / top bar / filters /
-  pagination / links hidden, a print header (AIDN — Rapport de pilotage, périmètre, vue, période, généré le) and every
+  pagination / links hidden, a print header (AIDN - Rapport de pilotage, périmètre, vue, période, généré le) and every
   loaded activity row. No API change, no migration, no new dependency.
 
 ## 2026-10-19 ROLE-ANALYTICS-1F: /pilotage admin page
@@ -37,7 +37,7 @@ unread/activity batch.
 - Period presets and custom YYYY-MM-DD dates are sent as chosen (the API resolves them; the resolved dates are shown).
   Metric cards (« Sur la période » / « Situation actuelle ») show API values with units, sample size, previous-period
   delta (neutral styling) and caveats in plain French; « Points d’attention » link to the cockpit given by the API;
-  « Activité récente » shows staff names, « Postulant » or « — ».
+  « Activité récente » shows staff names, « Postulant » or « - ».
 - Typed client `lib/api/role-analytics.api.ts` (shared types), query key per domain / scope / period / dates.
 - No API change, no migration.
 
@@ -166,14 +166,14 @@ unread/activity batch.
   `meetings/meeting-signed-report.service.ts`; DN CR frozen once a signed copy exists (409
   `MEETING_REPORT_FROZEN_SIGNED`); one signed upload only (a second file: 409
   `MEETING_SIGNED_REPORT_ALREADY_SUBMITTED`, nothing trashed); audit `MEETING_SIGNED_REPORT_SUBMITTED` (applicant actor)
-  + activity label; HTTP-level strict-body test. Also touched:
-  file-context / storage-context / address-rewrite (new owner type), applicant-view, bundle-meeting, meeting-write,
-  meetings controller / route / types / service, requests.service, dev-tools, schema.ts, error.ts.
+  - activity label; HTTP-level strict-body test. Also touched:
+    file-context / storage-context / address-rewrite (new owner type), applicant-view, bundle-meeting, meeting-write,
+    meetings controller / route / types / service, requests.service, dev-tools, schema.ts, error.ts.
 - Admin: shared `MeetingReportRows` on the Réunions page and the M3 / M4 meeting cards (DN CR + signed copy);
   the three DN report uploads now also refresh the page on error (a 409 frozen CR shows the received signed copy).
   User-visible change: the Réunions DN upload form no longer restricts file extensions client-side (same policy as
   the DN CR; the backend stays authoritative).
-- Portal: `MeetingReportPanel` in the meeting detail / M3 and M4 sections (no replacement); « Action requise —
+- Portal: `MeetingReportPanel` in the meeting detail / M3 and M4 sections (no replacement); « Action requise -
   Compte rendu à signer » in the M3 / M4 phase summary and dossier banner with a link to the panel; dashboard
   `ReportsToSignBanner`. A closed phase still awaiting the signed copy opens by default (the API rule is dossier-open).
 - No DN validation, no notification, no cockpit metric; phase closure needs neither file.

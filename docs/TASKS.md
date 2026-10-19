@@ -1171,7 +1171,7 @@ que K7a : consultation et téléchargement seulement ; l'API reste le filet de
 sécurité.
 
 - [x] API : `GET /phases/requests/:requestId/dossier-state` → `{ status,
-    closed, closedAt, rejectionReason }` (même public que `phases-summary` :
+  closed, closedAt, rejectionReason }` (même public que `phases-summary` :
       tout agent connecté, `GET /requests/:id` restant réservé à la DN).
       `closedAt` = dernière mise à jour (rien ne bouge un dossier clos depuis
       K7a) ; motif renvoyé seulement pour un rejet (une annulation n'en
@@ -1330,10 +1330,10 @@ validations simultanées.
 
 - [x] Migration `0004_k8b_one_certificate_per_request` : index unique
       `certificates_request_id_idx` (une seule instruction `CREATE UNIQUE
-    INDEX`, générée par `db:generate`). `db:migrate` applique les migrations
+  INDEX`, générée par `db:generate`). `db:migrate` applique les migrations
       dans une transaction : en cas de doublon, rien n'est appliqué
 - [x] Contrôle préalable en lecture seule : `npm run db:check:certificates --
-    --check` (`scripts/check-certificate-duplicates.ts`, requête dans
+  --check` (`scripts/check-certificate-duplicates.ts`, requête dans
       `certificates/certificate-duplicates.ts`) liste chaque demande ayant
       plusieurs certificats ; code de sortie 1 si un doublon existe. Ne
       supprime rien : le certificat à garder est une décision métier
@@ -1693,7 +1693,7 @@ rattachable reste NULL (aucune inférence).
 
 ### D3c (2026-10-09) - Demandes : non lues, dernière activité, repères (admin)
 
-Option B de la maquette « Demandes — maquette Outlook », validée par Fred.
+Option B de la maquette « Demandes - maquette Outlook », validée par Fred.
 
 - [x] Onglet « Non lues » (après « Toutes ») : vue transverse, pas un onglet
       exclusif ; jamais un dossier clos. Ligne non lue : pastille bleue,
@@ -1760,7 +1760,7 @@ Option B de la maquette « Demandes — maquette Outlook », validée par Fred.
       `/api/dashboard/reception-summary` et `/api/dashboard/r3-summary`, pages dédiées
       en cockpit opérationnel, home routing par rôle pur, retrait de la gestion des
       comptes postulants du périmètre Reception/Assistant, et redesign de `Mes
-    inspections` en tableau de missions R3 avec panneau de détail (2026-07-29)
+  inspections` en tableau de missions R3 avec panneau de détail (2026-07-29)
 - [x] Cockpit `Demandes` V1 : endpoint `/api/requests/cockpit`, KPIs, liste filtrée,
       panneau de détail à droite, synthèse documentaire Chart.js, actions terminales
       désactivées et suivi des dossiers clôturés/auditables (2026-07-30)

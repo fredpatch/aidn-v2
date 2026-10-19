@@ -10,12 +10,24 @@ import type { InspectionQueueItem } from '../../lib/api/site-inspection.types';
 import { apiErrorMessage } from '../../lib/axios';
 import { queryKeys } from '../../lib/react-query/queryKeys';
 import { formatRowDate } from '../../lib/dayGroups';
-import { defaultOrderFor, filterQueue, groupQueue, sortQueue, type AgeOrder } from '../../lib/cockpit/queue';
+import {
+  defaultOrderFor,
+  filterQueue,
+  groupQueue,
+  sortQueue,
+  type AgeOrder,
+} from '../../lib/cockpit/queue';
 import { useQueueTab } from '../../lib/cockpit/useQueueTab';
 import { useUrlSelection } from '../../lib/cockpit/useUrlSelection';
 import { cn } from '../../lib/utils';
 import { InspectionPane } from './InspectionPane';
-import { INSPECTION_TABS, INSPECTION_TAB_MODES, inspectionCallout, inspectionMetrics, type InspectionTab } from './inspectionCopy';
+import {
+  INSPECTION_TABS,
+  INSPECTION_TAB_MODES,
+  inspectionCallout,
+  inspectionMetrics,
+  type InspectionTab,
+} from './inspectionCopy';
 
 const EMPTY_COUNTS = { to_hold: 0, verdict_due: 0, awaiting_payment: 0, closed: 0, inactive: 0 };
 
@@ -30,7 +42,10 @@ export default function MyInspectionsPage() {
   const items = useMemo(() => query.data?.items ?? [], [query.data]);
   const counts = query.data?.counts ?? EMPTY_COUNTS;
 
-  const [tab, setTab] = useQueueTab<InspectionTab>(INSPECTION_TABS.map((t) => t.key), 'to_hold');
+  const [tab, setTab] = useQueueTab<InspectionTab>(
+    INSPECTION_TABS.map((t) => t.key),
+    'to_hold'
+  );
   const mode = INSPECTION_TAB_MODES[tab];
   const [order, setOrder] = useState<AgeOrder | null>(null);
   const effectiveOrder = order ?? defaultOrderFor(mode);
@@ -43,9 +58,9 @@ export default function MyInspectionsPage() {
   const visible = useMemo(
     () =>
       sortQueue(
-        filterQueue(items, tab, search, (item) => [item.requestReference, item.organisationName, item.siteVisit.location ?? ''].join(' ')).filter(
-          (item) => !selectedDay || dayKey(item.siteVisit.scheduledAt) === selectedDay
-        ),
+        filterQueue(items, tab, search, (item) =>
+          [item.requestReference, item.organisationName, item.siteVisit.location ?? ''].join(' ')
+        ).filter((item) => !selectedDay || dayKey(item.siteVisit.scheduledAt) === selectedDay),
         mode,
         effectiveOrder
       ),
@@ -56,10 +71,18 @@ export default function MyInspectionsPage() {
 
   return (
     <CockpitPage
-      title={roles.includes('SU') ? 'Inspections — Cellule Inspection' : 'Mes inspections'}
+      title={roles.includes('SU') ? 'Inspections - Cellule Inspection' : 'Mes inspections'}
       metrics={inspectionMetrics(items, counts)}
-      search={{ value: search, onChange: setSearch, placeholder: 'Dossier, opérateur, lieu...', label: 'Rechercher une inspection' }}
-      errors={[query.error ? apiErrorMessage(query.error, 'Impossible de charger les inspections.') : null, actionError]}
+      search={{
+        value: search,
+        onChange: setSearch,
+        placeholder: 'Dossier, opérateur, lieu...',
+        label: 'Rechercher une inspection',
+      }}
+      errors={[
+        query.error ? apiErrorMessage(query.error, 'Impossible de charger les inspections.') : null,
+        actionError,
+      ]}
       above={
         <CalendarStrip
           days={days}
@@ -70,7 +93,11 @@ export default function MyInspectionsPage() {
       }
       list={
         <QueueColumn
-          tabs={INSPECTION_TABS.map((t) => ({ key: t.key, label: t.label, count: t.key === 'all' ? items.length : counts[t.key] }))}
+          tabs={INSPECTION_TABS.map((t) => ({
+            key: t.key,
+            label: t.label,
+            count: t.key === 'all' ? items.length : counts[t.key],
+          }))}
           tab={tab}
           onTabChange={(next) => {
             setTab(next);
@@ -82,7 +109,13 @@ export default function MyInspectionsPage() {
           groups={groups}
           selectedId={selected?.id ?? null}
           status={query.isLoading ? 'loading' : query.error ? 'error' : 'ready'}
-          texts={{ loading: 'Chargement des inspections', error: 'Impossible de charger les inspections.', empty: 'Aucune inspection dans cette vue', listLabel: 'Inspections', noun: ['inspection', 'inspections'] }}
+          texts={{
+            loading: 'Chargement des inspections',
+            error: 'Impossible de charger les inspections.',
+            empty: 'Aucune inspection dans cette vue',
+            listLabel: 'Inspections',
+            noun: ['inspection', 'inspections'],
+          }}
           onSelect={(item) => {
             setActionError(null);
             select(item);
@@ -94,7 +127,15 @@ export default function MyInspectionsPage() {
           renderRow={(item) => <InspectionRow item={item} />}
         />
       }
-      pane={<InspectionPane key={selected?.id ?? 'none'} item={selected} roles={roles} setActionError={setActionError} actionButtonRef={actionButtonRef} />}
+      pane={
+        <InspectionPane
+          key={selected?.id ?? 'none'}
+          item={selected}
+          roles={roles}
+          setActionError={setActionError}
+          actionButtonRef={actionButtonRef}
+        />
+      }
     />
   );
 }
@@ -105,17 +146,30 @@ function InspectionRow({ item }: { item: InspectionQueueItem }) {
   return (
     <>
       <span className="truncate text-sm font-medium text-anac-text">{item.organisationName}</span>
-      <span className="whitespace-nowrap text-right text-[11px] text-anac-muted">{formatRowDate(item.siteVisit.scheduledAt)}</span>
+      <span className="whitespace-nowrap text-right text-[11px] text-anac-muted">
+        {formatRowDate(item.siteVisit.scheduledAt)}
+      </span>
       <span className="truncate text-xs text-anac-text/80">
         {item.requestReference}
         {item.siteVisit.location ? ` · ${item.siteVisit.location}` : ''}
       </span>
       <span className="flex justify-end gap-1.5">
         {item.dossierClosed ? <ClosedDossierBadge status={item.dossierStatus} /> : null}
-        {item.bucket === 'to_hold' ? <AgingBadge urgency={item.urgency} since={item.stepSince} dueAt={item.dueAt} /> : null}
+        {item.bucket === 'to_hold' ? (
+          <AgingBadge urgency={item.urgency} since={item.stepSince} dueAt={item.dueAt} />
+        ) : null}
       </span>
       <span className="col-span-2 truncate text-xs">
-        <span className={cn('font-semibold', item.state === 'action_required' ? 'text-anac-blue' : item.state === 'waiting' || item.state === 'blocked' ? 'text-anac-warning' : 'text-anac-muted')}>
+        <span
+          className={cn(
+            'font-semibold',
+            item.state === 'action_required'
+              ? 'text-anac-blue'
+              : item.state === 'waiting' || item.state === 'blocked'
+                ? 'text-anac-warning'
+                : 'text-anac-muted'
+          )}
+        >
           {inspectionCallout(item).title}
         </span>
       </span>
@@ -139,10 +193,15 @@ function CalendarStrip({
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h2 className="text-sm font-semibold text-anac-navy">Prochaines inspections</h2>
-          <p className="text-xs text-anac-muted">Volume de missions assignées sur les 7 prochains jours.</p>
+          <p className="text-xs text-anac-muted">
+            Volume de missions assignées sur les 7 prochains jours.
+          </p>
         </div>
         {selectedDay ? (
-          <button className="text-xs font-semibold text-anac-blue" onClick={() => onSelect(selectedDay)}>
+          <button
+            className="text-xs font-semibold text-anac-blue"
+            onClick={() => onSelect(selectedDay)}
+          >
             Voir toute la semaine
           </button>
         ) : null}
@@ -152,7 +211,9 @@ function CalendarStrip({
         style={{ gridTemplateColumns: 'repeat(7, minmax(118px, 1fr))' }}
       >
         {days.map((day) => {
-          const count = items.filter((item) => dayKey(item.siteVisit.scheduledAt) === day.key).length;
+          const count = items.filter(
+            (item) => dayKey(item.siteVisit.scheduledAt) === day.key
+          ).length;
           const active = selectedDay === day.key;
           return (
             <button

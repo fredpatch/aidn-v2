@@ -1,4 +1,4 @@
-# SESSION1-MEET-2 — Signed meeting report return: Implementation Plan
+# SESSION1-MEET-2 - Signed meeting report return: Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -7,6 +7,7 @@
 **Architecture:** Two columns on `meetings` hold the current signed file, and a new owner type `meeting_report_signed` holds its version chain beside the DN's `meeting_report` chain (same `meetingId`, same pattern as `payment_invoice` / `payment_proof`). There is one applicant-only command route, `POST /api/meetings/:id/signed-report`. It reuses MEET-1's ownership lock, the STORAGE-0B attach steps and the K7 closed-dossier guard. A policy helper in `meeting-confirmation.ts` keeps M6 out of both report flows.
 
 **Tech Stack:**
+
 - API: Express, Drizzle 0.45, PostgreSQL, `node:test` via `tsx --test`.
 - Front ends: React with Vite, vitest and Testing Library (admin and portal).
 
@@ -55,6 +56,7 @@
 ### Task 1: Migration 0010, schema columns and check, policy helpers
 
 **Files:**
+
 - Modify: `apps/api/src/shared/db/schema.ts` (enum `documentOwnerTypeEnum` ~line 166; table `meetings` ~line 432)
 - Create (generated): `apps/api/drizzle/0010_session1_meet2_signed_report.sql`, `apps/api/drizzle/meta/0010_snapshot.json`; modify `apps/api/drizzle/meta/_journal.json`
 - Modify: `apps/api/src/modules/meetings/meeting-confirmation.ts`
@@ -62,6 +64,7 @@
 - Modify: `apps/api/src/modules/meetings/meeting-confirmation.test.ts`
 
 **Interfaces:**
+
 - Produces:
   - schema columns `meetings.signedCrDocumentUrl: string | null` and `meetings.signedCrUploadedAt: Date | null` (so `MeetingRow` gains both);
   - enum value `'meeting_report_signed'`;
@@ -89,7 +92,10 @@ const sql = fs.readFileSync(path.join(drizzleDir, FILE), 'utf8');
 
 describe('migration 0010 (signed meeting report)', () => {
   it('adds the owner type value and writes no data', () => {
-    assert.match(sql, /ALTER TYPE "public"\."document_owner_type" ADD VALUE 'meeting_report_signed'/);
+    assert.match(
+      sql,
+      /ALTER TYPE "public"\."document_owner_type" ADD VALUE 'meeting_report_signed'/
+    );
     assert.doesNotMatch(sql, /\b(INSERT|UPDATE|DELETE)\b/i);
   });
 
@@ -97,7 +103,9 @@ describe('migration 0010 (signed meeting report)', () => {
     const using = fs
       .readdirSync(drizzleDir)
       .filter((name) => name.endsWith('.sql'))
-      .filter((name) => fs.readFileSync(path.join(drizzleDir, name), 'utf8').includes('meeting_report_signed'));
+      .filter((name) =>
+        fs.readFileSync(path.join(drizzleDir, name), 'utf8').includes('meeting_report_signed')
+      );
     assert.deepEqual(using, [FILE]);
   });
 
@@ -216,11 +224,19 @@ describe('SESSION1-MEET-2 report policy', () => {
     assert.equal(canApplicantSubmitSignedReport(held, false), true);
     assert.equal(canApplicantSubmitSignedReport({ ...held, meetingType: 'formal' }, false), true);
     assert.equal(canApplicantSubmitSignedReport(held, true), false, 'closed dossier');
-    assert.equal(canApplicantSubmitSignedReport({ ...held, crDocumentUrl: null }, false), false, 'no DN CR');
+    assert.equal(
+      canApplicantSubmitSignedReport({ ...held, crDocumentUrl: null }, false),
+      false,
+      'no DN CR'
+    );
     for (const status of ['scheduled', 'no_show', 'rescheduled', 'file_cancelled']) {
       assert.equal(canApplicantSubmitSignedReport({ ...held, status }, false), false, status);
     }
-    assert.equal(canApplicantSubmitSignedReport({ ...held, meetingType: 'site_visit' }, false), false, 'M6');
+    assert.equal(
+      canApplicantSubmitSignedReport({ ...held, meetingType: 'site_visit' }, false),
+      false,
+      'M6'
+    );
   });
 });
 ```
@@ -228,6 +244,7 @@ describe('SESSION1-MEET-2 report policy', () => {
 - [ ] **Step 7: Run the tests**
 
 Run:
+
 - `cd apps/api && npx tsx --test src/modules/meetings/meeting-signed-report.migrations.test.ts src/modules/meetings/meeting-confirmation.test.ts`
 - `npx tsx --test src/modules/meetings/meetings.migrations.test.ts src/modules/dn-annotation/dn-annotation.migrations.test.ts`
 
@@ -243,6 +260,7 @@ Expected: success. `db:check:committed` stays red until the files are committed 
 ### Task 2: Wire the new owner type (uploads, file access, storage, rewrite, dev-tools)
 
 **Files:**
+
 - Modify: `apps/api/src/modules/uploads/uploads.types.ts`
 - Modify: `apps/api/src/modules/files/file-context.ts:19-41,134-142`
 - Modify: `apps/api/src/modules/uploads/storage-context.ts:51-60,197-201`
@@ -251,6 +269,7 @@ Expected: success. `db:check:committed` stays red until the files are committed 
 - Test: `apps/api/src/modules/files/file-context.test.ts`, `apps/api/src/modules/uploads/storage-context.test.ts`
 
 **Interfaces:**
+
 - Consumes: enum value `meeting_report_signed` (Task 1).
 - Produces: `UploadOwnerType` includes `'meeting_report_signed'`, so `trashCurrentVersions`, `versionValues`, `RelocationTarget` and `AttachTarget` accept it. Its files resolve to dossier stage `M3` or `M4` and go to the `meeting-reports-signed` folder.
 
@@ -264,24 +283,49 @@ In `apps/api/src/modules/files/file-context.test.ts`:
 4. Add inside `describe('resolveAssetContext', ...)`:
 
 ```ts
-  it('SESSION1-MEET-2 - both CR chains: owning applicant and the DN roles only', async () => {
-    for (const [ownerType, ownerId] of [['meeting_report', 16], ['meeting_report_signed', 17]] as const) {
-      const context = await resolveAssetContext(asset({ linkedOwnerType: ownerType, linkedOwnerId: ownerId }), store);
-      assert.equal(canAccessFile({ kind: 'applicant', applicantId: 7 }, context), true, `${ownerType}: owner`);
-      assert.equal(canAccessFile({ kind: 'applicant', applicantId: 8 }, context), false, `${ownerType}: other applicant`);
-      for (const role of ['dn_agent', 'dn_supervisor', 'SU']) {
-        assert.equal(canAccessFile({ kind: 'staff', userId: 1, roles: [role] }, context), true, `${ownerType}: ${role}`);
-      }
-      for (const role of ['r3_agent', 's5_agent', 'reception', 'assistant_dg', 'assistant_dn']) {
-        assert.equal(canAccessFile({ kind: 'staff', userId: 1, roles: [role] }, context), false, `${ownerType}: ${role}`);
-      }
+it('SESSION1-MEET-2 - both CR chains: owning applicant and the DN roles only', async () => {
+  for (const [ownerType, ownerId] of [
+    ['meeting_report', 16],
+    ['meeting_report_signed', 17],
+  ] as const) {
+    const context = await resolveAssetContext(
+      asset({ linkedOwnerType: ownerType, linkedOwnerId: ownerId }),
+      store
+    );
+    assert.equal(
+      canAccessFile({ kind: 'applicant', applicantId: 7 }, context),
+      true,
+      `${ownerType}: owner`
+    );
+    assert.equal(
+      canAccessFile({ kind: 'applicant', applicantId: 8 }, context),
+      false,
+      `${ownerType}: other applicant`
+    );
+    for (const role of ['dn_agent', 'dn_supervisor', 'SU']) {
+      assert.equal(
+        canAccessFile({ kind: 'staff', userId: 1, roles: [role] }, context),
+        true,
+        `${ownerType}: ${role}`
+      );
     }
-  });
+    for (const role of ['r3_agent', 's5_agent', 'reception', 'assistant_dg', 'assistant_dn']) {
+      assert.equal(
+        canAccessFile({ kind: 'staff', userId: 1, roles: [role] }, context),
+        false,
+        `${ownerType}: ${role}`
+      );
+    }
+  }
+});
 
-  it('an owner type nobody mapped is unresolvable (fail-closed, SU only)', async () => {
-    const context = await resolveAssetContext(asset({ linkedOwnerType: 'not_mapped_yet', linkedOwnerId: 17 }), store);
-    assert.deepEqual(context, { kind: 'unresolvable' });
-  });
+it('an owner type nobody mapped is unresolvable (fail-closed, SU only)', async () => {
+  const context = await resolveAssetContext(
+    asset({ linkedOwnerType: 'not_mapped_yet', linkedOwnerId: 17 }),
+    store
+  );
+  assert.deepEqual(context, { kind: 'unresolvable' });
+});
 ```
 
 - [ ] **Step 2: Write the failing storage-context tests**
@@ -292,20 +336,20 @@ In `apps/api/src/modules/uploads/storage-context.test.ts`:
 2. Add after the `meeting_report` test:
 
 ```ts
-  it('meeting_report_signed resolves through meetings.phaseId into its own folder (SESSION1-MEET-2)', async () => {
-    for (const phaseCode of ['M3', 'M4'] as const) {
-      const ctx = await resolveStorageContext(
-        'meeting_report_signed',
-        7,
-        deps({ meetingReport: async () => ({ reference: 'DEM-REF', phaseCode }) })
-      );
-      assert.deepEqual(ctx, {
-        requestReference: 'DEM-REF',
-        phaseFolder: PHASE_FOLDERS[phaseCode],
-        categorySlug: 'meeting-reports-signed',
-      });
-    }
-  });
+it('meeting_report_signed resolves through meetings.phaseId into its own folder (SESSION1-MEET-2)', async () => {
+  for (const phaseCode of ['M3', 'M4'] as const) {
+    const ctx = await resolveStorageContext(
+      'meeting_report_signed',
+      7,
+      deps({ meetingReport: async () => ({ reference: 'DEM-REF', phaseCode }) })
+    );
+    assert.deepEqual(ctx, {
+      requestReference: 'DEM-REF',
+      phaseFolder: PHASE_FOLDERS[phaseCode],
+      categorySlug: 'meeting-reports-signed',
+    });
+  }
+});
 ```
 
 - [ ] **Step 3: Run them to see them fail**
@@ -318,11 +362,13 @@ Expected: FAIL. `meeting_report_signed` resolves to `unresolvable` / `null`, and
 `apps/api/src/modules/uploads/uploads.types.ts`: add `'meeting_report_signed',` after `'meeting_report',` in `UPLOAD_OWNER_TYPES`.
 
 `apps/api/src/modules/files/file-context.ts`:
+
 - `PhaseOwnedType`: change `| 'meeting_report';` to `| 'meeting_report'` and add `| 'meeting_report_signed';`.
 - `PHASE_OWNED`: add `'meeting_report_signed',`.
 - In `findOwnerPhaseId`'s table: add `meeting_report_signed: schema.meetings,` after `meeting_report: schema.meetings,`.
 
 `apps/api/src/modules/uploads/storage-context.ts`:
+
 - `RELOCATABLE_OWNER_TYPES_LIST`: add `'meeting_report_signed',` after `'meeting_report',`.
 - Add after the `case 'meeting_report':` block:
 
@@ -347,12 +393,14 @@ Expected: FAIL. `meeting_report_signed` resolves to `unresolvable` / `null`, and
 ```
 
 `apps/api/src/modules/dev-tools/dev-tools.service.ts`:
+
 - `WORKFLOW_DOCUMENT_OWNER_TYPES`: add `'meeting_report_signed',` after `'meeting_report',`.
 - In both `DELETE ... IN (...)` SQL lists: replace `'payment_invoice', 'payment_proof', 'meeting_report', 'phase_closure_document',` with `'payment_invoice', 'payment_proof', 'meeting_report', 'meeting_report_signed', 'phase_closure_document',`.
 
 - [ ] **Step 5: Run the tests**
 
 Run:
+
 - `cd apps/api && npx tsx --test src/modules/files/*.test.ts src/modules/uploads/*.test.ts`
 - `npm run typecheck --workspace=apps/api`
 
@@ -363,6 +411,7 @@ Expected: PASS. If the typecheck flags a `Record<UploadOwnerType, ...>` lacking 
 ### Task 3: DN upload guards (M6 refused, frozen after a signed copy) and shared applicant lock
 
 **Files:**
+
 - Modify: `apps/api/src/modules/meetings/meeting-write.ts`
 - Modify: `apps/api/src/modules/meetings/meeting-negotiation.service.ts:10-43`
 - Modify: `apps/api/src/modules/meetings/meetings.service.ts:612-660` (`attachMeetingReport`)
@@ -370,6 +419,7 @@ Expected: PASS. If the typecheck flags a `Record<UploadOwnerType, ...>` lacking 
 - Create: `apps/api/src/modules/meetings/meeting-signed-report.db.test.ts`
 
 **Interfaces:**
+
 - Consumes: `acceptsMeetingReport` (Task 1); owner type `meeting_report_signed` (Task 2).
 - Produces:
   - `lockOwnedMeeting(tx: DbTx, meetingId: number, applicantId: number): Promise<MeetingRow>`, exported from `meeting-write.ts`;
@@ -426,52 +476,83 @@ describe('SESSION1-MEET-2 signed meeting report (real PostgreSQL)', { skip }, ()
     await closeAppPool();
   });
 
-  const one = async (sql: string, params: unknown[] = []) => (await pool.query(sql, params)).rows[0];
+  const one = async (sql: string, params: unknown[] = []) =>
+    (await pool.query(sql, params)).rows[0];
   const all = async (sql: string, params: unknown[] = []) => (await pool.query(sql, params)).rows;
 
   async function user() {
     const code = `MR${tag}${++n}`;
-    return (await one(`INSERT INTO users (employee_code, full_name, email) VALUES ($1, 'Agent DN', $2) RETURNING id`, [
-      code,
-      `${code}@test.local`,
-    ])).id as number;
+    return (
+      await one(
+        `INSERT INTO users (employee_code, full_name, email) VALUES ($1, 'Agent DN', $2) RETURNING id`,
+        [code, `${code}@test.local`]
+      )
+    ).id as number;
   }
 
   /** A dossier with M3, M4 and M6 phases. */
   async function dossier(status = 'pending_review') {
     const k = `${tag}-${++n}`;
-    const org = (await one(
-      `INSERT INTO organisations (name, normalized_name, legal_address) VALUES ($1, $1, 'Libreville') RETURNING id`,
-      [`OMA MEET2 ${k}`]
-    )).id;
-    const applicant = (await one(
-      `INSERT INTO applicants (organisation_id, full_name, email, password_hash) VALUES ($1, 'Postulant', $2, 'x') RETURNING id`,
-      [org, `p2-${k}@test.local`]
-    )).id as number;
-    const request = (await one(
-      `INSERT INTO requests (reference, applicant_id, organisation_id, request_type, status)
+    const org = (
+      await one(
+        `INSERT INTO organisations (name, normalized_name, legal_address) VALUES ($1, $1, 'Libreville') RETURNING id`,
+        [`OMA MEET2 ${k}`]
+      )
+    ).id;
+    const applicant = (
+      await one(
+        `INSERT INTO applicants (organisation_id, full_name, email, password_hash) VALUES ($1, 'Postulant', $2, 'x') RETURNING id`,
+        [org, `p2-${k}@test.local`]
+      )
+    ).id as number;
+    const request = (
+      await one(
+        `INSERT INTO requests (reference, applicant_id, organisation_id, request_type, status)
        VALUES ($1, $2, $3, 'issuance', $4) RETURNING id`,
-      [`DEM-MEET2-${k}`, applicant, org, status]
-    )).id as number;
+        [`DEM-MEET2-${k}`, applicant, org, status]
+      )
+    ).id as number;
     const phase: Record<string, number> = {};
     for (const code of ['M3', 'M4', 'M6']) {
-      phase[code] = (await one(`INSERT INTO phases (request_id, phase_code) VALUES ($1, $2) RETURNING id`, [request, code])).id;
+      phase[code] = (
+        await one(`INSERT INTO phases (request_id, phase_code) VALUES ($1, $2) RETURNING id`, [
+          request,
+          code,
+        ])
+      ).id;
     }
     return { applicant, request, phase };
   }
 
   /** A meeting row in the given state (no negotiation history needed here). */
-  async function meeting(phaseId: number, agent: number, meetingType: MeetingType = 'preliminary', status = 'held') {
+  async function meeting(
+    phaseId: number,
+    agent: number,
+    meetingType: MeetingType = 'preliminary',
+    status = 'held'
+  ) {
     const siteVisit = meetingType === 'site_visit';
-    return (await one(
-      `INSERT INTO meetings (phase_id, meeting_type, dn_agent_id, scheduled_at, status, confirmation_status, confirmed_at)
+    return (
+      await one(
+        `INSERT INTO meetings (phase_id, meeting_type, dn_agent_id, scheduled_at, status, confirmation_status, confirmed_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-      [phaseId, meetingType, agent, slot(status === 'scheduled' ? 5 : -1), status, siteVisit ? 'not_required' : 'confirmed', siteVisit ? null : new Date()]
-    )).id as number;
+        [
+          phaseId,
+          meetingType,
+          agent,
+          slot(status === 'scheduled' ? 5 : -1),
+          status,
+          siteVisit ? 'not_required' : 'confirmed',
+          siteVisit ? null : new Date(),
+        ]
+      )
+    ).id as number;
   }
 
   /** A real upload_assets row owned by a staff user or an applicant. */
-  async function asset(owner: { userId: number } | { applicantId: number }): Promise<PreparedAttachment> {
+  async function asset(
+    owner: { userId: number } | { applicantId: number }
+  ): Promise<PreparedAttachment> {
     const userId = 'userId' in owner ? owner.userId : null;
     const applicantId = 'applicantId' in owner ? owner.applicantId : null;
     const { id } = await one(
@@ -495,7 +576,10 @@ describe('SESSION1-MEET-2 signed meeting report (real PostgreSQL)', { skip }, ()
 
   const row = (id: number) => one(`SELECT * FROM meetings WHERE id = $1`, [id]);
   const versions = (ownerType: string, ownerId: number) =>
-    all(`SELECT * FROM document_versions WHERE owner_type = $1 AND owner_id = $2 ORDER BY id`, [ownerType, ownerId]);
+    all(`SELECT * FROM document_versions WHERE owner_type = $1 AND owner_id = $2 ORDER BY id`, [
+      ownerType,
+      ownerId,
+    ]);
   const current = async (ownerType: string, ownerId: number) =>
     (await versions(ownerType, ownerId)).filter((v) => v.is_current && v.trashed_at === null);
   const audits = (id: number, action: string) =>
@@ -518,7 +602,10 @@ describe('SESSION1-MEET-2 signed meeting report (real PostgreSQL)', { skip }, ()
       assert.equal((await row(id)).cr_document_url, second.fileUrl);
       const chain = await versions('meeting_report', id);
       assert.equal(chain.length, 2);
-      assert.deepEqual((await current('meeting_report', id)).map((v) => v.file_url), [second.fileUrl]);
+      assert.deepEqual(
+        (await current('meeting_report', id)).map((v) => v.file_url),
+        [second.fileUrl]
+      );
     });
 
     it('refused on a site visit (D1), nothing written', async () => {
@@ -558,13 +645,21 @@ describe('SESSION1-MEET-2 signed meeting report (real PostgreSQL)', { skip }, ()
       const agent = await user();
       const m3 = await meeting(d.phase.M3, agent);
       await assert.rejects(
-        pool.query(`UPDATE meetings SET signed_cr_document_url = '/api/files/1', signed_cr_uploaded_at = now() WHERE id = $1`, [m3]),
+        pool.query(
+          `UPDATE meetings SET signed_cr_document_url = '/api/files/1', signed_cr_uploaded_at = now() WHERE id = $1`,
+          [m3]
+        ),
         /meetings_signed_cr_coherent_chk/,
         'no DN CR'
       );
-      await pool.query(`UPDATE meetings SET cr_document_url = '/api/files/2', cr_uploaded_at = now() WHERE id = $1`, [m3]);
+      await pool.query(
+        `UPDATE meetings SET cr_document_url = '/api/files/2', cr_uploaded_at = now() WHERE id = $1`,
+        [m3]
+      );
       await assert.rejects(
-        pool.query(`UPDATE meetings SET signed_cr_document_url = '/api/files/1' WHERE id = $1`, [m3]),
+        pool.query(`UPDATE meetings SET signed_cr_document_url = '/api/files/1' WHERE id = $1`, [
+          m3,
+        ]),
         /meetings_signed_cr_coherent_chk/,
         'no date'
       );
@@ -587,6 +682,7 @@ describe('SESSION1-MEET-2 signed meeting report (real PostgreSQL)', { skip }, ()
 
 Run: `cd apps/api && npx tsx --test src/modules/meetings/meeting-signed-report.db.test.ts`
 Expected (with `DATABASE_URL`):
+
 - FAIL on « refused on a site visit » (no error thrown);
 - FAIL on « frozen » (the replacement succeeds);
 - the check test PASSES already (Task 1).
@@ -600,7 +696,11 @@ In `apps/api/src/modules/meetings/meeting-write.ts`, change the schema import to
  *  SESSION1-MEET-2 signed report). Ownership (meeting -> phase -> request ->
  *  applicant) is checked first, so another applicant's meeting is a 404
  *  whatever its dossier state; then the usual dossier guard and row lock. */
-export async function lockOwnedMeeting(tx: DbTx, meetingId: number, applicantId: number): Promise<MeetingRow> {
+export async function lockOwnedMeeting(
+  tx: DbTx,
+  meetingId: number,
+  applicantId: number
+): Promise<MeetingRow> {
   const [owned] = await tx
     .select({ id: meetings.id })
     .from(meetings)
@@ -613,6 +713,7 @@ export async function lockOwnedMeeting(tx: DbTx, meetingId: number, applicantId:
 ```
 
 In `apps/api/src/modules/meetings/meeting-negotiation.service.ts`:
+
 - delete the private `lockOwnedMeeting` function and its doc comment;
 - add `lockOwnedMeeting,` to the `./meeting-write.js` import list;
 - remove `phases` and `requests` from the schema import if they are now unused, and `and` from drizzle-orm if unused (the typecheck and lint tell you).
@@ -622,22 +723,23 @@ In `apps/api/src/modules/meetings/meeting-negotiation.service.ts`:
 In `attachMeetingReport` (`apps/api/src/modules/meetings/meetings.service.ts`), replace:
 
 ```ts
-    if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') return meeting;
-    if (meeting.status !== 'held') throw new Error('MEETING_NOT_HELD');
+if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') return meeting;
+if (meeting.status !== 'held') throw new Error('MEETING_NOT_HELD');
 ```
 
 with:
 
 ```ts
-    if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') return meeting;
-    if (!acceptsMeetingReport(meeting.meetingType)) throw new Error('MEETING_REPORT_NOT_APPLICABLE');
-    // SESSION1-MEET-2 (D2) - the applicant signed this exact file: checked
-    // under the meeting row lock, so a concurrent signed upload is serialized.
-    if (meeting.signedCrDocumentUrl !== null) throw new Error('MEETING_REPORT_FROZEN_SIGNED');
-    if (meeting.status !== 'held') throw new Error('MEETING_NOT_HELD');
+if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') return meeting;
+if (!acceptsMeetingReport(meeting.meetingType)) throw new Error('MEETING_REPORT_NOT_APPLICABLE');
+// SESSION1-MEET-2 (D2) - the applicant signed this exact file: checked
+// under the meeting row lock, so a concurrent signed upload is serialized.
+if (meeting.signedCrDocumentUrl !== null) throw new Error('MEETING_REPORT_FROZEN_SIGNED');
+if (meeting.status !== 'held') throw new Error('MEETING_NOT_HELD');
 ```
 
 Then:
+
 - add `acceptsMeetingReport,` to the `./meeting-confirmation.js` import;
 - update the function's doc comment to say: optional, M3/M4 only, replaceable until the applicant returns a signed copy.
 
@@ -665,6 +767,7 @@ In `apps/api/src/shared/utils/error.ts`, inside `handleMeetingsError`'s table, b
 - [ ] **Step 6: Run the tests**
 
 Run:
+
 - `cd apps/api && npx tsx --test src/modules/meetings/meeting-signed-report.db.test.ts src/modules/meetings/meeting-negotiation.db.test.ts`
 - `npm run typecheck --workspace=apps/api`
 
@@ -675,155 +778,196 @@ Expected: PASS. The MEET-1 negotiation suite is unchanged (same lock, moved).
 ### Task 4: Applicant command `POST /meetings/:id/signed-report`
 
 **Files:**
+
 - Create: `apps/api/src/modules/meetings/meeting-signed-report.service.ts`
 - Modify: `apps/api/src/modules/meetings/meetings.controller.ts`, `apps/api/src/modules/meetings/meetings.route.ts`
 - Modify: `apps/api/src/modules/auth/audit-request.ts:62`, `apps/api/src/modules/requests/requests.service.ts:121`
 - Test: `apps/api/src/modules/meetings/meeting-signed-report.db.test.ts` (extend), `apps/api/src/modules/meetings/meeting-negotiation.routes.test.ts`, `apps/api/src/modules/requests/dossier-open.routes.test.ts`, `apps/api/src/modules/requests/dossier-open.db.test.ts`
 
 **Interfaces:**
+
 - Consumes: `lockOwnedMeeting`, `phaseCodeOf`, `MeetingRow` (`meeting-write.ts`); `acceptsMeetingReport`; `claimUploadAsset`, `trashCurrentVersions`, `versionValues`, `linkLockedAsset`, `PreparedAttachment`; `relocateDossierAssetAfterCommit`, `RelocationTarget`.
 - Produces: `submitSignedMeetingReport(meetingId: number, applicantId: number, attachment: PreparedAttachment): Promise<MeetingRow>`. The route returns `200` with the `getMeeting(id, { applicant })` payload, completed in Task 5.
 
 - [ ] **Step 1: Write the failing DB tests**
 
 In `meeting-signed-report.db.test.ts`:
+
 - add `let signed: typeof import('./meeting-signed-report.service.js');` next to `meetings`;
 - in `before`, add `signed = await import('./meeting-signed-report.service.js');`;
 - append this `describe` inside the outer one:
 
 ```ts
-  describe('applicant signed copy (meeting_report_signed)', () => {
-    async function heldWithReport(meetingType: MeetingType = 'preliminary', status = 'pending_review') {
-      const d = await dossier();
-      const agent = await user();
-      const phaseId = meetingType === 'formal' ? d.phase.M4 : d.phase.M3;
-      const id = await meeting(phaseId, agent, meetingType);
-      const dn = await dnReport(id, agent);
-      if (status !== 'pending_review') await pool.query(`UPDATE requests SET status = $1 WHERE id = $2`, [status, d.request]);
-      return { d, agent, id, dn };
-    }
+describe('applicant signed copy (meeting_report_signed)', () => {
+  async function heldWithReport(
+    meetingType: MeetingType = 'preliminary',
+    status = 'pending_review'
+  ) {
+    const d = await dossier();
+    const agent = await user();
+    const phaseId = meetingType === 'formal' ? d.phase.M4 : d.phase.M3;
+    const id = await meeting(phaseId, agent, meetingType);
+    const dn = await dnReport(id, agent);
+    if (status !== 'pending_review')
+      await pool.query(`UPDATE requests SET status = $1 WHERE id = $2`, [status, d.request]);
+    return { d, agent, id, dn };
+  }
 
-    for (const meetingType of ['preliminary', 'formal'] as const) {
-      it(`${meetingType}: stored on its own chain, audited as the applicant, DN chain untouched`, async () => {
-        const { d, id, dn } = await heldWithReport(meetingType);
-        const copy = await asset({ applicantId: d.applicant });
-        await signed.submitSignedMeetingReport(id, d.applicant, copy);
-
-        const saved = await row(id);
-        assert.equal(saved.signed_cr_document_url, copy.fileUrl);
-        assert.ok(saved.signed_cr_uploaded_at instanceof Date);
-        assert.equal(saved.cr_document_url, dn.fileUrl, 'DN CR unchanged');
-        assert.deepEqual((await current('meeting_report_signed', id)).map((v) => v.file_url), [copy.fileUrl]);
-        assert.deepEqual((await current('meeting_report', id)).map((v) => v.file_url), [dn.fileUrl]);
-        const linked = await one(`SELECT linked_owner_type, linked_owner_id FROM upload_assets WHERE id = $1`, [copy.assetId]);
-        assert.deepEqual(linked, { linked_owner_type: 'meeting_report_signed', linked_owner_id: id });
-
-        const [audit] = await audits(id, 'MEETING_SIGNED_REPORT_SUBMITTED');
-        assert.equal(audit.applicant_id, d.applicant);
-        assert.equal(audit.user_id, null);
-        assert.equal(audit.module, meetingType === 'formal' ? 'M4' : 'M3');
-        assert.equal(audit.request_id, d.request, 'dossier-linked (audit-request mapping)');
-        assert.deepEqual(audit.details, { replaced: false });
-      });
-    }
-
-    it('replacement (D3): trashes only the previous signed version, logs replaced: true', async () => {
-      const { d, id, dn } = await heldWithReport();
-      const first = await asset({ applicantId: d.applicant });
-      await signed.submitSignedMeetingReport(id, d.applicant, first);
-      const second = await asset({ applicantId: d.applicant });
-      await signed.submitSignedMeetingReport(id, d.applicant, second);
-
-      assert.equal((await row(id)).signed_cr_document_url, second.fileUrl);
-      assert.equal((await versions('meeting_report_signed', id)).length, 2);
-      assert.deepEqual((await current('meeting_report_signed', id)).map((v) => v.file_url), [second.fileUrl]);
-      assert.deepEqual((await current('meeting_report', id)).map((v) => v.file_url), [dn.fileUrl], 'DN chain untouched');
-      const logged = await audits(id, 'MEETING_SIGNED_REPORT_SUBMITTED');
-      assert.deepEqual(logged.map((a) => a.details), [{ replaced: false }, { replaced: true }]);
-    });
-
-    it('replay of the same asset: no new version, no new audit', async () => {
-      const { d, id } = await heldWithReport();
+  for (const meetingType of ['preliminary', 'formal'] as const) {
+    it(`${meetingType}: stored on its own chain, audited as the applicant, DN chain untouched`, async () => {
+      const { d, id, dn } = await heldWithReport(meetingType);
       const copy = await asset({ applicantId: d.applicant });
       await signed.submitSignedMeetingReport(id, d.applicant, copy);
-      await signed.submitSignedMeetingReport(id, d.applicant, copy);
-      assert.equal((await versions('meeting_report_signed', id)).length, 1);
-      assert.equal((await audits(id, 'MEETING_SIGNED_REPORT_SUBMITTED')).length, 1);
-    });
 
-    it('after the signed copy, the DN CR is frozen (end to end)', async () => {
-      const { d, agent, id, dn } = await heldWithReport();
-      await signed.submitSignedMeetingReport(id, d.applicant, await asset({ applicantId: d.applicant }));
-      await assert.rejects(dnReport(id, agent), /MEETING_REPORT_FROZEN_SIGNED/);
-      assert.equal((await row(id)).cr_document_url, dn.fileUrl);
-    });
-
-    it('refused without a DN CR', async () => {
-      const d = await dossier();
-      const id = await meeting(d.phase.M3, await user());
-      await assert.rejects(
-        signed.submitSignedMeetingReport(id, d.applicant, await asset({ applicantId: d.applicant })),
-        /MEETING_REPORT_MISSING/
+      const saved = await row(id);
+      assert.equal(saved.signed_cr_document_url, copy.fileUrl);
+      assert.ok(saved.signed_cr_uploaded_at instanceof Date);
+      assert.equal(saved.cr_document_url, dn.fileUrl, 'DN CR unchanged');
+      assert.deepEqual(
+        (await current('meeting_report_signed', id)).map((v) => v.file_url),
+        [copy.fileUrl]
       );
-    });
-
-    it('refused on a meeting that is not held', async () => {
-      const d = await dossier();
-      for (const status of ['scheduled', 'no_show']) {
-        const id = await meeting(d.phase.M3, await user(), 'preliminary', status);
-        await assert.rejects(
-          signed.submitSignedMeetingReport(id, d.applicant, await asset({ applicantId: d.applicant })),
-          /MEETING_NOT_HELD/,
-          status
-        );
-      }
-    });
-
-    it('refused on a site visit', async () => {
-      const d = await dossier();
-      const id = await meeting(d.phase.M6, await user(), 'site_visit');
-      await assert.rejects(
-        signed.submitSignedMeetingReport(id, d.applicant, await asset({ applicantId: d.applicant })),
-        /MEETING_REPORT_NOT_APPLICABLE/
+      assert.deepEqual(
+        (await current('meeting_report', id)).map((v) => v.file_url),
+        [dn.fileUrl]
       );
-    });
-
-    it('another applicant gets MEETING_NOT_FOUND, even on a closed dossier', async () => {
-      const { id } = await heldWithReport('preliminary', 'cancelled');
-      const other = await dossier();
-      await assert.rejects(
-        signed.submitSignedMeetingReport(id, other.applicant, await asset({ applicantId: other.applicant })),
-        /MEETING_NOT_FOUND/
+      const linked = await one(
+        `SELECT linked_owner_type, linked_owner_id FROM upload_assets WHERE id = $1`,
+        [copy.assetId]
       );
-    });
+      assert.deepEqual(linked, { linked_owner_type: 'meeting_report_signed', linked_owner_id: id });
 
-    it('closed dossier: DOSSIER_CLOSED, nothing written', async () => {
-      const { d, id } = await heldWithReport('preliminary', 'completed');
+      const [audit] = await audits(id, 'MEETING_SIGNED_REPORT_SUBMITTED');
+      assert.equal(audit.applicant_id, d.applicant);
+      assert.equal(audit.user_id, null);
+      assert.equal(audit.module, meetingType === 'formal' ? 'M4' : 'M3');
+      assert.equal(audit.request_id, d.request, 'dossier-linked (audit-request mapping)');
+      assert.deepEqual(audit.details, { replaced: false });
+    });
+  }
+
+  it('replacement (D3): trashes only the previous signed version, logs replaced: true', async () => {
+    const { d, id, dn } = await heldWithReport();
+    const first = await asset({ applicantId: d.applicant });
+    await signed.submitSignedMeetingReport(id, d.applicant, first);
+    const second = await asset({ applicantId: d.applicant });
+    await signed.submitSignedMeetingReport(id, d.applicant, second);
+
+    assert.equal((await row(id)).signed_cr_document_url, second.fileUrl);
+    assert.equal((await versions('meeting_report_signed', id)).length, 2);
+    assert.deepEqual(
+      (await current('meeting_report_signed', id)).map((v) => v.file_url),
+      [second.fileUrl]
+    );
+    assert.deepEqual(
+      (await current('meeting_report', id)).map((v) => v.file_url),
+      [dn.fileUrl],
+      'DN chain untouched'
+    );
+    const logged = await audits(id, 'MEETING_SIGNED_REPORT_SUBMITTED');
+    assert.deepEqual(
+      logged.map((a) => a.details),
+      [{ replaced: false }, { replaced: true }]
+    );
+  });
+
+  it('replay of the same asset: no new version, no new audit', async () => {
+    const { d, id } = await heldWithReport();
+    const copy = await asset({ applicantId: d.applicant });
+    await signed.submitSignedMeetingReport(id, d.applicant, copy);
+    await signed.submitSignedMeetingReport(id, d.applicant, copy);
+    assert.equal((await versions('meeting_report_signed', id)).length, 1);
+    assert.equal((await audits(id, 'MEETING_SIGNED_REPORT_SUBMITTED')).length, 1);
+  });
+
+  it('after the signed copy, the DN CR is frozen (end to end)', async () => {
+    const { d, agent, id, dn } = await heldWithReport();
+    await signed.submitSignedMeetingReport(
+      id,
+      d.applicant,
+      await asset({ applicantId: d.applicant })
+    );
+    await assert.rejects(dnReport(id, agent), /MEETING_REPORT_FROZEN_SIGNED/);
+    assert.equal((await row(id)).cr_document_url, dn.fileUrl);
+  });
+
+  it('refused without a DN CR', async () => {
+    const d = await dossier();
+    const id = await meeting(d.phase.M3, await user());
+    await assert.rejects(
+      signed.submitSignedMeetingReport(id, d.applicant, await asset({ applicantId: d.applicant })),
+      /MEETING_REPORT_MISSING/
+    );
+  });
+
+  it('refused on a meeting that is not held', async () => {
+    const d = await dossier();
+    for (const status of ['scheduled', 'no_show']) {
+      const id = await meeting(d.phase.M3, await user(), 'preliminary', status);
       await assert.rejects(
-        signed.submitSignedMeetingReport(id, d.applicant, await asset({ applicantId: d.applicant })),
-        /DOSSIER_CLOSED/
+        signed.submitSignedMeetingReport(
+          id,
+          d.applicant,
+          await asset({ applicantId: d.applicant })
+        ),
+        /MEETING_NOT_HELD/,
+        status
       );
-      assert.equal((await row(id)).signed_cr_document_url, null);
-    });
+    }
+  });
 
-    it("an asset already linked elsewhere is refused (the same dossier's M3 signed copy reused on M4)", async () => {
-      const { d, agent, id } = await heldWithReport();
-      const formal = await meeting(d.phase.M4, agent, 'formal');
-      await dnReport(formal, agent);
-      const copy = await asset({ applicantId: d.applicant });
-      await signed.submitSignedMeetingReport(id, d.applicant, copy);
-      await assert.rejects(signed.submitSignedMeetingReport(formal, d.applicant, copy), /UPLOAD_ASSET_ALREADY_LINKED/);
-      assert.equal((await row(formal)).signed_cr_document_url, null);
-    });
+  it('refused on a site visit', async () => {
+    const d = await dossier();
+    const id = await meeting(d.phase.M6, await user(), 'site_visit');
+    await assert.rejects(
+      signed.submitSignedMeetingReport(id, d.applicant, await asset({ applicantId: d.applicant })),
+      /MEETING_REPORT_NOT_APPLICABLE/
+    );
+  });
 
-    it('the activity label is the same for submission and replacement', async () => {
-      const { ACTIVITY_LABELS } = await import('../requests/requests.service.js');
-      assert.deepEqual(ACTIVITY_LABELS.MEETING_SIGNED_REPORT_SUBMITTED, {
-        title: 'Compte rendu signé transmis par le postulant',
-        tone: 'info',
-      });
+  it('another applicant gets MEETING_NOT_FOUND, even on a closed dossier', async () => {
+    const { id } = await heldWithReport('preliminary', 'cancelled');
+    const other = await dossier();
+    await assert.rejects(
+      signed.submitSignedMeetingReport(
+        id,
+        other.applicant,
+        await asset({ applicantId: other.applicant })
+      ),
+      /MEETING_NOT_FOUND/
+    );
+  });
+
+  it('closed dossier: DOSSIER_CLOSED, nothing written', async () => {
+    const { d, id } = await heldWithReport('preliminary', 'completed');
+    await assert.rejects(
+      signed.submitSignedMeetingReport(id, d.applicant, await asset({ applicantId: d.applicant })),
+      /DOSSIER_CLOSED/
+    );
+    assert.equal((await row(id)).signed_cr_document_url, null);
+  });
+
+  it("an asset already linked elsewhere is refused (the same dossier's M3 signed copy reused on M4)", async () => {
+    const { d, agent, id } = await heldWithReport();
+    const formal = await meeting(d.phase.M4, agent, 'formal');
+    await dnReport(formal, agent);
+    const copy = await asset({ applicantId: d.applicant });
+    await signed.submitSignedMeetingReport(id, d.applicant, copy);
+    await assert.rejects(
+      signed.submitSignedMeetingReport(formal, d.applicant, copy),
+      /UPLOAD_ASSET_ALREADY_LINKED/
+    );
+    assert.equal((await row(formal)).signed_cr_document_url, null);
+  });
+
+  it('the activity label is the same for submission and replacement', async () => {
+    const { ACTIVITY_LABELS } = await import('../requests/requests.service.js');
+    assert.deepEqual(ACTIVITY_LABELS.MEETING_SIGNED_REPORT_SUBMITTED, {
+      title: 'Compte rendu signé transmis par le postulant',
+      tone: 'info',
     });
   });
+});
 ```
 
 - [ ] **Step 2: Run them to see them fail**
@@ -867,13 +1011,16 @@ export async function submitSignedMeetingReport(
     // Ownership first (404), then the K7 dossier guard and the meeting row lock.
     const meeting = await lockOwnedMeeting(tx, meetingId, applicantId);
     if ((await claimUploadAsset(tx, attachment, target)) === 'attached_here') return meeting;
-    if (!acceptsMeetingReport(meeting.meetingType)) throw new Error('MEETING_REPORT_NOT_APPLICABLE');
+    if (!acceptsMeetingReport(meeting.meetingType))
+      throw new Error('MEETING_REPORT_NOT_APPLICABLE');
     if (meeting.status !== 'held') throw new Error('MEETING_NOT_HELD');
     if (meeting.crDocumentUrl === null) throw new Error('MEETING_REPORT_MISSING');
     const replaced = meeting.signedCrDocumentUrl !== null;
 
     await trashCurrentVersions(tx, 'meeting_report_signed', meetingId);
-    await tx.insert(documentVersions).values(versionValues(attachment, 'meeting_report_signed', meetingId));
+    await tx
+      .insert(documentVersions)
+      .values(versionValues(attachment, 'meeting_report_signed', meetingId));
     await linkLockedAsset(tx, attachment.assetId, target);
 
     const [updated] = await tx
@@ -919,6 +1066,7 @@ Expected: PASS.
 - [ ] **Step 6: Update the route tests (failing)**
 
 In `apps/api/src/modules/meetings/meeting-negotiation.routes.test.ts`:
+
 - `const APPLICANT_WRITES = ['POST /:id/confirm', 'POST /:id/propose-alternate', 'POST /:id/signed-report'];`
 - rename `'gives the applicant exactly two write routes, applicant-authenticated only'` to `'gives the applicant exactly its write routes, applicant-authenticated only'`;
 - update the header comment: three applicant routes (confirm, propose-alternate, signed-report).
@@ -926,6 +1074,7 @@ In `apps/api/src/modules/meetings/meeting-negotiation.routes.test.ts`:
 In `apps/api/src/modules/requests/dossier-open.routes.test.ts`: add `'meetings POST /:id/signed-report': 'guarded',` after `'meetings POST /:id/propose-alternate': 'guarded',`.
 
 In `apps/api/src/modules/requests/dossier-open.db.test.ts`:
+
 1. Add `import('../meetings/meeting-signed-report.service.js'),` to the `Promise.all` right after `import('../meetings/meeting-negotiation.service.js'),`.
 2. Add `signedReport` to the destructured names right after `negotiation` (line 51), to the `m = { ... }` object (line 66) and to the destructuring at line 123.
 3. Add after the `'meeting alternate proposed by the applicant'` entry:
@@ -940,6 +1089,7 @@ Expected: FAIL (`POST /:id/signed-report is missing`, unknown route).
 - [ ] **Step 7: Add the controller and route**
 
 In `apps/api/src/modules/meetings/meetings.controller.ts`:
+
 - add `import * as signedReportService from './meeting-signed-report.service.js';`;
 - add after `onBehalfBody`:
 
@@ -956,7 +1106,12 @@ const signedReportBody = z.object({ uploadAssetId: z.union([z.number(), z.string
  *  with a DN compte-rendu (SESSION1-MEET-2). First copy or replacement. */
 export async function submitSignedReport(req: Request, res: Response): Promise<void> {
   try {
-    const body = parseBody(signedReportBody, req, res, 'Seul le fichier téléversé (uploadAssetId) est attendu.');
+    const body = parseBody(
+      signedReportBody,
+      req,
+      res,
+      'Seul le fichier téléversé (uploadAssetId) est attendu.'
+    );
     if (!body) return;
     const applicant = req.applicant!;
     const attachment = await prepareUploadAttachment(parseUploadAssetId(body.uploadAssetId), {
@@ -964,7 +1119,11 @@ export async function submitSignedReport(req: Request, res: Response): Promise<v
       applicantId: applicant.applicantId,
     });
     const meetingId = Number(req.params.id);
-    await signedReportService.submitSignedMeetingReport(meetingId, applicant.applicantId, attachment);
+    await signedReportService.submitSignedMeetingReport(
+      meetingId,
+      applicant.applicantId,
+      attachment
+    );
     res.json(await meetingsService.getMeeting(meetingId, { applicant }));
   } catch (error) {
     handleMeetingsError(res, error);
@@ -993,11 +1152,13 @@ Expected: PASS. In the closed matrix, the new entry is refused with `DOSSIER_CLO
 ### Task 5: Read models (signed fields everywhere, `canSubmitSignedReport` for the applicant)
 
 **Files:**
+
 - Modify: `apps/api/src/modules/meetings/meetings.types.ts`, `apps/api/src/modules/meetings/meetings.service.ts` (`toMeetingView`, `toCockpitItem`, `listApplicantMeetings`, `getMeeting`)
 - Modify: `apps/api/src/modules/meetings/applicant-view.ts`, `apps/api/src/modules/meetings/bundle-meeting.ts`
 - Test: `apps/api/src/modules/meetings/applicant-view.test.ts`, `apps/api/src/modules/meetings/meeting-signed-report.db.test.ts` (extend)
 
 **Interfaces:**
+
 - Consumes: `canApplicantSubmitSignedReport` (Task 1); `submitSignedMeetingReport` (Task 4).
 - Produces (JSON field names the front ends rely on):
   - `MeetingView`, staff and applicant bundle meeting: `signedCrDocumentUrl: string | null`, `signedCrUploadedAt: Date | null`.
@@ -1010,35 +1171,39 @@ Expected: PASS. In the closed matrix, the new entry is refused with `DOSSIER_CLO
 - [ ] **Step 1: Update the pure view test (failing)**
 
 In `apps/api/src/modules/meetings/applicant-view.test.ts`:
+
 - in `view()`: add `signedCrDocumentUrl: null, signedCrUploadedAt: null,` after `crUploadedAt: null,`;
 - in `meetingRow()`: add the same two fields after `crUploadedAt: null,`;
 - replace the first test with:
 
 ```ts
-  it('drops dnAgentId and keeps every other field plus the negotiation block and the signed-report flag', () => {
-    const expected: Record<string, unknown> = { ...view(), ...block(), canSubmitSignedReport: false };
-    delete expected.dnAgentId;
-    assert.deepEqual(toApplicantMeetingView(view(), block(), false), expected);
-    assert.doesNotMatch(JSON.stringify(toApplicantMeetingView(view(), block(), false)), /dnAgentId|:42\b/);
-  });
+it('drops dnAgentId and keeps every other field plus the negotiation block and the signed-report flag', () => {
+  const expected: Record<string, unknown> = { ...view(), ...block(), canSubmitSignedReport: false };
+  delete expected.dnAgentId;
+  assert.deepEqual(toApplicantMeetingView(view(), block(), false), expected);
+  assert.doesNotMatch(
+    JSON.stringify(toApplicantMeetingView(view(), block(), false)),
+    /dnAgentId|:42\b/
+  );
+});
 
-  it('SESSION1-MEET-2 - passes both report files and the upload flag through', () => {
-    const signedAt = new Date('2026-10-16T09:00:00Z');
-    const source: MeetingView = {
-      ...view(),
-      meetingType: 'preliminary',
-      status: 'held',
-      crDocumentUrl: '/api/files/1',
-      crUploadedAt: AT,
-      signedCrDocumentUrl: '/api/files/2',
-      signedCrUploadedAt: signedAt,
-    };
-    const result = toApplicantMeetingView(source, block(), true);
-    assert.equal(result.crDocumentUrl, '/api/files/1');
-    assert.equal(result.signedCrDocumentUrl, '/api/files/2');
-    assert.equal(result.signedCrUploadedAt, signedAt);
-    assert.equal(result.canSubmitSignedReport, true);
-  });
+it('SESSION1-MEET-2 - passes both report files and the upload flag through', () => {
+  const signedAt = new Date('2026-10-16T09:00:00Z');
+  const source: MeetingView = {
+    ...view(),
+    meetingType: 'preliminary',
+    status: 'held',
+    crDocumentUrl: '/api/files/1',
+    crUploadedAt: AT,
+    signedCrDocumentUrl: '/api/files/2',
+    signedCrUploadedAt: signedAt,
+  };
+  const result = toApplicantMeetingView(source, block(), true);
+  assert.equal(result.crDocumentUrl, '/api/files/1');
+  assert.equal(result.signedCrDocumentUrl, '/api/files/2');
+  assert.equal(result.signedCrUploadedAt, signedAt);
+  assert.equal(result.canSubmitSignedReport, true);
+});
 ```
 
 - in the whitelist test: change the call to `toApplicantMeetingView(source, extra, false)`.
@@ -1049,34 +1214,36 @@ Expected: FAIL (fields missing and an extra argument).
 - [ ] **Step 2: Change the types**
 
 In `apps/api/src/modules/meetings/meetings.types.ts`:
+
 - `MeetingView`: after `crUploadedAt: Date | null;` add:
 
 ```ts
-  /** SESSION1-MEET-2 - the applicant's signed return (M3/M4 only). */
-  signedCrDocumentUrl: string | null;
-  signedCrUploadedAt: Date | null;
+/** SESSION1-MEET-2 - the applicant's signed return (M3/M4 only). */
+signedCrDocumentUrl: string | null;
+signedCrUploadedAt: Date | null;
 ```
 
 - `MeetingCockpitItem`: after `crUploadedAt: string | null;` add:
 
 ```ts
-  signedCrDocumentUrl: string | null;
-  signedCrUploadedAt: string | null;
+signedCrDocumentUrl: string | null;
+signedCrUploadedAt: string | null;
 ```
 
 - `ApplicantMeetingItem`: after `crDocumentUrl: string | null;` add:
 
 ```ts
-  crUploadedAt: string | null;
-  /** SESSION1-MEET-2 - signed return, and whether you may upload / replace it now. */
-  signedCrDocumentUrl: string | null;
-  signedCrUploadedAt: string | null;
-  canSubmitSignedReport: boolean;
+crUploadedAt: string | null;
+/** SESSION1-MEET-2 - signed return, and whether you may upload / replace it now. */
+signedCrDocumentUrl: string | null;
+signedCrUploadedAt: string | null;
+canSubmitSignedReport: boolean;
 ```
 
 - [ ] **Step 3: Implement the views**
 
 `apps/api/src/modules/meetings/meetings.service.ts`:
+
 - `toMeetingView`: add `signedCrDocumentUrl: row.signedCrDocumentUrl, signedCrUploadedAt: row.signedCrUploadedAt,` after `crUploadedAt`.
 - `toCockpitItem`: add after `crUploadedAt`:
 
@@ -1098,19 +1265,24 @@ In `apps/api/src/modules/meetings/meetings.types.ts`:
 - `getMeeting`: replace `return toApplicantMeetingView(view, blocks.get(meeting.id)!);` with:
 
 ```ts
-    return toApplicantMeetingView(view, blocks.get(meeting.id)!, canApplicantSubmitSignedReport(meeting, closed()));
+return toApplicantMeetingView(
+  view,
+  blocks.get(meeting.id)!,
+  canApplicantSubmitSignedReport(meeting, closed())
+);
 ```
 
 - add `canApplicantSubmitSignedReport,` to the `./meeting-confirmation.js` import.
 
 `apps/api/src/modules/meetings/applicant-view.ts`:
+
 - `ApplicantMeetingView`: add after `crUploadedAt: Date | null;`:
 
 ```ts
-  /** SESSION1-MEET-2 - your signed return, and whether you may upload / replace it now. */
-  signedCrDocumentUrl: string | null;
-  signedCrUploadedAt: Date | null;
-  canSubmitSignedReport: boolean;
+/** SESSION1-MEET-2 - your signed return, and whether you may upload / replace it now. */
+signedCrDocumentUrl: string | null;
+signedCrUploadedAt: Date | null;
+canSubmitSignedReport: boolean;
 ```
 
 - change the signature to `export function toApplicantMeetingView(view: MeetingView, block: ApplicantNegotiationBlock, canSubmitSignedReport: boolean): ApplicantMeetingView {`;
@@ -1123,6 +1295,7 @@ In `apps/api/src/modules/meetings/meetings.types.ts`:
 ```
 
 `apps/api/src/modules/meetings/bundle-meeting.ts`:
+
 - `BundleMeetingBase`: add `signedCrDocumentUrl: string | null; signedCrUploadedAt: Date | null;`.
 - `ApplicantBundleMeeting`: `export type ApplicantBundleMeeting = BundleMeetingBase & ApplicantNegotiationBlock & { canSubmitSignedReport: boolean };`
 - in `base`: add `signedCrDocumentUrl: meeting.signedCrDocumentUrl, signedCrUploadedAt: meeting.signedCrUploadedAt,`.
@@ -1132,60 +1305,79 @@ In `apps/api/src/modules/meetings/meetings.types.ts`:
 - [ ] **Step 4: Extend the DB test with the read models**
 
 In `meeting-signed-report.db.test.ts`:
+
 - add `let bundles: typeof import('./bundle-meeting.js');` and `let appDb: (typeof import('../../shared/db/index.js'))['db'];`;
 - in `before`: `bundles = await import('./bundle-meeting.js');` and, right after the existing `const dbModule = await import(...)` line, `appDb = dbModule.db;`;
 - append inside the applicant `describe`:
 
 ```ts
-    it('read models: applicant detail, Mes réunions and the bundle expose both files and the upload flag', async () => {
-      const { d, id, dn } = await heldWithReport();
-      const actor = { applicant: { applicantId: d.applicant } };
-      const initial = (await meetings.getMeeting(id, actor)) as { canSubmitSignedReport: boolean; signedCrDocumentUrl: string | null };
-      assert.equal(initial.canSubmitSignedReport, true);
-      assert.equal(initial.signedCrDocumentUrl, null);
+it('read models: applicant detail, Mes réunions and the bundle expose both files and the upload flag', async () => {
+  const { d, id, dn } = await heldWithReport();
+  const actor = { applicant: { applicantId: d.applicant } };
+  const initial = (await meetings.getMeeting(id, actor)) as {
+    canSubmitSignedReport: boolean;
+    signedCrDocumentUrl: string | null;
+  };
+  assert.equal(initial.canSubmitSignedReport, true);
+  assert.equal(initial.signedCrDocumentUrl, null);
 
-      const copy = await asset({ applicantId: d.applicant });
-      await signed.submitSignedMeetingReport(id, d.applicant, copy);
+  const copy = await asset({ applicantId: d.applicant });
+  await signed.submitSignedMeetingReport(id, d.applicant, copy);
 
-      const detail = (await meetings.getMeeting(id, actor)) as Record<string, unknown>;
-      assert.equal(detail.crDocumentUrl, dn.fileUrl);
-      assert.equal(detail.signedCrDocumentUrl, copy.fileUrl);
-      assert.equal(detail.canSubmitSignedReport, true, 'replacement allowed while open');
-      assert.equal('dnAgentId' in detail, false);
+  const detail = (await meetings.getMeeting(id, actor)) as Record<string, unknown>;
+  assert.equal(detail.crDocumentUrl, dn.fileUrl);
+  assert.equal(detail.signedCrDocumentUrl, copy.fileUrl);
+  assert.equal(detail.canSubmitSignedReport, true, 'replacement allowed while open');
+  assert.equal('dnAgentId' in detail, false);
 
-      const item = (await meetings.listApplicantMeetings(d.applicant)).find((m) => m.id === id)!;
-      assert.equal(item.signedCrDocumentUrl, copy.fileUrl);
-      assert.equal(typeof item.crUploadedAt, 'string');
-      assert.equal(item.canSubmitSignedReport, true);
+  const item = (await meetings.listApplicantMeetings(d.applicant)).find((m) => m.id === id)!;
+  assert.equal(item.signedCrDocumentUrl, copy.fileUrl);
+  assert.equal(typeof item.crUploadedAt, 'string');
+  assert.equal(item.canSubmitSignedReport, true);
 
-      const { meetings: meetingsTable } = await import('../../shared/db/schema.js');
-      const { eq } = await import('drizzle-orm');
-      const [meetingRow] = await appDb.select().from(meetingsTable).where(eq(meetingsTable.id, id));
-      const applicantBundle = (await bundles.toBundleMeeting(meetingRow, d.request, 'applicant')) as Record<string, unknown>;
-      assert.equal(applicantBundle.signedCrDocumentUrl, copy.fileUrl);
-      assert.equal(applicantBundle.canSubmitSignedReport, true);
-      const staffBundle = (await bundles.toBundleMeeting(meetingRow, d.request, 'staff')) as Record<string, unknown>;
-      assert.equal(staffBundle.signedCrDocumentUrl, copy.fileUrl);
-      assert.equal('canSubmitSignedReport' in staffBundle, false);
+  const { meetings: meetingsTable } = await import('../../shared/db/schema.js');
+  const { eq } = await import('drizzle-orm');
+  const [meetingRow] = await appDb.select().from(meetingsTable).where(eq(meetingsTable.id, id));
+  const applicantBundle = (await bundles.toBundleMeeting(
+    meetingRow,
+    d.request,
+    'applicant'
+  )) as Record<string, unknown>;
+  assert.equal(applicantBundle.signedCrDocumentUrl, copy.fileUrl);
+  assert.equal(applicantBundle.canSubmitSignedReport, true);
+  const staffBundle = (await bundles.toBundleMeeting(meetingRow, d.request, 'staff')) as Record<
+    string,
+    unknown
+  >;
+  assert.equal(staffBundle.signedCrDocumentUrl, copy.fileUrl);
+  assert.equal('canSubmitSignedReport' in staffBundle, false);
 
-      const staff = (await meetings.getMeeting(id, { user: { roles: ['dn_agent'] } })) as Record<string, unknown>;
-      assert.equal(staff.signedCrDocumentUrl, copy.fileUrl);
-    });
+  const staff = (await meetings.getMeeting(id, { user: { roles: ['dn_agent'] } })) as Record<
+    string,
+    unknown
+  >;
+  assert.equal(staff.signedCrDocumentUrl, copy.fileUrl);
+});
 
-    it('closed dossier in Mes réunions: files still listed, canSubmitSignedReport false', async () => {
-      const { d, id } = await heldWithReport();
-      await signed.submitSignedMeetingReport(id, d.applicant, await asset({ applicantId: d.applicant }));
-      await pool.query(`UPDATE requests SET status = 'completed' WHERE id = $1`, [d.request]);
-      const item = (await meetings.listApplicantMeetings(d.applicant)).find((m) => m.id === id)!;
-      assert.notEqual(item.signedCrDocumentUrl, null);
-      assert.notEqual(item.crDocumentUrl, null);
-      assert.equal(item.canSubmitSignedReport, false);
-    });
+it('closed dossier in Mes réunions: files still listed, canSubmitSignedReport false', async () => {
+  const { d, id } = await heldWithReport();
+  await signed.submitSignedMeetingReport(
+    id,
+    d.applicant,
+    await asset({ applicantId: d.applicant })
+  );
+  await pool.query(`UPDATE requests SET status = 'completed' WHERE id = $1`, [d.request]);
+  const item = (await meetings.listApplicantMeetings(d.applicant)).find((m) => m.id === id)!;
+  assert.notEqual(item.signedCrDocumentUrl, null);
+  assert.notEqual(item.crDocumentUrl, null);
+  assert.equal(item.canSubmitSignedReport, false);
+});
 ```
 
 - [ ] **Step 5: Run the API tests and typecheck**
 
 Run:
+
 - `cd apps/api && npx tsx --test src/modules/meetings/*.test.ts`
 - `npm run typecheck --workspace=apps/api`
 
@@ -1193,9 +1385,10 @@ Expected: PASS. If the typecheck flags another fixture typed `MeetingRow` / `Mee
 
 ---
 
-### Task 6: Portal — `MeetingReportPanel`
+### Task 6: Portal - `MeetingReportPanel`
 
 **Files:**
+
 - Modify: `apps/portal/src/lib/api/meetings.api.ts`, `apps/portal/src/lib/api/requests.types.ts`
 - Create: `apps/portal/src/components/meetings/MeetingReportPanel.tsx`
 - Create: `apps/portal/src/components/meetings/MeetingReportPanel.test.tsx`
@@ -1204,6 +1397,7 @@ Expected: PASS. If the typecheck flags another fixture typed `MeetingRow` / `Mee
 - Modify fixtures: `apps/portal/src/components/meetings/MeetingConfirmationPanel.test.tsx`, `apps/portal/src/lib/meetings.test.ts`, `apps/portal/src/pages/meetings/MeetingsPage.test.tsx`, `apps/portal/src/pages/requests/components/DossierView.test.tsx`
 
 **Interfaces:**
+
 - Consumes: API fields from Task 5; route `POST /meetings/:id/signed-report` with body `{ uploadAssetId }` (Task 4); `uploadFile(file): Promise<UploadedAsset>` from `lib/uploads.ts` (`.uploadAssetId`).
 - Produces:
   - `MeetingReportBlock`;
@@ -1228,18 +1422,23 @@ export interface MeetingReportBlock {
 ```
 
 Then:
+
 - change `export interface ApplicantMeeting extends MeetingConfirmationBlock {` to `export interface ApplicantMeeting extends MeetingConfirmationBlock, MeetingReportBlock {`;
 - delete its own `crDocumentUrl: string | null;` line;
 - append:
 
 ```ts
 /** SESSION1-MEET-2 - first signed copy or replacement; send only the upload id. */
-export async function submitSignedMeetingReport(meetingId: number, uploadAssetId: number): Promise<void> {
+export async function submitSignedMeetingReport(
+  meetingId: number,
+  uploadAssetId: number
+): Promise<void> {
   await api.post(`/meetings/${meetingId}/signed-report`, { uploadAssetId });
 }
 ```
 
 In `apps/portal/src/lib/api/requests.types.ts`:
+
 - change the import to `import type { MeetingConfirmationBlock, MeetingReportBlock } from './meetings.api';`;
 - `PreliminaryBundle.meeting`: `({ id: number; scheduledAt: string; location: string | null; status: string } & MeetingConfirmationBlock & MeetingReportBlock) | null;`
 - `FormalBundle.meeting`: the same shape.
@@ -1271,7 +1470,9 @@ const pdf = () => new File(['%PDF'], 'cr-signe.pdf', { type: 'application/pdf' }
 
 let post: ReturnType<typeof vi.fn>;
 beforeEach(() => {
-  post = vi.fn((url: string) => Promise.resolve({ data: url === '/uploads' ? { uploadAssetId: 55 } : {} }));
+  post = vi.fn((url: string) =>
+    Promise.resolve({ data: url === '/uploads' ? { uploadAssetId: 55 } : {} })
+  );
   vi.spyOn(api, 'post').mockImplementation(post);
   vi.spyOn(notify, 'success').mockImplementation(() => undefined as never);
   vi.spyOn(notify, 'error').mockImplementation(() => undefined as never);
@@ -1280,7 +1481,11 @@ afterEach(() => vi.restoreAllMocks());
 
 describe('<MeetingReportPanel>', () => {
   it('no DN CR yet: says so, no action', () => {
-    renderWithProviders(<MeetingReportPanel meeting={{ ...base, crDocumentUrl: null, crUploadedAt: null, canSubmitSignedReport: false }} />);
+    renderWithProviders(
+      <MeetingReportPanel
+        meeting={{ ...base, crDocumentUrl: null, crUploadedAt: null, canSubmitSignedReport: false }}
+      />
+    );
     const panel = screen.getByRole('region', { name: 'Compte rendu de réunion' });
     expect(panel).toHaveTextContent("Le compte rendu n'est pas encore disponible.");
     expect(within(panel).queryAllByRole('button')).toHaveLength(0);
@@ -1291,14 +1496,20 @@ describe('<MeetingReportPanel>', () => {
     expect(screen.getByText('Compte rendu transmis par la DN')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Consulter le compte rendu' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Télécharger' })).toBeInTheDocument();
-    expect(screen.getByText('Après signature, téléversez le compte rendu signé.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Déposer le compte rendu signé' })).toBeInTheDocument();
+    expect(
+      screen.getByText('Après signature, téléversez le compte rendu signé.')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Déposer le compte rendu signé' })
+    ).toBeInTheDocument();
   });
 
   it('uploads the file, then sends only its id to the applicant route', async () => {
     renderWithProviders(<MeetingReportPanel meeting={base} />);
     await userEvent.upload(screen.getByLabelText('Fichier du compte rendu signé'), pdf());
-    await waitFor(() => expect(post).toHaveBeenCalledWith('/meetings/21/signed-report', { uploadAssetId: 55 }));
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith('/meetings/21/signed-report', { uploadAssetId: 55 })
+    );
     expect(post.mock.calls[0][0]).toBe('/uploads');
     expect(notify.success).toHaveBeenCalledWith('Compte rendu signé transmis à la DN.');
   });
@@ -1307,7 +1518,10 @@ describe('<MeetingReportPanel>', () => {
     post.mockImplementation((url: string) =>
       url === '/uploads'
         ? Promise.resolve({ data: { uploadAssetId: 55 } })
-        : Promise.reject({ isAxiosError: true, response: { status: 409, data: { message: 'Dossier clos.' } } })
+        : Promise.reject({
+            isAxiosError: true,
+            response: { status: 409, data: { message: 'Dossier clos.' } },
+          })
     );
     renderWithProviders(<MeetingReportPanel meeting={base} />);
     await userEvent.upload(screen.getByLabelText('Fichier du compte rendu signé'), pdf());
@@ -1326,22 +1540,37 @@ describe('<MeetingReportPanel>', () => {
 
   it('signed copy sent: date, consult / download, replacement allowed', () => {
     renderWithProviders(
-      <MeetingReportPanel meeting={{ ...base, signedCrDocumentUrl: '/api/files/102', signedCrUploadedAt: '2026-10-12T09:30:00.000Z' }} />
+      <MeetingReportPanel
+        meeting={{
+          ...base,
+          signedCrDocumentUrl: '/api/files/102',
+          signedCrUploadedAt: '2026-10-12T09:30:00.000Z',
+        }}
+      />
     );
     expect(screen.getByText('Compte rendu signé transmis')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Remplacer le fichier signé' })).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: 'Consulter' })).toHaveLength(1);
-    expect(screen.queryByRole('button', { name: 'Déposer le compte rendu signé' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Déposer le compte rendu signé' })
+    ).not.toBeInTheDocument();
   });
 
   it('closed dossier: documents still readable, no upload or replace', () => {
     renderWithProviders(
       <MeetingReportPanel
-        meeting={{ ...base, signedCrDocumentUrl: '/api/files/102', signedCrUploadedAt: '2026-10-12T09:30:00.000Z', canSubmitSignedReport: false }}
+        meeting={{
+          ...base,
+          signedCrDocumentUrl: '/api/files/102',
+          signedCrUploadedAt: '2026-10-12T09:30:00.000Z',
+          canSubmitSignedReport: false,
+        }}
       />
     );
     expect(screen.getByRole('button', { name: 'Consulter le compte rendu' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Remplacer le fichier signé' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Remplacer le fichier signé' })
+    ).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Fichier du compte rendu signé')).not.toBeInTheDocument();
   });
 
@@ -1381,7 +1610,11 @@ import { queryKeys } from '../../lib/react-query/queryKeys';
  *  signed return. Visible buttons, never a bare text link. Whether you may
  *  upload is decided by the API (canSubmitSignedReport). */
 
-export type ReportableMeeting = MeetingReportBlock & { id: number; status: string; meetingType?: string };
+export type ReportableMeeting = MeetingReportBlock & {
+  id: number;
+  status: string;
+  meetingType?: string;
+};
 
 /** Held meeting, never a site visit (M6 has no compte-rendu). */
 export function showsReportPanel(meeting: { status: string; meetingType?: string }): boolean {
@@ -1420,9 +1653,15 @@ export function MeetingReportPanel({ meeting }: { meeting: ReportableMeeting }) 
 
   if (!meeting.crDocumentUrl) {
     return (
-      <div className="mt-3 rounded-lg border border-anac-border bg-white p-3" role="region" aria-label="Compte rendu de réunion">
+      <div
+        className="mt-3 rounded-lg border border-anac-border bg-white p-3"
+        role="region"
+        aria-label="Compte rendu de réunion"
+      >
         <p className="text-sm font-semibold text-anac-navy">Compte rendu de réunion</p>
-        <p className="mt-1 text-sm text-anac-muted">Le compte rendu n&apos;est pas encore disponible.</p>
+        <p className="mt-1 text-sm text-anac-muted">
+          Le compte rendu n&apos;est pas encore disponible.
+        </p>
       </div>
     );
   }
@@ -1431,9 +1670,12 @@ export function MeetingReportPanel({ meeting }: { meeting: ReportableMeeting }) 
     <div className="mt-3 space-y-3" role="region" aria-label="Compte rendu de réunion">
       <div className="rounded-lg border border-anac-border bg-white p-3">
         <p className="flex items-center gap-1.5 text-sm font-semibold text-anac-navy">
-          <FileText size={16} className="text-anac-blue" aria-hidden="true" /> Compte rendu transmis par la DN
+          <FileText size={16} className="text-anac-blue" aria-hidden="true" /> Compte rendu transmis
+          par la DN
         </p>
-        {meeting.crUploadedAt && <p className="text-xs text-anac-muted">Déposé le {formatDate(meeting.crUploadedAt)}</p>}
+        {meeting.crUploadedAt && (
+          <p className="text-xs text-anac-muted">Déposé le {formatDate(meeting.crUploadedAt)}</p>
+        )}
         <div className="mt-2 flex flex-wrap gap-2">
           <FileLink address={meeting.crDocumentUrl} className={ACTION}>
             Consulter le compte rendu
@@ -1450,7 +1692,9 @@ export function MeetingReportPanel({ meeting }: { meeting: ReportableMeeting }) 
             <FileCheck2 size={16} aria-hidden="true" /> Compte rendu signé transmis
           </p>
           {meeting.signedCrUploadedAt && (
-            <p className="text-xs text-anac-muted">Le {formatDateTime(meeting.signedCrUploadedAt)}</p>
+            <p className="text-xs text-anac-muted">
+              Le {formatDateTime(meeting.signedCrUploadedAt)}
+            </p>
           )}
           <div className="mt-2 flex flex-wrap gap-2">
             <FileLink address={signed} className={ACTION}>
@@ -1468,8 +1712,15 @@ export function MeetingReportPanel({ meeting }: { meeting: ReportableMeeting }) 
         </div>
       ) : meeting.canSubmitSignedReport ? (
         <div className="rounded-lg border border-anac-warning/40 bg-anac-warning/5 p-3">
-          <p className="text-sm text-anac-text">Après signature, téléversez le compte rendu signé.</p>
-          <button type="button" className="btn-primary mt-2 rounded px-3 py-1.5 text-xs" onClick={pick} disabled={busy}>
+          <p className="text-sm text-anac-text">
+            Après signature, téléversez le compte rendu signé.
+          </p>
+          <button
+            type="button"
+            className="btn-primary mt-2 rounded px-3 py-1.5 text-xs"
+            onClick={pick}
+            disabled={busy}
+          >
             Déposer le compte rendu signé
           </button>
         </div>
@@ -1501,42 +1752,54 @@ Expected: PASS.
 - [ ] **Step 5: Integrate, and remove the weak links**
 
 `apps/portal/src/components/request/MeetingDetails.tsx`:
+
 - delete the `{meeting.crDocumentUrl && ( <FileLink ...>Consulter le compte-rendu</FileLink> )}` block;
 - delete the `crDocumentUrl?: string | null;` prop and the now-unused `FileLink` import;
 - M6 site visits keep using this component; they have no compte-rendu.
 
 `PreliminaryPhaseSection.tsx`:
+
 - import `{ MeetingReportPanel, showsReportPanel } from '../../../components/meetings/MeetingReportPanel'`;
 - in the « Réunion préliminaire » `SectionCard`, right after the closing `)}` of the `!meeting ? ... : usesConfirmationPanel(meeting) ? ... : <MeetingDetails .../>` ternary, add:
 
 ```tsx
-          {meeting && showsReportPanel({ ...meeting, meetingType: 'preliminary' }) && <MeetingReportPanel meeting={meeting} />}
+{
+  meeting && showsReportPanel({ ...meeting, meetingType: 'preliminary' }) && (
+    <MeetingReportPanel meeting={meeting} />
+  );
+}
 ```
 
 `FormalPhaseSection.tsx`: same import, and after the « Réunion formelle » ternary:
 
 ```tsx
-          {bundle.meeting && showsReportPanel({ ...bundle.meeting, meetingType: 'formal' }) && (
-            <MeetingReportPanel meeting={bundle.meeting} />
-          )}
+{
+  bundle.meeting && showsReportPanel({ ...bundle.meeting, meetingType: 'formal' }) && (
+    <MeetingReportPanel meeting={bundle.meeting} />
+  );
+}
 ```
 
 `MeetingItems.tsx` (`MeetingHistoryRow`):
+
 - delete the `{meeting.crDocumentUrl && ( <> {' · '} <FileLink ...>compte-rendu</FileLink> </> )}` fragment, and the `FileLink` import if unused;
 - import `{ MeetingReportPanel, showsReportPanel } from './MeetingReportPanel'`;
 - add as the last child of the `<li>`, after the status `<span>`:
 
 ```tsx
-      {showsReportPanel(meeting) && (
-        <div className="basis-full">
-          <MeetingReportPanel meeting={meeting} />
-        </div>
-      )}
+{
+  showsReportPanel(meeting) && (
+    <div className="basis-full">
+      <MeetingReportPanel meeting={meeting} />
+    </div>
+  );
+}
 ```
 
 - [ ] **Step 6: Update the fixtures and the old assertion**
 
 Add `crUploadedAt: null, signedCrDocumentUrl: null, signedCrUploadedAt: null, canSubmitSignedReport: false,` (skip keys already present) to the meeting fixtures in:
+
 - `MeetingConfirmationPanel.test.tsx` (line ~116);
 - `lib/meetings.test.ts` (line ~17);
 - `pages/meetings/MeetingsPage.test.tsx` (the `meeting()` factory, line ~15);
@@ -1545,13 +1808,15 @@ Add `crUploadedAt: null, signedCrDocumentUrl: null, signedCrUploadedAt: null, ca
 In `pages/meetings/MeetingsPage.test.tsx`, the held row (`crDocumentUrl: '/api/files/7'`) now carries the panel. Replace:
 
 ```ts
-    expect(within(rows[2]).getByText('compte-rendu')).toBeInTheDocument();
+expect(within(rows[2]).getByText('compte-rendu')).toBeInTheDocument();
 ```
 
 with:
 
 ```ts
-    expect(within(rows[2]).getByRole('button', { name: 'Consulter le compte rendu' })).toBeInTheDocument();
+expect(
+  within(rows[2]).getByRole('button', { name: 'Consulter le compte rendu' })
+).toBeInTheDocument();
 ```
 
 - [ ] **Step 7: Run the portal suite and typecheck**
@@ -1561,9 +1826,10 @@ Expected: PASS; 106 existing tests plus the new ones.
 
 ---
 
-### Task 7: Admin — `MeetingReportRows` (M3 card, M4 card, Réunions detail)
+### Task 7: Admin - `MeetingReportRows` (M3 card, M4 card, Réunions detail)
 
 **Files:**
+
 - Modify: `apps/admin/src/lib/api/meetings.types.ts:72-73`, `apps/admin/src/lib/api/preliminary.types.ts:17-18`, `apps/admin/src/lib/api/formal.types.ts:31-32`
 - Create: `apps/admin/src/components/meetings/MeetingReportRows.tsx`
 - Create: `apps/admin/src/components/meetings/MeetingReportRows.test.tsx`
@@ -1571,6 +1837,7 @@ Expected: PASS; 106 existing tests plus the new ones.
 - Modify tests: `apps/admin/src/pages/closed-dossier-lists.test.tsx`, `apps/admin/src/pages/phases/preliminary/helpers.test.ts`
 
 **Interfaces:**
+
 - Consumes: `signedCrDocumentUrl`, `signedCrUploadedAt` (strings over JSON) on the M3/M4 bundle meetings and cockpit items (Task 5). The DN error `MEETING_REPORT_FROZEN_SIGNED` is reported through the existing `setActionError` paths.
 - Produces: `<MeetingReportRows title report canUpload busy onUpload />`.
 
@@ -1579,9 +1846,9 @@ Expected: PASS; 106 existing tests plus the new ones.
 Add after `crUploadedAt: string | null;` in each of `MeetingCockpitItem` (`lib/api/meetings.types.ts`), `MeetingView` (`lib/api/preliminary.types.ts`) and `FormalMeetingView` (`lib/api/formal.types.ts`):
 
 ```ts
-  /** SESSION1-MEET-2 - the applicant's signed return of the CR. */
-  signedCrDocumentUrl: string | null;
-  signedCrUploadedAt: string | null;
+/** SESSION1-MEET-2 - the applicant's signed return of the CR. */
+signedCrDocumentUrl: string | null;
+signedCrUploadedAt: string | null;
 ```
 
 - [ ] **Step 2: Write the failing component tests**
@@ -1594,13 +1861,32 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { renderWithProviders } from '../../test/render';
 import { MeetingReportRows, type MeetingReportFiles } from './MeetingReportRows';
 
-const none: MeetingReportFiles = { crDocumentUrl: null, crUploadedAt: null, signedCrDocumentUrl: null, signedCrUploadedAt: null };
-const available: MeetingReportFiles = { ...none, crDocumentUrl: '/api/files/101', crUploadedAt: '2026-10-10T08:00:00.000Z' };
-const received: MeetingReportFiles = { ...available, signedCrDocumentUrl: '/api/files/102', signedCrUploadedAt: '2026-10-12T09:30:00.000Z' };
-const FROZEN = 'Le compte rendu ne peut plus être remplacé car une version signée a déjà été retournée par le postulant.';
+const none: MeetingReportFiles = {
+  crDocumentUrl: null,
+  crUploadedAt: null,
+  signedCrDocumentUrl: null,
+  signedCrUploadedAt: null,
+};
+const available: MeetingReportFiles = {
+  ...none,
+  crDocumentUrl: '/api/files/101',
+  crUploadedAt: '2026-10-10T08:00:00.000Z',
+};
+const received: MeetingReportFiles = {
+  ...available,
+  signedCrDocumentUrl: '/api/files/102',
+  signedCrUploadedAt: '2026-10-12T09:30:00.000Z',
+};
+const FROZEN =
+  'Le compte rendu ne peut plus être remplacé car une version signée a déjà été retournée par le postulant.';
 
-const rows = (report: MeetingReportFiles, extra: Partial<Parameters<typeof MeetingReportRows>[0]> = {}) =>
-  renderWithProviders(<MeetingReportRows title="Réunion préliminaire" report={report} canUpload {...extra} />);
+const rows = (
+  report: MeetingReportFiles,
+  extra: Partial<Parameters<typeof MeetingReportRows>[0]> = {}
+) =>
+  renderWithProviders(
+    <MeetingReportRows title="Réunion préliminaire" report={report} canUpload {...extra} />
+  );
 
 describe('<MeetingReportRows>', () => {
   it('no DN CR: « Non déposé », deposit form, no signed row', () => {
@@ -1608,7 +1894,9 @@ describe('<MeetingReportRows>', () => {
     const dn = screen.getByRole('region', { name: 'Compte rendu DN' });
     expect(dn).toHaveTextContent('Non déposé');
     expect(within(dn).getByRole('button', { name: /Déposer le compte rendu/ })).toBeDisabled();
-    expect(screen.queryByRole('region', { name: 'Compte rendu signé par le postulant' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('region', { name: 'Compte rendu signé par le postulant' })
+    ).not.toBeInTheDocument();
   });
 
   it('DN CR available, signed copy pending: replace allowed, « En attente du postulant », no validation action', () => {
@@ -1617,10 +1905,14 @@ describe('<MeetingReportRows>', () => {
     expect(dn).toHaveTextContent('Disponible');
     expect(within(dn).getByRole('button', { name: 'Consulter' })).toBeInTheDocument();
     expect(within(dn).getByRole('button', { name: 'Télécharger' })).toBeInTheDocument();
-    expect(within(dn).getByRole('button', { name: /Remplacer le compte rendu/ })).toBeInTheDocument();
+    expect(
+      within(dn).getByRole('button', { name: /Remplacer le compte rendu/ })
+    ).toBeInTheDocument();
     const signed = screen.getByRole('region', { name: 'Compte rendu signé par le postulant' });
     expect(signed).toHaveTextContent('En attente du postulant');
-    expect(screen.queryByRole('button', { name: /Valider|Accepter|Refuser|Rejeter/ })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Valider|Accepter|Refuser|Rejeter/ })
+    ).not.toBeInTheDocument();
   });
 
   it('signed copy received: « Reçu le », consult / download, DN replacement frozen with the exact wording', () => {
@@ -1631,7 +1923,9 @@ describe('<MeetingReportRows>', () => {
     expect(within(signed).getByRole('button', { name: 'Télécharger' })).toBeInTheDocument();
     const dn = screen.getByRole('region', { name: 'Compte rendu DN' });
     expect(dn).toHaveTextContent(FROZEN);
-    expect(within(dn).queryByRole('button', { name: /Remplacer le compte rendu/ })).not.toBeInTheDocument();
+    expect(
+      within(dn).queryByRole('button', { name: /Remplacer le compte rendu/ })
+    ).not.toBeInTheDocument();
     expect(within(dn).queryByLabelText('Fichier du compte rendu DN')).not.toBeInTheDocument();
   });
 
@@ -1698,7 +1992,8 @@ interface MeetingReportRowsProps {
 
 const FROZEN =
   'Le compte rendu ne peut plus être remplacé car une version signée a déjà été retournée par le postulant.';
-const LINK = 'rounded border border-anac-border px-2 py-1 text-xs font-medium text-anac-blue hover:bg-anac-gray';
+const LINK =
+  'rounded border border-anac-border px-2 py-1 text-xs font-medium text-anac-blue hover:bg-anac-gray';
 
 function frDate(value: string | null, withTime = false): string {
   if (!value) return '';
@@ -1714,10 +2009,18 @@ function Badge({ tone, children }: { tone: 'muted' | 'info' | 'success'; childre
     info: 'bg-anac-info/10 text-anac-info',
     success: 'bg-anac-success/10 text-anac-success',
   };
-  return <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tones[tone]}`}>{children}</span>;
+  return (
+    <span className={`rounded px-2 py-0.5 text-[11px] font-medium ${tones[tone]}`}>{children}</span>
+  );
 }
 
-export function MeetingReportRows({ title, report, canUpload, busy = false, onUpload }: MeetingReportRowsProps) {
+export function MeetingReportRows({
+  title,
+  report,
+  canUpload,
+  busy = false,
+  onUpload,
+}: MeetingReportRowsProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [sending, setSending] = useState(false);
@@ -1746,18 +2049,27 @@ export function MeetingReportRows({ title, report, canUpload, busy = false, onUp
           <p className="flex items-center gap-1.5 text-sm font-medium text-anac-navy">
             <FileText size={14} aria-hidden="true" /> Compte rendu DN
           </p>
-          <Badge tone={crDocumentUrl ? 'info' : 'muted'}>{crDocumentUrl ? 'Disponible' : 'Non déposé'}</Badge>
+          <Badge tone={crDocumentUrl ? 'info' : 'muted'}>
+            {crDocumentUrl ? 'Disponible' : 'Non déposé'}
+          </Badge>
         </div>
         {crDocumentUrl && (
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <span className="text-xs text-anac-muted">Déposé le {frDate(report.crUploadedAt)}</span>
-            <DocumentPreviewLink title={`Compte rendu - ${title}`} url={crDocumentUrl} label="Consulter" className={LINK} />
+            <DocumentPreviewLink
+              title={`Compte rendu - ${title}`}
+              url={crDocumentUrl}
+              label="Consulter"
+              className={LINK}
+            />
             <FileLink address={crDocumentUrl} download className={LINK}>
               Télécharger
             </FileLink>
           </div>
         )}
-        {canUpload && signedCrDocumentUrl && <p className="mt-2 text-xs text-anac-muted">{FROZEN}</p>}
+        {canUpload && signedCrDocumentUrl && (
+          <p className="mt-2 text-xs text-anac-muted">{FROZEN}</p>
+        )}
         {canUpload && !signedCrDocumentUrl && (
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <input
@@ -1767,17 +2079,28 @@ export function MeetingReportRows({ title, report, canUpload, busy = false, onUp
               className="text-xs"
               onChange={(event) => setFile(event.target.files?.[0] ?? null)}
             />
-            <Button size="sm" variant="secondary" className="gap-1" onClick={submit} disabled={!file || busy || sending}>
+            <Button
+              size="sm"
+              variant="secondary"
+              className="gap-1"
+              onClick={submit}
+              disabled={!file || busy || sending}
+            >
               <Upload size={12} aria-hidden="true" />
               {crDocumentUrl ? 'Remplacer le compte rendu' : 'Déposer le compte rendu'}
             </Button>
           </div>
         )}
-        <p className="mt-1 text-[11px] text-anac-muted">Facultatif : la phase peut être clôturée sans compte rendu.</p>
+        <p className="mt-1 text-[11px] text-anac-muted">
+          Facultatif : la phase peut être clôturée sans compte rendu.
+        </p>
       </section>
 
       {crDocumentUrl && (
-        <section aria-label="Compte rendu signé par le postulant" className="rounded-lg border border-anac-border p-3">
+        <section
+          aria-label="Compte rendu signé par le postulant"
+          className="rounded-lg border border-anac-border p-3"
+        >
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="flex items-center gap-1.5 text-sm font-medium text-anac-navy">
               <FileCheck2 size={14} aria-hidden="true" /> Compte rendu signé par le postulant
@@ -1790,7 +2113,12 @@ export function MeetingReportRows({ title, report, canUpload, busy = false, onUp
           </div>
           {signedCrDocumentUrl && (
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              <DocumentPreviewLink title={`Compte rendu signé - ${title}`} url={signedCrDocumentUrl} label="Consulter" className={LINK} />
+              <DocumentPreviewLink
+                title={`Compte rendu signé - ${title}`}
+                url={signedCrDocumentUrl}
+                label="Consulter"
+                className={LINK}
+              />
               <FileLink address={signedCrDocumentUrl} download className={LINK}>
                 Télécharger
               </FileLink>
@@ -1818,23 +2146,27 @@ In `apps/admin/src/pages/phases/preliminary/components/MeetingCard.tsx`:
 2. Read-only branch: replace the `{meeting.crDocumentUrl && ( <p className="text-sm"> Compte-rendu envoyé le ... </p> )}` block with:
 
 ```tsx
-            {meeting.status === 'held' && (
-              <MeetingReportRows title="Réunion préliminaire" report={meeting} canUpload={false} />
-            )}
+{
+  meeting.status === 'held' && (
+    <MeetingReportRows title="Réunion préliminaire" report={meeting} canUpload={false} />
+  );
+}
 ```
 
 3. Editable branch: replace the whole `{meeting.status === 'held' && ( <div className="pt-1 space-y-2"> ... </div> )}` block with:
 
 ```tsx
-          {meeting.status === 'held' && (
-            <MeetingReportRows
-              title="Réunion préliminaire"
-              report={meeting}
-              canUpload
-              busy={busy}
-              onUpload={(file) => sendReport(meeting.id, file)}
-            />
-          )}
+{
+  meeting.status === 'held' && (
+    <MeetingReportRows
+      title="Réunion préliminaire"
+      report={meeting}
+      canUpload
+      busy={busy}
+      onUpload={(file) => sendReport(meeting.id, file)}
+    />
+  );
+}
 ```
 
 4. Delete `sendingReport`, `reportFile`, `handleSendReport`, and the imports that become unused (`FileUp`, `DocumentPreviewLink`, `formatDate`); the lint and typecheck list them.
@@ -1842,6 +2174,7 @@ In `apps/admin/src/pages/phases/preliminary/components/MeetingCard.tsx`:
 - [ ] **Step 6: Integrate in the M4 card**
 
 In `apps/admin/src/pages/phases/formal/components/FormalMeetingCard.tsx`, make the same two replacements with `title="Réunion formelle"`. In the editable branch:
+
 - use `canUpload={canManage}`;
 - keep `busy={busy}` and `onUpload={(file) => sendReport(meeting.id, file)}`;
 - delete the old block including its « Le compte-rendu est facultatif pour la clôture de la phase. » paragraph (the component carries the « Facultatif » note);
@@ -1856,15 +2189,17 @@ In `apps/admin/src/pages/meetings/MeetingsPage.tsx`, in the detail component (ar
 3. Replace the `{canReport ? ( <form onSubmit={handleReport} ...> ... </form> ) : null}` block with:
 
 ```tsx
-            {item.meetingType !== 'site_visit' && item.status === 'held' ? (
-              <MeetingReportRows
-                title={`${item.meetingTypeLabel} - ${item.requestReference}`}
-                report={item}
-                canUpload={canReport}
-                busy={busy}
-                onUpload={(file) => reportMutation.mutateAsync({ id: item.id, file })}
-              />
-            ) : null}
+{
+  item.meetingType !== 'site_visit' && item.status === 'held' ? (
+    <MeetingReportRows
+      title={`${item.meetingTypeLabel} - ${item.requestReference}`}
+      report={item}
+      canUpload={canReport}
+      busy={busy}
+      onUpload={(file) => reportMutation.mutateAsync({ id: item.id, file })}
+    />
+  ) : null;
+}
 ```
 
 4. In the `item.dossierClosed` block, delete the `{item.crDocumentUrl ? ( <FileLink ...>Consulter le compte-rendu</FileLink> ) : null}` part; the rows above already show the files read only. Keep the « Dossier clos : la réunion reste consultable, aucune action n'est possible. » sentence.
@@ -1873,19 +2208,20 @@ In `apps/admin/src/pages/meetings/MeetingsPage.tsx`, in the detail component (ar
 - [ ] **Step 8: Update the existing admin tests**
 
 In `apps/admin/src/pages/closed-dossier-lists.test.tsx`:
+
 - in the `meeting()` factory, add `signedCrDocumentUrl: null, signedCrUploadedAt: null,` after `crUploadedAt: AT,`, and change `crDocumentUrl: '/api/files/cr.pdf'` to `crDocumentUrl: '/api/files/41'`;
 - closed test: replace the two report assertions with:
 
 ```ts
-    const dnReport = screen.getByRole('region', { name: 'Compte rendu DN' });
-    expect(within(dnReport).getByRole('button', { name: 'Consulter' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Remplacer le compte rendu/ })).not.toBeInTheDocument();
+const dnReport = screen.getByRole('region', { name: 'Compte rendu DN' });
+expect(within(dnReport).getByRole('button', { name: 'Consulter' })).toBeInTheDocument();
+expect(screen.queryByRole('button', { name: /Remplacer le compte rendu/ })).not.toBeInTheDocument();
 ```
 
 - open test: replace `expect(screen.getByText('Remplacer le compte-rendu')).toBeInTheDocument();` with:
 
 ```ts
-    expect(screen.getByRole('button', { name: /Remplacer le compte rendu/ })).toBeInTheDocument();
+expect(screen.getByRole('button', { name: /Remplacer le compte rendu/ })).toBeInTheDocument();
 ```
 
 - add `within` to the `@testing-library/react` import if missing;
@@ -1909,6 +2245,7 @@ In `apps/admin/src/pages/phases/preliminary/helpers.test.ts`, add `signedCrDocum
 - [ ] **Step 9: Run the admin suite, typecheck and lint**
 
 Run:
+
 - `npm run test --workspace=apps/admin`
 - `npm run typecheck --workspace=apps/admin`
 - `npm run lint --workspace=apps/admin --if-present`
@@ -1920,6 +2257,7 @@ Expected: PASS; 203 existing tests plus the new ones. `analytics-refresh.test.ts
 ### Task 8: Docs, full validation, commit
 
 **Files:**
+
 - Modify: `exploration-cache/project/decisions.md` (new #18), `exploration-cache/changelog.md`, `exploration-cache/active-session/current-task.md`, `exploration-cache/project/database-schema.md` (meetings columns, owner type)
 
 - [ ] **Step 1: Write decision #18**
@@ -1962,6 +2300,7 @@ npm run db:check:replayable --workspace=apps/api
 ```
 
 Expected:
+
 - API: all pass except the known K8b Windows `spawn npx ENOENT`.
 - Admin and portal: all pass.
 - Typecheck, build and lint: clean.
@@ -1970,6 +2309,7 @@ Expected:
 - [ ] **Step 4: Migration replay on a database at 0009 with legacy rows**
 
 On a disposable DB:
+
 1. Migrate to 0009 (check out `2721c0c` for the migrate step, or replay migrations 0000-0009 only).
 2. Insert:
    - one held preliminary meeting with `cr_document_url` and a `meeting_report` version;

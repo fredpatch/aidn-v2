@@ -21,38 +21,80 @@ export const DN_CIRCUIT_TAB_MODES: Record<DnCircuitTab, QueueMode> = {
   all: 'history',
 };
 
-export function dnCircuitCallout(item: DnAnnotationTask): { title: string; description: string; blockReason: string | null } {
+export function dnCircuitCallout(item: DnAnnotationTask): {
+  title: string;
+  description: string;
+  blockReason: string | null;
+} {
   if (item.blockReason === 'dossier_closed') {
-    return { title: 'Dossier clos — consultation uniquement', description: 'Le circuit reste consultable. Aucune action n’est possible.', blockReason: null };
+    return {
+      title: 'Dossier clos - consultation uniquement',
+      description: 'Le circuit reste consultable. Aucune action n’est possible.',
+      blockReason: null,
+    };
   }
   if (item.actionKey === 'send_to_director') {
-    return { title: 'À transmettre au Directeur DN', description: 'Annotation du DG reçue. Remettez le dossier au Directeur DN, puis marquez-le transmis.', blockReason: null };
+    return {
+      title: 'À transmettre au Directeur DN',
+      description:
+        'Annotation du DG reçue. Remettez le dossier au Directeur DN, puis marquez-le transmis.',
+      blockReason: null,
+    };
   }
   if (item.actionKey === 'record_director_annotation') {
-    const since = item.directorWorkingDays === null ? '' : ` depuis ${item.directorWorkingDays} j ouvrés`;
-    return { title: 'Chez le Directeur DN', description: `Le dossier est chez le Directeur DN${since}. Téléversez le retour annoté dès réception.`, blockReason: null };
+    const since =
+      item.directorWorkingDays === null ? '' : ` depuis ${item.directorWorkingDays} j ouvrés`;
+    return {
+      title: 'Chez le Directeur DN',
+      description: `Le dossier est chez le Directeur DN${since}. Téléversez le retour annoté dès réception.`,
+      blockReason: null,
+    };
   }
   if (item.actionKey === 'handed_to_dn') {
-    return { title: 'Transmis à la DN', description: 'Annotation du Directeur DN reçue. La DN peut ouvrir la phase préliminaire.', blockReason: null };
+    return {
+      title: 'Transmis à la DN',
+      description: 'Annotation du Directeur DN reçue. La DN peut ouvrir la phase préliminaire.',
+      blockReason: null,
+    };
   }
   return { title: 'Circuit archivé', description: 'Consultation uniquement.', blockReason: null };
 }
 
 const DAY_MS = 86_400_000;
 
-export function dnCircuitMetrics(items: DnAnnotationTask[], counts: Record<DnCircuitBucket, number>, now: Date = new Date()): CockpitMetric[] {
-  const waits = items.filter((i) => i.bucket === 'with_director' && i.directorWorkingDays !== null).map((i) => i.directorWorkingDays!);
+export function dnCircuitMetrics(
+  items: DnAnnotationTask[],
+  counts: Record<DnCircuitBucket, number>,
+  now: Date = new Date()
+): CockpitMetric[] {
+  const waits = items
+    .filter((i) => i.bucket === 'with_director' && i.directorWorkingDays !== null)
+    .map((i) => i.directorWorkingDays!);
   const average = waits.length ? waits.reduce((a, b) => a + b, 0) / waits.length : null;
-  const handed30 = items.filter((i) => i.bucket === 'returned' && i.returnedAt && now.getTime() - new Date(i.returnedAt).getTime() <= 30 * DAY_MS).length;
+  const handed30 = items.filter(
+    (i) =>
+      i.bucket === 'returned' &&
+      i.returnedAt &&
+      now.getTime() - new Date(i.returnedAt).getTime() <= 30 * DAY_MS
+  ).length;
   return [
     { key: 'to_send', label: 'à transmettre', value: counts.to_send, detail: null, tone: 'info' },
     {
       key: 'with_director',
       label: 'chez le Directeur DN',
       value: counts.with_director,
-      detail: average === null ? null : `délai moyen ${average.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} j ouvrés`,
+      detail:
+        average === null
+          ? null
+          : `délai moyen ${average.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} j ouvrés`,
       tone: 'warning',
     },
-    { key: 'returned_30', label: 'transmis à la DN (30 j)', value: handed30, detail: null, tone: 'success' },
+    {
+      key: 'returned_30',
+      label: 'transmis à la DN (30 j)',
+      value: handed30,
+      detail: null,
+      tone: 'success',
+    },
   ];
 }

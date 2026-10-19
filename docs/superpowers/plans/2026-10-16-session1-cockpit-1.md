@@ -1,16 +1,18 @@
-# SESSION1-COCKPIT-1 — Operational cockpits per role: Implementation Plan
+# SESSION1-COCKPIT-1 - Operational cockpits per role: Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Réception / Assistant DG, Assistante DN, Finance and Cellule Inspection each land on one work queue that says what needs their action now, what waits on whom, what is late, and which action opening an item leads to. The three role dashboards are retired, and B1–B6 are fixed.
 
 **Architecture:**
+
 - **Shared contract.** `@aidn/shared` holds the operational contract (`OperationalQueueItem`, urgency, owners, bucket and action-key unions, `canRecordSiteVisitHeld`).
 - **Server-side read models.** Each domain API computes `bucket`, `state`, `owner`, `actionKey`, `blockReason` and `urgency` on the server, in a fixed number of queries, and sends no French.
 - **Presentation-only shell.** The admin app renders every queue with one shell (`components/cockpit/*`, `lib/cockpit/*`). Each domain keeps its own copy, metrics, pane body and mutations.
 - **Home routing.** A pure `homeFor(roles)` sends each user to their queue.
 
 **Tech Stack:**
+
 - API: Express, Drizzle 0.45, PostgreSQL, `node:test` via `tsx --test`.
 - Shared: `packages/shared` (TypeScript, consumed through `dist/`; rebuild after every change).
 - Admin: React, Vite, TanStack Query, vitest and Testing Library.
@@ -29,7 +31,7 @@
   - `dashboard_sla_invoice_upload_days` (default 2);
   - `dashboard_sla_payment_validation_days` (default 1);
   - `public_holidays`.
-  The Directeur DN circuit and the awaited payment proof are informational (`normal`). The « + 4 j » proof rule is gone (D10).
+    The Directeur DN circuit and the awaited payment proof are informational (`normal`). The « + 4 j » proof rule is gone (D10).
 - **CI visit urgency** (frozen): visit day after today → `normal`; today → `warning` (« Échéance proche »); before today → `overdue` (« En retard »).
 - **B4:** a visit may be scheduled before payment; it may be recorded as held only when the M6 payment is `validated`. The held update is a compare-and-set on `status = 'scheduled'`; no returned row → `MEETING_NOT_SCHEDULED` (409).
 - **SU actionability** (D11/D14): the CTA needs UX-1 `canAct(owner, roles)`. CI additionally needs `assignedToViewer` (the services require `meetings.dn_agent_id = actor`).
@@ -39,7 +41,7 @@
   - « Annotation du DG » for the initial request, M3 declaration and M4 letter circuits (D7);
   - « preuve de paiement » (D8);
   - Finance, Agent Finance, Cellule Inspection, Agent CI, Réception, Assistant DG, Assistante DN.
-  No visible « S5 » or « R3 ».
+    No visible « S5 » or « R3 ».
 - **Unchanged:** technical role keys, routes and files (`s5_agent`, `r3_agent`, `/paiements-s5`, `S5PaymentsPage.tsx`, `MyInspectionsPage.tsx`, …).
 - **Out of scope:** the DN dashboard (`DashboardPage`, `/api/dashboard/summary`) and analytics, the portal, ACCOUNT-1, migrations, the auth model.
 - **Commits:** none per task. One commit after full validation (Task 11). Do not push. Never stage `exploration-cache/reference/*`.
@@ -59,7 +61,7 @@
    - `reception` + `assistant_dg` gets « À imprimer »;
    - `assistant_dn` + `s5_agent` lands on Finance;
    - SU + `r3_agent` sees every mission but gets « Enregistrer la tenue » only on their own.
-   Pinned in Task 3 (`homeFor`, `courrierDefaultTab`) and Task 10 (CI pane).
+     Pinned in Task 3 (`homeFor`, `courrierDefaultTab`) and Task 10 (CI pane).
 4. **A 409 `DOSSIER_CLOSED` during an action.** Expected: the list reloads, the row moves to « Tous » with the closed badge and no CTA, and the error banner shows the API message. Pinned in Task 5 (courrier) and Task 8 (Finance).
 5. **An empty queue on first landing** (redirected from `/`). Expected: the default tab shows its empty state, the metrics show 0, and no error appears. Pinned in Task 2 (`QueueColumn`) and Task 8 (Finance page).
 
@@ -68,6 +70,7 @@
 ### Task 1: Shared operational contract and owners
 
 **Files:**
+
 - Create: `packages/shared/src/operational-queue.ts`
 - Modify: `packages/shared/src/index.ts` (add `export * from './operational-queue.js';`)
 - Modify: `apps/api/src/modules/requests/cockpit-next-action.ts:10-19` (OWNERS → `OPERATIONAL_OWNERS`)
@@ -75,6 +78,7 @@
 - Test: `apps/api/src/modules/operational/operational-queue.shared.test.ts` (shared has no runner; the API's `tsx --test` runs it)
 
 **Interfaces:**
+
 - Produces (used by every later task):
   - `type OperationalUrgency = 'normal' | 'warning' | 'overdue'`, `URGENCY_RANK`, `type OperationalBlockReason`.
   - `interface OperationalQueueItem<B extends string, K extends string>`, `interface OperationalQueue<I, B extends string>`.
@@ -136,19 +140,48 @@ describe('visitDayUrgency (frozen CI rule)', () => {
 
 describe('countBuckets', () => {
   it('always returns every key, inactive included', () => {
-    const counts = countBuckets(COURRIER_BUCKETS, [{ bucket: 'to_print' }, { bucket: 'inactive' }, { bucket: 'to_print' }]);
+    const counts = countBuckets(COURRIER_BUCKETS, [
+      { bucket: 'to_print' },
+      { bucket: 'inactive' },
+      { bucket: 'to_print' },
+    ]);
     assert.deepEqual(counts, { to_print: 2, with_dg: 0, returned: 0, inactive: 1 });
-    assert.deepEqual(Object.keys(countBuckets(DN_CIRCUIT_BUCKETS, [])).sort(), ['inactive', 'returned', 'to_send', 'with_director']);
-    assert.deepEqual(Object.keys(countBuckets(FINANCE_BUCKETS, [])).sort(), ['awaiting_applicant', 'done', 'inactive', 'invoice_to_send', 'proof_to_validate']);
-    assert.deepEqual(Object.keys(countBuckets(INSPECTION_BUCKETS, [])).sort(), ['awaiting_payment', 'closed', 'inactive', 'to_hold', 'verdict_due']);
+    assert.deepEqual(Object.keys(countBuckets(DN_CIRCUIT_BUCKETS, [])).sort(), [
+      'inactive',
+      'returned',
+      'to_send',
+      'with_director',
+    ]);
+    assert.deepEqual(Object.keys(countBuckets(FINANCE_BUCKETS, [])).sort(), [
+      'awaiting_applicant',
+      'done',
+      'inactive',
+      'invoice_to_send',
+      'proof_to_validate',
+    ]);
+    assert.deepEqual(Object.keys(countBuckets(INSPECTION_BUCKETS, [])).sort(), [
+      'awaiting_payment',
+      'closed',
+      'inactive',
+      'to_hold',
+      'verdict_due',
+    ]);
   });
 });
 
 describe('OPERATIONAL_OWNERS', () => {
   it('is the cockpit OWNERS (one source, unchanged values)', () => {
     assert.equal(OWNERS, OPERATIONAL_OWNERS);
-    assert.deepEqual(OPERATIONAL_OWNERS.finance, { kind: 'staff', label: 'Finance', roles: ['s5_agent', 'SU'] });
-    assert.deepEqual(OPERATIONAL_OWNERS.inspection, { kind: 'staff', label: 'Cellule Inspection', roles: ['r3_agent', 'SU'] });
+    assert.deepEqual(OPERATIONAL_OWNERS.finance, {
+      kind: 'staff',
+      label: 'Finance',
+      roles: ['s5_agent', 'SU'],
+    });
+    assert.deepEqual(OPERATIONAL_OWNERS.inspection, {
+      kind: 'staff',
+      label: 'Cellule Inspection',
+      roles: ['r3_agent', 'SU'],
+    });
     assert.deepEqual(OPERATIONAL_OWNERS.applicant, { kind: 'applicant', label: 'Postulant' });
   });
 
@@ -156,21 +189,40 @@ describe('OPERATIONAL_OWNERS', () => {
   function passes(router: unknown, role: string): boolean {
     let allowed = false;
     const res = { status: () => ({ json: () => undefined }) } as unknown as Response;
-    (router as { stack: Layer[] }).stack[1].handle({ user: { userId: 1, roles: [role] } } as unknown as Request, res, () => {
-      allowed = true;
-    });
+    (router as { stack: Layer[] }).stack[1].handle(
+      { user: { userId: 1, roles: [role] } } as unknown as Request,
+      res,
+      () => {
+        allowed = true;
+      }
+    );
     return allowed;
   }
-  const ALL = ['dn_agent', 'dn_supervisor', 'reception', 'assistant_dg', 'assistant_dn', 's5_agent', 'r3_agent', 'SU'];
+  const ALL = [
+    'dn_agent',
+    'dn_supervisor',
+    'reception',
+    'assistant_dg',
+    'assistant_dn',
+    's5_agent',
+    'r3_agent',
+    'SU',
+  ];
 
   it('courrier owners carry exactly the courrier route guard roles', () => {
     for (const owner of [OPERATIONAL_OWNERS.reception, OPERATIONAL_OWNERS.assistantDg]) {
-      assert.deepEqual(ALL.filter((role) => passes(courrierRoute, role)).sort(), [...owner.roles].sort());
+      assert.deepEqual(
+        ALL.filter((role) => passes(courrierRoute, role)).sort(),
+        [...owner.roles].sort()
+      );
     }
   });
 
   it('the Assistante DN owner carries exactly the Directeur DN circuit route guard roles', () => {
-    assert.deepEqual(ALL.filter((role) => passes(dnAnnotationRoute, role)).sort(), [...OPERATIONAL_OWNERS.assistantDn.roles].sort());
+    assert.deepEqual(
+      ALL.filter((role) => passes(dnAnnotationRoute, role)).sort(),
+      [...OPERATIONAL_OWNERS.assistantDn.roles].sort()
+    );
   });
 });
 
@@ -207,7 +259,11 @@ import type { NextActionOwner, OperationalState } from './applicant-actions.js';
 export type OperationalUrgency = 'normal' | 'warning' | 'overdue';
 
 /** Sort rank: overdue first. */
-export const URGENCY_RANK: Record<OperationalUrgency, number> = { overdue: 0, warning: 1, normal: 2 };
+export const URGENCY_RANK: Record<OperationalUrgency, number> = {
+  overdue: 0,
+  warning: 1,
+  normal: 2,
+};
 
 /** Why an item cannot progress; null when it can. */
 export type OperationalBlockReason = 'dossier_closed' | 'phase_not_open' | 'payment_not_validated';
@@ -252,7 +308,8 @@ export function urgencyFromAge(age: number | null, targetDays: number): Operatio
 /** Frozen CI rule: on the local calendar day, a visit after today is normal,
  *  today is warning, before today is overdue. */
 export function visitDayUrgency(scheduledAt: Date, now: Date): OperationalUrgency {
-  const day = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const day = (date: Date) =>
+    new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
   const visit = day(scheduledAt);
   const today = day(now);
   if (visit < today) return 'overdue';
@@ -260,7 +317,10 @@ export function visitDayUrgency(scheduledAt: Date, now: Date): OperationalUrgenc
   return 'normal';
 }
 
-export function countBuckets<B extends string>(keys: readonly B[], items: ReadonlyArray<{ bucket: B }>): Record<B, number> {
+export function countBuckets<B extends string>(
+  keys: readonly B[],
+  items: ReadonlyArray<{ bucket: B }>
+): Record<B, number> {
   const counts = Object.fromEntries(keys.map((key) => [key, 0])) as Record<B, number>;
   for (const item of items) counts[item.bucket] += 1;
   return counts;
@@ -282,7 +342,10 @@ export const OPERATIONAL_OWNERS = {
  *  and the payment of its M6 phase is validated. Used by the guard
  *  (markAssignedSiteVisitHeld) and by the CI queue (to_hold), so an item shown
  *  as « Visite à enregistrer » is always accepted by the guard. */
-export function canRecordSiteVisitHeld(visit: { status: string }, payment: { status: string } | null): boolean {
+export function canRecordSiteVisitHeld(
+  visit: { status: string },
+  payment: { status: string } | null
+): boolean {
   return visit.status === 'scheduled' && payment?.status === 'validated';
 }
 
@@ -290,21 +353,31 @@ export function canRecordSiteVisitHeld(visit: { status: string }, payment: { sta
 export const COURRIER_BUCKETS = ['to_print', 'with_dg', 'returned', 'inactive'] as const;
 export type CourrierBucket = (typeof COURRIER_BUCKETS)[number];
 export type CourrierActionKey =
-  | 'print_for_dg'
-  | 'record_dg_annotation'
-  | 'handed_to_assistant_dn'
-  | 'handed_to_dn'
-  | 'none';
+  'print_for_dg' | 'record_dg_annotation' | 'handed_to_assistant_dn' | 'handed_to_dn' | 'none';
 
 export const DN_CIRCUIT_BUCKETS = ['to_send', 'with_director', 'returned', 'inactive'] as const;
 export type DnCircuitBucket = (typeof DN_CIRCUIT_BUCKETS)[number];
-export type DnCircuitActionKey = 'send_to_director' | 'record_director_annotation' | 'handed_to_dn' | 'none';
+export type DnCircuitActionKey =
+  'send_to_director' | 'record_director_annotation' | 'handed_to_dn' | 'none';
 
-export const FINANCE_BUCKETS = ['invoice_to_send', 'proof_to_validate', 'awaiting_applicant', 'done', 'inactive'] as const;
+export const FINANCE_BUCKETS = [
+  'invoice_to_send',
+  'proof_to_validate',
+  'awaiting_applicant',
+  'done',
+  'inactive',
+] as const;
 export type FinanceBucket = (typeof FINANCE_BUCKETS)[number];
-export type FinanceActionKey = 'send_invoice' | 'validate_payment_proof' | 'await_payment_proof' | 'none';
+export type FinanceActionKey =
+  'send_invoice' | 'validate_payment_proof' | 'await_payment_proof' | 'none';
 
-export const INSPECTION_BUCKETS = ['to_hold', 'verdict_due', 'awaiting_payment', 'closed', 'inactive'] as const;
+export const INSPECTION_BUCKETS = [
+  'to_hold',
+  'verdict_due',
+  'awaiting_payment',
+  'closed',
+  'inactive',
+] as const;
 export type InspectionBucket = (typeof INSPECTION_BUCKETS)[number];
 export type InspectionActionKey = 'record_visit_held' | 'submit_verdict' | 'await_payment' | 'none';
 ```
@@ -344,6 +417,7 @@ Expected: PASS. Also run `npx vitest run src/pages/phases` from `apps/admin`. Ex
 ### Task 2: Admin cockpit primitives
 
 **Files:**
+
 - Modify: `apps/admin/src/lib/dayGroups.ts:16-20` (widen `DayGroup.key` to `string`)
 - Create: `apps/admin/src/lib/cockpit/queue.ts` (`sortQueue`, `groupQueue`, `filterQueue`, `defaultOrderFor`)
 - Create: `apps/admin/src/lib/cockpit/useUrlSelection.ts`, `apps/admin/src/lib/cockpit/useQueueTab.ts`
@@ -351,6 +425,7 @@ Expected: PASS. Also run `npx vitest run src/pages/phases` from `apps/admin`. Ex
 - Test: `apps/admin/src/lib/cockpit/queue.test.ts`, `apps/admin/src/components/cockpit/cockpit.test.tsx`
 
 **Interfaces:**
+
 - Consumes: `OperationalUrgency`, `URGENCY_RANK`, `OperationalQueueItem` (Task 1); `MessageList`, `BucketTabs`, `EmptyState`, `OperationalCallout` (existing).
 - Produces:
   - `type AgeOrder = 'oldest' | 'newest'`; `type QueueMode = 'action' | 'waiting' | 'history'` (approved correction: a waiting bucket is never « À traiter »).
@@ -370,8 +445,16 @@ Create `apps/admin/src/lib/cockpit/queue.test.ts`:
 import { describe, expect, it } from 'vitest';
 import { defaultOrderFor, filterQueue, groupQueue, sortQueue } from './queue';
 
-const row = (id: string, urgency: 'normal' | 'warning' | 'overdue', stepSince: string | null, bucket = 'a') => ({
-  id, urgency, stepSince, bucket,
+const row = (
+  id: string,
+  urgency: 'normal' | 'warning' | 'overdue',
+  stepSince: string | null,
+  bucket = 'a'
+) => ({
+  id,
+  urgency,
+  stepSince,
+  bucket,
 });
 
 describe('sortQueue', () => {
@@ -384,12 +467,30 @@ describe('sortQueue', () => {
       row('w0', 'warning', '2026-10-12T09:00:00Z'),
       row('n0', 'normal', '2026-10-10T09:00:00Z'),
     ];
-    expect(sortQueue(items, 'action', 'oldest').map((i) => i.id)).toEqual(['o1', 'o2', 'w0', 'w1', 'n0', 'n1']);
-    expect(sortQueue(items, 'action', 'newest').map((i) => i.id)).toEqual(['o2', 'o1', 'w0', 'w1', 'n0', 'n1']);
+    expect(sortQueue(items, 'action', 'oldest').map((i) => i.id)).toEqual([
+      'o1',
+      'o2',
+      'w0',
+      'w1',
+      'n0',
+      'n1',
+    ]);
+    expect(sortQueue(items, 'action', 'newest').map((i) => i.id)).toEqual([
+      'o2',
+      'o1',
+      'w0',
+      'w1',
+      'n0',
+      'n1',
+    ]);
   });
 
   it('history mode: date only, newest first by default, nulls last', () => {
-    const items = [row('a', 'overdue', '2026-10-01T09:00:00Z'), row('b', 'normal', null), row('c', 'normal', '2026-10-05T09:00:00Z')];
+    const items = [
+      row('a', 'overdue', '2026-10-01T09:00:00Z'),
+      row('b', 'normal', null),
+      row('c', 'normal', '2026-10-05T09:00:00Z'),
+    ];
     expect(sortQueue(items, 'history', 'newest').map((i) => i.id)).toEqual(['c', 'a', 'b']);
     expect(sortQueue(items, 'history', 'oldest').map((i) => i.id)).toEqual(['a', 'c', 'b']);
   });
@@ -403,7 +504,10 @@ describe('sortQueue', () => {
 
 describe('groupQueue', () => {
   it('action mode: one group per urgency present, labelled', () => {
-    const groups = groupQueue(sortQueue([row('a', 'normal', null), row('b', 'overdue', null)], 'action', 'oldest'), 'action');
+    const groups = groupQueue(
+      sortQueue([row('a', 'normal', null), row('b', 'overdue', null)], 'action', 'oldest'),
+      'action'
+    );
     expect(groups.map((g) => [g.label, g.items.map((i) => i.id)])).toEqual([
       ['En retard', ['b']],
       ['À traiter', ['a']],
@@ -411,7 +515,11 @@ describe('groupQueue', () => {
   });
 
   it('waiting mode: urgency first like action, but a normal item is « En attente », never « À traiter »', () => {
-    const items = [row('n', 'normal', '2026-10-01T09:00:00Z'), row('o', 'overdue', '2026-10-05T09:00:00Z'), row('w', 'warning', null)];
+    const items = [
+      row('n', 'normal', '2026-10-01T09:00:00Z'),
+      row('o', 'overdue', '2026-10-05T09:00:00Z'),
+      row('w', 'warning', null),
+    ];
     const groups = groupQueue(sortQueue(items, 'waiting', 'oldest'), 'waiting');
     expect(groups.map((g) => [g.label, g.items.map((i) => i.id)])).toEqual([
       ['En retard', ['o']],
@@ -423,7 +531,11 @@ describe('groupQueue', () => {
 
   it('history mode: day groups; a null date never produces Invalid Date', () => {
     const now = new Date('2026-10-16T12:00:00Z');
-    const groups = groupQueue([row('a', 'normal', '2026-10-16T08:00:00Z'), row('b', 'normal', null)], 'history', now);
+    const groups = groupQueue(
+      [row('a', 'normal', '2026-10-16T08:00:00Z'), row('b', 'normal', null)],
+      'history',
+      now
+    );
     expect(groups.map((g) => g.label)).toEqual(["Aujourd'hui", 'Plus ancien']);
   });
 });
@@ -433,7 +545,11 @@ describe('filterQueue', () => {
   it('« all » keeps inactive rows; a bucket tab keeps its bucket only; search is accent-insensitive', () => {
     expect(filterQueue(items, 'all', '', () => '').map((i) => i.id)).toEqual(['x', 'y']);
     expect(filterQueue(items, 'to_print', '', () => '').map((i) => i.id)).toEqual(['x']);
-    expect(filterQueue(items, 'all', 'societe', (i) => (i.id === 'x' ? 'Société' : 'autre')).map((i) => i.id)).toEqual(['x']);
+    expect(
+      filterQueue(items, 'all', 'societe', (i) => (i.id === 'x' ? 'Société' : 'autre')).map(
+        (i) => i.id
+      )
+    ).toEqual(['x']);
   });
 });
 ```
@@ -453,13 +569,17 @@ const NOW = new Date('2026-10-16T12:00:00Z');
 
 describe('<AgingBadge>', () => {
   it('overdue / warning / normal, working days, future due date, and nothing without a date', () => {
-    const { rerender, container } = render(<AgingBadge urgency="overdue" since="2026-10-11T12:00:00Z" now={NOW} />);
+    const { rerender, container } = render(
+      <AgingBadge urgency="overdue" since="2026-10-11T12:00:00Z" now={NOW} />
+    );
     expect(screen.getByText('En retard · J+5')).toBeInTheDocument();
     rerender(<AgingBadge urgency="warning" since="2026-10-15T12:00:00Z" now={NOW} />);
     expect(screen.getByText('Échéance proche')).toBeInTheDocument();
     rerender(<AgingBadge urgency="normal" since="2026-10-13T12:00:00Z" now={NOW} />);
     expect(screen.getByText('depuis 3 j')).toBeInTheDocument();
-    rerender(<AgingBadge urgency="normal" since="2026-10-13T12:00:00Z" workingDays={2} now={NOW} />);
+    rerender(
+      <AgingBadge urgency="normal" since="2026-10-13T12:00:00Z" workingDays={2} now={NOW} />
+    );
     expect(screen.getByText('depuis 2 j ouvrés')).toBeInTheDocument();
     rerender(<AgingBadge urgency="normal" since={null} dueAt="2026-10-19T09:00:00Z" now={NOW} />);
     expect(screen.getByText('dans 3 j')).toBeInTheDocument();
@@ -476,7 +596,13 @@ describe('<QueueColumn>', () => {
     order: 'oldest' as const,
     onOrderChange: () => undefined,
     selectedId: null,
-    texts: { loading: 'Chargement X', error: 'Erreur X', empty: 'Vide X', listLabel: 'Liste X', noun: ['élément', 'éléments'] as [string, string] },
+    texts: {
+      loading: 'Chargement X',
+      error: 'Erreur X',
+      empty: 'Vide X',
+      listLabel: 'Liste X',
+      noun: ['élément', 'éléments'] as [string, string],
+    },
     onSelect: () => undefined,
     onActivate: () => undefined,
     renderRow: (item: { id: string }) => <span>{item.id}</span>,
@@ -494,7 +620,10 @@ describe('<QueueColumn>', () => {
 
 describe('useUrlSelection', () => {
   function Probe({ ids, ready = true }: { ids: string[]; ready?: boolean }) {
-    const { selected, select } = useUrlSelection(ids.map((id) => ({ id })), ready);
+    const { selected, select } = useUrlSelection(
+      ids.map((id) => ({ id })),
+      ready
+    );
     const location = useLocation();
     return (
       <div>
@@ -507,7 +636,9 @@ describe('useUrlSelection', () => {
   it('falls back to the first visible row when ?id= is missing or not visible', () => {
     const { rerender } = render(
       <MemoryRouter initialEntries={['/x?id=gone']}>
-        <Routes><Route path="/x" element={<Probe ids={['a', 'b']} />} /></Routes>
+        <Routes>
+          <Route path="/x" element={<Probe ids={['a', 'b']} />} />
+        </Routes>
       </MemoryRouter>
     );
     expect(screen.getByText('selected:a')).toBeInTheDocument();
@@ -516,7 +647,9 @@ describe('useUrlSelection', () => {
     expect(screen.getByText('search:?id=b')).toBeInTheDocument();
     rerender(
       <MemoryRouter initialEntries={['/x?id=b']}>
-        <Routes><Route path="/x" element={<Probe ids={[]} />} /></Routes>
+        <Routes>
+          <Route path="/x" element={<Probe ids={[]} />} />
+        </Routes>
       </MemoryRouter>
     );
     expect(screen.getByText('selected:none')).toBeInTheDocument();
@@ -525,21 +658,27 @@ describe('useUrlSelection', () => {
   it('once ready, a stale ?id= is replaced by the fallback id, or removed when no row remains; never while loading', async () => {
     const { unmount } = render(
       <MemoryRouter initialEntries={['/x?id=gone&tab=t']}>
-        <Routes><Route path="/x" element={<Probe ids={['a']} />} /></Routes>
+        <Routes>
+          <Route path="/x" element={<Probe ids={['a']} />} />
+        </Routes>
       </MemoryRouter>
     );
     expect(await screen.findByText('search:?id=a&tab=t')).toBeInTheDocument();
     unmount();
     const empty = render(
       <MemoryRouter initialEntries={['/x?id=gone&tab=t']}>
-        <Routes><Route path="/x" element={<Probe ids={[]} />} /></Routes>
+        <Routes>
+          <Route path="/x" element={<Probe ids={[]} />} />
+        </Routes>
       </MemoryRouter>
     );
     expect(await screen.findByText('search:?tab=t')).toBeInTheDocument();
     empty.unmount();
     render(
       <MemoryRouter initialEntries={['/x?id=deep']}>
-        <Routes><Route path="/x" element={<Probe ids={[]} ready={false} />} /></Routes>
+        <Routes>
+          <Route path="/x" element={<Probe ids={[]} ready={false} />} />
+        </Routes>
       </MemoryRouter>
     );
     expect(screen.getByText('search:?id=deep')).toBeInTheDocument(); // a deep link survives the first load
@@ -550,9 +689,15 @@ describe('<CockpitUploadModal>', () => {
   it('submit disabled without a file; shows the busy label', () => {
     const onSubmit = vi.fn();
     const props = {
-      title: 'Joindre la facture transmise', subtitle: 'DEM-1', label: 'Facture', accept: '.pdf',
-      submitLabel: 'Enregistrer', busySubmitLabel: 'Enregistrement...', onFileChange: () => undefined,
-      onClose: () => undefined, onSubmit,
+      title: 'Joindre la facture transmise',
+      subtitle: 'DEM-1',
+      label: 'Facture',
+      accept: '.pdf',
+      submitLabel: 'Enregistrer',
+      busySubmitLabel: 'Enregistrement...',
+      onFileChange: () => undefined,
+      onClose: () => undefined,
+      onSubmit,
     };
     const { rerender } = render(<CockpitUploadModal {...props} file={null} busy={false} />);
     expect(screen.getByRole('button', { name: /Enregistrer/ })).toBeDisabled();
@@ -590,7 +735,10 @@ export interface QueueRow {
   stepSince: string | null;
 }
 
-const URGENCY_GROUP_LABELS: Record<Exclude<QueueMode, 'history'>, Record<OperationalUrgency, string>> = {
+const URGENCY_GROUP_LABELS: Record<
+  Exclude<QueueMode, 'history'>,
+  Record<OperationalUrgency, string>
+> = {
   action: { overdue: 'En retard', warning: 'Échéance proche', normal: 'À traiter' },
   waiting: { overdue: 'En retard', warning: 'Échéance proche', normal: 'En attente' },
 };
@@ -609,14 +757,20 @@ function compareDates(a: string | null, b: string | null, order: AgeOrder): numb
 
 export function sortQueue<T extends QueueRow>(items: T[], mode: QueueMode, order: AgeOrder): T[] {
   return [...items].sort((a, b) => {
-    if (mode !== 'history' && a.urgency !== b.urgency) return URGENCY_RANK[a.urgency] - URGENCY_RANK[b.urgency];
+    if (mode !== 'history' && a.urgency !== b.urgency)
+      return URGENCY_RANK[a.urgency] - URGENCY_RANK[b.urgency];
     return compareDates(a.stepSince, b.stepSince, order) || a.id.localeCompare(b.id);
   });
 }
 
 /** Groups an already sorted list: by urgency in action / waiting mode, by day in history. */
-export function groupQueue<T extends QueueRow>(items: T[], mode: QueueMode, now: Date = new Date()): DayGroup<T>[] {
-  if (mode === 'history') return groupByDay(items, (item) => item.stepSince ?? new Date(0).toISOString(), now);
+export function groupQueue<T extends QueueRow>(
+  items: T[],
+  mode: QueueMode,
+  now: Date = new Date()
+): DayGroup<T>[] {
+  if (mode === 'history')
+    return groupByDay(items, (item) => item.stepSince ?? new Date(0).toISOString(), now);
   const labels = URGENCY_GROUP_LABELS[mode];
   const groups: DayGroup<T>[] = [];
   for (const item of items) {
@@ -691,7 +845,10 @@ export function useUrlSelection<T extends { id: string }>(visible: T[], ready = 
 import { useSearchParams } from 'react-router-dom';
 
 /** `?tab=` with a default; an unknown value falls back to the default. */
-export function useQueueTab<K extends string>(allowed: readonly K[], fallback: K): [K, (tab: K) => void] {
+export function useQueueTab<K extends string>(
+  allowed: readonly K[],
+  fallback: K
+): [K, (tab: K) => void] {
   const [params, setParams] = useSearchParams();
   const raw = params.get('tab');
   const tab = allowed.includes(raw as K) ? (raw as K) : fallback;
@@ -737,14 +894,17 @@ export function AgingBadge({
   now?: Date;
 }) {
   const unit = workingDays !== null ? 'j ouvrés' : 'j';
-  const elapsed = (iso: string) => Math.max(0, Math.floor((now.getTime() - new Date(iso).getTime()) / DAY_MS));
+  const elapsed = (iso: string) =>
+    Math.max(0, Math.floor((now.getTime() - new Date(iso).getTime()) / DAY_MS));
   if (urgency === 'overdue') {
-    const n = dueAt ? elapsed(dueAt) : workingDays ?? (since ? elapsed(since) : null);
+    const n = dueAt ? elapsed(dueAt) : (workingDays ?? (since ? elapsed(since) : null));
     return <Badge tone="overdue">{n === null ? 'En retard' : `En retard · J+${n}`}</Badge>;
   }
   if (urgency === 'warning') return <Badge tone="warning">Échéance proche</Badge>;
   if (dueAt && new Date(dueAt).getTime() > now.getTime()) {
-    return <Badge tone="normal">{`dans ${Math.ceil((new Date(dueAt).getTime() - now.getTime()) / DAY_MS)} j`}</Badge>;
+    return (
+      <Badge tone="normal">{`dans ${Math.ceil((new Date(dueAt).getTime() - now.getTime()) / DAY_MS)} j`}</Badge>
+    );
   }
   const n = workingDays ?? (since ? elapsed(since) : null);
   if (n === null) return null;
@@ -794,7 +954,10 @@ export function CockpitMetrics({ items }: { items: CockpitMetric[] }) {
   return (
     <ul aria-label="Synthèse" className="flex flex-wrap gap-2">
       {items.map((metric) => (
-        <li key={metric.key} className={cn('rounded-lg border px-3 py-1.5 text-xs', TONES[metric.tone])}>
+        <li
+          key={metric.key}
+          className={cn('rounded-lg border px-3 py-1.5 text-xs', TONES[metric.tone])}
+        >
           <span className="font-semibold">{metric.value}</span> {metric.label}
           {metric.detail ? <span className="opacity-80"> · {metric.detail}</span> : null}
         </li>
@@ -837,7 +1000,8 @@ export function CockpitPage({
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key !== '/' || event.ctrlKey || event.metaKey || event.altKey) return;
     const target = event.target as HTMLElement;
-    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable) return;
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable)
+      return;
     event.preventDefault();
     searchRef.current?.focus();
   }
@@ -852,7 +1016,11 @@ export function CockpitPage({
           <CockpitMetrics items={metrics} />
           <label className="relative block w-full sm:w-[340px]">
             <span className="sr-only">{search.label}</span>
-            <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-anac-muted" aria-hidden="true" />
+            <Search
+              size={14}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-anac-muted"
+              aria-hidden="true"
+            />
             <input
               ref={searchRef}
               type="search"
@@ -865,7 +1033,11 @@ export function CockpitPage({
         </header>
         {errors.map((message, index) =>
           message ? (
-            <div key={index} role="alert" className="rounded-lg border border-anac-danger/20 bg-red-50 px-4 py-3 text-sm text-anac-danger">
+            <div
+              key={index}
+              role="alert"
+              className="rounded-lg border border-anac-danger/20 bg-red-50 px-4 py-3 text-sm text-anac-danger"
+            >
               {message}
             </div>
           ) : null
@@ -903,7 +1075,18 @@ export interface QueueTab<K extends string> {
 /** List column of a role cockpit: tabs, order, list (MessageList keyboard),
  *  three distinct loading / error / empty states, footer. */
 export function QueueColumn<T extends { id: string }, K extends string>({
-  tabs, tab, onTabChange, order, onOrderChange, groups, selectedId, status, texts, onSelect, onActivate, renderRow,
+  tabs,
+  tab,
+  onTabChange,
+  order,
+  onOrderChange,
+  groups,
+  selectedId,
+  status,
+  texts,
+  onSelect,
+  onActivate,
+  renderRow,
 }: {
   tabs: QueueTab<K>[];
   tab: K;
@@ -913,7 +1096,13 @@ export function QueueColumn<T extends { id: string }, K extends string>({
   groups: DayGroup<T>[];
   selectedId: string | null;
   status: 'loading' | 'error' | 'ready';
-  texts: { loading: string; error: string; empty: string; listLabel: string; noun: [string, string] };
+  texts: {
+    loading: string;
+    error: string;
+    empty: string;
+    listLabel: string;
+    noun: [string, string];
+  };
   onSelect: (item: T) => void;
   onActivate: (item: T) => void;
   renderRow: (item: T) => ReactNode;
@@ -924,7 +1113,10 @@ export function QueueColumn<T extends { id: string }, K extends string>({
       <BucketTabs size="compact" value={tab} items={tabs} onChange={onTabChange} />
       <div className="flex items-center justify-between gap-3 border-b border-anac-border px-4 py-2">
         <Select value={order} onValueChange={(value) => onOrderChange(value as AgeOrder)}>
-          <SelectTrigger aria-label="Trier" className="h-8 w-[200px] gap-2 text-xs font-semibold text-anac-navy">
+          <SelectTrigger
+            aria-label="Trier"
+            className="h-8 w-[200px] gap-2 text-xs font-semibold text-anac-navy"
+          >
             <ArrowDownAZ size={14} className="shrink-0 text-anac-muted" aria-hidden="true" />
             <SelectValue />
           </SelectTrigger>
@@ -955,9 +1147,12 @@ export function QueueColumn<T extends { id: string }, K extends string>({
       </div>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-anac-border bg-anac-gray/50 px-4 py-2 text-[11px] text-anac-muted">
         <span>
-          <span className="font-semibold text-anac-navy">{total}</span> {total > 1 ? texts.noun[1] : texts.noun[0]}
+          <span className="font-semibold text-anac-navy">{total}</span>{' '}
+          {total > 1 ? texts.noun[1] : texts.noun[0]}
         </span>
-        <span className="ml-auto hidden md:inline">↑ ↓ naviguer · Entrée action · / rechercher</span>
+        <span className="ml-auto hidden md:inline">
+          ↑ ↓ naviguer · Entrée action · / rechercher
+        </span>
       </div>
     </div>
   );
@@ -971,13 +1166,22 @@ import type { ReactNode } from 'react';
 import { EmptyState } from '../common/EmptyState';
 import { OperationalCallout, type OperationalCalloutProps } from '../common/OperationalCallout';
 
-const PANE = 'min-w-0 overflow-hidden rounded-lg border border-anac-border bg-white shadow-[0_8px_22px_rgba(17,34,83,0.04)]';
+const PANE =
+  'min-w-0 overflow-hidden rounded-lg border border-anac-border bg-white shadow-[0_8px_22px_rgba(17,34,83,0.04)]';
 
 /** Reading pane: header, then the operational callout (who acts, CTA only
  *  when canAct, secondary navigation always), then the domain body. */
 export function QueueReadingPane({
-  ariaLabel, header, callout, children,
-}: { ariaLabel: string; header: ReactNode; callout: OperationalCalloutProps; children?: ReactNode }) {
+  ariaLabel,
+  header,
+  callout,
+  children,
+}: {
+  ariaLabel: string;
+  header: ReactNode;
+  callout: OperationalCalloutProps;
+  children?: ReactNode;
+}) {
   return (
     <article aria-label={ariaLabel} className={PANE}>
       <header className="border-b border-anac-border px-5 pb-3 pt-4">{header}</header>
@@ -1008,7 +1212,18 @@ import { Modal } from '../ui/modal';
 /** Generic one-file upload dialog (courrier DG return, Directeur DN return,
  *  Finance invoice). Wording and business rules stay in the pages. */
 export function CockpitUploadModal({
-  title, subtitle, label, accept, hint, submitLabel, busySubmitLabel, file, busy, onFileChange, onClose, onSubmit,
+  title,
+  subtitle,
+  label,
+  accept,
+  hint,
+  submitLabel,
+  busySubmitLabel,
+  file,
+  busy,
+  onFileChange,
+  onClose,
+  onSubmit,
 }: {
   title: string;
   subtitle: string;
@@ -1042,7 +1257,12 @@ export function CockpitUploadModal({
     >
       <div className="space-y-2">
         <label className="label">{label}</label>
-        <input type="file" accept={accept} disabled={busy} onChange={(event) => onFileChange(event.target.files?.[0] ?? null)} />
+        <input
+          type="file"
+          accept={accept}
+          disabled={busy}
+          onChange={(event) => onFileChange(event.target.files?.[0] ?? null)}
+        />
         {file ? <p className="text-xs text-anac-muted">{file.name}</p> : null}
         {hint ? <p className="text-xs text-anac-muted">{hint}</p> : null}
       </div>
@@ -1063,6 +1283,7 @@ Expected: PASS. Then `npx vitest run` for the whole admin suite. Expected: PASS 
 ### Task 3: `homeFor`, home route, navigation; admin dashboard pages removed
 
 **Files:**
+
 - Create: `apps/admin/src/lib/home-for.ts`
 - Modify: `apps/admin/src/App.tsx` (`HomeRoute`, imports)
 - Modify: `apps/admin/src/components/layouts/AppShell.tsx:36-59` (« Tableau de bord » roles, « Circuit Directeur DN » label)
@@ -1071,6 +1292,7 @@ Expected: PASS. Then `npx vitest run` for the whole admin suite. Expected: PASS 
 - Test: `apps/admin/src/lib/home-for.test.ts`, `apps/admin/src/App.home.test.tsx`
 
 **Interfaces:**
+
 - Produces:
   - `type Home = { kind: 'dn_dashboard' } | { kind: 'queue'; path: QueuePath } | { kind: 'denied' }`;
   - `type QueuePath = '/paiements-s5' | '/mes-inspections' | '/courriers' | '/circuit-directeur-dn'`;
@@ -1099,11 +1321,15 @@ describe('homeFor (spec §9)', () => {
     [['assistant_dn', 's5_agent'], { kind: 'queue', path: '/paiements-s5' }],
     [['r3_agent', 'reception'], { kind: 'queue', path: '/mes-inspections' }],
     [['reception', 'assistant_dn'], { kind: 'queue', path: '/courriers' }],
-    [['s5_agent', 'r3_agent', 'reception', 'assistant_dn'], { kind: 'queue', path: '/paiements-s5' }],
+    [
+      ['s5_agent', 'r3_agent', 'reception', 'assistant_dn'],
+      { kind: 'queue', path: '/paiements-s5' },
+    ],
     [[], { kind: 'denied' }],
   ];
   for (const [roles, home] of cases) {
-    it(`${roles.join('+') || 'no role'} → ${JSON.stringify(home)}`, () => expect(homeFor(roles)).toEqual(home));
+    it(`${roles.join('+') || 'no role'} → ${JSON.stringify(home)}`, () =>
+      expect(homeFor(roles)).toEqual(home));
   }
 });
 
@@ -1178,8 +1404,10 @@ Expected: FAIL (`home-for` missing; `HomeRoute` not exported).
 /** SESSION1-COCKPIT-1 §9 - where each user lands on « / ». DN roles and SU
  *  keep the DN dashboard; a non-DN user lands on their work queue, with a
  *  fixed precedence when several apply. Pure. */
-export type QueuePath = '/paiements-s5' | '/mes-inspections' | '/courriers' | '/circuit-directeur-dn';
-export type Home = { kind: 'dn_dashboard' } | { kind: 'queue'; path: QueuePath } | { kind: 'denied' };
+export type QueuePath =
+  '/paiements-s5' | '/mes-inspections' | '/courriers' | '/circuit-directeur-dn';
+export type Home =
+  { kind: 'dn_dashboard' } | { kind: 'queue'; path: QueuePath } | { kind: 'denied' };
 
 export function homeFor(roles: readonly string[]): Home {
   const has = (role: string) => roles.includes(role);
@@ -1194,13 +1422,16 @@ export function homeFor(roles: readonly string[]): Home {
 /** D5 - Assistant DG alone starts on « Retour DG attendu »; anyone else
  *  (Réception, both roles, SU) on « À imprimer ». */
 export function courrierDefaultTab(roles: readonly string[]): 'to_print' | 'with_dg' {
-  return roles.includes('assistant_dg') && !roles.includes('reception') && !roles.includes('SU') ? 'with_dg' : 'to_print';
+  return roles.includes('assistant_dg') && !roles.includes('reception') && !roles.includes('SU')
+    ? 'with_dg'
+    : 'to_print';
 }
 ```
 
 - [ ] **Step 4: Rewrite `HomeRoute`**
 
 In `apps/admin/src/App.tsx`:
+
 - remove the imports of `ReceptionDashboardPage`, `R3DashboardPage` and `S5DashboardPage`;
 - remove the now-unused `DASHBOARD_ROLES` constant;
 - add `import { homeFor } from './lib/home-for';`;
@@ -1222,6 +1453,7 @@ export function HomeRoute() {
 - [ ] **Step 5: Navigation**
 
 In `AppShell.tsx`:
+
 - set the « Tableau de bord » item's `roles` to `['dn_agent', 'dn_supervisor', 'SU']`;
 - change the `/circuit-directeur-dn` label from `'Courrier DN'` to `'Circuit Directeur DN'`;
 - change `'Mes Inspections'` to `'Mes inspections'`.
@@ -1242,6 +1474,7 @@ Expected: PASS. If an existing test asserted the old nav label « Courrier DN »
 ### Task 4: Courrier queue read model (API) and batched thresholds
 
 **Files:**
+
 - Modify: `apps/api/src/modules/system-parameters/system-parameters.service.ts` (add `getIntegerValues`)
 - Create: `apps/api/src/modules/operational/thresholds.ts`, `apps/api/src/modules/operational/aging.ts`
 - Modify: `apps/api/src/modules/dashboard/dashboard.service.ts:92-102` (import `DASHBOARD_SLA_DEFAULTS` from `operational/thresholds.ts` instead of declaring it)
@@ -1250,6 +1483,7 @@ Expected: PASS. If an existing test asserted the old nav label « Courrier DN »
 - Update: `apps/api/src/modules/courrier-tasks/courrier-tasks.db.test.ts`, `apps/api/src/modules/requests/closed-dossier-lists.db.test.ts` (courrier lines only), `apps/api/src/modules/dn-annotation/dn-annotation.db.test.ts:295-304`
 
 **Interfaces:**
+
 - Consumes: Task 1 exports.
 - Produces:
   - `getIntegerValues<K extends string>(fallbacks: Record<K, number>): Promise<Record<K, number>>` (one query).
@@ -1309,7 +1543,10 @@ describe('getIntegerValues / loadThresholds (real PostgreSQL)', { skip }, () => 
       return (original as (...a: unknown[]) => unknown)(...args);
     };
     try {
-      const values = await params.getIntegerValues({ 'cockpit-test-missing-key': 7, dg_circuit_alert_days: 3 });
+      const values = await params.getIntegerValues({
+        'cockpit-test-missing-key': 7,
+        dg_circuit_alert_days: 3,
+      });
       assert.equal(values['cockpit-test-missing-key'], 7);
       assert.equal(typeof values.dg_circuit_alert_days, 'number');
     } finally {
@@ -1319,7 +1556,9 @@ describe('getIntegerValues / loadThresholds (real PostgreSQL)', { skip }, () => 
   });
 
   it('loadThresholds returns the named thresholds', async () => {
-    const { value } = await countQueries(() => thresholds.loadThresholds(['invoiceUploadDays', 'paymentValidationDays']));
+    const { value } = await countQueries(() =>
+      thresholds.loadThresholds(['invoiceUploadDays', 'paymentValidationDays'])
+    );
     assert.deepEqual(Object.keys(value).sort(), ['invoiceUploadDays', 'paymentValidationDays']);
   });
 });
@@ -1346,12 +1585,16 @@ describe('SESSION1-COCKPIT-1 courrier queue (real PostgreSQL)', { skip }, () => 
   });
 
   it('submitted for 3 calendar days with the default 1-day deposit target: overdue', async () => {
-    const d = await circuit('intake_request', 'submitted', { depositedAt: new Date(Date.now() - 3 * 86_400_000) });
+    const d = await circuit('intake_request', 'submitted', {
+      depositedAt: new Date(Date.now() - 3 * 86_400_000),
+    });
     assert.equal((await find(d.request)).urgency, 'overdue');
   });
 
   it('in signature: with_dg / waiting / Assistant DG / record_dg_annotation; late = overdue', async () => {
-    const d = await circuit('formal_request_letter', 'in_signature_circuit', { signatureSentAt: new Date(Date.now() - 20 * 86_400_000) });
+    const d = await circuit('formal_request_letter', 'in_signature_circuit', {
+      signatureSentAt: new Date(Date.now() - 20 * 86_400_000),
+    });
     const item = await find(d.request);
     assert.equal(item.bucket, 'with_dg');
     assert.equal(item.state, 'waiting');
@@ -1366,7 +1609,10 @@ describe('SESSION1-COCKPIT-1 courrier queue (real PostgreSQL)', { skip }, () => 
     const letter = await circuit('formal_request_letter', 'pending_review');
     const a = await find(intake.request);
     const b = await find(letter.request);
-    assert.deepEqual([a.bucket, a.state, a.owner, a.actionKey], ['returned', 'done', null, 'handed_to_assistant_dn']);
+    assert.deepEqual(
+      [a.bucket, a.state, a.owner, a.actionKey],
+      ['returned', 'done', null, 'handed_to_assistant_dn']
+    );
     assert.deepEqual([b.bucket, b.actionKey], ['returned', 'handed_to_dn']);
   });
 
@@ -1375,7 +1621,10 @@ describe('SESSION1-COCKPIT-1 courrier queue (real PostgreSQL)', { skip }, () => 
     const d = await circuit('formal_request_letter', 'submitted', { requestStatus: 'rejected' });
     const list = await service.listCourrierTasks({});
     const item = list.items.find((i) => i.requestId === d.request)!;
-    assert.deepEqual([item.bucket, item.state, item.owner, item.actionKey, item.blockReason], ['inactive', 'done', null, 'none', 'dossier_closed']);
+    assert.deepEqual(
+      [item.bucket, item.state, item.owner, item.actionKey, item.blockReason],
+      ['inactive', 'done', null, 'none', 'dossier_closed']
+    );
     assert.equal(list.counts.to_print, before.to_print);
     assert.equal(list.counts.with_dg, before.with_dg);
   });
@@ -1383,18 +1632,29 @@ describe('SESSION1-COCKPIT-1 courrier queue (real PostgreSQL)', { skip }, () => 
   it('phase not open: inactive / blocked / owner DN / phase_not_open', async () => {
     const d = await circuit('formal_request_letter', 'submitted', { phaseStatus: 'closed' });
     const item = await find(d.request);
-    assert.deepEqual([item.bucket, item.state, item.owner, item.blockReason], ['inactive', 'blocked', OPERATIONAL_OWNERS.dn, 'phase_not_open']);
+    assert.deepEqual(
+      [item.bucket, item.state, item.owner, item.blockReason],
+      ['inactive', 'blocked', OPERATIONAL_OWNERS.dn, 'phase_not_open']
+    );
   });
 
   it('legacy signed: inactive / done', async () => {
     const d = await circuit('formal_request_letter', 'signed');
     const item = await find(d.request);
-    assert.deepEqual([item.bucket, item.state, item.circuitStep], ['inactive', 'done', 'legacy_signed']);
+    assert.deepEqual(
+      [item.bucket, item.state, item.circuitStep],
+      ['inactive', 'done', 'legacy_signed']
+    );
   });
 
   it('every bucket key is present; thresholds are returned; no French label', async () => {
     const list = await service.listCourrierTasks({});
-    assert.deepEqual(Object.keys(list.counts).sort(), ['inactive', 'returned', 'to_print', 'with_dg']);
+    assert.deepEqual(Object.keys(list.counts).sort(), [
+      'inactive',
+      'returned',
+      'to_print',
+      'with_dg',
+    ]);
     assert.equal(typeof list.thresholds.dgAlertWorkingDays, 'number');
     assert.equal(typeof list.thresholds.depositDays, 'number');
     assert.equal('statusLabel' in list.items[0], false);
@@ -1426,7 +1686,9 @@ Append to `system-parameters.service.ts` (add `inArray` to the `drizzle-orm` imp
 ```ts
 /** SESSION1-COCKPIT-1 - several integer parameters in ONE query; missing or
  *  non-numeric values fall back, same rule as getIntegerValue. */
-export async function getIntegerValues<K extends string>(fallbacks: Record<K, number>): Promise<Record<K, number>> {
+export async function getIntegerValues<K extends string>(
+  fallbacks: Record<K, number>
+): Promise<Record<K, number>> {
   const keys = Object.keys(fallbacks) as K[];
   const rows =
     keys.length === 0
@@ -1485,10 +1747,17 @@ const DEFAULTS: Record<ThresholdName, number> = {
   dgAlertWorkingDays: DG_CIRCUIT_ALERT_DAYS_DEFAULT,
 };
 
-export async function loadThresholds<N extends ThresholdName>(names: readonly N[]): Promise<Record<N, number>> {
-  const fallbacks = Object.fromEntries(names.map((name) => [THRESHOLD_KEYS[name], DEFAULTS[name]])) as Record<string, number>;
+export async function loadThresholds<N extends ThresholdName>(
+  names: readonly N[]
+): Promise<Record<N, number>> {
+  const fallbacks = Object.fromEntries(
+    names.map((name) => [THRESHOLD_KEYS[name], DEFAULTS[name]])
+  ) as Record<string, number>;
   const values = await getIntegerValues(fallbacks);
-  return Object.fromEntries(names.map((name) => [name, values[THRESHOLD_KEYS[name]]])) as Record<N, number>;
+  return Object.fromEntries(names.map((name) => [name, values[THRESHOLD_KEYS[name]]])) as Record<
+    N,
+    number
+  >;
 }
 ```
 
@@ -1516,7 +1785,12 @@ In `dashboard.service.ts`, delete the local `DASHBOARD_SLA_DEFAULTS` declaration
 Replace `courrier-tasks.types.ts` with:
 
 ```ts
-import type { CourrierActionKey, CourrierBucket, OperationalQueue, OperationalQueueItem } from '@aidn/shared';
+import type {
+  CourrierActionKey,
+  CourrierBucket,
+  OperationalQueue,
+  OperationalQueueItem,
+} from '@aidn/shared';
 
 export type CourrierTaskSource = 'intake_request' | 'formal_request_letter' | 'pre_evaluation';
 export type CourrierTaskAction = 'print' | 'confirm_signature_circuit' | 'upload_signed_return';
@@ -1576,14 +1850,21 @@ function circuitStepFor(status: string): CourrierCircuitStep {
 
 function stepSinceOf(row: typeof dgCircuitDocuments.$inferSelect): Date {
   if (row.status === 'in_signature_circuit') return row.signatureSentAt ?? row.depositedAt;
-  if (row.status === 'pending_review') return row.pendingReviewAt ?? row.signedAt ?? row.depositedAt;
+  if (row.status === 'pending_review')
+    return row.pendingReviewAt ?? row.signedAt ?? row.depositedAt;
   if (row.status === 'signed') return row.signedAt ?? row.pendingReviewAt ?? row.depositedAt;
   return row.depositedAt;
 }
 
-type Operational = Pick<CourrierQueueItem, 'bucket' | 'state' | 'owner' | 'actionKey' | 'blockReason' | 'urgency'>;
+type Operational = Pick<
+  CourrierQueueItem,
+  'bucket' | 'state' | 'owner' | 'actionKey' | 'blockReason' | 'urgency'
+>;
 
-function buildTaskView(row: typeof dgCircuitDocuments.$inferSelect, ctx: TaskContext): CourrierQueueItem | null {
+function buildTaskView(
+  row: typeof dgCircuitDocuments.$inferSelect,
+  ctx: TaskContext
+): CourrierQueueItem | null {
   const request = ctx.requestsById.get(row.requestId);
   if (!request) return null;
   const currentDocument = ctx.documentsByCircuitId.get(row.id);
@@ -1591,33 +1872,65 @@ function buildTaskView(row: typeof dgCircuitDocuments.$inferSelect, ctx: TaskCon
   const statusActions = actionsForStatus(row.status);
   const pending = statusActions.length > 0;
   const phaseCode = phaseCodeFor(row.entityType);
-  const phaseBlocked = !flags.dossierClosed && pending && phaseCode !== null && !ctx.openPhases.has(`${row.requestId}:${phaseCode}`);
+  const phaseBlocked =
+    !flags.dossierClosed &&
+    pending &&
+    phaseCode !== null &&
+    !ctx.openPhases.has(`${row.requestId}:${phaseCode}`);
   const inSignature = row.status === 'in_signature_circuit' && row.signatureSentAt !== null;
-  const signatureWorkingDays = inSignature ? Math.floor(workingDaysBetween(row.signatureSentAt!, ctx.now, ctx.holidays)) : null;
+  const signatureWorkingDays = inSignature
+    ? Math.floor(workingDaysBetween(row.signatureSentAt!, ctx.now, ctx.holidays))
+    : null;
   const signatureLate =
-    inSignature && row.signatureSentAt! < subtractWorkingDays(ctx.now, ctx.thresholds.dgAlertWorkingDays, ctx.holidays);
+    inSignature &&
+    row.signatureSentAt! <
+      subtractWorkingDays(ctx.now, ctx.thresholds.dgAlertWorkingDays, ctx.holidays);
 
-  const inactive = (state: Operational['state'], owner: Operational['owner'], blockReason: Operational['blockReason']): Operational => ({
-    bucket: 'inactive', state, owner, actionKey: 'none', blockReason, urgency: 'normal',
+  const inactive = (
+    state: Operational['state'],
+    owner: Operational['owner'],
+    blockReason: Operational['blockReason']
+  ): Operational => ({
+    bucket: 'inactive',
+    state,
+    owner,
+    actionKey: 'none',
+    blockReason,
+    urgency: 'normal',
   });
   let op: Operational;
   if (pending && flags.dossierClosed) op = inactive('done', null, 'dossier_closed');
   else if (phaseBlocked) op = inactive('blocked', OPERATIONAL_OWNERS.dn, 'phase_not_open');
   else if (row.status === 'submitted') {
     op = {
-      bucket: 'to_print', state: 'action_required', owner: OPERATIONAL_OWNERS.reception, actionKey: 'print_for_dg', blockReason: null,
-      urgency: urgencyFromAge(calendarDaysSince(row.depositedAt, ctx.now), ctx.thresholds.depositDays),
+      bucket: 'to_print',
+      state: 'action_required',
+      owner: OPERATIONAL_OWNERS.reception,
+      actionKey: 'print_for_dg',
+      blockReason: null,
+      urgency: urgencyFromAge(
+        calendarDaysSince(row.depositedAt, ctx.now),
+        ctx.thresholds.depositDays
+      ),
     };
   } else if (row.status === 'in_signature_circuit') {
     // Overdue is exactly the alert job's cutoff; the step before it is the warning.
     const byAge = urgencyFromAge(signatureWorkingDays, ctx.thresholds.dgAlertWorkingDays);
     op = {
-      bucket: 'with_dg', state: 'waiting', owner: OPERATIONAL_OWNERS.assistantDg, actionKey: 'record_dg_annotation', blockReason: null,
+      bucket: 'with_dg',
+      state: 'waiting',
+      owner: OPERATIONAL_OWNERS.assistantDg,
+      actionKey: 'record_dg_annotation',
+      blockReason: null,
       urgency: signatureLate ? 'overdue' : byAge === 'normal' ? 'normal' : 'warning',
     };
   } else if (row.status === 'pending_review') {
     op = {
-      bucket: 'returned', state: 'done', owner: null, blockReason: null, urgency: 'normal',
+      bucket: 'returned',
+      state: 'done',
+      owner: null,
+      blockReason: null,
+      urgency: 'normal',
       // B6 - since M1-1 an initial request goes to the Assistante DN (Circuit Directeur DN).
       actionKey: row.entityType === 'intake_request' ? 'handed_to_assistant_dn' : 'handed_to_dn',
     };
@@ -1654,12 +1967,12 @@ function buildTaskView(row: typeof dgCircuitDocuments.$inferSelect, ctx: TaskCon
 3. **List function.** Delete `ACTION_BUCKETS` and `inBucket`. `listCourrierTasks` ends with:
 
 ```ts
-  const items = filters.bucket ? tasks.filter((task) => task.bucket === filters.bucket) : tasks;
-  return {
-    items,
-    counts: countBuckets(COURRIER_BUCKETS, tasks),
-    thresholds: ctx.thresholds,
-  };
+const items = filters.bucket ? tasks.filter((task) => task.bucket === filters.bucket) : tasks;
+return {
+  items,
+  counts: countBuckets(COURRIER_BUCKETS, tasks),
+  thresholds: ctx.thresholds,
+};
 ```
 
 Its return type becomes `Promise<CourrierQueueResponse>`. Imports to add: `COURRIER_BUCKETS`, `OPERATIONAL_OWNERS`, `countBuckets`, `urgencyFromAge` from `@aidn/shared`; `loadThresholds` from `../operational/thresholds.js`; `calendarDaysSince` from `../operational/aging.js`; `CourrierCircuitStep` and `CourrierQueueItem`/`CourrierQueueResponse` from the types file. Mutation functions keep returning `buildTaskView(...)`.
@@ -1688,6 +2001,7 @@ Expected: PASS. Then `npm run typecheck --workspace=apps/api`. Expected: PASS. T
 ### Task 5: Courriers cockpit (admin) and DG-circuit wording
 
 **Files:**
+
 - Modify: `apps/admin/src/lib/api/courrier-tasks/types.ts`, `api.ts` (types mirror Task 4; dates as ISO strings)
 - Modify: `apps/admin/src/lib/react-query/queryKeys.ts` (add `courrierTasks: { all: ['courrierTasks'], queue: () => ['courrierTasks', 'queue'] }`), `queryClient.ts` (`DOSSIER_WORK_LISTS` gains `queryKeys.courrierTasks.queue()`)
 - Create: `apps/admin/src/pages/courrier-tasks/courrierCopy.ts` (replaces `courrierBuckets.ts`)
@@ -1697,6 +2011,7 @@ Expected: PASS. Then `npm run typecheck --workspace=apps/api`. Expected: PASS. T
 - Test: `apps/admin/src/pages/courrier-tasks/courrierCopy.test.ts`, rewrite `CourrierTasksPage.test.tsx`; update `apps/admin/src/pages/closed-dossier-lists.test.tsx` (`<CourrierTasksPage>` block)
 
 **Interfaces:**
+
 - Consumes:
   - Task 1 keys;
   - Task 2 primitives (`CockpitPage`, `QueueColumn`, `QueueReadingPane`, `QueueEmptyPane`, `AgingBadge`, `CockpitUploadModal`, `sortQueue`, `groupQueue`, `filterQueue`, `defaultOrderFor`, `useUrlSelection`, `useQueueTab`);
@@ -1715,33 +2030,87 @@ import type { CourrierTask } from '../../lib/api/courrier-tasks';
 import { courrierCallout, courrierMetrics } from './courrierCopy';
 
 export const courrier = (over: Partial<CourrierTask> = {}): CourrierTask => ({
-  id: 'formal_request_letter:1', requestId: 1, requestReference: 'DEM-1', organisationName: 'OMA 1',
-  bucket: 'to_print', state: 'action_required', owner: OPERATIONAL_OWNERS.reception, actionKey: 'print_for_dg',
-  blockReason: null, urgency: 'normal', stepSince: '2026-10-15T09:00:00.000Z', dueAt: null,
-  dossierClosed: false, dossierStatus: 'in_progress', source: 'formal_request_letter', requestType: 'issuance',
-  applicantName: 'Jean', circuitDocumentId: 1, circuitStatus: 'submitted', circuitStep: 'deposited',
-  fileUrl: '/api/files/1', mimeType: 'application/pdf', depositedAt: '2026-10-15T09:00:00.000Z',
-  signatureSentAt: null, signedAt: null, pendingReviewAt: null, availableActions: ['print', 'confirm_signature_circuit'],
-  signatureWorkingDays: null, signatureLate: false, ...over,
+  id: 'formal_request_letter:1',
+  requestId: 1,
+  requestReference: 'DEM-1',
+  organisationName: 'OMA 1',
+  bucket: 'to_print',
+  state: 'action_required',
+  owner: OPERATIONAL_OWNERS.reception,
+  actionKey: 'print_for_dg',
+  blockReason: null,
+  urgency: 'normal',
+  stepSince: '2026-10-15T09:00:00.000Z',
+  dueAt: null,
+  dossierClosed: false,
+  dossierStatus: 'in_progress',
+  source: 'formal_request_letter',
+  requestType: 'issuance',
+  applicantName: 'Jean',
+  circuitDocumentId: 1,
+  circuitStatus: 'submitted',
+  circuitStep: 'deposited',
+  fileUrl: '/api/files/1',
+  mimeType: 'application/pdf',
+  depositedAt: '2026-10-15T09:00:00.000Z',
+  signatureSentAt: null,
+  signedAt: null,
+  pendingReviewAt: null,
+  availableActions: ['print', 'confirm_signature_circuit'],
+  signatureWorkingDays: null,
+  signatureLate: false,
+  ...over,
 });
 const T = { dgAlertWorkingDays: 3, depositDays: 1 };
 
 describe('courrierCallout (D7 wording)', () => {
   it('print / DG annotation / B6 hand-over / phase blocked / closed', () => {
     expect(courrierCallout(courrier(), T).title).toBe('Impression et mise en circuit DG');
-    const dg = courrierCallout(courrier({ actionKey: 'record_dg_annotation', bucket: 'with_dg', signatureWorkingDays: 2 }), T);
+    const dg = courrierCallout(
+      courrier({ actionKey: 'record_dg_annotation', bucket: 'with_dg', signatureWorkingDays: 2 }),
+      T
+    );
     expect(dg.title).toBe('Annotation du DG attendue');
-    expect(dg.description).toBe('En circuit DG depuis 2 j ouvrés (alerte au-delà de 3). Scannez le retour annoté dès réception.');
-    expect(courrierCallout(courrier({ actionKey: 'handed_to_assistant_dn', bucket: 'returned' }), T).description)
-      .toBe("Le dossier est transmis à l'Assistante DN pour le circuit Directeur DN.");
-    expect(courrierCallout(courrier({ actionKey: 'handed_to_dn', bucket: 'returned' }), T).description).toBe('Le document est transmis à la DN.');
-    expect(courrierCallout(courrier({ bucket: 'inactive', actionKey: 'none', blockReason: 'phase_not_open', source: 'pre_evaluation' }), T).blockReason)
-      .toBe("La phase M3 n'est pas ouverte : aucune action du circuit possible.");
-    expect(courrierCallout(courrier({ bucket: 'inactive', actionKey: 'none', blockReason: 'dossier_closed', dossierClosed: true }), T).title)
-      .toBe('Dossier clos — consultation uniquement');
+    expect(dg.description).toBe(
+      'En circuit DG depuis 2 j ouvrés (alerte au-delà de 3). Scannez le retour annoté dès réception.'
+    );
+    expect(
+      courrierCallout(courrier({ actionKey: 'handed_to_assistant_dn', bucket: 'returned' }), T)
+        .description
+    ).toBe("Le dossier est transmis à l'Assistante DN pour le circuit Directeur DN.");
+    expect(
+      courrierCallout(courrier({ actionKey: 'handed_to_dn', bucket: 'returned' }), T).description
+    ).toBe('Le document est transmis à la DN.');
+    expect(
+      courrierCallout(
+        courrier({
+          bucket: 'inactive',
+          actionKey: 'none',
+          blockReason: 'phase_not_open',
+          source: 'pre_evaluation',
+        }),
+        T
+      ).blockReason
+    ).toBe("La phase M3 n'est pas ouverte : aucune action du circuit possible.");
+    expect(
+      courrierCallout(
+        courrier({
+          bucket: 'inactive',
+          actionKey: 'none',
+          blockReason: 'dossier_closed',
+          dossierClosed: true,
+        }),
+        T
+      ).title
+    ).toBe('Dossier clos - consultation uniquement');
   });
   it('never says « signature »', () => {
-    for (const actionKey of ['print_for_dg', 'record_dg_annotation', 'handed_to_assistant_dn', 'handed_to_dn'] as const) {
+    for (const actionKey of [
+      'print_for_dg',
+      'record_dg_annotation',
+      'handed_to_assistant_dn',
+      'handed_to_dn',
+    ] as const) {
       const copy = courrierCallout(courrier({ actionKey }), T);
       expect(`${copy.title} ${copy.description}`).not.toMatch(/sign/i);
     }
@@ -1753,16 +2122,44 @@ describe('courrierMetrics', () => {
     const now = new Date('2026-10-16T12:00:00Z');
     const items = [
       courrier({ urgency: 'overdue' }),
-      courrier({ id: 'b', bucket: 'with_dg', actionKey: 'record_dg_annotation', signatureWorkingDays: 4, urgency: 'overdue' }),
-      courrier({ id: 'c', bucket: 'returned', actionKey: 'handed_to_dn', pendingReviewAt: '2026-10-10T09:00:00Z' }),
-      courrier({ id: 'd', bucket: 'returned', actionKey: 'handed_to_dn', pendingReviewAt: '2026-08-01T09:00:00Z' }),
+      courrier({
+        id: 'b',
+        bucket: 'with_dg',
+        actionKey: 'record_dg_annotation',
+        signatureWorkingDays: 4,
+        urgency: 'overdue',
+      }),
+      courrier({
+        id: 'c',
+        bucket: 'returned',
+        actionKey: 'handed_to_dn',
+        pendingReviewAt: '2026-10-10T09:00:00Z',
+      }),
+      courrier({
+        id: 'd',
+        bucket: 'returned',
+        actionKey: 'handed_to_dn',
+        pendingReviewAt: '2026-08-01T09:00:00Z',
+      }),
       courrier({ id: 'e', bucket: 'inactive', actionKey: 'none', blockReason: 'dossier_closed' }),
     ];
     const counts = { to_print: 1, with_dg: 1, returned: 2, inactive: 1 };
     expect(courrierMetrics(items, counts, now)).toEqual([
       { key: 'to_print', label: 'à imprimer', value: 1, detail: 'dont 1 en retard', tone: 'info' },
-      { key: 'with_dg', label: 'retour DG attendu', value: 1, detail: 'dont 1 en retard · délai moyen 4 j ouvrés', tone: 'warning' },
-      { key: 'returned_30', label: 'retours enregistrés (30 j)', value: 1, detail: null, tone: 'success' },
+      {
+        key: 'with_dg',
+        label: 'retour DG attendu',
+        value: 1,
+        detail: 'dont 1 en retard · délai moyen 4 j ouvrés',
+        tone: 'warning',
+      },
+      {
+        key: 'returned_30',
+        label: 'retours enregistrés (30 j)',
+        value: 1,
+        detail: null,
+        tone: 'success',
+      },
     ]);
   });
 });
@@ -1781,11 +2178,15 @@ Build fixtures with the `courrier(...)` factory (import it from `./courrierCopy.
 it('Réception lands on « À imprimer »; Assistant DG alone on « Retour DG attendu »', async () => {
   roles = ['reception'];
   renderPage();
-  expect(await screen.findByRole('tab', { name: /À imprimer/, selected: true })).toBeInTheDocument();
+  expect(
+    await screen.findByRole('tab', { name: /À imprimer/, selected: true })
+  ).toBeInTheDocument();
   cleanup();
   roles = ['assistant_dg'];
   renderPage();
-  expect(await screen.findByRole('tab', { name: /Retour DG attendu/, selected: true })).toBeInTheDocument();
+  expect(
+    await screen.findByRole('tab', { name: /Retour DG attendu/, selected: true })
+  ).toBeInTheDocument();
 });
 
 it('callout: owner named, CTA « Ouvrir / imprimer » for Réception', async () => {
@@ -1801,16 +2202,24 @@ it('a role that cannot act gets no CTA but keeps the secondary links', async () 
   roles = ['dn_agent'];
   renderPage();
   const pane = await screen.findByRole('article', { name: /Détail du courrier/ });
-  expect(within(pane).queryByRole('button', { name: /Ouvrir \/ imprimer/ })).not.toBeInTheDocument();
+  expect(
+    within(pane).queryByRole('button', { name: /Ouvrir \/ imprimer/ })
+  ).not.toBeInTheDocument();
   expect(within(pane).getByRole('button', { name: /Voir le document/ })).toBeInTheDocument();
   expect(within(pane).getByRole('link', { name: /Voir le dossier/ })).toBeInTheDocument();
 });
 
-it('« Tous » shows an inactive (closed) courrier with its badge and no CTA; action tabs never count it', async () => { /* items incl. one bucket:'inactive' dossierClosed */ });
+it('« Tous » shows an inactive (closed) courrier with its badge and no CTA; action tabs never count it', async () => {
+  /* items incl. one bucket:'inactive' dossierClosed */
+});
 
-it('Entrée on a row focuses the action button, never prints', async () => { /* as in the current test */ });
+it('Entrée on a row focuses the action button, never prints', async () => {
+  /* as in the current test */
+});
 
-it('« Retour DG attendu » groups a normal item under « En attente », never « À traiter »', async () => { /* ?tab=with_dg, one normal with_dg item */ });
+it('« Retour DG attendu » groups a normal item under « En attente », never « À traiter »', async () => {
+  /* ?tab=with_dg, one normal with_dg item */
+});
 
 it('DOSSIER_CLOSED during « Impression OK »: the list reloads and the API message is shown', async () => {
   // api.post rejects with an AxiosError(409, code DOSSIER_CLOSED); the second api.get returns the row as inactive
@@ -1829,7 +2238,12 @@ Expected: FAIL (`courrierCopy` missing; the page has old fields).
 Replace `lib/api/courrier-tasks/types.ts`:
 
 ```ts
-import type { CourrierActionKey, CourrierBucket, OperationalQueue, OperationalQueueItem } from '@aidn/shared';
+import type {
+  CourrierActionKey,
+  CourrierBucket,
+  OperationalQueue,
+  OperationalQueueItem,
+} from '@aidn/shared';
 
 export type CourrierTaskSource = 'intake_request' | 'formal_request_letter' | 'pre_evaluation';
 export type CourrierTaskAction = 'print' | 'confirm_signature_circuit' | 'upload_signed_return';
@@ -1878,7 +2292,12 @@ export const COURRIER_TABS: Array<{ key: CourrierTab; label: string }> = [
   { key: 'all', label: 'Tous' },
 ];
 /** Approved correction: with_dg waits on the DG (« En attente »), it is not « À traiter ». */
-export const COURRIER_TAB_MODES: Record<CourrierTab, QueueMode> = { to_print: 'action', with_dg: 'waiting', returned: 'history', all: 'history' };
+export const COURRIER_TAB_MODES: Record<CourrierTab, QueueMode> = {
+  to_print: 'action',
+  with_dg: 'waiting',
+  returned: 'history',
+  all: 'history',
+};
 
 export const SOURCE_LABELS: Record<string, string> = {
   intake_request: 'Demande initiale',
@@ -1906,11 +2325,15 @@ export interface CalloutCopy {
   blockReason: string | null;
 }
 
-export function courrierCallout(item: CourrierTask, t: { dgAlertWorkingDays: number }): CalloutCopy {
+export function courrierCallout(
+  item: CourrierTask,
+  t: { dgAlertWorkingDays: number }
+): CalloutCopy {
   if (item.blockReason === 'dossier_closed') {
     return {
-      title: 'Dossier clos — consultation uniquement',
-      description: 'Le courrier et son document restent consultables. Aucune action du circuit DG n’est possible.',
+      title: 'Dossier clos - consultation uniquement',
+      description:
+        'Le courrier et son document restent consultables. Aucune action du circuit DG n’est possible.',
       blockReason: null,
     };
   }
@@ -1923,17 +2346,40 @@ export function courrierCallout(item: CourrierTask, t: { dgAlertWorkingDays: num
   }
   switch (item.actionKey) {
     case 'print_for_dg':
-      return { title: 'Impression et mise en circuit DG', description: 'Imprimez le document puis confirmez sa mise en circuit DG.', blockReason: null };
+      return {
+        title: 'Impression et mise en circuit DG',
+        description: 'Imprimez le document puis confirmez sa mise en circuit DG.',
+        blockReason: null,
+      };
     case 'record_dg_annotation': {
-      const since = item.signatureWorkingDays === null ? '' : `En circuit DG depuis ${item.signatureWorkingDays} j ouvrés (alerte au-delà de ${t.dgAlertWorkingDays}). `;
-      return { title: 'Annotation du DG attendue', description: `${since}Scannez le retour annoté dès réception.`, blockReason: null };
+      const since =
+        item.signatureWorkingDays === null
+          ? ''
+          : `En circuit DG depuis ${item.signatureWorkingDays} j ouvrés (alerte au-delà de ${t.dgAlertWorkingDays}). `;
+      return {
+        title: 'Annotation du DG attendue',
+        description: `${since}Scannez le retour annoté dès réception.`,
+        blockReason: null,
+      };
     }
     case 'handed_to_assistant_dn':
-      return { title: 'Annotation du DG enregistrée', description: "Le dossier est transmis à l'Assistante DN pour le circuit Directeur DN.", blockReason: null };
+      return {
+        title: 'Annotation du DG enregistrée',
+        description: "Le dossier est transmis à l'Assistante DN pour le circuit Directeur DN.",
+        blockReason: null,
+      };
     case 'handed_to_dn':
-      return { title: 'Annotation du DG enregistrée', description: 'Le document est transmis à la DN.', blockReason: null };
+      return {
+        title: 'Annotation du DG enregistrée',
+        description: 'Le document est transmis à la DN.',
+        blockReason: null,
+      };
     default:
-      return { title: 'Ancien circuit', description: 'Courrier archivé, consultation uniquement.', blockReason: null };
+      return {
+        title: 'Ancien circuit',
+        description: 'Courrier archivé, consultation uniquement.',
+        blockReason: null,
+      };
   }
 }
 
@@ -1950,21 +2396,54 @@ export function courrierRowLabel(item: CourrierTask): string {
 
 const DAY_MS = 86_400_000;
 
-export function courrierMetrics(items: CourrierTask[], counts: Record<CourrierBucket, number>, now: Date = new Date()): CockpitMetric[] {
-  const late = (bucket: CourrierBucket) => items.filter((item) => item.bucket === bucket && item.urgency === 'overdue').length;
-  const waits = items.filter((item) => item.bucket === 'with_dg' && item.signatureWorkingDays !== null).map((item) => item.signatureWorkingDays!);
+export function courrierMetrics(
+  items: CourrierTask[],
+  counts: Record<CourrierBucket, number>,
+  now: Date = new Date()
+): CockpitMetric[] {
+  const late = (bucket: CourrierBucket) =>
+    items.filter((item) => item.bucket === bucket && item.urgency === 'overdue').length;
+  const waits = items
+    .filter((item) => item.bucket === 'with_dg' && item.signatureWorkingDays !== null)
+    .map((item) => item.signatureWorkingDays!);
   const average = waits.length ? waits.reduce((a, b) => a + b, 0) / waits.length : null;
   const returned30 = items.filter(
-    (item) => item.bucket === 'returned' && item.pendingReviewAt && now.getTime() - new Date(item.pendingReviewAt).getTime() <= 30 * DAY_MS
+    (item) =>
+      item.bucket === 'returned' &&
+      item.pendingReviewAt &&
+      now.getTime() - new Date(item.pendingReviewAt).getTime() <= 30 * DAY_MS
   ).length;
   const lateDetail = (n: number) => (n > 0 ? `dont ${n} en retard` : null);
-  const withDgDetail = [lateDetail(late('with_dg')), average === null ? null : `délai moyen ${average.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} j ouvrés`]
+  const withDgDetail = [
+    lateDetail(late('with_dg')),
+    average === null
+      ? null
+      : `délai moyen ${average.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} j ouvrés`,
+  ]
     .filter(Boolean)
     .join(' · ');
   return [
-    { key: 'to_print', label: 'à imprimer', value: counts.to_print, detail: lateDetail(late('to_print')), tone: 'info' },
-    { key: 'with_dg', label: 'retour DG attendu', value: counts.with_dg, detail: withDgDetail || null, tone: 'warning' },
-    { key: 'returned_30', label: 'retours enregistrés (30 j)', value: returned30, detail: null, tone: 'success' },
+    {
+      key: 'to_print',
+      label: 'à imprimer',
+      value: counts.to_print,
+      detail: lateDetail(late('to_print')),
+      tone: 'info',
+    },
+    {
+      key: 'with_dg',
+      label: 'retour DG attendu',
+      value: counts.with_dg,
+      detail: withDgDetail || null,
+      tone: 'warning',
+    },
+    {
+      key: 'returned_30',
+      label: 'retours enregistrés (30 j)',
+      value: returned30,
+      detail: null,
+      tone: 'success',
+    },
   ];
 }
 ```
@@ -1981,18 +2460,36 @@ import { CockpitPage } from '../../components/cockpit/CockpitPage';
 import { QueueColumn } from '../../components/cockpit/QueueColumn';
 import { CockpitUploadModal } from '../../components/cockpit/CockpitUploadModal';
 import { useAuth } from '../../hooks/useAuth';
-import { confirmCourrierPrinted, fetchCourrierTasks, returnAnnotatedCourrier, type CourrierTask } from '../../lib/api/courrier-tasks';
+import {
+  confirmCourrierPrinted,
+  fetchCourrierTasks,
+  returnAnnotatedCourrier,
+  type CourrierTask,
+} from '../../lib/api/courrier-tasks';
 import { apiErrorMessage } from '../../lib/axios';
 import { queryKeys } from '../../lib/react-query/queryKeys';
 import { isDossierClosedError } from '../../lib/react-query/queryClient';
 import { uploadFile } from '../../lib/uploads';
 import { courrierDefaultTab } from '../../lib/home-for';
-import { defaultOrderFor, filterQueue, groupQueue, sortQueue, type AgeOrder } from '../../lib/cockpit/queue';
+import {
+  defaultOrderFor,
+  filterQueue,
+  groupQueue,
+  sortQueue,
+  type AgeOrder,
+} from '../../lib/cockpit/queue';
 import { useQueueTab } from '../../lib/cockpit/useQueueTab';
 import { useUrlSelection } from '../../lib/cockpit/useUrlSelection';
 import { CourrierReadingPane } from './CourrierReadingPane';
 import { CourrierRow } from './CourriersList';
-import { COURRIER_TAB_MODES, COURRIER_TABS, REQUEST_TYPE_LABELS, SOURCE_LABELS, courrierMetrics, type CourrierTab } from './courrierCopy';
+import {
+  COURRIER_TAB_MODES,
+  COURRIER_TABS,
+  REQUEST_TYPE_LABELS,
+  SOURCE_LABELS,
+  courrierMetrics,
+  type CourrierTab,
+} from './courrierCopy';
 
 const EMPTY_COUNTS = { to_print: 0, with_dg: 0, returned: 0, inactive: 0 };
 
@@ -2004,12 +2501,18 @@ export default function CourrierTasksPage() {
   const { user } = useAuth();
   const roles = user?.roles ?? [];
   const queryClient = useQueryClient();
-  const query = useQuery({ queryKey: queryKeys.courrierTasks.queue(), queryFn: () => fetchCourrierTasks() });
+  const query = useQuery({
+    queryKey: queryKeys.courrierTasks.queue(),
+    queryFn: () => fetchCourrierTasks(),
+  });
   const items = query.data?.items ?? [];
   const counts = query.data?.counts ?? EMPTY_COUNTS;
   const thresholds = query.data?.thresholds ?? { dgAlertWorkingDays: 3, depositDays: 1 };
 
-  const [tab, setTab] = useQueueTab<CourrierTab>(COURRIER_TABS.map((t) => t.key), courrierDefaultTab(roles));
+  const [tab, setTab] = useQueueTab<CourrierTab>(
+    COURRIER_TABS.map((t) => t.key),
+    courrierDefaultTab(roles)
+  );
   const mode = COURRIER_TAB_MODES[tab];
   const [order, setOrder] = useState<AgeOrder | null>(null);
   const effectiveOrder = order ?? defaultOrderFor(mode);
@@ -2018,7 +2521,13 @@ export default function CourrierTasksPage() {
     () =>
       sortQueue(
         filterQueue(items, tab, search, (item) =>
-          [item.requestReference, item.organisationName, item.applicantName, SOURCE_LABELS[item.source], REQUEST_TYPE_LABELS[item.requestType]].join(' ')
+          [
+            item.requestReference,
+            item.organisationName,
+            item.applicantName,
+            SOURCE_LABELS[item.source],
+            REQUEST_TYPE_LABELS[item.requestType],
+          ].join(' ')
         ),
         mode,
         effectiveOrder
@@ -2039,7 +2548,12 @@ export default function CourrierTasksPage() {
 
   const reload = () => queryClient.invalidateQueries({ queryKey: queryKeys.courrierTasks.queue() });
 
-  async function run(task: CourrierTask, action: () => Promise<void>, fallback: string, close: () => void) {
+  async function run(
+    task: CourrierTask,
+    action: () => Promise<void>,
+    fallback: string,
+    close: () => void
+  ) {
     setActionError(null);
     setBusyId(task.id);
     try {
@@ -2060,13 +2574,25 @@ export default function CourrierTasksPage() {
   const viewerTask = printTask ?? previewTask;
   return (
     <CockpitPage
-      title="Courriers — circuit DG"
+      title="Courriers - circuit DG"
       metrics={courrierMetrics(items, counts)}
-      search={{ value: search, onChange: setSearch, placeholder: 'Référence, organisation, postulant, type...', label: 'Rechercher un courrier' }}
-      errors={[query.error ? apiErrorMessage(query.error, 'Impossible de charger les courriers.') : null, actionError]}
+      search={{
+        value: search,
+        onChange: setSearch,
+        placeholder: 'Référence, organisation, postulant, type...',
+        label: 'Rechercher un courrier',
+      }}
+      errors={[
+        query.error ? apiErrorMessage(query.error, 'Impossible de charger les courriers.') : null,
+        actionError,
+      ]}
       list={
         <QueueColumn
-          tabs={COURRIER_TABS.map((t) => ({ key: t.key, label: t.label, count: t.key === 'all' ? items.length : counts[t.key] }))}
+          tabs={COURRIER_TABS.map((t) => ({
+            key: t.key,
+            label: t.label,
+            count: t.key === 'all' ? items.length : counts[t.key],
+          }))}
           tab={tab}
           onTabChange={(next) => {
             setTab(next);
@@ -2077,7 +2603,13 @@ export default function CourrierTasksPage() {
           groups={groups}
           selectedId={selected?.id ?? null}
           status={query.isLoading ? 'loading' : query.error ? 'error' : 'ready'}
-          texts={{ loading: 'Chargement des courriers', error: 'Impossible de charger les courriers.', empty: 'Aucun courrier dans cette vue', listLabel: 'Courriers', noun: ['courrier', 'courriers'] }}
+          texts={{
+            loading: 'Chargement des courriers',
+            error: 'Impossible de charger les courriers.',
+            empty: 'Aucun courrier dans cette vue',
+            listLabel: 'Courriers',
+            noun: ['courrier', 'courriers'],
+          }}
           onSelect={(task) => {
             setActionError(null);
             select(task);
@@ -2108,16 +2640,39 @@ export default function CourrierTasksPage() {
       }
     >
       <DocumentViewer
-        file={viewerTask?.fileUrl ? { title: `${SOURCE_LABELS[viewerTask.source] ?? viewerTask.source} ${viewerTask.requestReference}`, url: viewerTask.fileUrl } : null}
+        file={
+          viewerTask?.fileUrl
+            ? {
+                title: `${SOURCE_LABELS[viewerTask.source] ?? viewerTask.source} ${viewerTask.requestReference}`,
+                url: viewerTask.fileUrl,
+              }
+            : null
+        }
         onClose={() => {
           setPrintTask(null);
           setPreviewTask(null);
         }}
-        primaryActionLabel={printTask ? (busyId === printTask.id ? 'Confirmation...' : 'Impression OK - mettre en circuit DG') : undefined}
+        primaryActionLabel={
+          printTask
+            ? busyId === printTask.id
+              ? 'Confirmation...'
+              : 'Impression OK - mettre en circuit DG'
+            : undefined
+        }
         primaryActionDisabled={!printTask || busyId !== null}
-        actionHint={printTask ? 'Imprimez le document, vérifiez le contenu, puis confirmez sa mise en circuit DG.' : 'Prévisualisation intégrée du document courant.'}
+        actionHint={
+          printTask
+            ? 'Imprimez le document, vérifiez le contenu, puis confirmez sa mise en circuit DG.'
+            : 'Prévisualisation intégrée du document courant.'
+        }
         onPrimaryAction={() =>
-          printTask && run(printTask, () => confirmCourrierPrinted(printTask.id), 'Confirmation impossible.', () => setPrintTask(null))
+          printTask &&
+          run(
+            printTask,
+            () => confirmCourrierPrinted(printTask.id),
+            'Confirmation impossible.',
+            () => setPrintTask(null)
+          )
         }
       />
       {returnTask ? (
@@ -2139,7 +2694,11 @@ export default function CourrierTasksPage() {
             returnFile &&
             run(
               returnTask,
-              async () => returnAnnotatedCourrier(returnTask.id, (await uploadFile(returnFile)).uploadAssetId),
+              async () =>
+                returnAnnotatedCourrier(
+                  returnTask.id,
+                  (await uploadFile(returnFile)).uploadAssetId
+                ),
               'Enregistrement du retour annoté impossible.',
               () => {
                 setReturnTask(null);
@@ -2170,17 +2729,34 @@ export function CourrierRow({ task }: { task: CourrierTask }) {
   return (
     <>
       <span className="truncate text-sm font-medium text-anac-text">{task.organisationName}</span>
-      <span className="whitespace-nowrap text-right text-[11px] text-anac-muted">{task.stepSince ? formatRowDate(task.stepSince) : '-'}</span>
-      <span className="truncate text-xs text-anac-text/80">{task.requestReference} · {SOURCE_LABELS[task.source] ?? task.source}</span>
+      <span className="whitespace-nowrap text-right text-[11px] text-anac-muted">
+        {task.stepSince ? formatRowDate(task.stepSince) : '-'}
+      </span>
+      <span className="truncate text-xs text-anac-text/80">
+        {task.requestReference} · {SOURCE_LABELS[task.source] ?? task.source}
+      </span>
       <span className="flex justify-end gap-1.5">
         {task.dossierClosed ? <ClosedDossierBadge status={task.dossierStatus} /> : null}
         {task.bucket === 'to_print' || task.bucket === 'with_dg' ? (
-          <AgingBadge urgency={task.urgency} since={task.stepSince} workingDays={task.bucket === 'with_dg' ? task.signatureWorkingDays : null} />
+          <AgingBadge
+            urgency={task.urgency}
+            since={task.stepSince}
+            workingDays={task.bucket === 'with_dg' ? task.signatureWorkingDays : null}
+          />
         ) : null}
       </span>
       <span className="col-span-2 truncate text-xs">
         <span className="text-anac-muted">{STEP_LABELS[task.circuitStep]} - </span>
-        <span className={cn('font-semibold', task.state === 'action_required' ? 'text-anac-blue' : task.state === 'waiting' ? 'text-anac-warning' : 'text-anac-muted')}>
+        <span
+          className={cn(
+            'font-semibold',
+            task.state === 'action_required'
+              ? 'text-anac-blue'
+              : task.state === 'waiting'
+                ? 'text-anac-warning'
+                : 'text-anac-muted'
+          )}
+        >
           {courrierRowLabel(task)}
         </span>
       </span>
@@ -2207,7 +2783,15 @@ import { REQUEST_TYPE_LABELS, SOURCE_LABELS, STEP_LABELS, courrierCallout } from
 const DN_VIEW_ROLES = ['dn_agent', 'dn_supervisor', 'SU'];
 
 export function CourrierReadingPane({
-  task, roles, busy, thresholds, actionButtonRef, previewButtonRef, onPrint, onPreview, onReturn,
+  task,
+  roles,
+  busy,
+  thresholds,
+  actionButtonRef,
+  previewButtonRef,
+  onPrint,
+  onPreview,
+  onReturn,
 }: {
   task: CourrierTask | null;
   roles: readonly string[];
@@ -2219,28 +2803,58 @@ export function CourrierReadingPane({
   onPreview: (task: CourrierTask) => void;
   onReturn: (task: CourrierTask) => void;
 }) {
-  if (!task) return <QueueEmptyPane title="Sélectionnez un courrier" description="Le circuit, le document et l'action apparaîtront ici." />;
+  if (!task)
+    return (
+      <QueueEmptyPane
+        title="Sélectionnez un courrier"
+        description="Le circuit, le document et l'action apparaîtront ici."
+      />
+    );
   const copy = courrierCallout(task, thresholds);
   const allowed = canAct(task.owner, roles as InternalRole[]);
   const sourceLabel = SOURCE_LABELS[task.source] ?? task.source;
   const cta = task.availableActions.includes('print') ? (
-    <Button ref={actionButtonRef} type="button" size="sm" disabled={busy || !task.fileUrl} onClick={() => onPrint(task)}>
+    <Button
+      ref={actionButtonRef}
+      type="button"
+      size="sm"
+      disabled={busy || !task.fileUrl}
+      onClick={() => onPrint(task)}
+    >
       <Printer size={14} aria-hidden="true" /> Ouvrir / imprimer
     </Button>
   ) : task.availableActions.includes('upload_signed_return') ? (
-    <Button ref={actionButtonRef} type="button" size="sm" disabled={busy} onClick={() => onReturn(task)}>
+    <Button
+      ref={actionButtonRef}
+      type="button"
+      size="sm"
+      disabled={busy}
+      onClick={() => onReturn(task)}
+    >
       <FileUp size={14} aria-hidden="true" /> Scanner le retour annoté
     </Button>
   ) : undefined;
   const secondary = (
     <>
       {task.fileUrl ? (
-        <button ref={previewButtonRef} type="button" onClick={() => onPreview(task)} className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'gap-2')}>
+        <button
+          ref={previewButtonRef}
+          type="button"
+          onClick={() => onPreview(task)}
+          className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'gap-2')}
+        >
           <Eye size={14} aria-hidden="true" /> Voir le document
         </button>
       ) : null}
       {roles.some((role) => DN_VIEW_ROLES.includes(role)) ? (
-        <Link to={task.source === 'formal_request_letter' ? `/demandes/${task.requestId}/phase-formelle` : `/demandes/${task.requestId}/phase-preliminaire`} className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'gap-2')}>
+        <Link
+          to={
+            task.source === 'formal_request_letter'
+              ? `/demandes/${task.requestId}/phase-formelle`
+              : `/demandes/${task.requestId}/phase-preliminaire`
+          }
+          className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }), 'gap-2')}
+        >
           <FolderOpen size={14} aria-hidden="true" /> Voir le dossier
         </Link>
       ) : null}
@@ -2253,19 +2867,40 @@ export function CourrierReadingPane({
         <>
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1.5">
             <h2 className="text-lg font-semibold text-anac-navy">{task.requestReference}</h2>
-            <span className="text-sm text-anac-text/80">{sourceLabel} · {REQUEST_TYPE_LABELS[task.requestType] ?? task.requestType}</span>
-            <span className="ml-auto">{task.dossierClosed ? <ClosedDossierBadge status={task.dossierStatus} /> : null}</span>
+            <span className="text-sm text-anac-text/80">
+              {sourceLabel} · {REQUEST_TYPE_LABELS[task.requestType] ?? task.requestType}
+            </span>
+            <span className="ml-auto">
+              {task.dossierClosed ? <ClosedDossierBadge status={task.dossierStatus} /> : null}
+            </span>
           </div>
-          <p className="mt-1.5 text-sm"><span className="font-semibold">{task.organisationName}</span><span className="text-anac-muted"> · {task.applicantName}</span></p>
+          <p className="mt-1.5 text-sm">
+            <span className="font-semibold">{task.organisationName}</span>
+            <span className="text-anac-muted"> · {task.applicantName}</span>
+          </p>
         </>
       }
-      callout={{ state: task.state, title: copy.title, description: copy.description, owner: task.owner, canAct: allowed && !!cta, cta, secondary, blockReason: copy.blockReason }}
+      callout={{
+        state: task.state,
+        title: copy.title,
+        description: copy.description,
+        owner: task.owner,
+        canAct: allowed && !!cta,
+        cta,
+        secondary,
+        blockReason: copy.blockReason,
+      }}
     >
-      <Section title="Circuit DG"><CircuitStepper task={task} /></Section>
+      <Section title="Circuit DG">
+        <CircuitStepper task={task} />
+      </Section>
       <Section title="Informations clés">
         <dl className="grid gap-x-5 gap-y-3 sm:grid-cols-2">
           <Info label="Type de courrier" value={sourceLabel} />
-          <Info label="Nature de demande" value={REQUEST_TYPE_LABELS[task.requestType] ?? task.requestType} />
+          <Info
+            label="Nature de demande"
+            value={REQUEST_TYPE_LABELS[task.requestType] ?? task.requestType}
+          />
           <Info label="Demandeur" value={task.organisationName} />
           <Info label="Postulant" value={task.applicantName} />
         </dl>
@@ -2276,6 +2911,7 @@ export function CourrierReadingPane({
 ```
 
 Then:
+
 - **`CircuitStepper`:** move it from the old file and change only its labels, to `'Déposé'`, `'En circuit DG'` (date `signatureSentAt`), `'Annotation reçue'` (date `pendingReviewAt ?? signedAt`) and a last step labelled `task.actionKey === 'handed_to_assistant_dn' ? 'Transmis à l’Assistante DN' : 'Transmis à la DN'`. `current` is driven by `task.circuitStep` (`deposited` → step 1, `with_dg` → step 2) and is false when `task.dossierClosed`.
 - **Helpers:** move `Section`, `Info` and `formatDate` unchanged.
 - **Imports:** `CheckCircle2` and `FileText` stay imported if the stepper and the document block use them; delete the « Dossier clos » section and the `actionHint` function (the callout replaces them).
@@ -2293,6 +2929,7 @@ Then:
 - [ ] **Step 7: Cockpit text (D7, wording only)**
 
 In `apps/api/src/modules/requests/cockpit-next-action.ts`, replace:
+
 - `'Le dossier est dans le circuit de signature du DG. La DN le suit en lecture seule.'` → `'Le dossier est dans le circuit DG, en attente de l’annotation du DG. La DN le suit en lecture seule.'`
 - `'Le document de la phase est dans le circuit de signature du DG.'` → `'Le document de la phase est dans le circuit DG, en attente de l’annotation du DG.'`
 
@@ -2308,6 +2945,7 @@ Expected: PASS. Then `npm run typecheck --workspace=apps/admin`.
 ### Task 6: Circuit Directeur DN queue (API) and cockpit (admin)
 
 **Files:**
+
 - Modify: `apps/api/src/modules/dn-annotation/dn-annotation.types.ts`, `dn-annotation.service.ts` (`buildView`, `listDnAnnotationTasks`; `visibleIn` removed)
 - Modify: `apps/api/src/modules/dn-annotation/dn-annotation.db.test.ts` (lines 194-202 and 228-245: `statusLabel` → `actionKey`; closed → `inactive`)
 - Test: `apps/api/src/modules/dn-annotation/dn-circuit-queue.db.test.ts`
@@ -2317,6 +2955,7 @@ Expected: PASS. Then `npm run typecheck --workspace=apps/admin`.
 - Test: `apps/admin/src/pages/dn-annotation/dnCircuitCopy.test.ts`
 
 **Interfaces:**
+
 - Consumes: Tasks 1, 2 and 4 (`calendarDaysSince` is not needed; DN urgency is always `normal`).
 - Produces: `DnCircuitQueueItem`, `DnCircuitQueueResponse` (API); admin `DnAnnotationTask` (extends the contract), `DN_CIRCUIT_TABS`, `dnCircuitCallout(item)`, `dnCircuitMetrics(items, counts, now?)`.
 
@@ -2329,13 +2968,24 @@ it('submitted: to_send / action_required / Assistante DN / send_to_director, urg
   const d = await dossierInDgCircuit();
   await returnDg(d); // the DG return creates the DN circuit (same helper as the existing test)
   const item = (await m.dn.listDnAnnotationTasks({})).items.find((i) => i.requestId === d.request)!;
-  assert.deepEqual([item.bucket, item.state, item.owner, item.actionKey, item.urgency], ['to_send', 'action_required', OPERATIONAL_OWNERS.assistantDn, 'send_to_director', 'normal']);
+  assert.deepEqual(
+    [item.bucket, item.state, item.owner, item.actionKey, item.urgency],
+    ['to_send', 'action_required', OPERATIONAL_OWNERS.assistantDn, 'send_to_director', 'normal']
+  );
   assert.equal('statusLabel' in item, false);
 });
-it('sent: with_director / waiting / Assistante DN / record_director_annotation; urgency normal however long (D10)', async () => { /* sendToDirector, then backdate signature_sent_at by 30 days via SQL */ });
-it('returned: returned / done / owner null / handed_to_dn', async () => { /* returnAnnotated */ });
-it('B1: pending on a closed dossier is inactive in items and outside to_send / with_director counts', async () => { /* requestStatus 'cancelled' */ });
-it('issues exactly 4 queries whatever the number of circuits', async () => { /* countQueries pattern from Task 4: 1 then 3 extra circuits */ });
+it('sent: with_director / waiting / Assistante DN / record_director_annotation; urgency normal however long (D10)', async () => {
+  /* sendToDirector, then backdate signature_sent_at by 30 days via SQL */
+});
+it('returned: returned / done / owner null / handed_to_dn', async () => {
+  /* returnAnnotated */
+});
+it('B1: pending on a closed dossier is inactive in items and outside to_send / with_director counts', async () => {
+  /* requestStatus 'cancelled' */
+});
+it('issues exactly 4 queries whatever the number of circuits', async () => {
+  /* countQueries pattern from Task 4: 1 then 3 extra circuits */
+});
 ```
 
 - [ ] **Step 2: Run it to verify it fails**
@@ -2348,11 +2998,19 @@ Expected: FAIL (`state` is undefined).
 `dn-annotation.types.ts`:
 
 ```ts
-import type { DnCircuitActionKey, DnCircuitBucket, OperationalQueue, OperationalQueueItem } from '@aidn/shared';
+import type {
+  DnCircuitActionKey,
+  DnCircuitBucket,
+  OperationalQueue,
+  OperationalQueueItem,
+} from '@aidn/shared';
 
 export type DnAnnotationAction = 'send_to_director' | 'upload_annotated_return';
 
-export interface DnCircuitQueueItem extends OperationalQueueItem<DnCircuitBucket, DnCircuitActionKey> {
+export interface DnCircuitQueueItem extends OperationalQueueItem<
+  DnCircuitBucket,
+  DnCircuitActionKey
+> {
   requestType: string;
   applicantName: string;
   circuitDocumentId: number;
@@ -2377,14 +3035,45 @@ export type DnAnnotationListResponse = DnCircuitQueueResponse;
 In `dn-annotation.service.ts`, replace `bucketOf` and `buildView`, and the end of `listDnAnnotationTasks`; remove `visibleIn` and the `DN_CIRCUIT_STATUS_LABELS` import (the constant stays in `dn-annotation.stage.ts` for its own test):
 
 ```ts
-type Operational = Pick<DnCircuitQueueItem, 'bucket' | 'state' | 'owner' | 'actionKey' | 'blockReason'>;
+type Operational = Pick<
+  DnCircuitQueueItem,
+  'bucket' | 'state' | 'owner' | 'actionKey' | 'blockReason'
+>;
 
 function operationalOf(status: string, dossierClosed: boolean): Operational {
   const pending = status === 'submitted' || status === 'in_signature_circuit';
-  if (pending && dossierClosed) return { bucket: 'inactive', state: 'done', owner: null, actionKey: 'none', blockReason: 'dossier_closed' };
-  if (status === 'submitted') return { bucket: 'to_send', state: 'action_required', owner: OPERATIONAL_OWNERS.assistantDn, actionKey: 'send_to_director', blockReason: null };
-  if (status === 'in_signature_circuit') return { bucket: 'with_director', state: 'waiting', owner: OPERATIONAL_OWNERS.assistantDn, actionKey: 'record_director_annotation', blockReason: null };
-  if (status === 'pending_review') return { bucket: 'returned', state: 'done', owner: null, actionKey: 'handed_to_dn', blockReason: null };
+  if (pending && dossierClosed)
+    return {
+      bucket: 'inactive',
+      state: 'done',
+      owner: null,
+      actionKey: 'none',
+      blockReason: 'dossier_closed',
+    };
+  if (status === 'submitted')
+    return {
+      bucket: 'to_send',
+      state: 'action_required',
+      owner: OPERATIONAL_OWNERS.assistantDn,
+      actionKey: 'send_to_director',
+      blockReason: null,
+    };
+  if (status === 'in_signature_circuit')
+    return {
+      bucket: 'with_director',
+      state: 'waiting',
+      owner: OPERATIONAL_OWNERS.assistantDn,
+      actionKey: 'record_director_annotation',
+      blockReason: null,
+    };
+  if (status === 'pending_review')
+    return {
+      bucket: 'returned',
+      state: 'done',
+      owner: null,
+      actionKey: 'handed_to_dn',
+      blockReason: null,
+    };
   return { bucket: 'inactive', state: 'done', owner: null, actionKey: 'none', blockReason: null };
 }
 
@@ -2419,8 +3108,11 @@ function buildView(row: Circuit, ctx: Context): DnCircuitQueueItem | null {
     sentToDirectorAt: row.signatureSentAt,
     returnedAt: row.pendingReviewAt,
     availableActions: flags.dossierClosed ? [] : actionsFor(row.status),
-    directorWorkingDays: withDirector ? Math.floor(workingDaysBetween(row.signatureSentAt!, ctx.now, ctx.holidays)) : null,
-    predatesProcess: row.status === 'pending_review' && (ctx.versionCountByCircuitId.get(row.id) ?? 0) === 0,
+    directorWorkingDays: withDirector
+      ? Math.floor(workingDaysBetween(row.signatureSentAt!, ctx.now, ctx.holidays))
+      : null,
+    predatesProcess:
+      row.status === 'pending_review' && (ctx.versionCountByCircuitId.get(row.id) ?? 0) === 0,
   };
 }
 ```
@@ -2428,13 +3120,14 @@ function buildView(row: Circuit, ctx: Context): DnCircuitQueueItem | null {
 `listDnAnnotationTasks` ends with:
 
 ```ts
-  const items = filters.bucket ? tasks.filter((task) => task.bucket === filters.bucket) : tasks;
-  return { items, counts: countBuckets(DN_CIRCUIT_BUCKETS, tasks) };
+const items = filters.bucket ? tasks.filter((task) => task.bucket === filters.bucket) : tasks;
+return { items, counts: countBuckets(DN_CIRCUIT_BUCKETS, tasks) };
 ```
 
 Return type: `Promise<DnCircuitQueueResponse>`.
 
 In `dn-annotation.db.test.ts`:
+
 - replace `statusLabel` assertions with `actionKey`: `'record_director_annotation'` after send, `'handed_to_dn'` after return, `'send_to_director'` when listed;
 - in the closed-dossier case, the task is `bucket: 'inactive'`; it is absent from `listDnAnnotationTasks({ bucket: 'to_send' })` and present in `listDnAnnotationTasks({})`.
 
@@ -2443,12 +3136,25 @@ In `dn-annotation.db.test.ts`:
 `dnCircuitCopy.test.ts` asserts:
 
 ```ts
-expect(dnCircuitCallout(dn({ actionKey: 'send_to_director' })).title).toBe('À transmettre au Directeur DN');
-expect(dnCircuitCallout(dn({ actionKey: 'record_director_annotation', bucket: 'with_director', directorWorkingDays: 4 })).description)
-  .toBe('Le dossier est chez le Directeur DN depuis 4 j ouvrés. Téléversez le retour annoté dès réception.');
-expect(dnCircuitCallout(dn({ actionKey: 'handed_to_dn', bucket: 'returned' })).description).toBe('Annotation du Directeur DN reçue. La DN peut ouvrir la phase préliminaire.');
+expect(dnCircuitCallout(dn({ actionKey: 'send_to_director' })).title).toBe(
+  'À transmettre au Directeur DN'
+);
+expect(
+  dnCircuitCallout(
+    dn({ actionKey: 'record_director_annotation', bucket: 'with_director', directorWorkingDays: 4 })
+  ).description
+).toBe(
+  'Le dossier est chez le Directeur DN depuis 4 j ouvrés. Téléversez le retour annoté dès réception.'
+);
+expect(dnCircuitCallout(dn({ actionKey: 'handed_to_dn', bucket: 'returned' })).description).toBe(
+  'Annotation du Directeur DN reçue. La DN peut ouvrir la phase préliminaire.'
+);
 // items: one to_send, one with_director, one returned 5 days before `now`, three inactive
-expect(dnCircuitMetrics(items, { to_send: 1, with_director: 1, returned: 1, inactive: 3 }, now).map((m) => m.value)).toEqual([1, 1, 1]); // inactive never read
+expect(
+  dnCircuitMetrics(items, { to_send: 1, with_director: 1, returned: 1, inactive: 3 }, now).map(
+    (m) => m.value
+  )
+).toEqual([1, 1, 1]); // inactive never read
 ```
 
 `dnCircuitCopy.ts`:
@@ -2466,28 +3172,84 @@ export const DN_CIRCUIT_TABS: Array<{ key: DnCircuitTab; label: string }> = [
   { key: 'returned', label: 'Transmis à la DN' },
   { key: 'all', label: 'Tous' },
 ];
-export const DN_CIRCUIT_TAB_MODES: Record<DnCircuitTab, QueueMode> = { to_send: 'action', with_director: 'waiting', returned: 'history', all: 'history' };
+export const DN_CIRCUIT_TAB_MODES: Record<DnCircuitTab, QueueMode> = {
+  to_send: 'action',
+  with_director: 'waiting',
+  returned: 'history',
+  all: 'history',
+};
 
-export function dnCircuitCallout(item: DnAnnotationTask): { title: string; description: string; blockReason: string | null } {
-  if (item.blockReason === 'dossier_closed') return { title: 'Dossier clos — consultation uniquement', description: 'Le circuit reste consultable. Aucune action n’est possible.', blockReason: null };
-  if (item.actionKey === 'send_to_director') return { title: 'À transmettre au Directeur DN', description: 'Annotation du DG reçue. Remettez le dossier au Directeur DN, puis marquez-le transmis.', blockReason: null };
+export function dnCircuitCallout(item: DnAnnotationTask): {
+  title: string;
+  description: string;
+  blockReason: string | null;
+} {
+  if (item.blockReason === 'dossier_closed')
+    return {
+      title: 'Dossier clos - consultation uniquement',
+      description: 'Le circuit reste consultable. Aucune action n’est possible.',
+      blockReason: null,
+    };
+  if (item.actionKey === 'send_to_director')
+    return {
+      title: 'À transmettre au Directeur DN',
+      description:
+        'Annotation du DG reçue. Remettez le dossier au Directeur DN, puis marquez-le transmis.',
+      blockReason: null,
+    };
   if (item.actionKey === 'record_director_annotation') {
-    const since = item.directorWorkingDays === null ? '' : ` depuis ${item.directorWorkingDays} j ouvrés`;
-    return { title: 'Chez le Directeur DN', description: `Le dossier est chez le Directeur DN${since}. Téléversez le retour annoté dès réception.`, blockReason: null };
+    const since =
+      item.directorWorkingDays === null ? '' : ` depuis ${item.directorWorkingDays} j ouvrés`;
+    return {
+      title: 'Chez le Directeur DN',
+      description: `Le dossier est chez le Directeur DN${since}. Téléversez le retour annoté dès réception.`,
+      blockReason: null,
+    };
   }
-  if (item.actionKey === 'handed_to_dn') return { title: 'Transmis à la DN', description: 'Annotation du Directeur DN reçue. La DN peut ouvrir la phase préliminaire.', blockReason: null };
+  if (item.actionKey === 'handed_to_dn')
+    return {
+      title: 'Transmis à la DN',
+      description: 'Annotation du Directeur DN reçue. La DN peut ouvrir la phase préliminaire.',
+      blockReason: null,
+    };
   return { title: 'Circuit archivé', description: 'Consultation uniquement.', blockReason: null };
 }
 
 const DAY_MS = 86_400_000;
-export function dnCircuitMetrics(items: DnAnnotationTask[], counts: Record<DnCircuitBucket, number>, now: Date = new Date()): CockpitMetric[] {
-  const waits = items.filter((i) => i.bucket === 'with_director' && i.directorWorkingDays !== null).map((i) => i.directorWorkingDays!);
+export function dnCircuitMetrics(
+  items: DnAnnotationTask[],
+  counts: Record<DnCircuitBucket, number>,
+  now: Date = new Date()
+): CockpitMetric[] {
+  const waits = items
+    .filter((i) => i.bucket === 'with_director' && i.directorWorkingDays !== null)
+    .map((i) => i.directorWorkingDays!);
   const average = waits.length ? waits.reduce((a, b) => a + b, 0) / waits.length : null;
-  const handed30 = items.filter((i) => i.bucket === 'returned' && i.returnedAt && now.getTime() - new Date(i.returnedAt).getTime() <= 30 * DAY_MS).length;
+  const handed30 = items.filter(
+    (i) =>
+      i.bucket === 'returned' &&
+      i.returnedAt &&
+      now.getTime() - new Date(i.returnedAt).getTime() <= 30 * DAY_MS
+  ).length;
   return [
     { key: 'to_send', label: 'à transmettre', value: counts.to_send, detail: null, tone: 'info' },
-    { key: 'with_director', label: 'chez le Directeur DN', value: counts.with_director, detail: average === null ? null : `délai moyen ${average.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} j ouvrés`, tone: 'warning' },
-    { key: 'returned_30', label: 'transmis à la DN (30 j)', value: handed30, detail: null, tone: 'success' },
+    {
+      key: 'with_director',
+      label: 'chez le Directeur DN',
+      value: counts.with_director,
+      detail:
+        average === null
+          ? null
+          : `délai moyen ${average.toLocaleString('fr-FR', { maximumFractionDigits: 1 })} j ouvrés`,
+      tone: 'warning',
+    },
+    {
+      key: 'returned_30',
+      label: 'transmis à la DN (30 j)',
+      value: handed30,
+      detail: null,
+      tone: 'success',
+    },
   ];
 }
 ```
@@ -2497,6 +3259,7 @@ Admin `lib/api/dn-annotation/types.ts`: the same shape as the API `DnCircuitQueu
 - [ ] **Step 5: The page**
 
 Rewrite `CircuitDirecteurDnPage.tsx` with the same structure as `CourrierTasksPage` (Task 5), with these differences:
+
 - query `queryKeys.dnCircuit.queue()` with `fetchDnAnnotationTasks`; tabs `DN_CIRCUIT_TABS`, default `'to_send'`, `mode = DN_CIRCUIT_TAB_MODES[tab]`, `useUrlSelection(visible, !query.isLoading)`;
 - title « Circuit Directeur DN »; metrics `dnCircuitMetrics`; search haystack `[requestReference, organisationName, applicantName, REQUEST_TYPE_LABELS[requestType]]` (import from `../courrier-tasks/courrierCopy`);
 - list row: organisation + `formatRowDate(stepSince)`, reference, `ClosedDossierBadge`, `AgingBadge` with `urgency="normal"` and `workingDays={directorWorkingDays}` in `with_director`, then the callout title as the row label;
@@ -2507,6 +3270,7 @@ Rewrite `CircuitDirecteurDnPage.tsx` with the same structure as `CourrierTasksPa
 - mutations: same `run(...)` helper and `DOSSIER_CLOSED` reload as Task 5.
 
 Rewrite `CircuitDirecteurDnPage.test.tsx`:
+
 - (a) default tab « À transmettre » with its CTA for `assistant_dn`;
 - (b) the closed pending item appears only under « Tous », with the closed badge and no CTA;
 - (c) `reception` gets no CTA;
@@ -2523,6 +3287,7 @@ Expected: PASS.
 ### Task 7: Finance queue endpoint (API) and removal of the per-phase payment queues
 
 **Files:**
+
 - Create: `apps/api/src/modules/payments/finance-queue.ts`, `finance-queue.types.ts`, `payments.controller.ts`, `payments.route.ts`
 - Modify: `apps/api/src/server.ts` (mount `app.use('/api/payments', paymentsRoute)` next to the other modules)
 - Remove (after the caller audit): `GET /payment-queue` in `deep-evaluation.route.ts`, `site-inspection.route.ts`, `certificates.route.ts`; their controller functions; the `getPaymentQueue` service functions; the `nextPaymentAction` helpers and the `PaymentQueueItem` types, wherever they become unused
@@ -2530,6 +3295,7 @@ Expected: PASS.
 - Test: `apps/api/src/modules/payments/finance-queue.db.test.ts`, `apps/api/src/modules/payments/finance-queue.http.test.ts`
 
 **Interfaces:**
+
 - Consumes: Tasks 1 and 4 (`loadThresholds`, `calendarDaysSince`, `iso`).
 - Produces:
   - `getFinanceQueue(now?: Date): Promise<FinanceQueueResponse>` and `buildFinanceItem(row: FinanceRow, thresholds: { invoiceUploadDays: number; paymentValidationDays: number }, now: Date): FinanceQueueItem`;
@@ -2545,6 +3311,7 @@ rg -n "payment-queue|getPaymentQueue|paymentQueue\(|fetchDeepEvaluationPaymentQu
 ```
 
 Expected consumers, and only these:
+
 - the three route, controller and service definitions themselves;
 - `apps/admin/src/pages/payments/S5PaymentsPage.tsx`;
 - `apps/admin/src/lib/api/{deep-evaluation,site-inspection,certificates}.api.ts` and `.types.ts`;
@@ -2560,28 +3327,43 @@ If any other consumer appears (a phase page, a script, the portal), do **not** d
 `finance-queue.db.test.ts`: fixtures as in `applicant-actions.db.test.ts` (`newApplicant`, `dossier(owner, codes, status)`), plus `payment(phaseId, over)`, which inserts `payments (phase_id, status, invoice_uploaded_at, proof_uploaded_at, validated_at, rejection_reason, rejection_action)`, and `openedDaysAgo(phaseId, days)`, which runs `UPDATE phases SET opened_at = now() - ($2 || ' days')::interval WHERE id = $1`.
 
 ```ts
-const find = async (phaseId: number) => (await finance.getFinanceQueue()).items.find((i) => i.phaseId === phaseId)!;
+const find = async (phaseId: number) =>
+  (await finance.getFinanceQueue()).items.find((i) => i.phaseId === phaseId)!;
 
 it('awaiting_invoice: invoice_to_send / Finance / send_invoice; B2: urgency from the phase opening', async () => {
   const d = await dossier(undefined, ['M5']);
   await payment(d.phase.M5, { status: 'awaiting_invoice' });
   await openedDaysAgo(d.phase.M5, 5); // default target 2 days
   const item = await find(d.phase.M5);
-  assert.deepEqual([item.bucket, item.state, item.owner, item.actionKey, item.urgency], ['invoice_to_send', 'action_required', OPERATIONAL_OWNERS.finance, 'send_invoice', 'overdue']);
+  assert.deepEqual(
+    [item.bucket, item.state, item.owner, item.actionKey, item.urgency],
+    ['invoice_to_send', 'action_required', OPERATIONAL_OWNERS.finance, 'send_invoice', 'overdue']
+  );
   assert.equal(item.stepSince, item.phaseOpenedAt.toISOString());
 });
-it('pending_validation: proof_to_validate; urgency from proofUploadedAt', async () => { /* proof 3 days ago, target 1 → overdue */ });
-it('awaiting_proof: awaiting_applicant / waiting / Postulant; never overdue (no + 4 j rule)', async () => { /* invoice 30 days ago → 'normal' */ });
+it('pending_validation: proof_to_validate; urgency from proofUploadedAt', async () => {
+  /* proof 3 days ago, target 1 → overdue */
+});
+it('awaiting_proof: awaiting_applicant / waiting / Postulant; never overdue (no + 4 j rule)', async () => {
+  /* invoice 30 days ago → 'normal' */
+});
 it('B3: a new proof requested shows newProofRequested and the reason; a rejected dossier is done, not work', async () => {
   // awaiting_proof + rejection_reason 'Montant illisible' + rejection_action 'request_new_proof' → newProofRequested true, payment.rejectionReason set
   // status 'rejected' on a request with status 'rejected' → bucket 'done', blockReason 'dossier_closed', owner null
 });
-it('B1: pending payment on a closed dossier is inactive and outside the action counts', async () => { /* request 'cancelled' */ });
-it('validated: done; M5, M6 and M7 all listed with their phaseCode', async () => { /* three phases */ });
-it('issues exactly 2 queries whatever the number of payments', async () => { /* countQueries: 1 payment then 4 more */ });
+it('B1: pending payment on a closed dossier is inactive and outside the action counts', async () => {
+  /* request 'cancelled' */
+});
+it('validated: done; M5, M6 and M7 all listed with their phaseCode', async () => {
+  /* three phases */
+});
+it('issues exactly 2 queries whatever the number of payments', async () => {
+  /* countQueries: 1 payment then 4 more */
+});
 ```
 
 `finance-queue.http.test.ts` uses the pattern of `applicant-actions.http.test.ts` (including closing the app pool in `after`): mount `payments.route.js` at `/api/payments` behind `cookie-parser`. Staff tokens come from `jwt.signAccessToken({ kind: 'staff', userId: 1, employeeCode: 'T', roles })`, sent as cookie `${ACCESS_TOKEN_COOKIE}=<token>`.
+
 - no cookie → 401;
 - `dn_agent` → 403;
 - `r3_agent` → 403;
@@ -2597,7 +3379,12 @@ Expected: FAIL (module missing).
 `finance-queue.types.ts`:
 
 ```ts
-import type { FinanceActionKey, FinanceBucket, OperationalQueue, OperationalQueueItem } from '@aidn/shared';
+import type {
+  FinanceActionKey,
+  FinanceBucket,
+  OperationalQueue,
+  OperationalQueueItem,
+} from '@aidn/shared';
 
 export interface FinancePaymentView {
   id: number;
@@ -2654,7 +3441,10 @@ export interface FinanceRow {
 }
 
 const PENDING = ['awaiting_invoice', 'awaiting_proof', 'pending_validation'];
-type Op = Pick<FinanceQueueItem, 'bucket' | 'state' | 'owner' | 'actionKey' | 'blockReason' | 'urgency'> & { since: Date | null };
+type Op = Pick<
+  FinanceQueueItem,
+  'bucket' | 'state' | 'owner' | 'actionKey' | 'blockReason' | 'urgency'
+> & { since: Date | null };
 
 export function buildFinanceItem(
   row: FinanceRow,
@@ -2665,17 +3455,54 @@ export function buildFinanceItem(
   const p = row.payment;
   const none = { owner: null, actionKey: 'none' as const, urgency: 'normal' as const };
   let op: Op;
-  if (p.status === 'validated') op = { bucket: 'done', state: 'done', blockReason: null, since: p.validatedAt, ...none };
-  else if (p.status === 'rejected') op = { bucket: 'done', state: 'done', blockReason: 'dossier_closed', since: p.proofUploadedAt ?? p.invoiceUploadedAt ?? row.phaseOpenedAt, ...none };
-  else if (PENDING.includes(p.status) && flags.dossierClosed) op = { bucket: 'inactive', state: 'done', blockReason: 'dossier_closed', since: p.proofUploadedAt ?? p.invoiceUploadedAt ?? row.phaseOpenedAt, ...none };
+  if (p.status === 'validated')
+    op = { bucket: 'done', state: 'done', blockReason: null, since: p.validatedAt, ...none };
+  else if (p.status === 'rejected')
+    op = {
+      bucket: 'done',
+      state: 'done',
+      blockReason: 'dossier_closed',
+      since: p.proofUploadedAt ?? p.invoiceUploadedAt ?? row.phaseOpenedAt,
+      ...none,
+    };
+  else if (PENDING.includes(p.status) && flags.dossierClosed)
+    op = {
+      bucket: 'inactive',
+      state: 'done',
+      blockReason: 'dossier_closed',
+      since: p.proofUploadedAt ?? p.invoiceUploadedAt ?? row.phaseOpenedAt,
+      ...none,
+    };
   else if (p.status === 'awaiting_invoice')
-    op = { bucket: 'invoice_to_send', state: 'action_required', owner: OPERATIONAL_OWNERS.finance, actionKey: 'send_invoice', blockReason: null, since: row.phaseOpenedAt,
-      urgency: urgencyFromAge(calendarDaysSince(row.phaseOpenedAt, now), t.invoiceUploadDays) };
+    op = {
+      bucket: 'invoice_to_send',
+      state: 'action_required',
+      owner: OPERATIONAL_OWNERS.finance,
+      actionKey: 'send_invoice',
+      blockReason: null,
+      since: row.phaseOpenedAt,
+      urgency: urgencyFromAge(calendarDaysSince(row.phaseOpenedAt, now), t.invoiceUploadDays),
+    };
   else if (p.status === 'pending_validation')
-    op = { bucket: 'proof_to_validate', state: 'action_required', owner: OPERATIONAL_OWNERS.finance, actionKey: 'validate_payment_proof', blockReason: null, since: p.proofUploadedAt,
-      urgency: urgencyFromAge(calendarDaysSince(p.proofUploadedAt, now), t.paymentValidationDays) };
+    op = {
+      bucket: 'proof_to_validate',
+      state: 'action_required',
+      owner: OPERATIONAL_OWNERS.finance,
+      actionKey: 'validate_payment_proof',
+      blockReason: null,
+      since: p.proofUploadedAt,
+      urgency: urgencyFromAge(calendarDaysSince(p.proofUploadedAt, now), t.paymentValidationDays),
+    };
   else if (p.status === 'awaiting_proof')
-    op = { bucket: 'awaiting_applicant', state: 'waiting', owner: OPERATIONAL_OWNERS.applicant, actionKey: 'await_payment_proof', blockReason: null, since: p.invoiceUploadedAt, urgency: 'normal' };
+    op = {
+      bucket: 'awaiting_applicant',
+      state: 'waiting',
+      owner: OPERATIONAL_OWNERS.applicant,
+      actionKey: 'await_payment_proof',
+      blockReason: null,
+      since: p.invoiceUploadedAt,
+      urgency: 'normal',
+    };
   else op = { bucket: 'inactive', state: 'done', blockReason: null, since: null, ...none };
 
   const { since, ...operational } = op;
@@ -2693,9 +3520,15 @@ export function buildFinanceItem(
     requestType: row.requestType,
     phaseOpenedAt: row.phaseOpenedAt,
     payment: {
-      id: p.id, status: p.status, invoiceFileUrl: p.invoiceFileUrl, invoiceUploadedAt: p.invoiceUploadedAt,
-      proofFileUrl: p.proofFileUrl, proofUploadedAt: p.proofUploadedAt, validatedAt: p.validatedAt,
-      rejectionReason: p.rejectionReason, rejectionAction: p.rejectionAction,
+      id: p.id,
+      status: p.status,
+      invoiceFileUrl: p.invoiceFileUrl,
+      invoiceUploadedAt: p.invoiceUploadedAt,
+      proofFileUrl: p.proofFileUrl,
+      proofUploadedAt: p.proofUploadedAt,
+      validatedAt: p.validatedAt,
+      rejectionReason: p.rejectionReason,
+      rejectionAction: p.rejectionAction,
     },
     newProofRequested: p.status === 'awaiting_proof' && p.rejectionReason !== null,
   };
@@ -2752,7 +3585,12 @@ import { authenticate, requireRole } from '../../shared/guards/auth.middleware.j
 import * as paymentsController from './payments.controller.js';
 
 const router = Router();
-router.get('/finance-queue', authenticate, requireRole('s5_agent', 'SU'), paymentsController.financeQueue);
+router.get(
+  '/finance-queue',
+  authenticate,
+  requireRole('s5_agent', 'SU'),
+  paymentsController.financeQueue
+);
 export default router;
 ```
 
@@ -2761,6 +3599,7 @@ Mount it in `server.ts`: `import paymentsRoute from './modules/payments/payments
 - [ ] **Step 5: Remove the per-phase queues (API side, per the audit)**
 
 Delete:
+
 - the `/payment-queue` routes;
 - their controller functions;
 - `getPaymentQueue` in the three services;
@@ -2770,10 +3609,12 @@ Keep `toPaymentView` (the bundles use it). In `closed-dossier-lists.db.test.ts`,
 
 ```ts
 const finance = await m.finance.getFinanceQueue();
-const mineFinance = (code: string) => finance.items.find((item) => item.requestId === d.request && item.phaseCode === code)!;
+const mineFinance = (code: string) =>
+  finance.items.find((item) => item.requestId === d.request && item.phaseCode === code)!;
 ```
 
 Assert:
+
 - a closed dossier gives `bucket: 'inactive'` (pending) and an empty-action state;
 - an open dossier gives `actionKey: 'validate_payment_proof'` (M5) and `'send_invoice'` (M7).
 
@@ -2787,6 +3628,7 @@ Expected: PASS.
 ### Task 8: Finance cockpit (admin)
 
 **Files:**
+
 - Modify: `apps/admin/src/lib/api/` (new `payments.api.ts` + `payments.types.ts` with `fetchFinanceQueue()`, types mirroring Task 7 with ISO strings); remove `fetchDeepEvaluationPaymentQueue`, `fetchSiteInspectionPaymentQueue` and `fetchCertificatesPaymentQueue` and their `PaymentQueueItem` types (per the Task 7 audit)
 - Modify: `queryKeys.ts` (remove the three `paymentQueue` keys; add `payments: { all: ['payments'], financeQueue: () => ['payments', 'finance-queue'] }`), `queryClient.ts` (`DOSSIER_WORK_LISTS`: replace the three keys with `queryKeys.payments.financeQueue()`)
 - Create: `apps/admin/src/pages/payments/financeCopy.ts`, `FinancePaymentPane.tsx`
@@ -2794,6 +3636,7 @@ Expected: PASS.
 - Test: `apps/admin/src/pages/payments/financeCopy.test.ts`, `apps/admin/src/pages/payments/S5PaymentsPage.test.tsx`; update `apps/admin/src/pages/closed-dossier-lists.test.tsx` (`<S5PaymentsPage>` block and the queryClient test)
 
 **Interfaces:**
+
 - Consumes: Tasks 1, 2 and 7.
 - Produces: `FINANCE_TABS`, `financeCallout(item)`, `financeMetrics(items, counts, now?)`, `FinancePaymentPane`.
 
@@ -2804,19 +3647,44 @@ Expected: PASS.
 ```ts
 it('callouts (D8 wording)', () => {
   expect(financeCallout(item({ actionKey: 'send_invoice' })).title).toBe('Facture à transmettre');
-  expect(financeCallout(item({ actionKey: 'validate_payment_proof' })).title).toBe('Preuve de paiement à valider');
-  const waiting = financeCallout(item({ actionKey: 'await_payment_proof', bucket: 'awaiting_applicant' }));
+  expect(financeCallout(item({ actionKey: 'validate_payment_proof' })).title).toBe(
+    'Preuve de paiement à valider'
+  );
+  const waiting = financeCallout(
+    item({ actionKey: 'await_payment_proof', bucket: 'awaiting_applicant' })
+  );
   expect(waiting.title).toBe('En attente du postulant');
-  expect(waiting.description).toBe('La facture a été transmise. La preuve de paiement est attendue.');
-  const again = financeCallout(item({ actionKey: 'await_payment_proof', newProofRequested: true, payment: { ...p, rejectionReason: 'Montant illisible' } }));
-  expect(again.description).toBe('La facture a été transmise. Nouvelle preuve de paiement demandée : Montant illisible');
-  expect(financeCallout(item({ bucket: 'done', actionKey: 'none', payment: { ...p, status: 'rejected' }, blockReason: 'dossier_closed' })).title).toBe('Dossier rejeté — paiement clos');
+  expect(waiting.description).toBe(
+    'La facture a été transmise. La preuve de paiement est attendue.'
+  );
+  const again = financeCallout(
+    item({
+      actionKey: 'await_payment_proof',
+      newProofRequested: true,
+      payment: { ...p, rejectionReason: 'Montant illisible' },
+    })
+  );
+  expect(again.description).toBe(
+    'La facture a été transmise. Nouvelle preuve de paiement demandée : Montant illisible'
+  );
+  expect(
+    financeCallout(
+      item({
+        bucket: 'done',
+        actionKey: 'none',
+        payment: { ...p, status: 'rejected' },
+        blockReason: 'dossier_closed',
+      })
+    ).title
+  ).toBe('Dossier rejeté - paiement clos');
   for (const key of ['send_invoice', 'validate_payment_proof', 'await_payment_proof'] as const) {
     const copy = financeCallout(item({ actionKey: key }));
     expect(`${copy.title} ${copy.description}`).not.toMatch(/quittance|S5/i);
   }
 });
-it('metrics: action buckets only; « Validés (30 j) » from validatedAt in the rows', () => { /* counts.inactive = 9 never shown */ });
+it('metrics: action buckets only; « Validés (30 j) » from validatedAt in the rows', () => {
+  /* counts.inactive = 9 never shown */
+});
 ```
 
 `S5PaymentsPage.test.tsx` (new). Mock `useAuth` with mutable `roles`; seed `queryKeys.payments.financeQueue()`.
@@ -2866,38 +3734,102 @@ export const PHASE_LABELS: Record<FinanceQueueItem['phaseCode'], string> = {
   M7: 'Délivrance',
 };
 
-export function financeCallout(item: FinanceQueueItem): { title: string; description: string; blockReason: string | null } {
-  if (item.payment.status === 'rejected') return { title: 'Dossier rejeté — paiement clos', description: 'Le paiement et ses pièces restent consultables.', blockReason: null };
-  if (item.blockReason === 'dossier_closed') return { title: 'Dossier clos — consultation uniquement', description: 'Le paiement et ses pièces restent consultables. Aucune action Finance n’est possible.', blockReason: null };
+export function financeCallout(item: FinanceQueueItem): {
+  title: string;
+  description: string;
+  blockReason: string | null;
+} {
+  if (item.payment.status === 'rejected')
+    return {
+      title: 'Dossier rejeté - paiement clos',
+      description: 'Le paiement et ses pièces restent consultables.',
+      blockReason: null,
+    };
+  if (item.blockReason === 'dossier_closed')
+    return {
+      title: 'Dossier clos - consultation uniquement',
+      description:
+        'Le paiement et ses pièces restent consultables. Aucune action Finance n’est possible.',
+      blockReason: null,
+    };
   switch (item.actionKey) {
     case 'send_invoice':
-      return { title: 'Facture à transmettre', description: 'Joignez la facture transmise au postulant : la preuve de paiement sera ensuite attendue.', blockReason: null };
+      return {
+        title: 'Facture à transmettre',
+        description:
+          'Joignez la facture transmise au postulant : la preuve de paiement sera ensuite attendue.',
+        blockReason: null,
+      };
     case 'validate_payment_proof':
-      return { title: 'Preuve de paiement à valider', description: 'Contrôlez la preuve de paiement du postulant avant de débloquer la phase.', blockReason: null };
+      return {
+        title: 'Preuve de paiement à valider',
+        description: 'Contrôlez la preuve de paiement du postulant avant de débloquer la phase.',
+        blockReason: null,
+      };
     case 'await_payment_proof':
       return {
         title: 'En attente du postulant',
-        description: item.newProofRequested && item.payment.rejectionReason
-          ? `La facture a été transmise. Nouvelle preuve de paiement demandée : ${item.payment.rejectionReason}`
-          : 'La facture a été transmise. La preuve de paiement est attendue.',
+        description:
+          item.newProofRequested && item.payment.rejectionReason
+            ? `La facture a été transmise. Nouvelle preuve de paiement demandée : ${item.payment.rejectionReason}`
+            : 'La facture a été transmise. La preuve de paiement est attendue.',
         blockReason: null,
       };
     default:
-      return { title: 'Paiement validé', description: 'Le paiement ne requiert plus d’action Finance.', blockReason: null };
+      return {
+        title: 'Paiement validé',
+        description: 'Le paiement ne requiert plus d’action Finance.',
+        blockReason: null,
+      };
   }
 }
 
 const DAY_MS = 86_400_000;
-export function financeMetrics(items: FinanceQueueItem[], counts: Record<FinanceBucket, number>, now: Date = new Date()): CockpitMetric[] {
-  const late = (bucket: FinanceBucket) => items.filter((i) => i.bucket === bucket && i.urgency === 'overdue').length;
+export function financeMetrics(
+  items: FinanceQueueItem[],
+  counts: Record<FinanceBucket, number>,
+  now: Date = new Date()
+): CockpitMetric[] {
+  const late = (bucket: FinanceBucket) =>
+    items.filter((i) => i.bucket === bucket && i.urgency === 'overdue').length;
   const lateDetail = (n: number) => (n > 0 ? `dont ${n} en retard` : null);
-  const newProof = items.filter((i) => i.bucket === 'awaiting_applicant' && i.newProofRequested).length;
-  const validated30 = items.filter((i) => i.payment.validatedAt && now.getTime() - new Date(i.payment.validatedAt).getTime() <= 30 * DAY_MS).length;
+  const newProof = items.filter(
+    (i) => i.bucket === 'awaiting_applicant' && i.newProofRequested
+  ).length;
+  const validated30 = items.filter(
+    (i) =>
+      i.payment.validatedAt &&
+      now.getTime() - new Date(i.payment.validatedAt).getTime() <= 30 * DAY_MS
+  ).length;
   return [
-    { key: 'invoice_to_send', label: 'factures à transmettre', value: counts.invoice_to_send, detail: lateDetail(late('invoice_to_send')), tone: 'info' },
-    { key: 'proof_to_validate', label: 'preuves à valider', value: counts.proof_to_validate, detail: lateDetail(late('proof_to_validate')), tone: 'warning' },
-    { key: 'awaiting_applicant', label: 'en attente du postulant', value: counts.awaiting_applicant, detail: newProof > 0 ? `dont ${newProof} nouvelle preuve demandée` : null, tone: 'neutral' },
-    { key: 'validated_30', label: 'validés (30 j)', value: validated30, detail: null, tone: 'success' },
+    {
+      key: 'invoice_to_send',
+      label: 'factures à transmettre',
+      value: counts.invoice_to_send,
+      detail: lateDetail(late('invoice_to_send')),
+      tone: 'info',
+    },
+    {
+      key: 'proof_to_validate',
+      label: 'preuves à valider',
+      value: counts.proof_to_validate,
+      detail: lateDetail(late('proof_to_validate')),
+      tone: 'warning',
+    },
+    {
+      key: 'awaiting_applicant',
+      label: 'en attente du postulant',
+      value: counts.awaiting_applicant,
+      detail: newProof > 0 ? `dont ${newProof} nouvelle preuve demandée` : null,
+      tone: 'neutral',
+    },
+    {
+      key: 'validated_30',
+      label: 'validés (30 j)',
+      value: validated30,
+      detail: null,
+      tone: 'success',
+    },
   ];
 }
 ```
@@ -2905,6 +3837,7 @@ export function financeMetrics(items: FinanceQueueItem[], counts: Record<Finance
 - [ ] **Step 4: Pane and page**
 
 `FinancePaymentPane.tsx` renders `QueueReadingPane`:
+
 - **Header:** reference, `PHASE_LABELS[phaseCode]`, organisation, `ClosedDossierBadge`.
 - **Callout:** `financeCallout`, with `canAct: canAct(owner, roles) && !!cta`.
 - **`cta`:**
@@ -2918,13 +3851,15 @@ export function financeMetrics(items: FinanceQueueItem[], counts: Record<Finance
 - **Removed:** « Montant » and `amountLabel`.
 
 `S5PaymentsPage.tsx` follows the `CourrierTasksPage` structure (Task 5):
+
 - one `useQuery(queryKeys.payments.financeQueue(), fetchFinanceQueue)`; tabs `FINANCE_TABS`, default `'invoice_to_send'`, `mode = FINANCE_TAB_MODES[tab]`, `useUrlSelection(visible, !query.isLoading)`;
-- title « Paiements — Finance »; metrics `financeMetrics`; search haystack `[requestReference, organisationName, PHASE_LABELS[phaseCode], requestType]`;
+- title « Paiements - Finance »; metrics `financeMetrics`; search haystack `[requestReference, organisationName, PHASE_LABELS[phaseCode], requestType]`;
 - row: organisation + `formatRowDate(stepSince)`, reference · phase label, badges (`ClosedDossierBadge`, and `AgingBadge` in `invoice_to_send` / `proof_to_validate`), then the callout title as the row label;
 - the mutation dispatch keeps the existing per-phase functions (`uploadInvoice`, `validatePayment`, `rejectPayment` from `deep-evaluation.api`, `site-inspection.api` and `certificates.api`), moved unchanged as `uploadInvoiceForItem`, `validatePaymentForItem` and `rejectPaymentForItem`;
 - after success or `DOSSIER_CLOSED`, invalidate `queryKeys.payments.financeQueue()`.
 
 Remove:
+
 - the table, `Pagination`, `PAGE_SIZE`;
 - `S5Header`, `S5MetricCard`, `S5Toolbar`, `S5PaymentTable`, `S5DetailPanel`, `S5ActionPanel`;
 - `STATUS_LABELS`, `NEXT_ACTION_LABELS`, `BUCKET_LABELS`, `bucketForItem`;
@@ -2949,6 +3884,7 @@ Expected: PASS. Confirm with `rg -n "paymentQueue|PaymentQueue" apps/admin/src` 
 ### Task 9: B4 guard and the CI queue read model (API)
 
 **Files:**
+
 - Modify: `apps/api/src/modules/site-inspection/site-inspection.service.ts` (`markAssignedSiteVisitHeld`, `missionState` → `buildInspectionItem`, `getMyQueue`)
 - Modify: `site-inspection.types.ts` (`MyQueueItem` → `InspectionQueueItem`, `InspectionQueueResponse`), `site-inspection.controller.ts` (`getMyQueue` passes the viewer)
 - Modify: `apps/api/src/shared/utils/error.ts` (`handleSiteInspectionError` gains `MEETING_NOT_SCHEDULED` and `SITE_VISIT_PAYMENT_NOT_VALIDATED`)
@@ -2956,6 +3892,7 @@ Expected: PASS. Confirm with `rg -n "paymentQueue|PaymentQueue" apps/admin/src` 
 - Test: `apps/api/src/modules/site-inspection/site-visit-held.db.test.ts`, `site-visit-held.http.test.ts`, `inspection-queue.db.test.ts`
 
 **Interfaces:**
+
 - Consumes: Task 1 (`canRecordSiteVisitHeld`, `visitDayUrgency`, `INSPECTION_BUCKETS`, `countBuckets`, `OPERATIONAL_OWNERS`).
 - Produces:
   - `getMyQueue(viewer: { userId: number; roles: readonly string[] }, now?: Date): Promise<InspectionQueueResponse>`;
@@ -2973,12 +3910,31 @@ it('B4: refused while the payment is not validated; the visit stays scheduled; n
     const d = await dossier(undefined, ['M6']);
     await payment(d.phase.M6, status);
     const visit = await siteVisit(d.phase.M6, agent);
-    await assert.rejects(site.markAssignedSiteVisitHeld(visit, agent), /SITE_VISIT_PAYMENT_NOT_VALIDATED/, status);
-    assert.equal((await one(`SELECT status FROM meetings WHERE id = $1`, [visit])).status, 'scheduled');
-    assert.equal(Number((await one(`SELECT count(*) FROM audit_logs WHERE action = 'SITE_VISIT_HELD' AND entity_id = $1`, [visit])).count), 0);
+    await assert.rejects(
+      site.markAssignedSiteVisitHeld(visit, agent),
+      /SITE_VISIT_PAYMENT_NOT_VALIDATED/,
+      status
+    );
+    assert.equal(
+      (await one(`SELECT status FROM meetings WHERE id = $1`, [visit])).status,
+      'scheduled'
+    );
+    assert.equal(
+      Number(
+        (
+          await one(
+            `SELECT count(*) FROM audit_logs WHERE action = 'SITE_VISIT_HELD' AND entity_id = $1`,
+            [visit]
+          )
+        ).count
+      ),
+      0
+    );
   }
 });
-it('B4: accepted once the payment is validated', async () => { /* payment 'validated' → returns status 'held' */ });
+it('B4: accepted once the payment is validated', async () => {
+  /* payment 'validated' → returns status 'held' */
+});
 it('scheduling before payment is still allowed', async () => {
   // scheduleSiteVisit({ phaseId, r3AgentId, scheduledAt, location, actorUserId }) with payment 'awaiting_invoice' resolves
   // (use the service's real signature: read it in site-inspection.service.ts:328)
@@ -2989,11 +3945,24 @@ it('two concurrent « held » calls: exactly one succeeds, the other is MEETING_
   const d = await dossier(undefined, ['M6']);
   await payment(d.phase.M6, 'validated');
   const visit = await siteVisit(d.phase.M6, agent);
-  const results = await Promise.allSettled([site.markAssignedSiteVisitHeld(visit, agent), site.markAssignedSiteVisitHeld(visit, agent)]);
+  const results = await Promise.allSettled([
+    site.markAssignedSiteVisitHeld(visit, agent),
+    site.markAssignedSiteVisitHeld(visit, agent),
+  ]);
   assert.equal(results.filter((r) => r.status === 'fulfilled').length, 1);
   const rejected = results.find((r) => r.status === 'rejected') as PromiseRejectedResult;
   assert.match(String(rejected.reason), /MEETING_NOT_SCHEDULED/);
-  assert.equal(Number((await one(`SELECT count(*) FROM audit_logs WHERE action = 'SITE_VISIT_HELD' AND entity_id = $1`, [visit])).count), 1);
+  assert.equal(
+    Number(
+      (
+        await one(
+          `SELECT count(*) FROM audit_logs WHERE action = 'SITE_VISIT_HELD' AND entity_id = $1`,
+          [visit]
+        )
+      ).count
+    ),
+    1
+  );
 });
 it('the verdict payment guard is unchanged: held + unpaid → PAYMENT_NOT_VALIDATED', async () => {
   // insert the visit directly with status 'held' and payment 'awaiting_proof'; submitInspectionVerdict rejects /PAYMENT_NOT_VALIDATED/
@@ -3001,6 +3970,7 @@ it('the verdict payment guard is unchanged: held + unpaid → PAYMENT_NOT_VALIDA
 ```
 
 `site-visit-held.http.test.ts`: mount `site-inspection.route.js` at `/api/site-inspection` behind `cookie-parser` and `express.json()`, with staff cookies as in Task 7. With `DATABASE_URL`:
+
 - `PATCH /api/site-inspection/site-visits/:id/held` with an unpaid visit as its agent → **409**, body `code: 'SITE_VISIT_PAYMENT_NOT_VALIDATED'` and message « Le paiement doit être validé par Finance avant d'enregistrer la tenue de la visite. »;
 - the same call on an already-held visit → **409** `MEETING_NOT_SCHEDULED` (no longer 500);
 - a `dn_agent` cookie → **403**.
@@ -3025,12 +3995,17 @@ it('D14: an agent sees only their missions; SU sees every mission; assignedToVie
   // one mission for a, one for b
   const asA = await site.getMyQueue({ userId: a, roles: ['r3_agent'] });
   assert.ok(asA.items.every((i) => i.assignedToViewer));
-  assert.equal(asA.items.some((i) => i.siteVisit.r3AgentId === b), false);
+  assert.equal(
+    asA.items.some((i) => i.siteVisit.r3AgentId === b),
+    false
+  );
   const asSu = await site.getMyQueue({ userId: a, roles: ['SU', 'r3_agent'] });
   assert.ok(asSu.items.some((i) => i.siteVisit.r3AgentId === b && i.assignedToViewer === false));
   assert.ok(asSu.items.some((i) => i.siteVisit.r3AgentId === a && i.assignedToViewer === true));
 });
-it('no French label in the read model; assignedAgentName is set', async () => { /* 'statusLabel' and 'nextActionLabel' absent */ });
+it('no French label in the read model; assignedAgentName is set', async () => {
+  /* 'statusLabel' and 'nextActionLabel' absent */
+});
 it('issues exactly 1 query for an agent and for SU, whatever the number of missions', async () => {});
 ```
 
@@ -3061,23 +4036,30 @@ Check that the handler puts the code in the response body (`code`) the same way 
 Replace the body of `markAssignedSiteVisitHeld` after `assertMeetingDossierOpen`:
 
 ```ts
-  const [row] = await db
-    .select({ visit: meetings, payment: payments })
-    .from(meetings)
-    .leftJoin(payments, eq(payments.phaseId, meetings.phaseId))
-    .where(and(eq(meetings.id, meetingId), eq(meetings.meetingType, 'site_visit'), eq(meetings.dnAgentId, r3AgentId)));
-  if (!row) throw new Error('SITE_VISIT_NOT_ASSIGNED');
-  if (row.visit.status !== 'scheduled') throw new Error('MEETING_NOT_SCHEDULED');
-  // B4 - a visit is recorded as held only once its M6 payment is validated.
-  if (!canRecordSiteVisitHeld(row.visit, row.payment)) throw new Error('SITE_VISIT_PAYMENT_NOT_VALIDATED');
+const [row] = await db
+  .select({ visit: meetings, payment: payments })
+  .from(meetings)
+  .leftJoin(payments, eq(payments.phaseId, meetings.phaseId))
+  .where(
+    and(
+      eq(meetings.id, meetingId),
+      eq(meetings.meetingType, 'site_visit'),
+      eq(meetings.dnAgentId, r3AgentId)
+    )
+  );
+if (!row) throw new Error('SITE_VISIT_NOT_ASSIGNED');
+if (row.visit.status !== 'scheduled') throw new Error('MEETING_NOT_SCHEDULED');
+// B4 - a visit is recorded as held only once its M6 payment is validated.
+if (!canRecordSiteVisitHeld(row.visit, row.payment))
+  throw new Error('SITE_VISIT_PAYMENT_NOT_VALIDATED');
 
-  // Compare-and-set: a concurrent call that already moved the visit gets no row.
-  const [updated] = await db
-    .update(meetings)
-    .set({ status: 'held' })
-    .where(and(eq(meetings.id, meetingId), eq(meetings.status, 'scheduled')))
-    .returning();
-  if (!updated) throw new Error('MEETING_NOT_SCHEDULED');
+// Compare-and-set: a concurrent call that already moved the visit gets no row.
+const [updated] = await db
+  .update(meetings)
+  .set({ status: 'held' })
+  .where(and(eq(meetings.id, meetingId), eq(meetings.status, 'scheduled')))
+  .returning();
+if (!updated) throw new Error('MEETING_NOT_SCHEDULED');
 ```
 
 The `logAudit` call and the `return toSiteVisitView(updated)` stay after it.
@@ -3087,9 +4069,17 @@ The `logAudit` call and the `return toSiteVisitView(updated)` stay after it.
 `site-inspection.types.ts`: delete `MyQueueItem` and add:
 
 ```ts
-import type { InspectionActionKey, InspectionBucket, OperationalQueue, OperationalQueueItem } from '@aidn/shared';
+import type {
+  InspectionActionKey,
+  InspectionBucket,
+  OperationalQueue,
+  OperationalQueueItem,
+} from '@aidn/shared';
 
-export interface InspectionQueueItem extends OperationalQueueItem<InspectionBucket, InspectionActionKey> {
+export interface InspectionQueueItem extends OperationalQueueItem<
+  InspectionBucket,
+  InspectionActionKey
+> {
   phaseId: number;
   phaseStatus: string;
   requestType: string;
@@ -3107,32 +4097,74 @@ In `site-inspection.service.ts`, replace `missionState` and `getMyQueue`:
 
 ```ts
 type QueueRow = {
-  phaseId: number; phaseStatus: string; requestId: number; requestReference: string; requestType: string;
-  requestStatus: string; organisationName: string; agentName: string | null;
-  payment: typeof payments.$inferSelect | null; siteVisit: typeof meetings.$inferSelect; inspection: typeof siteInspections.$inferSelect | null;
+  phaseId: number;
+  phaseStatus: string;
+  requestId: number;
+  requestReference: string;
+  requestType: string;
+  requestStatus: string;
+  organisationName: string;
+  agentName: string | null;
+  payment: typeof payments.$inferSelect | null;
+  siteVisit: typeof meetings.$inferSelect;
+  inspection: typeof siteInspections.$inferSelect | null;
 };
-type Op = Pick<InspectionQueueItem, 'bucket' | 'state' | 'owner' | 'actionKey' | 'blockReason' | 'urgency' | 'dueAt'>;
+type Op = Pick<
+  InspectionQueueItem,
+  'bucket' | 'state' | 'owner' | 'actionKey' | 'blockReason' | 'urgency' | 'dueAt'
+>;
 
-export function buildInspectionItem(row: QueueRow, viewerId: number, now: Date): InspectionQueueItem {
+export function buildInspectionItem(
+  row: QueueRow,
+  viewerId: number,
+  now: Date
+): InspectionQueueItem {
   const flags = dossierFlags(row.requestStatus);
   const done = (bucket: 'closed' | 'inactive', blockReason: Op['blockReason']): Op => ({
-    bucket, state: 'done', owner: null, actionKey: 'none', blockReason, urgency: 'normal', dueAt: null,
+    bucket,
+    state: 'done',
+    owner: null,
+    actionKey: 'none',
+    blockReason,
+    urgency: 'normal',
+    dueAt: null,
   });
   let op: Op;
   if (flags.dossierClosed) op = done('inactive', 'dossier_closed');
   else if (row.inspection || row.phaseStatus === 'closed') op = done('closed', null);
   else if (row.payment?.status !== 'validated') {
     op = {
-      bucket: 'awaiting_payment', state: 'blocked', actionKey: 'await_payment', blockReason: 'payment_not_validated', urgency: 'normal', dueAt: null,
-      owner: row.payment?.status === 'awaiting_proof' ? OPERATIONAL_OWNERS.applicant : OPERATIONAL_OWNERS.finance,
+      bucket: 'awaiting_payment',
+      state: 'blocked',
+      actionKey: 'await_payment',
+      blockReason: 'payment_not_validated',
+      urgency: 'normal',
+      dueAt: null,
+      owner:
+        row.payment?.status === 'awaiting_proof'
+          ? OPERATIONAL_OWNERS.applicant
+          : OPERATIONAL_OWNERS.finance,
     };
   } else if (canRecordSiteVisitHeld(row.siteVisit, row.payment)) {
     op = {
-      bucket: 'to_hold', state: 'action_required', owner: OPERATIONAL_OWNERS.inspection, actionKey: 'record_visit_held', blockReason: null,
-      urgency: visitDayUrgency(row.siteVisit.scheduledAt, now), dueAt: row.siteVisit.scheduledAt.toISOString(),
+      bucket: 'to_hold',
+      state: 'action_required',
+      owner: OPERATIONAL_OWNERS.inspection,
+      actionKey: 'record_visit_held',
+      blockReason: null,
+      urgency: visitDayUrgency(row.siteVisit.scheduledAt, now),
+      dueAt: row.siteVisit.scheduledAt.toISOString(),
     };
   } else if (row.siteVisit.status === 'held') {
-    op = { bucket: 'verdict_due', state: 'action_required', owner: OPERATIONAL_OWNERS.inspection, actionKey: 'submit_verdict', blockReason: null, urgency: 'normal', dueAt: null };
+    op = {
+      bucket: 'verdict_due',
+      state: 'action_required',
+      owner: OPERATIONAL_OWNERS.inspection,
+      actionKey: 'submit_verdict',
+      blockReason: null,
+      urgency: 'normal',
+      dueAt: null,
+    };
   } else op = done('inactive', null); // no_show, file_cancelled...
   return {
     id: `M6:${row.phaseId}`,
@@ -3155,7 +4187,10 @@ export function buildInspectionItem(row: QueueRow, viewerId: number, now: Date):
 
 /** D14 - an agent sees the missions assigned to them; SU sees every mission.
  *  One query either way. */
-export async function getMyQueue(viewer: { userId: number; roles: readonly string[] }, now: Date = new Date()): Promise<InspectionQueueResponse> {
+export async function getMyQueue(
+  viewer: { userId: number; roles: readonly string[] },
+  now: Date = new Date()
+): Promise<InspectionQueueResponse> {
   const seeAll = viewer.roles.includes('SU');
   const rows = await db
     .select({
@@ -3194,6 +4229,7 @@ export async function getMyQueue(viewer: { userId: number; roles: readonly strin
 ```
 
 Imports to add:
+
 - `users` from the schema;
 - `INSPECTION_BUCKETS`, `OPERATIONAL_OWNERS`, `canRecordSiteVisitHeld`, `countBuckets` and `visitDayUrgency` from `@aidn/shared`;
 - the new types.
@@ -3203,6 +4239,7 @@ Delete the old `daysBetween`, if nothing else in the file uses it.
 In `site-inspection.controller.ts`: `inspectionService.getMyQueue({ userId: req.user!.userId, roles: req.user!.roles })`.
 
 In `closed-dossier-lists.db.test.ts`:
+
 - `mission: mine((await m.site.getMyQueue({ userId: d.user, roles: ['r3_agent'] })).items)`;
 - closed: `assert.equal(l.mission.bucket, 'inactive'); assert.equal(l.mission.actionKey, 'none');`;
 - open: `assert.equal(l.mission.bucket, 'to_hold'); assert.equal(l.mission.actionKey, 'record_visit_held');`.
@@ -3219,6 +4256,7 @@ Expected: PASS. The retired R3 dashboard service still compiles until Task 11 (i
 ### Task 10: Cellule Inspection cockpit (admin)
 
 **Files:**
+
 - Modify: `apps/admin/src/lib/api/site-inspection.types.ts` (replace `MyQueueItem` with `InspectionQueueItem` / `InspectionQueueResponse`, ISO strings), `site-inspection.api.ts` (`fetchMyQueue(): Promise<InspectionQueueResponse>`)
 - Create: `apps/admin/src/pages/inspections/inspectionCopy.ts`, `InspectionPane.tsx`
 - Rewrite: `apps/admin/src/pages/inspections/MyInspectionsPage.tsx`, `MyInspectionsPage.test.tsx`
@@ -3226,6 +4264,7 @@ Expected: PASS. The retired R3 dashboard service still compiles until Task 11 (i
 - Test: `apps/admin/src/pages/inspections/inspectionCopy.test.ts`
 
 **Interfaces:**
+
 - Consumes: Tasks 1, 2 and 9.
 - Produces: `INSPECTION_TABS`, `inspectionCallout(item)`, `inspectionMetrics(items, counts)`, `InspectionPane`.
 
@@ -3235,11 +4274,25 @@ Expected: PASS. The retired R3 dashboard service still compiles until Task 11 (i
 
 ```ts
 it('callouts', () => {
-  const blocked = inspectionCallout(mission({ bucket: 'awaiting_payment', actionKey: 'await_payment', state: 'blocked', blockReason: 'payment_not_validated', owner: OPERATIONAL_OWNERS.finance }));
+  const blocked = inspectionCallout(
+    mission({
+      bucket: 'awaiting_payment',
+      actionKey: 'await_payment',
+      state: 'blocked',
+      blockReason: 'payment_not_validated',
+      owner: OPERATIONAL_OWNERS.finance,
+    })
+  );
   expect(blocked.title).toBe('Paiement en attente');
-  expect(blocked.blockReason).toBe('La visite pourra être enregistrée une fois le paiement validé par Finance.');
-  expect(inspectionCallout(mission({ actionKey: 'record_visit_held' })).title).toBe('Visite à enregistrer');
-  expect(inspectionCallout(mission({ actionKey: 'submit_verdict', bucket: 'verdict_due' })).description).toBe("La visite est tenue. L'avis d'inspection doit être enregistré.");
+  expect(blocked.blockReason).toBe(
+    'La visite pourra être enregistrée une fois le paiement validé par Finance.'
+  );
+  expect(inspectionCallout(mission({ actionKey: 'record_visit_held' })).title).toBe(
+    'Visite à enregistrer'
+  );
+  expect(
+    inspectionCallout(mission({ actionKey: 'submit_verdict', bucket: 'verdict_due' })).description
+  ).toBe("La visite est tenue. L'avis d'inspection doit être enregistré.");
 });
 it('metrics: « Visites à enregistrer » counts the overdue ones as « passées »; inactive never read', () => {});
 ```
@@ -3287,28 +4340,76 @@ export const INSPECTION_TAB_MODES: Record<InspectionTab, QueueMode> = {
   all: 'history',
 };
 
-export function inspectionCallout(item: InspectionQueueItem): { title: string; description: string; blockReason: string | null } {
-  if (item.blockReason === 'dossier_closed') return { title: 'Dossier clos — consultation uniquement', description: 'La mission reste consultable. Aucune action de la Cellule Inspection n’est possible.', blockReason: null };
+export function inspectionCallout(item: InspectionQueueItem): {
+  title: string;
+  description: string;
+  blockReason: string | null;
+} {
+  if (item.blockReason === 'dossier_closed')
+    return {
+      title: 'Dossier clos - consultation uniquement',
+      description:
+        'La mission reste consultable. Aucune action de la Cellule Inspection n’est possible.',
+      blockReason: null,
+    };
   switch (item.actionKey) {
     case 'await_payment':
-      return { title: 'Paiement en attente', description: 'La visite peut être planifiée, mais pas enregistrée avant la validation du paiement.', blockReason: 'La visite pourra être enregistrée une fois le paiement validé par Finance.' };
+      return {
+        title: 'Paiement en attente',
+        description:
+          'La visite peut être planifiée, mais pas enregistrée avant la validation du paiement.',
+        blockReason: 'La visite pourra être enregistrée une fois le paiement validé par Finance.',
+      };
     case 'record_visit_held':
-      return { title: 'Visite à enregistrer', description: 'Enregistrez la tenue de la visite une fois celle-ci effectuée.', blockReason: null };
+      return {
+        title: 'Visite à enregistrer',
+        description: 'Enregistrez la tenue de la visite une fois celle-ci effectuée.',
+        blockReason: null,
+      };
     case 'submit_verdict':
-      return { title: "Avis d'inspection à rendre", description: "La visite est tenue. L'avis d'inspection doit être enregistré.", blockReason: null };
+      return {
+        title: "Avis d'inspection à rendre",
+        description: "La visite est tenue. L'avis d'inspection doit être enregistré.",
+        blockReason: null,
+      };
     default:
       return item.bucket === 'closed'
-        ? { title: 'Mission clôturée', description: "L'avis d'inspection est enregistré.", blockReason: null }
+        ? {
+            title: 'Mission clôturée',
+            description: "L'avis d'inspection est enregistré.",
+            blockReason: null,
+          }
         : { title: 'Visite non tenue', description: 'Consultation uniquement.', blockReason: null };
   }
 }
 
-export function inspectionMetrics(items: InspectionQueueItem[], counts: Record<InspectionBucket, number>): CockpitMetric[] {
+export function inspectionMetrics(
+  items: InspectionQueueItem[],
+  counts: Record<InspectionBucket, number>
+): CockpitMetric[] {
   const past = items.filter((i) => i.bucket === 'to_hold' && i.urgency === 'overdue').length;
   return [
-    { key: 'to_hold', label: 'visites à enregistrer', value: counts.to_hold, detail: past > 0 ? `dont ${past} passées` : null, tone: 'info' },
-    { key: 'verdict_due', label: 'avis à rendre', value: counts.verdict_due, detail: null, tone: 'warning' },
-    { key: 'awaiting_payment', label: 'paiement en attente', value: counts.awaiting_payment, detail: null, tone: 'neutral' },
+    {
+      key: 'to_hold',
+      label: 'visites à enregistrer',
+      value: counts.to_hold,
+      detail: past > 0 ? `dont ${past} passées` : null,
+      tone: 'info',
+    },
+    {
+      key: 'verdict_due',
+      label: 'avis à rendre',
+      value: counts.verdict_due,
+      detail: null,
+      tone: 'warning',
+    },
+    {
+      key: 'awaiting_payment',
+      label: 'paiement en attente',
+      value: counts.awaiting_payment,
+      detail: null,
+      tone: 'neutral',
+    },
   ];
 }
 ```
@@ -3316,6 +4417,7 @@ export function inspectionMetrics(items: InspectionQueueItem[], counts: Record<I
 - [ ] **Step 4: Pane and page**
 
 `InspectionPane.tsx` is a `QueueReadingPane`:
+
 - **Header:** reference, organisation, the `formatDateTime(siteVisit.scheduledAt)` and location lines from the old panel, `ClosedDossierBadge`, and the « Agent CI : {assignedAgentName} » line when `roles` includes `SU`.
 - **Callout:** `inspectionCallout`, with `canAct: canAct(owner, roles) && item.assignedToViewer && !!cta`.
 - **`cta`:**
@@ -3326,19 +4428,22 @@ export function inspectionMetrics(items: InspectionQueueItem[], counts: Record<I
 - **Removed:** `blockedReason` (the callout replaces it).
 
 `MyInspectionsPage.tsx` follows the `CourrierTasksPage` structure:
+
 - query `queryKeys.siteInspection.myQueue()` with `fetchMyQueue`; tabs `INSPECTION_TABS`, default `'to_hold'`, `mode = INSPECTION_TAB_MODES[tab]`, `useUrlSelection(visible, !query.isLoading)`;
-- title « Mes inspections » (when `roles` includes `SU`: « Inspections — Cellule Inspection »); metrics `inspectionMetrics`;
+- title « Mes inspections » (when `roles` includes `SU`: « Inspections - Cellule Inspection »); metrics `inspectionMetrics`;
 - `above` = the existing `CalendarStrip` (moved unchanged with `buildSevenDayStrip` and `dayKey`), filtering `visible` by `selectedDay` after `filterQueue`;
 - search haystack `[requestReference, organisationName, siteVisit.location ?? '']`;
 - row: organisation + `formatRowDate(siteVisit.scheduledAt)`, reference + location, badges (`ClosedDossierBadge`, and `AgingBadge` with `urgency` and `dueAt` in `to_hold`), then the callout title.
 
 Remove:
+
 - the table, the status `<select>` and the local `MetricCard`;
 - `STATUS_LABELS`, `STATUS_STYLES`, `PRIORITY_*`, `MissionBadges`, `blockedReason`.
 
 - [ ] **Step 5: Update `closed-dossier-lists.test.tsx`**
 
 The `<MyInspectionsPage>` block:
+
 - sets `roles = ['r3_agent']`;
 - seeds `{ items, counts }`;
 - closed case: an item with `bucket: 'inactive'` and `dossierClosed: true` under `?tab=all` shows the closed badge and no « Enregistrer la tenue »;
@@ -3354,12 +4459,14 @@ Expected: PASS.
 ### Task 11: API dashboard deletions, test migrations, docs, full validation and the commit
 
 **Files:**
+
 - Modify: `apps/api/src/modules/dashboard/dashboard.service.ts`, `dashboard.controller.ts`, `dashboard.route.ts`, `dashboard.types.ts`
 - Modify: `apps/api/src/modules/dn-annotation/dn-annotation.db.test.ts:305-311`, `apps/api/src/modules/meetings/meeting-negotiation.db.test.ts:175-190`
 - Test: `apps/api/src/modules/dashboard/dashboard.routes.test.ts`
 - Docs: `docs/superpowers/specs/2026-10-16-session1-cockpit-1-design.md` (status), `exploration-cache/project/decisions.md` (#20), `exploration-cache/changelog.md`, `exploration-cache/active-session/current-task.md`
 
 **Interfaces:**
+
 - Consumes: everything above.
 - Produces: the single feature commit.
 
@@ -3374,7 +4481,9 @@ import dashboardRoute from './dashboard.route.js';
 
 describe('dashboard routes (SESSION1-COCKPIT-1)', () => {
   it('keeps /summary only; the role summaries are gone', () => {
-    const paths = (dashboardRoute as unknown as { stack: Array<{ route?: { path: string } }> }).stack
+    const paths = (
+      dashboardRoute as unknown as { stack: Array<{ route?: { path: string } }> }
+    ).stack
       .map((layer) => layer.route?.path)
       .filter(Boolean);
     assert.deepEqual(paths, ['/summary']);
@@ -3427,6 +4536,7 @@ Import the site-inspection service as `site` at the top of the file, the same wa
 - [ ] **Step 5: Full validation matrix**
 
 Run and record each result:
+
 1. `npm run build --workspace=packages/shared`
 2. From `apps/api`, with `DATABASE_URL` on the disposable DB: `npx tsx --test --test-concurrency=1 "src/**/*.test.ts"`. Expected: all pass, except the known Windows K8b `spawn npx ENOENT` in the `db:check:certificates` test (report it if present).
 3. `npm run test --workspace=apps/admin`. Expected: all pass.
@@ -3462,24 +4572,24 @@ Do not push.
 
 - **Spec → task map:**
 
-  | Spec | Task |
-  |---|---|
-  | §4 | 1 |
-  | §5.1 | 4, 5 |
-  | §5.2 | 6 |
-  | §5.3 | 7, 8 |
-  | §5.4 | 9, 10 |
-  | §6 | 1, 2, 4, 7, 9 |
-  | §7.1 | 4 |
-  | §7.2 | 6 |
-  | §7.3 (caller audit) | 7 step 1 |
-  | §7.4 | 9 |
-  | §8 | 9 |
-  | §9 | 3 |
-  | §10 | 2 + each page task |
-  | §11 | 3 (admin), 11 (API) |
-  | §12 | 3, 5, 6, 8, 10 |
-  | §13 | query-count tests in 4, 6, 7, 9 |
-  | §14 | every task |
+  | Spec                | Task                            |
+  | ------------------- | ------------------------------- |
+  | §4                  | 1                               |
+  | §5.1                | 4, 5                            |
+  | §5.2                | 6                               |
+  | §5.3                | 7, 8                            |
+  | §5.4                | 9, 10                           |
+  | §6                  | 1, 2, 4, 7, 9                   |
+  | §7.1                | 4                               |
+  | §7.2                | 6                               |
+  | §7.3 (caller audit) | 7 step 1                        |
+  | §7.4                | 9                               |
+  | §8                  | 9                               |
+  | §9                  | 3                               |
+  | §10                 | 2 + each page task              |
+  | §11                 | 3 (admin), 11 (API)             |
+  | §12                 | 3, 5, 6, 8, 10                  |
+  | §13                 | query-count tests in 4, 6, 7, 9 |
+  | §14                 | every task                      |
 
 - **Names reused across tasks:** `OPERATIONAL_OWNERS`, `countBuckets`, `urgencyFromAge`, `visitDayUrgency`, `canRecordSiteVisitHeld`, `loadThresholds`, `calendarDaysSince`, `sortQueue`, `groupQueue`, `filterQueue`, `defaultOrderFor`, `useUrlSelection`, `useQueueTab`, `courrierDefaultTab`, `homeFor`, `queryKeys.courrierTasks.queue()`, `queryKeys.dnCircuit.queue()`, `queryKeys.payments.financeQueue()`, `queryKeys.siteInspection.myQueue()`.

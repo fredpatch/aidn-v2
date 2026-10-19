@@ -5,18 +5,36 @@ import { CockpitPage } from '../../components/cockpit/CockpitPage';
 import { QueueColumn } from '../../components/cockpit/QueueColumn';
 import { CockpitUploadModal } from '../../components/cockpit/CockpitUploadModal';
 import { useAuth } from '../../hooks/useAuth';
-import { confirmCourrierPrinted, fetchCourrierTasks, returnAnnotatedCourrier, type CourrierTask } from '../../lib/api/courrier-tasks';
+import {
+  confirmCourrierPrinted,
+  fetchCourrierTasks,
+  returnAnnotatedCourrier,
+  type CourrierTask,
+} from '../../lib/api/courrier-tasks';
 import { apiErrorMessage } from '../../lib/axios';
 import { queryKeys } from '../../lib/react-query/queryKeys';
 import { isDossierClosedError } from '../../lib/react-query/queryClient';
 import { uploadFile } from '../../lib/uploads';
 import { courrierDefaultTab } from '../../lib/home-for';
-import { defaultOrderFor, filterQueue, groupQueue, sortQueue, type AgeOrder } from '../../lib/cockpit/queue';
+import {
+  defaultOrderFor,
+  filterQueue,
+  groupQueue,
+  sortQueue,
+  type AgeOrder,
+} from '../../lib/cockpit/queue';
 import { useQueueTab } from '../../lib/cockpit/useQueueTab';
 import { useUrlSelection } from '../../lib/cockpit/useUrlSelection';
 import { CourrierReadingPane } from './CourrierReadingPane';
 import { CourrierRow } from './CourriersList';
-import { COURRIER_TAB_MODES, COURRIER_TABS, REQUEST_TYPE_LABELS, SOURCE_LABELS, courrierMetrics, type CourrierTab } from './courrierCopy';
+import {
+  COURRIER_TAB_MODES,
+  COURRIER_TABS,
+  REQUEST_TYPE_LABELS,
+  SOURCE_LABELS,
+  courrierMetrics,
+  type CourrierTab,
+} from './courrierCopy';
 
 const EMPTY_COUNTS = { to_print: 0, with_dg: 0, returned: 0, inactive: 0 };
 
@@ -28,12 +46,18 @@ export default function CourrierTasksPage() {
   const { user } = useAuth();
   const roles = user?.roles ?? [];
   const queryClient = useQueryClient();
-  const query = useQuery({ queryKey: queryKeys.courrierTasks.queue(), queryFn: () => fetchCourrierTasks() });
+  const query = useQuery({
+    queryKey: queryKeys.courrierTasks.queue(),
+    queryFn: () => fetchCourrierTasks(),
+  });
   const items = useMemo(() => query.data?.items ?? [], [query.data]);
   const counts = query.data?.counts ?? EMPTY_COUNTS;
   const thresholds = query.data?.thresholds ?? { dgAlertWorkingDays: 3, depositDays: 1 };
 
-  const [tab, setTab] = useQueueTab<CourrierTab>(COURRIER_TABS.map((t) => t.key), courrierDefaultTab(roles));
+  const [tab, setTab] = useQueueTab<CourrierTab>(
+    COURRIER_TABS.map((t) => t.key),
+    courrierDefaultTab(roles)
+  );
   const mode = COURRIER_TAB_MODES[tab];
   const [order, setOrder] = useState<AgeOrder | null>(null);
   const effectiveOrder = order ?? defaultOrderFor(mode);
@@ -42,7 +66,13 @@ export default function CourrierTasksPage() {
     () =>
       sortQueue(
         filterQueue(items, tab, search, (item) =>
-          [item.requestReference, item.organisationName, item.applicantName, SOURCE_LABELS[item.source], REQUEST_TYPE_LABELS[item.requestType]].join(' ')
+          [
+            item.requestReference,
+            item.organisationName,
+            item.applicantName,
+            SOURCE_LABELS[item.source],
+            REQUEST_TYPE_LABELS[item.requestType],
+          ].join(' ')
         ),
         mode,
         effectiveOrder
@@ -63,7 +93,12 @@ export default function CourrierTasksPage() {
 
   const reload = () => queryClient.invalidateQueries({ queryKey: queryKeys.courrierTasks.queue() });
 
-  async function run(task: CourrierTask, action: () => Promise<void>, fallback: string, close: () => void) {
+  async function run(
+    task: CourrierTask,
+    action: () => Promise<void>,
+    fallback: string,
+    close: () => void
+  ) {
     setActionError(null);
     setBusyId(task.id);
     try {
@@ -84,13 +119,25 @@ export default function CourrierTasksPage() {
   const viewerTask = printTask ?? previewTask;
   return (
     <CockpitPage
-      title="Courriers — circuit DG"
+      title="Courriers - circuit DG"
       metrics={courrierMetrics(items, counts)}
-      search={{ value: search, onChange: setSearch, placeholder: 'Référence, organisation, postulant, type...', label: 'Rechercher un courrier' }}
-      errors={[query.error ? apiErrorMessage(query.error, 'Impossible de charger les courriers.') : null, actionError]}
+      search={{
+        value: search,
+        onChange: setSearch,
+        placeholder: 'Référence, organisation, postulant, type...',
+        label: 'Rechercher un courrier',
+      }}
+      errors={[
+        query.error ? apiErrorMessage(query.error, 'Impossible de charger les courriers.') : null,
+        actionError,
+      ]}
       list={
         <QueueColumn
-          tabs={COURRIER_TABS.map((t) => ({ key: t.key, label: t.label, count: t.key === 'all' ? items.length : counts[t.key] }))}
+          tabs={COURRIER_TABS.map((t) => ({
+            key: t.key,
+            label: t.label,
+            count: t.key === 'all' ? items.length : counts[t.key],
+          }))}
           tab={tab}
           onTabChange={(next) => {
             setTab(next);
@@ -102,7 +149,13 @@ export default function CourrierTasksPage() {
           groups={groups}
           selectedId={selected?.id ?? null}
           status={query.isLoading ? 'loading' : query.error ? 'error' : 'ready'}
-          texts={{ loading: 'Chargement des courriers', error: 'Impossible de charger les courriers.', empty: 'Aucun courrier dans cette vue', listLabel: 'Courriers', noun: ['courrier', 'courriers'] }}
+          texts={{
+            loading: 'Chargement des courriers',
+            error: 'Impossible de charger les courriers.',
+            empty: 'Aucun courrier dans cette vue',
+            listLabel: 'Courriers',
+            noun: ['courrier', 'courriers'],
+          }}
           onSelect={(task) => {
             setActionError(null);
             select(task);
@@ -133,16 +186,39 @@ export default function CourrierTasksPage() {
       }
     >
       <DocumentViewer
-        file={viewerTask?.fileUrl ? { title: `${SOURCE_LABELS[viewerTask.source] ?? viewerTask.source} ${viewerTask.requestReference}`, url: viewerTask.fileUrl } : null}
+        file={
+          viewerTask?.fileUrl
+            ? {
+                title: `${SOURCE_LABELS[viewerTask.source] ?? viewerTask.source} ${viewerTask.requestReference}`,
+                url: viewerTask.fileUrl,
+              }
+            : null
+        }
         onClose={() => {
           setPrintTask(null);
           setPreviewTask(null);
         }}
-        primaryActionLabel={printTask ? (busyId === printTask.id ? 'Confirmation...' : 'Impression OK - mettre en circuit DG') : undefined}
+        primaryActionLabel={
+          printTask
+            ? busyId === printTask.id
+              ? 'Confirmation...'
+              : 'Impression OK - mettre en circuit DG'
+            : undefined
+        }
         primaryActionDisabled={!printTask || busyId !== null}
-        actionHint={printTask ? 'Imprimez le document, vérifiez le contenu, puis confirmez sa mise en circuit DG.' : 'Prévisualisation intégrée du document courant.'}
+        actionHint={
+          printTask
+            ? 'Imprimez le document, vérifiez le contenu, puis confirmez sa mise en circuit DG.'
+            : 'Prévisualisation intégrée du document courant.'
+        }
         onPrimaryAction={() =>
-          printTask && run(printTask, () => confirmCourrierPrinted(printTask.id), 'Confirmation impossible.', () => setPrintTask(null))
+          printTask &&
+          run(
+            printTask,
+            () => confirmCourrierPrinted(printTask.id),
+            'Confirmation impossible.',
+            () => setPrintTask(null)
+          )
         }
       />
       {returnTask ? (
@@ -164,7 +240,11 @@ export default function CourrierTasksPage() {
             returnFile &&
             run(
               returnTask,
-              async () => returnAnnotatedCourrier(returnTask.id, (await uploadFile(returnFile)).uploadAssetId),
+              async () =>
+                returnAnnotatedCourrier(
+                  returnTask.id,
+                  (await uploadFile(returnFile)).uploadAssetId
+                ),
               'Enregistrement du retour annoté impossible.',
               () => {
                 setReturnTask(null);

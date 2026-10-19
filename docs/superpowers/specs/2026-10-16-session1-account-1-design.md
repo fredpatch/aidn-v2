@@ -1,4 +1,4 @@
-# SESSION1-ACCOUNT-1 — Modifier les informations d'un compte postulant
+# SESSION1-ACCOUNT-1 - Modifier les informations d'un compte postulant
 
 Status: implemented. Base: `2277c6f` (after BUG-PORTAL-INTAKE-1).
 
@@ -15,14 +15,14 @@ Status: implemented. Base: `2277c6f` (after BUG-PORTAL-INTAKE-1).
 
 ## 2. Field and rule matrix
 
-| Field | Editable | Normalisation | Validation (backend authoritative) | Error |
-|---|---|---|---|---|
-| fullName | yes | `trim()` | non-empty, ≤ 200 | `APPLICANT_NAME_REQUIRED` 400 / `APPLICANT_NAME_TOO_LONG` 400 |
-| email | yes | `trim().toLowerCase()` (shared `normalizeEmail`) | non-empty, shared `isValidEmail` regex, ≤ 255; unique among **other** applicants compared on `lower(email)`; `users` never queried | `INVALID_APPLICANT_EMAIL` 400 / `APPLICANT_EMAIL_EXISTS` 409 |
-| phone | yes | `trim() \|\| null`; `null` or `''` clears | string or null, ≤ 50 | `INVALID_APPLICANT_PHONE` 400 « Téléphone invalide. » (wrong JSON type) / `APPLICANT_PHONE_TOO_LONG` 400 « Le téléphone ne doit pas dépasser 50 caractères. » |
-| contactOrder | yes | none | exactly `primary` / `secondary` / `tertiary` | `INVALID_CONTACT_ORDER` 400 |
-| organisationId, password/passwordHash, active, organisation fields | no | — | ignored if sent (whitelist) | — |
-| applicant | — | — | must exist (`:id` not a positive integer within int4, i.e. ≤ 2147483647 → not found) | `APPLICANT_NOT_FOUND` 404 |
+| Field                                                              | Editable | Normalisation                                    | Validation (backend authoritative)                                                                                                 | Error                                                                                                                                                         |
+| ------------------------------------------------------------------ | -------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| fullName                                                           | yes      | `trim()`                                         | non-empty, ≤ 200                                                                                                                   | `APPLICANT_NAME_REQUIRED` 400 / `APPLICANT_NAME_TOO_LONG` 400                                                                                                 |
+| email                                                              | yes      | `trim().toLowerCase()` (shared `normalizeEmail`) | non-empty, shared `isValidEmail` regex, ≤ 255; unique among **other** applicants compared on `lower(email)`; `users` never queried | `INVALID_APPLICANT_EMAIL` 400 / `APPLICANT_EMAIL_EXISTS` 409                                                                                                  |
+| phone                                                              | yes      | `trim() \|\| null`; `null` or `''` clears        | string or null, ≤ 50                                                                                                               | `INVALID_APPLICANT_PHONE` 400 « Téléphone invalide. » (wrong JSON type) / `APPLICANT_PHONE_TOO_LONG` 400 « Le téléphone ne doit pas dépasser 50 caractères. » |
+| contactOrder                                                       | yes      | none                                             | exactly `primary` / `secondary` / `tertiary`                                                                                       | `INVALID_CONTACT_ORDER` 400                                                                                                                                   |
+| organisationId, password/passwordHash, active, organisation fields | no       | -                                                | ignored if sent (whitelist)                                                                                                        | -                                                                                                                                                             |
+| applicant                                                          | -        | -                                                | must exist (`:id` not a positive integer within int4, i.e. ≤ 2147483647 → not found)                                               | `APPLICANT_NOT_FOUND` 404                                                                                                                                     |
 
 PATCH semantics: each of the four fields is optional; absent means unchanged. A body with none of them, or with values equal to the stored ones after normalisation, is a no-op.
 
@@ -30,7 +30,7 @@ Contact order is descriptive only; nothing reads it for permissions.
 
 ## 3. API contract
 
-`PATCH /api/account-requests/applicants/:id` — same guard as the other M13 management routes (`dn_agent`, `dn_supervisor`, `SU`; 401 unauthenticated, 403 other roles).
+`PATCH /api/account-requests/applicants/:id` - same guard as the other M13 management routes (`dn_agent`, `dn_supervisor`, `SU`; 401 unauthenticated, 403 other roles).
 
 Body: `{ fullName?: string; email?: string; phone?: string | null; contactOrder?: 'primary'|'secondary'|'tertiary' }`. A present field of the wrong JSON type is a validation error of that field.
 
@@ -39,13 +39,14 @@ Response 200: the updated `ApplicantAccountView` (same shape as the list rows). 
 ## 4. Service and atomicity
 
 `updateApplicantAccount(id, input, actorUserId)` in one `db.transaction`:
+
 1. `SELECT … FOR UPDATE` the applicant (missing → `APPLICANT_NOT_FOUND`);
 2. normalise and validate the present fields;
 3. compute actually changed fields (compare normalised values with the row);
 4. no change → return the current view, **no audit row** (harmless idempotent success);
 5. email changed → `lower(email) = $new AND id <> $id` in `applicants` → `APPLICANT_EMAIL_EXISTS`; a unique violation at UPDATE (race) maps to the same error;
 6. `UPDATE applicants SET <changed fields only>`;
-7. `logAudit({ userId: actor, action: 'APPLICANT_ACCOUNT_UPDATED', module: 'M13', entityId: id, details: { changedFields, changes: { field: { from, to } } } }, tx)` — never password data.
+7. `logAudit({ userId: actor, action: 'APPLICANT_ACCOUNT_UPDATED', module: 'M13', entityId: id, details: { changedFields, changes: { field: { from, to } } } }, tx)` - never password data.
 
 Any failure rolls back both the update and the audit.
 
@@ -63,4 +64,4 @@ Service/DB (test DB): the 19 cases of the brief. HTTP: DN agent, DN supervisor, 
 
 ## 8. Out of scope / residual
 
-Organisation reassignment; password reset; token revocation; login input normalisation (`applicant-auth.service.login` compares the raw input, so a mixed-case login fails — pre-existing, all stored emails are lower-case); no migration.
+Organisation reassignment; password reset; token revocation; login input normalisation (`applicant-auth.service.login` compares the raw input, so a mixed-case login fails - pre-existing, all stored emails are lower-case); no migration.

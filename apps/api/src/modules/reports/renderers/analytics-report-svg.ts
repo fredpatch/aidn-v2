@@ -16,7 +16,8 @@ const AVERAGE = '#1d4ed8';
 const MEDIAN = '#15803d';
 const OVER_TARGET = '#b91c1c';
 
-const isNumber = (value: number | null | undefined): value is number => typeof value === 'number' && Number.isFinite(value);
+const isNumber = (value: number | null | undefined): value is number =>
+  typeof value === 'number' && Number.isFinite(value);
 
 /** A safe SVG coordinate / length. */
 function coord(value: number): string {
@@ -28,7 +29,9 @@ export function niceAxisMax(max: number, ticks = 4): number {
   if (!Number.isFinite(max) || max <= 0) return ticks;
   const rawStep = max / ticks;
   const magnitude = 10 ** Math.floor(Math.log10(rawStep));
-  const step = [1, 2, 5, 10].map((factor) => factor * magnitude).find((candidate) => candidate >= rawStep) ?? rawStep;
+  const step =
+    [1, 2, 5, 10].map((factor) => factor * magnitude).find((candidate) => candidate >= rawStep) ??
+    rawStep;
   return step * ticks;
 }
 
@@ -41,8 +44,20 @@ function formatAxisDate(isoDate: string): string {
  *  no point has a value. */
 export function renderTrendSvg(points: readonly AnalyticsTrendPoint[]): string | null {
   const series = [
-    { label: 'Délai moyen', color: AVERAGE, dash: '', marker: 'circle' as const, values: points.map((p) => p.averageDurationDays) },
-    { label: 'Médiane', color: MEDIAN, dash: '6 4', marker: 'square' as const, values: points.map((p) => p.medianDurationDays) },
+    {
+      label: 'Délai moyen',
+      color: AVERAGE,
+      dash: '',
+      marker: 'circle' as const,
+      values: points.map((p) => p.averageDurationDays),
+    },
+    {
+      label: 'Médiane',
+      color: MEDIAN,
+      dash: '6 4',
+      marker: 'square' as const,
+      values: points.map((p) => p.medianDurationDays),
+    },
   ];
   const finite = series.flatMap((s) => s.values.filter(isNumber));
   if (!points.length || !finite.length) return null;
@@ -56,7 +71,8 @@ export function renderTrendSvg(points: readonly AnalyticsTrendPoint[]): string |
   const plotWidth = width - left - right;
   const plotHeight = height - top - bottom;
   const axisMax = niceAxisMax(Math.max(...finite));
-  const x = (index: number) => (points.length === 1 ? left + plotWidth / 2 : left + (index * plotWidth) / (points.length - 1));
+  const x = (index: number) =>
+    points.length === 1 ? left + plotWidth / 2 : left + (index * plotWidth) / (points.length - 1);
   const y = (value: number) => top + plotHeight - (value / axisMax) * plotHeight;
 
   const grid = [0, 1, 2, 3, 4]
@@ -139,25 +155,33 @@ export function renderPhaseDurationSvg(phases: readonly AnalyticsPhaseStat[]): s
   const barHeight = 13;
   const height = top + phases.length * rowHeight + 6;
   const barArea = width - labelWidth - valueWidth;
-  const largest = Math.max(...phases.flatMap((phase) => [phase.slaTargetDays, phase.averageClosedDurationDays ?? 0]).filter(isNumber));
+  const largest = Math.max(
+    ...phases
+      .flatMap((phase) => [phase.slaTargetDays, phase.averageClosedDurationDays ?? 0])
+      .filter(isNumber)
+  );
   const axisMax = niceAxisMax(largest);
   const length = (days: number) => Math.max(0, (days / axisMax) * barArea);
 
   const rows = phases
     .map((phase, index) => {
       const rowTop = top + index * rowHeight;
-      const average = isNumber(phase.averageClosedDurationDays) ? phase.averageClosedDurationDays : null;
+      const average = isNumber(phase.averageClosedDurationDays)
+        ? phase.averageClosedDurationDays
+        : null;
       const target = isNumber(phase.slaTargetDays) ? phase.slaTargetDays : 0;
       const over = average !== null && average > target;
       const averageLength = average === null ? 0 : length(average);
       const targetLength = length(target);
       const averageText =
-        average === null ? 'Aucune phase clôturée' : `${formatCalendarDuration(average)} — moyenne${over ? ' (au-dessus de la cible)' : ''}`;
+        average === null
+          ? 'Aucune phase clôturée'
+          : `${formatCalendarDuration(average)} - moyenne${over ? ' (au-dessus de la cible)' : ''}`;
       return `<text x="0" y="${coord(rowTop + 17)}" font-size="10" font-weight="bold" fill="${INK}">${escapeHtml(phase.label)}</text>
 <rect x="${coord(labelWidth)}" y="${coord(rowTop + 6)}" width="${coord(averageLength)}" height="${barHeight}" fill="${over ? OVER_TARGET : AVERAGE}" />
 <text x="${coord(labelWidth + averageLength + 6)}" y="${coord(rowTop + 16)}" font-size="9" fill="${INK}">${escapeHtml(averageText)}</text>
 <rect x="${coord(labelWidth)}" y="${coord(rowTop + 6 + barHeight + 3)}" width="${coord(targetLength)}" height="${barHeight}" fill="url(#sla-hatch)" stroke="${INK}" stroke-width="0.8" />
-<text x="${coord(labelWidth + targetLength + 6)}" y="${coord(rowTop + 6 + barHeight + 13)}" font-size="9" fill="${MUTED}">${escapeHtml(`${target} j — cible SLA`)}</text>`;
+<text x="${coord(labelWidth + targetLength + 6)}" y="${coord(rowTop + 6 + barHeight + 13)}" font-size="9" fill="${MUTED}">${escapeHtml(`${target} j - cible SLA`)}</text>`;
     })
     .join('\n');
 

@@ -7,9 +7,9 @@ const MINUTES_PER_DAY = 24 * 60;
 /** A duration in calendar days (24 h each) for humans: from one day on, days
  *  and hours (rounded to the hour); below, hours and minutes (rounded to the
  *  minute); never seconds. 0.1 -> « 2 h 24 min », 4.8 -> « 4 j 19 h »;
- *  null (or a non-finite value) -> « — ». */
+ *  null (or a non-finite value) -> « - ». */
 export function formatCalendarDuration(days: number | null | undefined): string {
-  if (days === null || days === undefined || !Number.isFinite(days)) return '—';
+  if (days === null || days === undefined || !Number.isFinite(days)) return '-';
   const minutes = Math.round(days * MINUTES_PER_DAY);
   if (minutes >= MINUTES_PER_DAY) {
     const hours = Math.round(days * 24);
@@ -35,7 +35,8 @@ export const ANALYTICS_GLOSSARY: readonly AnalyticsGlossaryEntry[] = [
   {
     term: 'KPI',
     meaning: 'Indicateur clé de performance',
-    definition: 'Mesure utilisée pour suivre l’activité, les délais ou la performance du processus.',
+    definition:
+      'Mesure utilisée pour suivre l’activité, les délais ou la performance du processus.',
   },
   {
     term: 'SLA',

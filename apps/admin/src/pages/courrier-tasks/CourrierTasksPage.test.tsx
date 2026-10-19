@@ -17,20 +17,38 @@ vi.mock('../../hooks/useAuth', () => ({ useAuth: () => ({ user: { roles } }) }))
 const thresholds = { dgAlertWorkingDays: 3, depositDays: 1 };
 const task = (n: number, over: Partial<CourrierTask> = {}): CourrierTask =>
   courrier({
-    id: `formal_request_letter:${n}`, requestId: n, requestReference: `DEM-C2-0${n}`, organisationName: `OMA ${n}`,
-    circuitDocumentId: n, fileUrl: `/api/files/lettre-${n}.pdf`, stepSince: `2026-10-0${n}T09:00:00.000Z`,
-    depositedAt: `2026-10-0${n}T09:00:00.000Z`, ...over,
+    id: `formal_request_letter:${n}`,
+    requestId: n,
+    requestReference: `DEM-C2-0${n}`,
+    organisationName: `OMA ${n}`,
+    circuitDocumentId: n,
+    fileUrl: `/api/files/lettre-${n}.pdf`,
+    stepSince: `2026-10-0${n}T09:00:00.000Z`,
+    depositedAt: `2026-10-0${n}T09:00:00.000Z`,
+    ...over,
   });
 const withDg = (n: number, over: Partial<CourrierTask> = {}) =>
   task(n, {
-    bucket: 'with_dg', actionKey: 'record_dg_annotation', circuitStep: 'with_dg', circuitStatus: 'in_signature_circuit',
-    signatureSentAt: '2026-10-04T09:00:00.000Z', availableActions: ['upload_signed_return'], owner: OPERATIONAL_OWNERS.assistantDg,
-    signatureWorkingDays: 1, ...over,
+    bucket: 'with_dg',
+    actionKey: 'record_dg_annotation',
+    circuitStep: 'with_dg',
+    circuitStatus: 'in_signature_circuit',
+    signatureSentAt: '2026-10-04T09:00:00.000Z',
+    availableActions: ['upload_signed_return'],
+    owner: OPERATIONAL_OWNERS.assistantDg,
+    signatureWorkingDays: 1,
+    ...over,
   });
 const inactive = (n: number) =>
   task(n, {
-    bucket: 'inactive', state: 'done', owner: null, actionKey: 'none', blockReason: 'dossier_closed', dossierClosed: true,
-    dossierStatus: 'rejected', availableActions: [],
+    bucket: 'inactive',
+    state: 'done',
+    owner: null,
+    actionKey: 'none',
+    blockReason: 'dossier_closed',
+    dossierClosed: true,
+    dossierStatus: 'rejected',
+    availableActions: [],
   });
 
 const ITEMS: CourrierTask[] = [task(1), task(2), withDg(3), inactive(4)];
@@ -75,7 +93,9 @@ describe('<CourrierTasksPage> cockpit', () => {
     roles = ['dn_agent'];
     renderPage();
     const article = await screen.findByRole('article', { name: /Détail du courrier/ });
-    expect(within(article).queryByRole('button', { name: /Ouvrir \/ imprimer/ })).not.toBeInTheDocument();
+    expect(
+      within(article).queryByRole('button', { name: /Ouvrir \/ imprimer/ })
+    ).not.toBeInTheDocument();
     expect(within(article).getByRole('button', { name: /Voir le document/ })).toBeInTheDocument();
     expect(within(article).getByRole('link', { name: /Voir le dossier/ })).toBeInTheDocument();
   });
@@ -89,8 +109,10 @@ describe('<CourrierTasksPage> cockpit', () => {
     expect(await screen.findAllByRole('option')).toHaveLength(4);
     const last = screen.getByRole('article', { name: /DEM-C2-04/ });
     expect(within(last).getAllByText('Dossier rejeté').length).toBeGreaterThan(0);
-    expect(within(last).queryByRole('button', { name: /Ouvrir \/ imprimer/ })).not.toBeInTheDocument();
-    expect(within(last).getByText('Dossier clos — consultation uniquement')).toBeInTheDocument();
+    expect(
+      within(last).queryByRole('button', { name: /Ouvrir \/ imprimer/ })
+    ).not.toBeInTheDocument();
+    expect(within(last).getByText('Dossier clos - consultation uniquement')).toBeInTheDocument();
   });
 
   it('Entrée on a row focuses the action button, never prints', async () => {
@@ -111,11 +133,18 @@ describe('<CourrierTasksPage> cockpit', () => {
 
   it('DOSSIER_CLOSED during « Impression OK »: the list reloads and the API message is shown', async () => {
     const get = vi.spyOn(api, 'get');
-    get.mockResolvedValueOnce(seed([task(1)], { to_print: 1, with_dg: 0, returned: 0, inactive: 0 }));
-    get.mockResolvedValue(seed([inactive(1)], { to_print: 0, with_dg: 0, returned: 0, inactive: 1 }));
+    get.mockResolvedValueOnce(
+      seed([task(1)], { to_print: 1, with_dg: 0, returned: 0, inactive: 0 })
+    );
+    get.mockResolvedValue(
+      seed([inactive(1)], { to_print: 0, with_dg: 0, returned: 0, inactive: 1 })
+    );
     vi.spyOn(api, 'post').mockRejectedValue(
       new AxiosError('Conflict', 'ERR_BAD_REQUEST', undefined, undefined, {
-        status: 409, statusText: 'Conflict', headers: {}, config: { headers: new AxiosHeaders() },
+        status: 409,
+        statusText: 'Conflict',
+        headers: {},
+        config: { headers: new AxiosHeaders() },
         data: { code: 'DOSSIER_CLOSED', message: 'Le dossier est clos.' },
       })
     );
@@ -124,6 +153,8 @@ describe('<CourrierTasksPage> cockpit', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Impression OK/ }));
     expect(await screen.findByText('Le dossier est clos.')).toBeInTheDocument();
     await waitFor(() => expect(get).toHaveBeenCalledTimes(2));
-    await waitFor(() => expect(screen.queryByRole('button', { name: /Impression OK/ })).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: /Impression OK/ })).not.toBeInTheDocument()
+    );
   });
 });
