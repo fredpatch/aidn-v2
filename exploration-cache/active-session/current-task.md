@@ -2,6 +2,8 @@
 
 **Session date**: 2026-10-08
 
+> **2026-10-19 ROLE-ANALYTICS-1D (implemented, validated; single commit):** finance role analytics provider (validations from the payment row, invoice / proof / rejection audit events with the `legacy_db_timezone` caveat, latest-proof validation delay, Finance queue current state); inspection still 501 (1E). See decisions #25. No migration, no UI.
+>
 > **2026-10-19 ROLE-ANALYTICS-1C (implemented, validated; single commit):** courrier and dn_circuit role analytics providers (history by circuit timestamp + audit actor, service durations, current queue state, recent activity); finance / inspection still 501 (1D / 1E). See decisions #24. No migration, no UI.
 >
 > **2026-10-16 ROLE-ANALYTICS-1B (implemented, validated; single commit):** DB sessions pinned to UTC, Libreville analytics periods, audit-event catalogue, `/analytics/overview` SLA targets from parameters + B1, role analytics contract and `/api/analytics/roles/:domain` (no provider yet). Next: 1C providers (courrier, DN circuit). Check `SHOW TimeZone` on staging (gotchas #27).

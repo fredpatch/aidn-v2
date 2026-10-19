@@ -9,7 +9,8 @@ import type {
   RoleAnalyticsPeriod,
   RoleAnalyticsWarning,
 } from '@aidn/shared';
-import { countCircuitEvents, previousRange, type CircuitEventSpec, type DurationSample, type TimeRange } from './circuit-events.js';
+import { countCircuitEvents, type CircuitEventSpec } from './circuit-events.js';
+import { previousRange, type DurationSample, type TimeRange } from './sql.js';
 
 /** Recent activity cap (newest first, within the period; no pagination). */
 export const RECENT_ACTIVITY_LIMIT = 10;
@@ -19,27 +20,47 @@ export function rangeOf(period: RoleAnalyticsPeriod): TimeRange {
 }
 
 /** Event count in the period and in the same-length period before it. */
-export async function eventCountMetric(
+export function eventCountMetric(
   key: string,
   spec: CircuitEventSpec,
   range: TimeRange,
   actorId: number | null
 ): Promise<RoleAnalyticsMetric> {
-  const [value, previousValue] = await Promise.all([
-    countCircuitEvents(spec, range, actorId),
-    countCircuitEvents(spec, previousRange(range), actorId),
-  ]);
-  return { key, value, unit: 'count', basis: 'period', reliability: 'reliable', previousValue };
+  return periodCountMetric(key, (r) => countCircuitEvents(spec, r, actorId), range);
 }
 
-export function durationMetric(key: string, sample: DurationSample): RoleAnalyticsMetric {
+/** Events timed by audit_logs.created_at: rows written before the UTC session
+ *  pin (ROLE-ANALYTICS-1B) on a non-UTC server may be offset by whole hours
+ *  (gotchas #27). Targeted caveat for audit-timed metrics only; app-written
+ *  row timestamps stay reliable. Drop it once production history is checked. */
+export const AUDIT_TIME_CAVEAT = 'legacy_db_timezone';
+
+/** A count in the period and in the same-length period before it. */
+export async function periodCountMetric(
+  key: string,
+  count: (range: TimeRange) => Promise<number>,
+  range: TimeRange,
+  caveatKey?: string
+): Promise<RoleAnalyticsMetric> {
+  const [value, previousValue] = await Promise.all([count(range), count(previousRange(range))]);
+  return {
+    key,
+    value,
+    unit: 'count',
+    basis: 'period',
+    ...(caveatKey ? { reliability: 'caveat' as const, caveatKey } : { reliability: 'reliable' as const }),
+    previousValue,
+  };
+}
+
+export function durationMetric(key: string, sample: DurationSample, caveatKey?: string): RoleAnalyticsMetric {
   return {
     key,
     value: sample.value,
     unit: 'calendar_days',
     basis: 'period',
     sampleSize: sample.sampleSize,
-    reliability: 'reliable',
+    ...(caveatKey ? { reliability: 'caveat' as const, caveatKey } : { reliability: 'reliable' as const }),
   };
 }
 

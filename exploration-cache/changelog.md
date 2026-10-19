@@ -3,6 +3,18 @@
 Commit-level history. Covers `be9fce9` through the 2026-10-09 D3c admin
 unread/activity batch.
 
+## 2026-10-19 ROLE-ANALYTICS-1D: Finance analytics provider
+
+- `GET /api/analytics/roles/finance` now answers 200 (`providers/finance.provider.ts`, `finance-events.ts`);
+  inspection still 501.
+- History: `finance.payment_validated` + `finance.m5/m6/m7_validated` (payment row, `validatedBy`, reliable);
+  `finance.invoice_uploaded`, `finance.payment_rejected` and (service only) `finance.proof_received` as audit events
+  (every re-upload / rejection), caveat `legacy_db_timezone`; `finance.average_validation_delay` (service only,
+  caveat `latest_proof_only`); recent activity (applicant proof uploads in service only).
+- Current state (service only) from the Finance queue: `finance.proof_to_validate`, `finance.proof_overdue` (+ danger
+  warning), `finance.invoice_to_send`, `finance.proof_to_validate_oldest` (info).
+- Shared SQL helpers moved to `providers/sql.ts`. No migration, no UI. See decisions #25.
+
 ## 2026-10-19 ROLE-ANALYTICS-1C: Courrier and Assistante DN analytics providers
 
 - `GET /api/analytics/roles/courrier` and `/roles/dn_circuit` now answer 200 (providers in

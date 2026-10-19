@@ -1,7 +1,7 @@
 /** ROLE-ANALYTICS-1B / 1C - GET /api/analytics/roles/:domain and /overview
  *  over real HTTP (the router behind cookie-parser, as in server.ts). Access
- *  (400 / 403 / 401) and the unimplemented domains (finance, inspection: 501)
- *  need no database; the 1C providers (courrier, dn_circuit) and /overview
+ *  (400 / 403 / 401) and the unimplemented domain (inspection: 501) need no
+ *  database; the 1C-1D providers (courrier, dn_circuit, finance) and /overview
  *  answer 200 against one (those checks are skipped without DATABASE_URL). */
 import { after, before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
@@ -24,7 +24,7 @@ const ALLOWED: Record<RoleAnalyticsDomain, Record<RoleAnalyticsScope, string[]>>
   finance: { mine: ['s5_agent', 'SU'], service: ['s5_agent', 'SU'] },
   inspection: { mine: ['r3_agent', 'SU'], service: ['SU'] },
 };
-const IMPLEMENTED: readonly string[] = ['courrier', 'dn_circuit'];
+const IMPLEMENTED: readonly string[] = ['courrier', 'dn_circuit', 'finance'];
 const HAS_DB = Boolean(process.env.DATABASE_URL);
 const ROLES = ['reception', 'assistant_dg', 'assistant_dn', 'dn_agent', 'dn_supervisor', 'r3_agent', 's5_agent', 'SU'];
 
@@ -67,7 +67,7 @@ describe('analytics routes (HTTP)', () => {
 
   const roleUrl = (domain: string, scope: string, extra = '&period=this_month') => `/roles/${domain}?scope=${scope}${extra}`;
 
-  it('the frozen matrix: allowed roles reach the provider (200 for the 1C domains, 501 otherwise), others get 403', async () => {
+  it('the frozen matrix: allowed roles reach the provider (200 for the 1C-1D domains, 501 otherwise), others get 403', async () => {
     for (const domain of ROLE_ANALYTICS_DOMAINS) {
       for (const scope of ROLE_ANALYTICS_SCOPES) {
         for (const role of ROLES) {
@@ -104,7 +104,7 @@ describe('analytics routes (HTTP)', () => {
   it('multi-role users get every domain one of their roles grants', async () => {
     const roles = ['reception', 's5_agent'];
     if (HAS_DB) assert.equal((await get(roleUrl('courrier', 'mine'), roles)).status, 200);
-    assert.equal((await get(roleUrl('finance', 'service'), roles)).status, 501);
+    if (HAS_DB) assert.equal((await get(roleUrl('finance', 'service'), roles)).status, 200);
     assert.equal((await get(roleUrl('dn_circuit', 'mine'), roles)).status, 403);
     assert.equal((await get(roleUrl('inspection', 'service'), ['r3_agent', 'dn_agent'])).status, 403);
   });
@@ -121,12 +121,12 @@ describe('analytics routes (HTTP)', () => {
 
   it('an invalid period is 400 INVALID_ANALYTICS_PERIOD for an authorized caller, 403 otherwise', async () => {
     for (const extra of ['', '&period=yesterday', '&period=custom', '&period=custom&from=2026-10-05&to=2026-10-01', '&period=custom&from=2025-01-01&to=2026-12-31']) {
-      const { status, body } = await get(roleUrl('finance', 'mine', extra), ['s5_agent']);
+      const { status, body } = await get(roleUrl('inspection', 'mine', extra), ['r3_agent']);
       assert.equal(status, 400, extra);
       assert.equal(body.code, 'INVALID_ANALYTICS_PERIOD');
     }
-    assert.equal((await get(roleUrl('finance', 'mine', '&period=yesterday'), ['dn_agent'])).status, 403);
-    assert.equal((await get(roleUrl('finance', 'mine', '&period=custom&from=2026-10-01&to=2026-10-31'), ['s5_agent'])).status, 501);
+    assert.equal((await get(roleUrl('inspection', 'mine', '&period=yesterday'), ['dn_agent'])).status, 403);
+    assert.equal((await get(roleUrl('inspection', 'mine', '&period=custom&from=2026-10-01&to=2026-10-31'), ['r3_agent'])).status, 501);
   });
 
   it('unauthenticated calls are 401', async () => {

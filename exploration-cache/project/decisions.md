@@ -336,3 +336,20 @@ Spec: `docs/superpowers/specs/2026-10-16-role-analytics-1b-design.md`.
   dossiers (B1) are not recomputed. History keeps now-closed dossiers.
 - `previousValue` on event counts only: the same-length range just before (Libreville days; a month preset compares
   with the same number of days, not the previous calendar month).
+
+## 25. Finance role analytics (ROLE-ANALYTICS-1D, 2026-10-19)
+
+- Validation = the payment row: `validated_at` / `validated_by` are written once under the row lock and never
+  rewritten (a validated payment takes no new invoice or proof), so time and actor are authoritative; the
+  PAYMENT_VALIDATED audit row is not read (no double event).
+- Invoice upload, proof upload, rejection = audit events: the row keeps only the latest invoice / proof timestamp and
+  the latest rejection, so each audit row is one event (re-uploads and repeated rejections count), timed by
+  `created_at`, joined to payments / phases (M5-M7 only).
+- Targeted time caveat: audit-timed metrics carry `reliability: caveat`, `caveatKey: legacy_db_timezone` until
+  production history is checked (gotchas #27); metrics on app-written row timestamps stay reliable.
+- Proof uploads are applicant actions (the audit row has no actor): `finance.proof_received` and their activity rows
+  (`actor: { kind: 'applicant' }`, no identity) are service only, never a staff member's `mine`.
+- `finance.average_validation_delay`: latest proof -> validation, validation in the period, service only, caveat
+  `latest_proof_only` (earlier proofs of a rejection cycle left no timestamp).
+- Deferred: rejection delay (a rejection cannot be tied to the proof it refused once a new proof overwrote the
+  timestamp), applicant proof deadline (no parameter), index on `payments.validated_at` (small table; no migration).
