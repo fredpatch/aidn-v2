@@ -3,6 +3,19 @@
 Commit-level history. Covers `be9fce9` through the 2026-10-09 D3c admin
 unread/activity batch.
 
+## 2026-10-19 BUG-M6-VERDICT-ATOMIC-1: the CI opinion is one atomic M6 action
+
+- `submitInspectionVerdict` runs in one transaction: checks, `site_inspections` insert, M6 closure and both audits
+  (INSPECTION_VERDICT_SUBMITTED, PHASE_CLOSED) commit together or not at all (a failure no longer leaves an opinion on
+  an open M6).
+- Concurrency without a migration (no unique `site_inspections.phase_id`): the M6 phase row is locked
+  (`FOR UPDATE`) after the dossier check; the loser of two concurrent submissions waits, sees the committed opinion
+  and gets `VERDICT_ALREADY_SUBMITTED`. That check now runs before `PHASE_ALREADY_CLOSED`, so a repeated
+  submission answers `VERDICT_ALREADY_SUBMITTED` (409, was `PHASE_ALREADY_CLOSED`, 409); an M6 closed without an
+  opinion still answers `PHASE_ALREADY_CLOSED`.
+- One app timestamp for `site_inspections.submitted_at` and `phases.closed_at` (the ROLE-ANALYTICS-1E opinion time).
+- Tests: rollback on a failing audit and on a failing closure (temporary trigger), 5 concurrent rounds. No migration.
+
 ## 2026-10-19 ROLE-ANALYTICS-1E: Cellule Inspection analytics provider
 
 - `GET /api/analytics/roles/inspection` now answers 200 (`providers/inspection.provider.ts`, `inspection-events.ts`):

@@ -267,70 +267,87 @@ export async function markAssignedSiteVisitHeld(
 }
 
 // ── R3 verdict - single submission, auto-closes the phase ───────────────
+/** BUG-M6-VERDICT-ATOMIC-1 - one transaction: opinion, M6 closure and both
+ *  audit rows commit together or not at all. The M6 phase row is locked
+ *  first (site_inspections has no unique phase_id): a concurrent submission
+ *  waits, then sees the committed opinion and gets VERDICT_ALREADY_SUBMITTED
+ *  (checked before PHASE_ALREADY_CLOSED, which stays the answer for an M6
+ *  closed without an opinion). One timestamp for the opinion and the closure
+ *  (phases.closed_at is the analytics opinion time, ROLE-ANALYTICS-1E). */
 export async function submitInspectionVerdict(
   phaseId: number,
   r3AgentId: number,
   verdict: 'compliant' | 'non_compliant' | 'compliant_with_reserves',
   note: string
 ): Promise<InspectionView> {
-  // K7 - closed dossier: read-only (requests/dossier-open.ts).
-  await assertPhaseDossierOpen(db, phaseId);
-  const [phase] = await db.select().from(phases).where(eq(phases.id, phaseId));
-  if (!phase) throw new Error('PHASE_NOT_FOUND');
-  if (phase.status !== 'open') throw new Error('PHASE_ALREADY_CLOSED');
+  const inspection = await db.transaction(async (tx) => {
+    // K7 - closed dossier: read-only (requests/dossier-open.ts).
+    await assertPhaseDossierOpen(tx, phaseId);
+    const [phase] = await tx.select().from(phases).where(eq(phases.id, phaseId)).for('update');
+    if (!phase) throw new Error('PHASE_NOT_FOUND');
 
-  const [payment] = await db.select().from(payments).where(eq(payments.phaseId, phaseId));
-  if (!payment || payment.status !== 'validated') throw new Error('PAYMENT_NOT_VALIDATED');
+    const [existing] = await tx
+      .select({ id: siteInspections.id })
+      .from(siteInspections)
+      .where(eq(siteInspections.phaseId, phaseId));
+    if (existing) throw new Error('VERDICT_ALREADY_SUBMITTED');
+    if (phase.status !== 'open') throw new Error('PHASE_ALREADY_CLOSED');
 
-  // Current visit only: after a reschedule the superseded row stays as
-  // 'rescheduled' and must not be the one checked for 'held'.
-  const [siteVisit] = await db
-    .select()
-    .from(meetings)
-    .where(
-      and(
-        eq(meetings.phaseId, phaseId),
-        eq(meetings.meetingType, 'site_visit'),
-        ne(meetings.status, 'rescheduled')
+    const [payment] = await tx.select().from(payments).where(eq(payments.phaseId, phaseId));
+    if (!payment || payment.status !== 'validated') throw new Error('PAYMENT_NOT_VALIDATED');
+
+    // Current visit only: after a reschedule the superseded row stays as
+    // 'rescheduled' and must not be the one checked for 'held'.
+    const [siteVisit] = await tx
+      .select()
+      .from(meetings)
+      .where(
+        and(
+          eq(meetings.phaseId, phaseId),
+          eq(meetings.meetingType, 'site_visit'),
+          ne(meetings.status, 'rescheduled')
+        )
       )
-    )
-    .orderBy(desc(meetings.scheduledAt));
-  if (!siteVisit) throw new Error('SITE_VISIT_NOT_SCHEDULED');
-  if (siteVisit.dnAgentId !== r3AgentId) throw new Error('SITE_VISIT_NOT_ASSIGNED');
-  if (siteVisit.status !== 'held') throw new Error('SITE_VISIT_NOT_HELD');
+      .orderBy(desc(meetings.scheduledAt));
+    if (!siteVisit) throw new Error('SITE_VISIT_NOT_SCHEDULED');
+    if (siteVisit.dnAgentId !== r3AgentId) throw new Error('SITE_VISIT_NOT_ASSIGNED');
+    if (siteVisit.status !== 'held') throw new Error('SITE_VISIT_NOT_HELD');
 
-  const [existing] = await db
-    .select()
-    .from(siteInspections)
-    .where(eq(siteInspections.phaseId, phaseId));
-  if (existing) throw new Error('VERDICT_ALREADY_SUBMITTED');
+    const submittedAt = new Date();
+    const [created] = await tx
+      .insert(siteInspections)
+      .values({ phaseId, meetingId: siteVisit.id, r3AgentId, verdict, note, submittedAt })
+      .returning();
 
-  const [inspection] = await db
-    .insert(siteInspections)
-    .values({ phaseId, meetingId: siteVisit.id, r3AgentId, verdict, note })
-    .returning();
+    // Auto-close: per M6 spec, no DN decision is required once R3's verdict
+    // lands - closure happens immediately as part of this same action.
+    await tx
+      .update(phases)
+      .set({ status: 'closed', closedAt: submittedAt })
+      .where(eq(phases.id, phaseId));
 
-  // Auto-close: per M6 spec, no DN decision is required once R3's verdict
-  // lands - closure happens immediately as part of this same action.
-  await db
-    .update(phases)
-    .set({ status: 'closed', closedAt: new Date() })
-    .where(eq(phases.id, phaseId));
+    await logAudit(
+      {
+        userId: r3AgentId,
+        action: 'INSPECTION_VERDICT_SUBMITTED',
+        module: 'M6',
+        entityId: created.id,
+        details: { verdict },
+      },
+      tx
+    );
 
-  await logAudit({
-    userId: r3AgentId,
-    action: 'INSPECTION_VERDICT_SUBMITTED',
-    module: 'M6',
-    entityId: inspection.id,
-    details: { verdict },
-  });
-
-  await logAudit({
-    userId: r3AgentId,
-    action: 'PHASE_CLOSED',
-    module: 'M6',
-    entityId: phaseId,
-    details: { trigger: 'auto_on_verdict' },
+    await logAudit(
+      {
+        userId: r3AgentId,
+        action: 'PHASE_CLOSED',
+        module: 'M6',
+        entityId: phaseId,
+        details: { trigger: 'auto_on_verdict' },
+      },
+      tx
+    );
+    return created;
   });
 
   return toInspectionView(inspection);
