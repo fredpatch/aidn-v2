@@ -116,17 +116,17 @@ describe('applicant login email normalisation (HTTP)', { skip: dbSkip }, () => {
     assert.equal(body.email, email);
   });
 
-  it('unknown email: existing 401 « Compte introuvable ou inactif. », no cookie', async () => {
+  it('unknown email: generic 401 « Identifiants invalides. » (AUTH-ENUMERATION-1), no cookie', async () => {
     const response = await login(`other-${run}@example.com`);
     assert.equal(response.status, 401);
-    assert.equal(((await response.json()) as { message: string }).message, 'Compte introuvable ou inactif.');
+    assert.equal(((await response.json()) as { message: string }).message, 'Identifiants invalides.');
     assert.equal(accessCookie(response), undefined);
   });
 
-  it('normalised email + wrong password: existing 401, no cookie', async () => {
+  it('normalised email + wrong password: the same generic 401, no cookie', async () => {
     const response = await login(email.toUpperCase(), 'wrong-password');
     assert.equal(response.status, 401);
-    assert.equal(((await response.json()) as { message: string }).message, 'Mot de passe invalide.');
+    assert.equal(((await response.json()) as { message: string }).message, 'Identifiants invalides.');
     assert.equal(accessCookie(response), undefined);
   });
 
@@ -137,11 +137,11 @@ describe('applicant login email normalisation (HTTP)', { skip: dbSkip }, () => {
     }
   });
 
-  it('inactive account: uppercase email gets the existing inactive response, no cookie', async () => {
+  it('inactive account: uppercase email gets the same generic 401, no cookie', async () => {
     for (const typed of [inactiveEmail, `  ${inactiveEmail.toUpperCase()} `]) {
       const response = await login(typed);
       assert.equal(response.status, 401);
-      assert.equal(((await response.json()) as { message: string }).message, 'Compte introuvable ou inactif.');
+      assert.equal(((await response.json()) as { message: string }).message, 'Identifiants invalides.');
       assert.equal(accessCookie(response), undefined);
     }
   });

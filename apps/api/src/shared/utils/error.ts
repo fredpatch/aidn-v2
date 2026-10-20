@@ -81,25 +81,47 @@ const UPLOAD_ATTACH_ERRORS: ErrorMap = {
   UPLOAD_FILE_MISSING: { status: 409, message: EXPIRED_UPLOAD_MESSAGE },
 };
 
-export const handleAuthError = createErrorHandler(
-  {
-    ACCOUNT_NOT_FOUND: { status: 401, message: 'Compte introuvable ou inactif.' },
-    ACCOUNT_LOCKED: { status: 423, message: 'Compte temporairement bloque. Réessayez plus tard.' },
-    ACCOUNT_INACTIVE: { status: 401, message: 'Compte inactif.' },
-    OTP_REQUIRED: { status: 400, message: 'Code OTP requis.' },
-    OTP_NOT_GENERATED: { status: 400, message: 'Aucun OTP généré pour ce compte.' },
-    OTP_EXPIRED: { status: 400, message: 'Code OTP expire.' },
-    OTP_INVALID: { status: 401, message: 'Code OTP invalide.' },
-    PASSWORD_REQUIRED: { status: 400, message: 'Mot de passe requis.' },
-    PASSWORD_NOT_SET: { status: 400, message: 'Mot de passe non défini.' },
-    PASSWORD_INVALID: { status: 401, message: 'Mot de passe invalide.' },
-    PASSWORDS_DO_NOT_MATCH: { status: 400, message: 'Les mots de passe ne correspondent pas.' },
-    PASSWORD_TOO_SHORT: {
-      status: 400,
-      message: 'Le mot de passe doit contenir au moins 8 caractères.',
-    },
+const AUTH_ERRORS: ErrorMap = {
+  ACCOUNT_NOT_FOUND: { status: 401, message: 'Compte introuvable ou inactif.' },
+  ACCOUNT_LOCKED: { status: 423, message: 'Compte temporairement bloque. Réessayez plus tard.' },
+  ACCOUNT_INACTIVE: { status: 401, message: 'Compte inactif.' },
+  OTP_REQUIRED: { status: 400, message: 'Code OTP requis.' },
+  OTP_NOT_GENERATED: { status: 400, message: 'Aucun OTP généré pour ce compte.' },
+  OTP_EXPIRED: { status: 400, message: 'Code OTP expire.' },
+  OTP_INVALID: { status: 401, message: 'Code OTP invalide.' },
+  PASSWORD_REQUIRED: { status: 400, message: 'Mot de passe requis.' },
+  PASSWORD_NOT_SET: { status: 400, message: 'Mot de passe non défini.' },
+  PASSWORD_INVALID: { status: 401, message: 'Mot de passe invalide.' },
+  PASSWORDS_DO_NOT_MATCH: { status: 400, message: 'Les mots de passe ne correspondent pas.' },
+  PASSWORD_TOO_SHORT: {
+    status: 400,
+    message: 'Le mot de passe doit contenir au moins 8 caractères.',
   },
-  '[auth]'
+};
+
+/** /me, /refresh, /set-password...: the caller is already identified, the
+ *  precise cause helps and reveals nothing. */
+export const handleAuthError = createErrorHandler(AUTH_ERRORS, '[auth]');
+
+/** AUTH-ENUMERATION-1 - one public answer for every credential failure at
+ *  login (staff and applicant), so the response never tells whether an
+ *  account exists, is active, or has a password / OTP set. The internal code
+ *  is still logged. Intentionally distinct (see the commit report):
+ *  ACCOUNT_LOCKED (lockout UX), OTP_REQUIRED (first-login account answered
+ *  with a password), OTP_EXPIRED (only reached with the right code). */
+const INVALID_CREDENTIALS = { status: 401, message: 'Identifiants invalides.', code: 'INVALID_CREDENTIALS' };
+export const handleLoginError = createErrorHandler(
+  {
+    ...AUTH_ERRORS,
+    ACCOUNT_NOT_FOUND: INVALID_CREDENTIALS,
+    ACCOUNT_INACTIVE: INVALID_CREDENTIALS,
+    PASSWORD_INVALID: INVALID_CREDENTIALS,
+    PASSWORD_REQUIRED: INVALID_CREDENTIALS,
+    PASSWORD_NOT_SET: INVALID_CREDENTIALS,
+    OTP_INVALID: INVALID_CREDENTIALS,
+    OTP_NOT_GENERATED: INVALID_CREDENTIALS,
+  },
+  '[auth/login]'
 );
 
 export const handleUsersError = createErrorHandler(

@@ -64,7 +64,13 @@ export async function login(params: {
   if (user.firstLogin) {
     if (!otp) throw new Error("OTP_REQUIRED");
     if (!user.otpHash || !user.otpExpiresAt) throw new Error("OTP_NOT_GENERATED");
-    if (isOTPExpired(user.otpExpiresAt)) throw new Error("OTP_EXPIRED");
+    if (isOTPExpired(user.otpExpiresAt)) {
+      // AUTH-ENUMERATION-1 - only the holder of the (expired) code learns it
+      // expired; any other code reads as invalid credentials. No failed
+      // attempt is counted here, as before.
+      const expiredCodeMatches = await verifyOTP(otp, user.otpHash);
+      throw new Error(expiredCodeMatches ? "OTP_EXPIRED" : "OTP_INVALID");
+    }
 
     const otpValid = await verifyOTP(otp, user.otpHash);
     if (!otpValid) {

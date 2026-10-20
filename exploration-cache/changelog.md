@@ -3,6 +3,17 @@
 Commit-level history. Covers `be9fce9` through the 2026-10-09 D3c admin
 unread/activity batch.
 
+## 2026-10-20 AUTH-ENUMERATION-1: login errors no longer reveal accounts
+
+- `POST /api/auth/login` and `POST /api/applicant-auth/login` use a login-only `handleLoginError`: unknown or
+  inactive account, wrong password, password not set / missing, wrong OTP, no OTP generated all answer
+  401 `{ message: 'Identifiants invalides.', code: 'INVALID_CREDENTIALS' }` (internal code still logged).
+  `handleAuthError` (refresh, /me, set-password) unchanged.
+- Staff first login: an expired OTP is reported as expired only to the holder of the right code; any other code
+  reads as invalid credentials (no failed attempt counted there, as before).
+- Intentionally distinct: `ACCOUNT_LOCKED` (423, lockout UX), `OTP_REQUIRED` (first-login account answered with a
+  password). Residual: timing (unknown accounts skip bcrypt). No policy, cookie, JWT or migration change.
+
 ## 2026-10-19 DOSSIER-CONTEXT-UX-1: dossier identity on treatment screens
 
 - Phase pages name their dossier: reference, organisation, applicant and status (« DEM-… · Organisation », badge)

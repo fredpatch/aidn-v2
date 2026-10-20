@@ -166,7 +166,7 @@ describe('applicant session across a staff email change (HTTP)', { skip: dbSkip 
   it('old email can no longer log in (401); new email + same password can', async () => {
     const stale = await login(oldEmail);
     assert.equal(stale.status, 401);
-    assert.equal(((await stale.json()) as { message: string }).message, 'Compte introuvable ou inactif.');
+    assert.equal(((await stale.json()) as { message: string }).message, 'Identifiants invalides.');
     const fresh = await login(newEmail);
     assert.equal(fresh.status, 200);
     const payload = decode(cookiesOf(fresh)[accessName]);
@@ -179,7 +179,7 @@ describe('applicant session across a staff email change (HTTP)', { skip: dbSkip 
     for (const typed of [oldEmail.toUpperCase(), `  ${oldEmail} `]) {
       const stale = await login(typed);
       assert.equal(stale.status, 401, typed);
-      assert.equal(((await stale.json()) as { message: string }).message, 'Compte introuvable ou inactif.');
+      assert.equal(((await stale.json()) as { message: string }).message, 'Identifiants invalides.');
     }
     const fresh = await login(` ${newEmail.toUpperCase()} `);
     assert.equal(fresh.status, 200);

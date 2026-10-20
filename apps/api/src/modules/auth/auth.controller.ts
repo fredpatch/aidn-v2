@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import * as authService from "./auth.service.js";
-import { handleAuthError } from "../../shared/utils/error.js";
+import { handleAuthError, handleLoginError } from "../../shared/utils/error.js";
 import {
   accessCookieOptions,
   refreshCookieOptions,
@@ -40,7 +40,7 @@ export async function login(req: Request, res: Response): Promise<void> {
 
     res.json({ firstLogin: false, user: result.user });
   } catch (error) {
-    handleAuthError(res, error);
+    handleLoginError(res, error);
   }
 }
 
