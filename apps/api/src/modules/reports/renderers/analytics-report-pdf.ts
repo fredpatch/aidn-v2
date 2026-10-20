@@ -9,7 +9,7 @@ export const REPORT_BRAND = PRODUCT_NAME;
 export const REPORT_INSTITUTION = PRODUCT_SUBTITLE;
 
 const REPORT_NOTES: Record<ReportKey, string> = {
-  full_report: 'Vue complète des indicateurs DN sur la période sélectionnée.',
+  full_report: 'Vue globale des indicateurs du processus OMA sur la période sélectionnée.',
   processing_delay: 'Analyse centrée sur les durées de traitement et la progression par phase.',
   sla: 'Contrôle du respect des délais cibles et identification des phases hors SLA.',
   bottlenecks: 'Lecture des points de blocage qui ralentissent le traitement opérationnel.',
@@ -79,7 +79,7 @@ function metricsTable(metrics: AnalyticsMetric[]): string {
           <td>${escapeHtml(metric.label)}</td>
           <td class="value">${escapeHtml(metricDisplayValue(metric))}</td>
           <td>${escapeHtml(metric.helper)}</td>
-          <td>${escapeHtml(metric.sampleSize ?? '-')}</td>
+          <td>${escapeHtml(metric.sampleLabel ?? '-')}</td>
         </tr>`
     )
     .join('');
@@ -91,7 +91,7 @@ function renderMetricsSection(title: string, metrics: AnalyticsMetric[]): string
     <section class="keep">
     <h2>${escapeHtml(title)}</h2>
     <table>
-      <thead><tr><th>Indicateur (KPI)</th><th>Valeur</th><th>Lecture</th><th>Base (éléments observés)</th></tr></thead>
+      <thead><tr><th>Indicateur (KPI)</th><th>Valeur</th><th>Lecture</th><th>Échantillon</th></tr></thead>
       <tbody>${metricsTable(metrics)}</tbody>
     </table>
     </section>`;
@@ -323,7 +323,7 @@ function reportSections(snapshot: ReportSnapshot): string {
       return [
         renderMetricsSection('Indicateurs de paiement', reportMetrics(snapshot)),
         renderBlockersSection(snapshot, 'Blocages Finance', ['payment_blockers']),
-        renderPhaseSection(snapshot, 'Phases dépendant des validation Finance', ['M5', 'M6', 'M7']),
+        renderPhaseSection(snapshot, 'Phases dépendant des validations Finance', ['M5', 'M6', 'M7']),
       ].join('');
     case 'full_report':
     default:

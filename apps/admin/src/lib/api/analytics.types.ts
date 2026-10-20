@@ -15,6 +15,8 @@ export interface AnalyticsMetric {
   helper: string;
   tone: 'info' | 'success' | 'warning' | 'danger' | 'neutral';
   sampleSize?: number;
+  /** ANALYTICS-POLISH-1 - what `sampleSize` counts, in words (« 12 phases ouvertes »). */
+  sampleLabel?: string;
   warning?: string;
   /** ANALYTICS-GLOBAL-UX-1 - duration metrics: the raw calendar days behind
    *  `value` (legacy text); null = no sample. */

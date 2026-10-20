@@ -3,6 +3,16 @@
 Commit-level history. Covers `be9fce9` through the 2026-10-09 D3c admin
 unread/activity batch.
 
+## 2026-10-20 ANALYTICS-POLISH-1: analytics sample wording and report text
+
+- Overview KPIs carry `sampleLabel`, built where the sample is counted and agreed in number: « N dossiers
+  délivrés » (average / median: M7 closed in the period), « N phases ouvertes » (outside SLA), « N phases
+  clôturées » (SLA compliance), « N courriers en attente DG » (DG wait), « N dossiers inactifs » (inactivity).
+  /analytique cards show it instead of « base N »; the PDF KPI table has an « Échantillon » column in words.
+  `sampleSize` and Excel unchanged.
+- PDF full report: « Vue globale des indicateurs du processus OMA sur la période sélectionnée. »; « Phases
+  dépendant des validations Finance ». No calculation, SLA, chart, role analytics or dashboard change.
+
 ## 2026-10-20 TEST-INFRA-WIN-1: K8b CLI test portable on Windows
 
 - `certificate-per-request.db.test.ts` runs `db:check:certificates --check` as `process.execPath` + the tsx CLI file

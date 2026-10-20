@@ -19,9 +19,10 @@ export function AnalyticsMetricCard({ metric }: { metric: AnalyticsMetric }) {
       </div>
       <div className="mt-4 flex flex-wrap items-center gap-2 text-[11px]">
         <span className="text-anac-muted">{metric.helper}</span>
-        {metric.sampleSize !== undefined ? (
+        {/* ANALYTICS-POLISH-1 - what was counted, in words (never « base N »). */}
+        {metric.sampleLabel ? (
           <span className="rounded-full bg-slate-100 px-2 py-0.5 font-semibold text-slate-600">
-            base {metric.sampleSize}
+            {metric.sampleLabel}
           </span>
         ) : null}
         {metric.warning ? (

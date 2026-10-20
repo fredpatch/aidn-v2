@@ -78,6 +78,18 @@ describe('KPI cards', () => {
     );
     expect(metricDisplayValue(metric({ value: '4.8 j' }))).toBe('4.8 j');
   });
+
+  it('ANALYTICS-POLISH-1: the sample reads as what was counted (singular / plural), never « base N »', () => {
+    const { container, rerender } = render(
+      <AnalyticsMetricCard metric={metric({ sampleSize: 2, sampleLabel: '2 dossiers délivrés' })} />
+    );
+    expect(screen.getByText('2 dossiers délivrés')).toBeInTheDocument();
+    rerender(<AnalyticsMetricCard metric={metric({ sampleSize: 1, sampleLabel: '1 phase ouverte' })} />);
+    expect(screen.getByText('1 phase ouverte')).toBeInTheDocument();
+    // No label (e.g. an older API, or a metric without sample): no badge at all.
+    rerender(<AnalyticsMetricCard metric={metric({ sampleSize: 12 })} />);
+    expect(container.textContent).not.toMatch(/base \d|\b12\b/);
+  });
 });
 
 describe('phase list', () => {

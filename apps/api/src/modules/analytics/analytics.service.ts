@@ -144,16 +144,22 @@ function buildTrend(
   return points;
 }
 
+/** ANALYTICS-POLISH-1 - a sample: its size and what it counts, agreed in
+ *  number (French: 0 and 1 take the singular). */
+export function sample(size: number, singular: string, plural: string): { size: number; label: string } {
+  return { size, label: `${size} ${size > 1 ? plural : singular}` };
+}
+
 function buildMetric(
   key: string,
   label: string,
   value: string,
   helper: string,
   tone: AnalyticsMetric['tone'],
-  sampleSize?: number,
+  observed?: { size: number; label: string },
   warning?: string
 ): AnalyticsMetric {
-  return { key, label, value, helper, tone, sampleSize, warning };
+  return { key, label, value, helper, tone, sampleSize: observed?.size, sampleLabel: observed?.label, warning };
 }
 
 /** ANALYTICS-GLOBAL-UX-1 - a duration metric also carries its raw calendar
@@ -382,7 +388,7 @@ export async function getAnalyticsOverview(filters: AnalyticsFilters): Promise<A
         formatDays(averageGlobalDuration),
         'Dépôt initial -> clôture délivrance',
         averageGlobalDuration === null ? 'neutral' : averageGlobalDuration > 45 ? 'warning' : 'info',
-        completedDurations.length,
+        sample(completedDurations.length, 'dossier délivré', 'dossiers délivrés'),
         completedDurations.length < 5 ? 'Échantillon faible' : undefined
       ),
       averageGlobalDuration
@@ -393,7 +399,7 @@ export async function getAnalyticsOverview(filters: AnalyticsFilters): Promise<A
       String(outsideSla.length),
       'Phases ouvertes au-dela de leur cible',
       outsideSla.length > 0 ? 'danger' : 'success',
-      openPhaseRows.length
+      sample(openPhaseRows.length, 'phase ouverte', 'phases ouvertes')
     ),
     buildMetric(
       'sla_compliance',
@@ -401,7 +407,7 @@ export async function getAnalyticsOverview(filters: AnalyticsFilters): Promise<A
       percent(closedPhaseWithinSla.length, closedPhaseRows.length),
       'Phases clôturées dans le délai cible',
       closedPhaseRows.length === 0 ? 'neutral' : 'success',
-      closedPhaseRows.length,
+      sample(closedPhaseRows.length, 'phase clôturée', 'phases clôturées'),
       closedPhaseRows.length < 5 ? 'Échantillon faible' : undefined
     ),
     withDays(
@@ -411,7 +417,7 @@ export async function getAnalyticsOverview(filters: AnalyticsFilters): Promise<A
         formatDays(dgWaitDays),
         'Courriers en dépôt ou en signature',
         dgWaiting.length > 0 ? 'warning' : 'success',
-        dgWaiting.length
+        sample(dgWaiting.length, 'courrier en attente DG', 'courriers en attente DG')
       ),
       dgWaitDays
     ),
@@ -422,7 +428,7 @@ export async function getAnalyticsOverview(filters: AnalyticsFilters): Promise<A
         formatDays(inactivityDays),
         'Dossiers actifs sans action depuis plus de 15 jours',
         inactiveRequests.length > 0 ? 'warning' : 'success',
-        inactiveRequests.length
+        sample(inactiveRequests.length, 'dossier inactif', 'dossiers inactifs')
       ),
       inactivityDays
     ),
@@ -433,7 +439,7 @@ export async function getAnalyticsOverview(filters: AnalyticsFilters): Promise<A
         formatDays(medianGlobalDuration),
         'Médiane des dossiers clôturés',
         'neutral',
-        completedDurations.length
+        sample(completedDurations.length, 'dossier délivré', 'dossiers délivrés')
       ),
       medianGlobalDuration
     ),

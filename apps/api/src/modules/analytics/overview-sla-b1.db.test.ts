@@ -96,6 +96,27 @@ describe('analytics overview: SLA parameters and B1 (real PostgreSQL)', { skip }
     Number(o.blockingPoints.find((item) => item.key === key)?.value);
   const phase = (o: Awaited<ReturnType<typeof overview>>, code: string) => o.phaseStats.find((item) => item.phaseCode === code)!;
 
+  it('ANALYTICS-POLISH-1: each KPI says what its sample counts, agreed in number (never « base N »)', async () => {
+    assert.deepEqual(analytics.sample(0, 'phase ouverte', 'phases ouvertes'), { size: 0, label: '0 phase ouverte' });
+    assert.deepEqual(analytics.sample(1, 'dossier délivré', 'dossiers délivrés'), { size: 1, label: '1 dossier délivré' });
+    assert.deepEqual(analytics.sample(12, 'phase clôturée', 'phases clôturées'), { size: 12, label: '12 phases clôturées' });
+
+    const o = await overview();
+    const nouns: Record<string, [string, string]> = {
+      average_processing_duration: ['dossier délivré', 'dossiers délivrés'],
+      median_processing_duration: ['dossier délivré', 'dossiers délivrés'],
+      outside_sla: ['phase ouverte', 'phases ouvertes'],
+      sla_compliance: ['phase clôturée', 'phases clôturées'],
+      dg_wait: ['courrier en attente DG', 'courriers en attente DG'],
+      inactivity: ['dossier inactif', 'dossiers inactifs'],
+    };
+    for (const [key, [singular, plural]] of Object.entries(nouns)) {
+      const item = o.metrics.find((entry) => entry.key === key)!;
+      const size = item.sampleSize!;
+      assert.equal(item.sampleLabel, `${size} ${size > 1 ? plural : singular}`, key);
+    }
+  });
+
   it('uses the configured phase SLA, not a hardcoded target', async () => {
     const requestId = await dossier('in_progress');
     await openPhase(requestId, 'M3', 5);

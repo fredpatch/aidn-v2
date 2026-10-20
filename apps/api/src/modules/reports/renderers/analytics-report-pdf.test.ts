@@ -57,6 +57,7 @@ function snapshot(
         helper: 'Dépôt initial -> clôture délivrance',
         tone: 'info',
         sampleSize: 6,
+        sampleLabel: '6 dossiers délivrés',
         rawValue: 4.8,
         unit: 'calendar_days',
       },
@@ -67,6 +68,7 @@ function snapshot(
         helper: 'Phases clôturées dans le délai cible',
         tone: 'success',
         sampleSize: 8,
+        sampleLabel: '8 phases clôturées',
       },
       {
         key: 'median_processing_duration',
@@ -75,6 +77,7 @@ function snapshot(
         helper: 'Médiane des dossiers clôturés',
         tone: 'neutral',
         sampleSize: 6,
+        sampleLabel: '6 dossiers délivrés',
         rawValue: 0.1,
         unit: 'calendar_days',
       },
@@ -84,7 +87,15 @@ function snapshot(
         value: '3',
         helper: 'Phases ouvertes au-dela de leur cible',
         tone: 'danger',
-        sampleSize: 9,
+        sampleSize: 1,
+        sampleLabel: '1 phase ouverte',
+      },
+      {
+        key: 'unsampled',
+        label: 'Indicateur sans échantillon',
+        value: '2',
+        helper: 'Lecture',
+        tone: 'neutral',
       },
     ],
     durationTrend: TREND,
@@ -156,6 +167,18 @@ describe('analytics report page', () => {
     assert.match(page, /Les données reflètent les filtres appliqués au moment de la génération\./);
     assert.doesNotMatch(page, /AIDN - Direction de la Navigabilité/);
     assert.match(page, /Généré le : 19\/10\/2026 à 09:30/);
+  });
+
+  it('ANALYTICS-POLISH-1: process-wide full report, « Échantillon » column in words, grammar', () => {
+    const page = html('full_report');
+    assert.match(page, /Vue globale des indicateurs du processus OMA sur la période sélectionnée\./);
+    assert.doesNotMatch(page, /indicateurs DN/);
+    assert.match(page, /<th>Échantillon<\/th>/);
+    assert.doesNotMatch(page, /Base \(éléments observés\)/);
+    for (const label of ['6 dossiers délivrés', '8 phases clôturées', '1 phase ouverte'])
+      assert.match(page, new RegExp(`<td>${label}</td>`));
+    assert.match(page, /<td>Indicateur sans échantillon<\/td>[\s\S]*?<td>-<\/td>\s*<\/tr>/);
+    assert.match(html('s5'), /Phases dépendant des validations Finance/);
   });
 
   it('reading keys: KPI and SLA spelled out, average, median, calendar and working days', () => {
