@@ -48,7 +48,6 @@ import {
   formatMetricValue,
   metricCopy,
   previousPeriodText,
-  sampleSizeText,
 } from './pilotageCopy';
 
 const DEFAULT_PERIOD: RoleAnalyticsPreset = 'this_month';
@@ -362,7 +361,8 @@ function MetricCard({ metric }: { metric: RoleAnalyticsMetric }) {
   const copy = metricCopy(metric.key);
   const Icon = copy.icon;
   const trend = previousPeriodText(metric);
-  const sample = sampleSizeText(metric.sampleSize);
+  // ANALYTICS-SAMPLE-CLARITY-2 - worded by the provider (« 4 circuits DG terminés »).
+  const sample = metric.sampleLabel ?? null;
   return (
     <li className="rounded-lg border border-anac-border bg-white p-3 shadow-sm print:break-inside-avoid print:border-gray-400 print:p-2 print:shadow-none">
       <div className="flex items-start justify-between gap-2">

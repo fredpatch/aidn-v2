@@ -26,7 +26,7 @@ import type {
   DashboardStatusStat,
   DashboardSummary,
 } from './dashboard.types.js';
-import { formatCalendarDuration, workingDaysBetween, type PublicHolidays } from '@aidn/shared';
+import { countLabel, formatCalendarDuration, workingDaysBetween, type PublicHolidays } from '@aidn/shared';
 import {
   buildActivityItems,
   calendarDurationMetricValue,
@@ -454,6 +454,7 @@ export async function getDashboardSummary(
       return daysBetween(request?.createdAt ?? null, certificate.collectedAt);
     });
   const averageGlobalDuration = average(completedGlobalDurations);
+  const globalDurationSample = completedGlobalDurations.filter((value) => value !== null).length;
 
   const nextWeek = new Date();
   nextWeek.setDate(nextWeek.getDate() + 7);
@@ -473,7 +474,6 @@ export async function getDashboardSummary(
       helper: 'Non clôturés / non rejetés',
       definition: 'Demandes dont le statut n’est pas terminé, rejeté ou annulé.',
       periodLabel: 'État actuel',
-      sampleSize: requestRows.length,
       href: hrefForRoles(userRoles, ['dn_agent', 'dn_supervisor', 'SU'], '/demandes'),
     },
     {
@@ -483,7 +483,6 @@ export async function getDashboardSummary(
       helper: 'Phases M3-M7 en cours',
       definition: 'Nombre de phases de traitement actuellement ouvertes, tous dossiers confondus.',
       periodLabel: 'État actuel',
-      sampleSize: phaseRows.length,
       href: hrefForRoles(userRoles, ['dn_agent', 'dn_supervisor', 'SU'], '/demandes'),
     },
     {
@@ -493,8 +492,10 @@ export async function getDashboardSummary(
       helper: 'Entrée -> retrait physique',
       definition:
         'Durée calendaire moyenne entre la création de la demande et le retrait du certificat, calculée sur les certificats déjà retirés.',
-      periodLabel: 'Historique retiré',
-      sampleSize: completedGlobalDurations.filter((value) => value !== null).length,
+      periodLabel: 'Historique des retraits',
+      sampleSize: globalDurationSample,
+      // One certificate per dossier (K8b): each observation is a dossier whose certificate was collected.
+      sampleLabel: countLabel(globalDurationSample, { singular: 'dossier avec certificat retiré', plural: 'dossiers avec certificat retiré' }),
     },
     {
       key: 'pending_dg_mail',
@@ -504,7 +505,6 @@ export async function getDashboardSummary(
       definition:
         'Courriers déposés, en signature ou signés mais pas encore transmis au traitement.',
       periodLabel: 'État actuel',
-      sampleSize: circuitRows.length,
       href: hrefForRoles(userRoles, ['reception', 'assistant_dg', 'SU'], '/courriers'),
     },
     {
@@ -515,7 +515,6 @@ export async function getDashboardSummary(
       definition:
         'Paiements qui bloquent une phase: facture attendue, preuve attendue ou validation Finance attendue.',
       periodLabel: 'État actuel',
-      sampleSize: paymentRows.length,
       href: hrefForRoles(userRoles, ['s5_agent', 'SU'], '/paiements-s5'),
     },
   ];

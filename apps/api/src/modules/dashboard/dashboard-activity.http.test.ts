@@ -123,7 +123,15 @@ describe('dashboard summary - recent activity and durations (HTTP)', { skip: dbS
     assert.equal(metric.unit, 'calendar_days');
     assert.ok(metric.rawValue === null || typeof metric.rawValue === 'number');
     assert.doesNotMatch(String(metric.value), /\d\.\d/);
-    assert.equal(metric.periodLabel, 'Historique retiré');
+    assert.equal(metric.periodLabel, 'Historique des retraits');
+    // ANALYTICS-SAMPLE-CLARITY-2 - the average names its sample; direct counts carry none.
+    const size = metric.sampleSize as number;
+    assert.equal(metric.sampleLabel, `${size} ${size > 1 ? 'dossiers avec certificat retiré' : 'dossier avec certificat retiré'}`);
+    for (const key of ['active_requests', 'open_phases', 'pending_dg_mail', 'pending_payments']) {
+      const direct = body.metrics.find((item: { key: string }) => item.key === key);
+      assert.equal(direct.sampleSize, undefined, key);
+      assert.equal(direct.sampleLabel, undefined, key);
+    }
     for (const phase of body.workflow) {
       assert.match(phase.slaTargetLabel, /^Cible SLA : \d+ jours calendaires$/);
       assert.doesNotMatch(JSON.stringify(phase), /Cible de suivi/);

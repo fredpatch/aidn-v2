@@ -4,6 +4,19 @@
 
 const MINUTES_PER_DAY = 24 * 60;
 
+/** What a count counts, in both numbers (« circuit DG terminé » / « circuits
+ *  DG terminés »). */
+export interface CountNoun {
+  singular: string;
+  plural: string;
+}
+
+/** « 0 circuit DG terminé », « 1 … », « 2 circuits DG terminés »: French takes
+ *  the singular for 0 and 1. */
+export function countLabel(count: number, noun: CountNoun): string {
+  return `${count} ${count > 1 ? noun.plural : noun.singular}`;
+}
+
 /** A duration in calendar days (24 h each) for humans: from one day on, days
  *  and hours (rounded to the hour); below, hours and minutes (rounded to the
  *  minute); never seconds. 0.1 -> « 2 h 24 min », 4.8 -> « 4 j 19 h »;

@@ -1,7 +1,7 @@
 import { db } from '../../shared/db/index.js';
 import { RECEPTION_CIRCUIT_ENTITY_TYPES } from '../dn-annotation/dn-annotation.stage.js';
 import { inArray } from 'drizzle-orm';
-import { formatCalendarDuration } from '@aidn/shared';
+import { countLabel, formatCalendarDuration } from '@aidn/shared';
 import {
   dgCircuitDocuments,
   meetings,
@@ -147,7 +147,7 @@ function buildTrend(
 /** ANALYTICS-POLISH-1 - a sample: its size and what it counts, agreed in
  *  number (French: 0 and 1 take the singular). */
 export function sample(size: number, singular: string, plural: string): { size: number; label: string } {
-  return { size, label: `${size} ${size > 1 ? plural : singular}` };
+  return { size, label: countLabel(size, { singular, plural }) };
 }
 
 function buildMetric(

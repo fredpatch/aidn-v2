@@ -1,7 +1,7 @@
 /** ANALYTICS-GLOBAL-UX-1 - Chart.js data and options for /analytique, kept
  *  pure so they are testable without a canvas. Chart.js always receives raw
  *  calendar days; only tooltips and axis titles are formatted. */
-import { formatCalendarDuration } from '@aidn/shared';
+import { countLabel, formatCalendarDuration, type CountNoun } from '@aidn/shared';
 import type { ChartData, ChartOptions, TooltipItem } from 'chart.js';
 import type { AnalyticsPhaseStat, AnalyticsTrendPoint } from '../../../lib/api/analytics.types';
 import { PHASE_LABELS, formatSlaTarget } from '../analytics.helpers';
@@ -19,15 +19,8 @@ export function durationTooltipLabel(seriesLabel: string, days: number | null | 
 }
 
 /** ANALYTICS-SLA-CLARITY-1 - what a distribution counts, agreed in number
- *  (French: 0 and 1 take the singular). */
-export interface CountNoun {
-  singular: string;
-  plural: string;
-}
-
-export function countLabel(count: number, noun: CountNoun): string {
-  return `${count} ${count > 1 ? noun.plural : noun.singular}`;
-}
+ *  (shared rule: 0 and 1 take the singular). */
+export { countLabel, type CountNoun };
 
 /** « Au-delà du délai cible : 9 phases clôturées (75 %) ». */
 export function distributionTooltipLabel(label: string, value: number, total: number, noun?: CountNoun): string {

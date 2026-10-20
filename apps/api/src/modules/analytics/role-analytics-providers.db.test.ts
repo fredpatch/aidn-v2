@@ -181,6 +181,9 @@ describe('ROLE-ANALYTICS-1C providers (real PostgreSQL)', { skip }, () => {
         { value: sent?.value, unit: sent?.unit, basis: sent?.basis, reliability: sent?.reliability, previousValue: sent?.previousValue },
         { value: 6, unit: 'count', basis: 'period', reliability: 'reliable', previousValue: 2 }
       );
+      // An event count is its own number: no sample metadata.
+      assert.equal(sent?.sampleSize, undefined);
+      assert.equal(sent?.sampleLabel, undefined);
       const returned = metric(overview, 'courrier.dg_return_recorded');
       assert.equal(returned?.value, 5, 'C1, C2 (FORMAL_LETTER_SIGNED), C3 (legacy), C6, C7; never the DN hand-over');
       assert.equal(returned?.previousValue, 0);
@@ -190,8 +193,8 @@ describe('ROLE-ANALYTICS-1C providers (real PostgreSQL)', { skip }, () => {
       const overview = await courrier.getOverview(context('courrier', 'service', agentA, ...March));
       const duration = metric(overview, 'courrier.average_dg_circuit_duration');
       assert.deepEqual(
-        { value: duration?.value, unit: duration?.unit, basis: duration?.basis, sampleSize: duration?.sampleSize, reliability: duration?.reliability },
-        { value: 6.8, unit: 'calendar_days', basis: 'period', sampleSize: 5, reliability: 'reliable' }
+        { value: duration?.value, unit: duration?.unit, basis: duration?.basis, sampleSize: duration?.sampleSize, sampleLabel: duration?.sampleLabel, reliability: duration?.reliability },
+        { value: 6.8, unit: 'calendar_days', basis: 'period', sampleSize: 5, sampleLabel: '5 circuits DG terminés', reliability: 'reliable' }
       );
     });
 
@@ -243,6 +246,7 @@ describe('ROLE-ANALYTICS-1C providers (real PostgreSQL)', { skip }, () => {
       const duration = metric(overview, 'courrier.average_dg_circuit_duration');
       assert.equal(duration?.value, null);
       assert.equal(duration?.sampleSize, 0);
+      assert.equal(duration?.sampleLabel, '0 circuit DG terminé');
       assert.deepEqual(overview.recentActivity, []);
     });
 
@@ -322,13 +326,13 @@ describe('ROLE-ANALYTICS-1C providers (real PostgreSQL)', { skip }, () => {
       const overview = await dnCircuit.getOverview(context('dn_circuit', 'service', agentX, ...March));
       const director = metric(overview, 'dn_circuit.average_director_duration');
       assert.deepEqual(
-        { value: director?.value, unit: director?.unit, sampleSize: director?.sampleSize, reliability: director?.reliability },
-        { value: 4.5, unit: 'calendar_days', sampleSize: 4, reliability: 'reliable' }
+        { value: director?.value, unit: director?.unit, sampleSize: director?.sampleSize, sampleLabel: director?.sampleLabel, reliability: director?.reliability },
+        { value: 4.5, unit: 'calendar_days', sampleSize: 4, sampleLabel: '4 circuits Directeur DN terminés', reliability: 'reliable' }
       );
       const handoff = metric(overview, 'dn_circuit.average_handoff_delay');
       assert.deepEqual(
-        { value: handoff?.value, unit: handoff?.unit, sampleSize: handoff?.sampleSize },
-        { value: 4, unit: 'calendar_days', sampleSize: 4 },
+        { value: handoff?.value, unit: handoff?.unit, sampleSize: handoff?.sampleSize, sampleLabel: handoff?.sampleLabel },
+        { value: 4, unit: 'calendar_days', sampleSize: 4, sampleLabel: '4 transmissions au Directeur DN' },
         'D1 3, D2 11, D4 1, D6 1; D5 was sent in February'
       );
     });

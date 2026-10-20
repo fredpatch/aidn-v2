@@ -12,6 +12,9 @@ export interface DashboardMetric {
   definition?: string;
   periodLabel?: string;
   sampleSize?: number;
+  /** ANALYTICS-SAMPLE-CLARITY-2 - what `sampleSize` counts, in words; set only where
+   *  the sample means something (an average), never on a direct count. */
+  sampleLabel?: string;
   href?: string;
   trend?: {
     value: string;

@@ -3,6 +3,17 @@
 Commit-level history. Covers `be9fce9` through the 2026-10-09 D3c admin
 unread/activity batch.
 
+## 2026-10-20 ANALYTICS-SAMPLE-CLARITY-2: dashboard and /pilotage samples say what they count
+
+- Shared `countLabel` / `CountNoun` (`@aidn/shared`, 0 and 1 singular), used by /analytique, /pilotage and the
+  dashboard.
+- /pilotage: `RoleAnalyticsMetric.sampleLabel`, worded by the provider through `durationMetric(key, sample, noun)`:
+  « N circuits DG terminés », « N circuits Directeur DN terminés », « N transmissions au Directeur DN »,
+  « N paiements validés ». `sampleSizeText` (« Basé sur N dossiers ») removed; count metrics show no sample.
+- Dashboard: no « base N »; direct counts (active dossiers, open phases, DG mail, blocking payments) carry no sample
+  any more; the global duration reads « Historique des retraits · N dossiers avec certificat retiré ».
+- Labels only: no calculation, sample size, period, scope or time zone change.
+
 ## 2026-10-20 ANALYTICS-SLA-CLARITY-1: SLA and age donuts name their population
 
 - /analytique: « Ancienneté des dossiers actifs » (total « N dossiers actifs ») and « Respect des SLA - phases

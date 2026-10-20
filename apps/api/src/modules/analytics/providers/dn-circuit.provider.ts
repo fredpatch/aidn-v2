@@ -70,8 +70,16 @@ async function getOverview(context: RoleAnalyticsContext): Promise<RoleAnalytics
   ]);
   const withDirector = queue.items.filter((item) => item.bucket === 'with_director');
   overview.metrics.push(
-    durationMetric('dn_circuit.average_director_duration', director),
-    durationMetric('dn_circuit.average_handoff_delay', handoff),
+    // One row per Directeur DN circuit returned in the period.
+    durationMetric('dn_circuit.average_director_duration', director, {
+      singular: 'circuit Directeur DN terminé',
+      plural: 'circuits Directeur DN terminés',
+    }),
+    // One row per hand-over to the Directeur DN made in the period.
+    durationMetric('dn_circuit.average_handoff_delay', handoff, {
+      singular: 'transmission au Directeur DN',
+      plural: 'transmissions au Directeur DN',
+    }),
     currentCountMetric('dn_circuit.with_director', queue.counts.with_director)
   );
   overview.warnings = [

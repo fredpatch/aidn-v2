@@ -81,7 +81,8 @@ async function getOverview(context: RoleAnalyticsContext): Promise<RoleAnalytics
   const overdue = toValidate.filter((item) => item.urgency === 'overdue');
   overview.metrics.push(
     proofs,
-    durationMetric('finance.average_validation_delay', delay, LATEST_PROOF_ONLY_CAVEAT),
+    // One row per payment validated in the period.
+    durationMetric('finance.average_validation_delay', delay, { singular: 'paiement validé', plural: 'paiements validés' }, LATEST_PROOF_ONLY_CAVEAT),
     currentCountMetric('finance.proof_to_validate', queue.counts.proof_to_validate),
     currentCountMetric('finance.proof_overdue', overdue.length),
     currentCountMetric('finance.invoice_to_send', queue.counts.invoice_to_send)

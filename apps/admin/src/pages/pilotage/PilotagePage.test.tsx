@@ -63,6 +63,7 @@ const RICH = overview({
       unit: 'calendar_days',
       basis: 'period',
       sampleSize: 5,
+      sampleLabel: '5 circuits DG terminés',
       reliability: 'reliable',
     },
     {
@@ -292,7 +293,11 @@ describe('<PilotagePage> rendering', () => {
     ).toBeInTheDocument();
     const duration = within(period).getByText('Durée moyenne du circuit DG').closest('li')!;
     expect(within(duration).getByText('6 j 19 h')).toBeInTheDocument();
-    expect(within(duration).getByText('Basé sur 5 dossiers')).toBeInTheDocument();
+    // ANALYTICS-SAMPLE-CLARITY-2 - the provider's words, never a guessed « dossiers ».
+    expect(within(duration).getByText('5 circuits DG terminés')).toBeInTheDocument();
+    expect(screen.queryByText(/Basé sur \d+ dossiers?/)).toBeNull();
+    // A count metric shows its trend only, no sample.
+    expect(within(sent).queryByText(/^\d+ (circuits?|dossiers?|paiements?|transmissions?)\b/)).toBeNull();
     const invoices = within(period).getByText('Factures transmises').closest('li')!;
     expect(within(invoices).getByText('−4 vs période précédente')).toBeInTheDocument();
     expect(
@@ -359,6 +364,7 @@ describe('<PilotagePage> rendering', () => {
             unit: 'calendar_days',
             basis: 'period',
             sampleSize: 0,
+            sampleLabel: '0 circuit DG terminé',
             reliability: 'reliable',
           },
           {
@@ -377,6 +383,9 @@ describe('<PilotagePage> rendering', () => {
     expect(screen.getByText('Aucune activité récente sur cette période.')).toBeInTheDocument();
     expect(
       within(screen.getByText('Durée moyenne du circuit DG').closest('li')!).getByText('-')
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByText('Durée moyenne du circuit DG').closest('li')!).getByText('0 circuit DG terminé')
     ).toBeInTheDocument();
     expect(
       within(screen.getByRole('region', { name: 'Situation actuelle' })).getByText('4')

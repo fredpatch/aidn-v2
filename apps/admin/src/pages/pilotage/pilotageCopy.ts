@@ -196,13 +196,6 @@ export function previousPeriodText(
   return `${delta > 0 ? '+' : '−'}${integer.format(Math.abs(delta))} vs période précédente`;
 }
 
-export function sampleSizeText(sampleSize: number | undefined): string | null {
-  if (sampleSize === undefined) return null;
-  return sampleSize === 1
-    ? 'Basé sur 1 dossier'
-    : `Basé sur ${integer.format(sampleSize)} dossiers`;
-}
-
 export function actorText(actor: RoleAnalyticsActivity['actor']): string {
   if (!actor) return '-';
   return actor.kind === 'applicant' ? 'Postulant' : actor.fullName || '-';

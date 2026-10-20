@@ -39,7 +39,8 @@ export function DashboardMetricCard({ metric }: { metric: DashboardMetric }) {
         </div>
         <p className="text-anac-muted">
           {metric.periodLabel}
-          {metric.sampleSize !== undefined ? ` - base ${metric.sampleSize}` : ''}
+          {/* ANALYTICS-SAMPLE-CLARITY-2 - what was counted, never « base N ». */}
+          {metric.sampleLabel ? ` · ${metric.sampleLabel}` : ''}
         </p>
         {metric.definition ? (
           <p className="line-clamp-2 text-anac-muted">{metric.definition}</p>

@@ -231,8 +231,8 @@ describe('ROLE-ANALYTICS-1D finance provider (real PostgreSQL)', { skip }, () =>
     const service = await finance.getOverview(context('service', s1));
     const delay = metric(service, 'finance.average_validation_delay');
     assert.deepEqual(
-      { value: delay?.value, unit: delay?.unit, sampleSize: delay?.sampleSize, reliability: delay?.reliability, caveatKey: delay?.caveatKey },
-      { value: 1.7, unit: 'calendar_days', sampleSize: 3, reliability: 'caveat', caveatKey: 'latest_proof_only' },
+      { value: delay?.value, unit: delay?.unit, sampleSize: delay?.sampleSize, sampleLabel: delay?.sampleLabel, reliability: delay?.reliability, caveatKey: delay?.caveatKey },
+      { value: 1.7, unit: 'calendar_days', sampleSize: 3, sampleLabel: '3 paiements validés', reliability: 'caveat', caveatKey: 'latest_proof_only' },
       'P1 3, P2 1, P6 1; P3 (proof after validation) left out'
     );
   });
@@ -290,6 +290,7 @@ describe('ROLE-ANALYTICS-1D finance provider (real PostgreSQL)', { skip }, () =>
     const delay = metric(overview, 'finance.average_validation_delay');
     assert.equal(delay?.value, null);
     assert.equal(delay?.sampleSize, 0);
+    assert.equal(delay?.sampleLabel, '0 paiement validé');
     assert.deepEqual(overview.recentActivity, []);
   });
 

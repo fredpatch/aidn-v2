@@ -6,6 +6,7 @@ import { MemoryRouter } from 'react-router-dom';
 import type { DashboardActivityItem, DashboardPhaseStat } from '../../../lib/api/dashboard.types';
 import { WorkflowPhaseSummary } from './WorkflowPhaseSummary';
 import { ActivityTimeline } from './ActivityTimeline';
+import { DashboardMetricCard } from './DashboardMetricCard';
 
 const phase = (phaseCode: string, extra: Partial<DashboardPhaseStat>): DashboardPhaseStat => ({
   phaseCode,
@@ -48,6 +49,40 @@ const activity = (extra: Partial<DashboardActivityItem>): DashboardActivityItem 
   createdAt: '2026-10-19T11:45:00.000Z',
   tone: 'success',
   ...extra,
+});
+
+describe('DashboardMetricCard - samples (ANALYTICS-SAMPLE-CLARITY-2)', () => {
+  const card = (metric: Parameters<typeof DashboardMetricCard>[0]['metric']) =>
+    render(
+      <MemoryRouter>
+        <DashboardMetricCard metric={metric} />
+      </MemoryRouter>
+    );
+
+  it.each([
+    ['active_requests', 'Dossiers actifs'],
+    ['open_phases', 'Phases ouvertes'],
+    ['pending_payments', 'Paiements bloquants'],
+  ])('direct count %s: « État actuel » only, no « base N »', (key, label) => {
+    const { container } = card({ key, label, value: 4, periodLabel: 'État actuel', sampleSize: 18 });
+    expect(screen.getByText('État actuel')).toBeInTheDocument();
+    expect(container.textContent).not.toMatch(/base|18/);
+  });
+
+  it('global duration: « Historique des retraits · 2 dossiers avec certificat retiré »', () => {
+    const { container } = card({
+      key: 'average_global_duration',
+      label: 'Durée moyenne globale',
+      value: '4 j 22 h',
+      rawValue: 4.9,
+      unit: 'calendar_days',
+      periodLabel: 'Historique des retraits',
+      sampleSize: 2,
+      sampleLabel: '2 dossiers avec certificat retiré',
+    });
+    expect(screen.getByText('Historique des retraits · 2 dossiers avec certificat retiré')).toBeInTheDocument();
+    expect(container.textContent).not.toMatch(/base/);
+  });
 });
 
 describe('ActivityTimeline', () => {

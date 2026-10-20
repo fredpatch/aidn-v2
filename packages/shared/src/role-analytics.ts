@@ -45,6 +45,9 @@ export interface RoleAnalyticsMetric {
   /** 'period' = within the requested range; 'current' = live queue state. */
   basis: 'period' | 'current';
   sampleSize?: number;
+  /** ANALYTICS-SAMPLE-CLARITY-2 - what `sampleSize` counts, in words, built by
+   *  the provider that sampled it (« 4 circuits DG terminés »). */
+  sampleLabel?: string;
   reliability: RoleAnalyticsReliability;
   caveatKey?: string;
   /** Same-length previous period, for a trend arrow. */

@@ -57,7 +57,8 @@ async function getOverview(context: RoleAnalyticsContext): Promise<RoleAnalytics
   const withDg = queue.items.filter((item) => item.bucket === 'with_dg');
   const overdue = withDg.filter((item) => item.urgency === 'overdue');
   overview.metrics.push(
-    durationMetric('courrier.average_dg_circuit_duration', duration),
+    // One row per DG circuit document signed in the period.
+    durationMetric('courrier.average_dg_circuit_duration', duration, { singular: 'circuit DG terminé', plural: 'circuits DG terminés' }),
     currentCountMetric('courrier.to_print_backlog', queue.counts.to_print),
     currentCountMetric('courrier.dg_return_overdue', overdue.length)
   );

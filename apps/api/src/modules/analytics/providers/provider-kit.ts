@@ -9,6 +9,7 @@ import type {
   RoleAnalyticsPeriod,
   RoleAnalyticsWarning,
 } from '@aidn/shared';
+import { countLabel, type CountNoun } from '@aidn/shared';
 import { countCircuitEvents, type CircuitEventSpec } from './circuit-events.js';
 import { previousRange, type DurationSample, type TimeRange } from './sql.js';
 
@@ -53,13 +54,20 @@ export async function periodCountMetric(
   };
 }
 
-export function durationMetric(key: string, sample: DurationSample, caveatKey?: string): RoleAnalyticsMetric {
+/** `noun` says what one sampled row is (the provider knows; the screen does not guess). */
+export function durationMetric(
+  key: string,
+  sample: DurationSample,
+  noun: CountNoun,
+  caveatKey?: string
+): RoleAnalyticsMetric {
   return {
     key,
     value: sample.value,
     unit: 'calendar_days',
     basis: 'period',
     sampleSize: sample.sampleSize,
+    sampleLabel: countLabel(sample.sampleSize, noun),
     ...(caveatKey ? { reliability: 'caveat' as const, caveatKey } : { reliability: 'reliable' as const }),
   };
 }
