@@ -4,8 +4,8 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   buildActivityItems,
-  businessActivityLabel,
   calendarDurationMetricValue,
+  dashboardActivityPresentation,
   resolveActivityRequestId,
   type ActivityAuditRow,
   type ActivityLookup,
@@ -36,6 +36,7 @@ const row = (action: string, entityId: number | null, extra: Partial<ActivityAud
   entityId,
   requestId: null,
   details: null,
+  module: null,
   actor: 'Agent DN',
   createdAt: new Date('2026-10-19T11:45:00.000Z'),
   ...extra,
@@ -95,7 +96,7 @@ describe('buildActivityItems', () => {
   it('skips technical events and returns up to 3 business events, newest first', () => {
     const rows = [
       row('LOGIN', null),
-      row('PHASE_CLOSED', 70),
+      row('PHASE_CLOSED', 70, { module: 'M4' }),
       row('APPLICANT_LOGIN', 1),
       row('AUTH_REFRESH', null),
       row('PAYMENT_VALIDATED', 500),
@@ -106,17 +107,58 @@ describe('buildActivityItems', () => {
     const items = buildActivityItems(rows, lookup, href);
     assert.deepEqual(
       items.map((item) => item.title),
-      ['Phase clôturée', 'Paiement validé', 'Demande mise à jour']
+      ['Phase clôturée - Demande formelle', 'Paiement validé', 'Demande déposée']
     );
   });
 });
 
 describe('labels and durations', () => {
-  it('business labels carry their accents', () => {
-    assert.equal(businessActivityLabel('CERTIFICATE_COLLECTED'), 'Certificat retiré');
-    assert.equal(businessActivityLabel('DOCUMENT_VALIDATED'), 'Document accepté');
-    assert.equal(businessActivityLabel('COURRIER_SENT_TO_SIGNATURE'), 'Circuit de signature mis à jour');
-    assert.equal(businessActivityLabel('LOGIN'), null);
+  // DASH-ACTIVITY-LABELS-1 - the Demandes catalog, not broad heuristics.
+  it('known events read exactly as in the Demandes reading pane, with the same tone', () => {
+    const cases: Array<[string, string | null, string, string]> = [
+      ['REQUEST_SUBMITTED', null, 'Demande déposée', 'info'],
+      ['MEETING_SCHEDULED', null, 'Réunion planifiée', 'info'],
+      ['DG_CIRCUIT_SIGNED_RETURNED', null, 'Annotation du DG reçue', 'success'],
+      ['COURRIER_SENT_TO_SIGNATURE', null, 'Courrier mis en signature', 'warning'],
+      ['PAYMENT_REJECTED', null, 'Paiement rejeté', 'danger'],
+      ['CERTIFICATE_STATUS_CHANGED', null, 'Statut du certificat modifié', 'info'],
+      ['PHASE_CLOSED', 'M6', 'Phase clôturée - Démonstration / Inspection', 'success'],
+      ['PHASE_OPENED', 'UNKNOWN', 'Phase ouverte', 'info'],
+    ];
+    for (const [action, module, title, tone] of cases) {
+      assert.deepEqual(dashboardActivityPresentation({ action, module }, true), { title, tone }, action);
+    }
+  });
+
+  it('connections are never activity', () => {
+    for (const action of ['LOGIN', 'APPLICANT_LOGIN', 'AUTH_REFRESH', 'LOGOUT']) {
+      assert.equal(dashboardActivityPresentation({ action, module: null }, true), null, action);
+    }
+  });
+
+  it('unknown action: the neutral wording on a dossier, nothing without one (no raw code either way)', () => {
+    assert.deepEqual(dashboardActivityPresentation({ action: 'SOME_NEW_DOSSIER_EVENT', module: null }, true), {
+      title: 'Activité du dossier mise à jour',
+      tone: 'info',
+    });
+    assert.equal(dashboardActivityPresentation({ action: 'USER_CREATED', module: null }, false), null);
+    assert.equal(dashboardActivityPresentation({ action: 'SOME_NEW_DOSSIER_EVENT', module: null }, false), null);
+  });
+
+  it('buildActivityItems: an unknown event linked to a dossier shows neutrally; an account event is skipped', () => {
+    const items = buildActivityItems(
+      [row('USER_CREATED', 7), row('SOME_NEW_DOSSIER_EVENT', null, { requestId: 8 }), row('PAYMENT_VALIDATED', 17)],
+      lookup,
+      () => undefined
+    );
+    assert.deepEqual(
+      items.map((item) => [item.title, item.requestId]),
+      [
+        ['Activité du dossier mise à jour', 8],
+        ['Paiement validé', null],
+      ]
+    );
+    assert.doesNotMatch(JSON.stringify(items), /some new|SOME_NEW|user created|USER_CREATED/i);
   });
 
   it('average_global_duration 4.9 -> « 4 j 22 h », raw value kept; null -> « - »', () => {

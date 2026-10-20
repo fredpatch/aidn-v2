@@ -3,6 +3,18 @@
 Commit-level history. Covers `be9fce9` through the 2026-10-09 D3c admin
 unread/activity batch.
 
+## 2026-10-20 DASH-ACTIVITY-LABELS-1: one catalog for dossier activity labels
+
+- `requests/request-activity-labels.ts`: `ACTIVITY_LABELS` (moved verbatim from `requests.service.ts`, re-exported
+  there) and `resolveRequestActivityPresentation(action, module?)` -> `{ title, tone }`, used by the Demandes reading
+  pane and the dashboard. The dashboard's heuristic labels and tones are gone.
+- Phase events name the phase: « Phase ouverte - Préliminaire », « Phase clôturée - Demande formelle »; an unknown
+  module gives the bare « Phase ouverte » / « Phase clôturée ». `PHASE_LABELS` moved to `request-labels.ts`.
+- No raw audit code: an unknown action on a dossier reads « Activité du dossier mise à jour » (info); uncatalogued
+  meeting statuses keep « Réunion mise à jour ». On the dashboard an unknown action with no dossier (account or
+  system event, e.g. `USER_CREATED`) is not shown; connections stay filtered.
+- Dashboard rows carry `module` (already selected by the same query). No audit-linking, query, order or limit change.
+
 ## 2026-10-20 ANALYTICS-SAMPLE-CLARITY-2: dashboard and /pilotage samples say what they count
 
 - Shared `countLabel` / `CountNoun` (`@aidn/shared`, 0 and 1 singular), used by /analytique, /pilotage and the

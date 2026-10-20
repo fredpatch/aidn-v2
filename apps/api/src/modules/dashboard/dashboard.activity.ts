@@ -1,5 +1,10 @@
 import { formatCalendarDuration } from '@aidn/shared';
 import { auditEntityKind } from '../auth/audit-request.js';
+import {
+  isCataloguedRequestActivity,
+  resolveRequestActivityPresentation,
+  type RequestActivityPresentation,
+} from '../requests/request-activity-labels.js';
 import type { DashboardActivityItem, DashboardMetric } from './dashboard.types.js';
 
 /** DASH-DN-UX-1 - presentation helpers of the dashboard: durations read like
@@ -25,6 +30,8 @@ export interface ActivityAuditRow {
   /** audit_logs.request_id - resolved by logAudit (D3a), backfilled by migration 0005. */
   requestId: number | null;
   details: unknown;
+  /** The phase code for PHASE_OPENED / PHASE_CLOSED. */
+  module: string | null;
   actor: string | null;
   createdAt: Date;
 }
@@ -86,44 +93,18 @@ export function resolveActivityRequestId(row: ActivityAuditRow, lookup: Activity
   return null;
 }
 
-export function activityTone(action: string): DashboardActivityItem['tone'] {
-  if (action.includes('REJECT') || action.includes('CANCEL')) return 'danger';
-  if (action.includes('VALIDATED') || action.includes('CLOSED') || action.includes('COLLECTED')) {
-    return 'success';
-  }
-  if (action.includes('SIGN') || action.includes('PAYMENT')) return 'warning';
-  return 'info';
-}
-
-export function businessActivityLabel(action: string): string | null {
-  if (TECHNICAL_AUDIT_ACTIONS.some((technicalAction) => action.includes(technicalAction))) {
-    return null;
-  }
-  if (action.includes('PHASE') && action.includes('CLOSED')) return 'Phase clôturée';
-  if (action.includes('CERTIFICATE') && action.includes('STATUS')) {
-    return 'Statut certificat mis à jour';
-  }
-  if (action.includes('CERTIFICATE') && action.includes('COLLECTED')) {
-    return 'Certificat retiré';
-  }
-  if (action.includes('PAYMENT') && action.includes('VALIDATED')) {
-    return 'Paiement validé';
-  }
-  if (action.includes('PAYMENT') && action.includes('REJECT')) {
-    return 'Paiement rejeté';
-  }
-  if (action.includes('DOCUMENT') && action.includes('VALIDATED')) {
-    return 'Document accepté';
-  }
-  if (action.includes('DOCUMENT') && action.includes('REJECT')) {
-    return 'Document à reprendre';
-  }
-  if (action.includes('SIGN') || action.includes('CIRCUIT')) {
-    return 'Circuit de signature mis à jour';
-  }
-  if (action.includes('MEETING')) return 'Réunion mise à jour';
-  if (action.includes('REQUEST')) return 'Demande mise à jour';
-  return action.replaceAll('_', ' ').toLowerCase();
+/** How a dashboard event reads: the same catalog as the Demandes reading
+ *  pane (DASH-ACTIVITY-LABELS-1). Connections are not shown, and an action
+ *  the catalog does not name is shown only when it belongs to a dossier, as
+ *  the neutral « Activité du dossier mise à jour »: an account or system
+ *  event never becomes dossier activity, and no raw audit code reaches the UI. */
+export function dashboardActivityPresentation(
+  row: Pick<ActivityAuditRow, 'action' | 'module'>,
+  dossierResolved: boolean
+): RequestActivityPresentation | null {
+  if (TECHNICAL_AUDIT_ACTIONS.some((technicalAction) => row.action.includes(technicalAction))) return null;
+  if (!dossierResolved && !isCataloguedRequestActivity(row.action)) return null;
+  return resolveRequestActivityPresentation(row.action, row.module);
 }
 
 /** Up to `limit` business events, newest first, each with its dossier when
@@ -138,18 +119,18 @@ export function buildActivityItems(
   const items: DashboardActivityItem[] = [];
   for (const row of rows) {
     if (items.length >= limit) break;
-    const title = businessActivityLabel(row.action);
-    if (!title) continue;
     const requestId = resolveActivityRequestId(row, lookup);
+    const presentation = dashboardActivityPresentation(row, requestId !== null);
+    if (!presentation) continue;
     items.push({
       id: row.id,
-      title,
+      title: presentation.title,
       requestId,
       requestReference: requestId === null ? null : lookup.requestReferenceById.get(requestId)!,
       href: requestId === null ? undefined : dossierHref(requestId),
       actor: row.actor ?? 'Système',
       createdAt: row.createdAt.toISOString(),
-      tone: activityTone(row.action),
+      tone: presentation.tone,
     });
   }
   return items;

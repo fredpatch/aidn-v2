@@ -28,11 +28,11 @@ describe('dashboard summary - recent activity and durations (HTTP)', { skip: dbS
   const ids = { user: 0, org: 0, applicant: 0, request: 0, phase: 0, payment: 0, audits: [] as number[] };
 
   const one = async (sql: string, params: unknown[] = []) => (await pool.query(sql, params)).rows[0];
-  const audit = async (action: string, entityId: number | null, requestId: number | null, minutesAhead: number) => {
+  const audit = async (action: string, entityId: number | null, requestId: number | null, minutesAhead: number, module = 'TEST') => {
     const { id } = await one(
       `INSERT INTO audit_logs (user_id, action, module, entity_id, request_id, created_at)
-       VALUES ($1, $2, 'TEST', $3, $4, now() + interval '1 day' + make_interval(mins => $5)) RETURNING id`,
-      [ids.user, action, entityId, requestId, minutesAhead]
+       VALUES ($1, $2, $6, $3, $4, now() + interval '1 day' + make_interval(mins => $5)) RETURNING id`,
+      [ids.user, action, entityId, requestId, minutesAhead, module]
     );
     ids.audits.push(id);
   };
@@ -74,12 +74,15 @@ describe('dashboard summary - recent activity and durations (HTTP)', { skip: dbS
     ids.phase = (await one(`INSERT INTO phases (request_id, phase_code) VALUES ($1, 'M5') RETURNING id`, [ids.request])).id;
     ids.payment = (await one(`INSERT INTO payments (phase_id, status) VALUES ($1, 'validated') RETURNING id`, [ids.phase])).id;
 
-    // Oldest to newest: an unresolvable account event, a phase event linked
-    // by audit_logs.request_id, a legacy payment event (request_id NULL,
-    // resolved through payment -> phase -> request), then 12 connections.
-    await audit('USER_CREATED', ids.user, null, 0);
-    await audit('PHASE_CLOSED', ids.phase, ids.request, 1);
-    await audit('PAYMENT_VALIDATED', ids.payment, null, 2);
+    // Oldest to newest: a phase event (module M5) linked by
+    // audit_logs.request_id, an action no catalog names yet but linked to the
+    // dossier, an account event (no dossier: never activity), a legacy payment
+    // event (request_id NULL, resolved through payment -> phase -> request),
+    // then 12 connections.
+    await audit('PHASE_CLOSED', ids.phase, ids.request, 1, 'M5');
+    await audit('SOME_NEW_DOSSIER_EVENT', null, ids.request, 2);
+    await audit('USER_CREATED', ids.user, null, 3);
+    await audit('PAYMENT_VALIDATED', ids.payment, null, 4);
     for (let i = 0; i < 12; i += 1) await audit(['LOGIN', 'AUTH_REFRESH', 'LOGOUT'][i % 3], null, null, 10 + i);
   });
 
@@ -104,10 +107,13 @@ describe('dashboard summary - recent activity and durations (HTTP)', { skip: dbS
       body.activity.map((item: Record<string, unknown>) => [item.title, item.requestId, item.requestReference, item.href, item.actor]),
       [
         ['Paiement validé', ids.request, reference, `/demandes?id=${ids.request}`, 'Agent Finance'],
-        ['Phase clôturée', ids.request, reference, `/demandes?id=${ids.request}`, 'Agent Finance'],
-        ['user created', null, null, undefined, 'Agent Finance'],
+        ['Activité du dossier mise à jour', ids.request, reference, `/demandes?id=${ids.request}`, 'Agent Finance'],
+        ['Phase clôturée - Évaluation approfondie', ids.request, reference, `/demandes?id=${ids.request}`, 'Agent Finance'],
       ]
     );
+    // DASH-ACTIVITY-LABELS-1 - no raw audit code, no phase code.
+    const titles = body.activity.map((item: { title: string }) => item.title).join(' | ');
+    assert.doesNotMatch(titles, /user created|some new|_|\bM[3-7]\b/i);
     assert.doesNotMatch(JSON.stringify(body.activity), new RegExp(`#(${ids.payment}|${ids.phase}|${ids.user})\\b`));
   });
 

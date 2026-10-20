@@ -111,10 +111,10 @@ describe('ActivityTimeline', () => {
   it('unresolved event: no dossier line and no technical id, action / date / actor still shown', () => {
     const { container } = render(
       <MemoryRouter>
-        <ActivityTimeline activity={[activity({ id: 17, title: 'user created', requestId: null, requestReference: null, href: undefined })]} />
+        <ActivityTimeline activity={[activity({ id: 17, title: 'Certificat généré', requestId: null, requestReference: null, href: undefined })]} />
       </MemoryRouter>
     );
-    expect(screen.getByText('user created')).toBeInTheDocument();
+    expect(screen.getByText('Certificat généré')).toBeInTheDocument();
     expect(screen.getByText(/Agent Finance/)).toBeInTheDocument();
     expect(container.textContent).not.toMatch(/#\d+|DEM-/);
     expect(screen.queryByRole('link')).toBeNull();

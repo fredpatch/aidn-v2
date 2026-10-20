@@ -40,104 +40,18 @@ import { relocateDossierAssetAfterCommit, type RelocationTarget } from '../files
 import { assertDossierOpen, dossierFlags } from './dossier-open.js';
 import {
   effectiveRequestStatus,
+  PHASE_LABELS,
   REQUEST_STATUS_LABELS,
   REQUEST_TYPE_LABELS,
   TERMINAL_REQUEST_STATUSES,
 } from './request-labels.js';
+import { resolveRequestActivityPresentation } from './request-activity-labels.js';
 
 export type { SubmitRequestParams, RequestView } from './requests.types.js';
 export { effectiveRequestStatus } from './request-labels.js';
-
-const PHASE_LABELS: Record<string, string> = {
-  M3: 'Préliminaire',
-  M4: 'Demande formelle',
-  M5: 'Évaluation approfondie',
-  M6: 'Démonstration / Inspection',
-  M7: 'Délivrance',
-};
+export { ACTIVITY_LABELS } from './request-activity-labels.js';
 
 const PHASE_CODES = ['M3', 'M4', 'M5', 'M6', 'M7'] as const;
-
-
-/** D3a - French titles of the dossier events shown in the reading pane, all
- *  phases (audit actions linked to a request, modules/auth/audit-request.ts). */
-export const ACTIVITY_LABELS: Record<
-  string,
-  { title: string; tone: RequestCockpitActivity['tone'] }
-> = {
-  REQUEST_SUBMITTED: { title: 'Demande déposée', tone: 'info' },
-  REQUEST_CANCELLED: { title: 'Demande annulée', tone: 'danger' },
-  REQUEST_COMPLETED: { title: 'Dossier terminé', tone: 'success' },
-  DG_CIRCUIT_SENT_TO_SIGNATURE: { title: 'Demande mise en circuit DG', tone: 'warning' },
-  DG_CIRCUIT_SIGNED: { title: 'Demande signée', tone: 'success' },
-  DG_CIRCUIT_SIGNED_RETURNED: { title: 'Annotation du DG reçue', tone: 'success' },
-  DG_ANNOTATION_RETURNED: { title: 'Annotation du DG reçue', tone: 'success' },
-  DN_ANNOTATION_CIRCUIT_CREATED: { title: 'À transmettre au Directeur DN', tone: 'info' },
-  DN_ANNOTATION_SENT_TO_DIRECTOR: { title: 'Dossier en circuit Directeur DN', tone: 'warning' },
-  DN_ANNOTATION_RETURNED: { title: 'Annotation du Directeur DN reçue', tone: 'success' },
-  DG_CIRCUIT_PENDING_REVIEW: { title: 'Demande transmise à la DN', tone: 'success' },
-  DG_CIRCUIT_DOCUMENT_REPLACED: { title: 'Document du circuit remplacé', tone: 'info' },
-  DG_CIRCUIT_ALERT_SENT: { title: 'Alerte : circuit signature en retard', tone: 'warning' },
-  PHASE_OPENED: { title: 'Phase ouverte', tone: 'info' },
-  PHASE_CLOSED: { title: 'Phase clôturée', tone: 'success' },
-  COURRIER_SENT_TO_SIGNATURE: { title: 'Courrier mis en signature', tone: 'warning' },
-  COURRIER_SIGNED_RETURNED: { title: 'Retour signé du courrier scanné', tone: 'success' },
-  FORMAL_LETTER_SUBMITTED: { title: 'Lettre formelle déposée', tone: 'info' },
-  FORMAL_LETTER_SIGNED: { title: 'Lettre formelle signée', tone: 'success' },
-  FORMAL_LETTER_TRANSMITTED: { title: 'Lettre formelle transmise', tone: 'success' },
-  FORMAL_DOCUMENT_SUBMITTED: { title: 'Document de la demande formelle déposé', tone: 'info' },
-  PRELIMINARY_EVALUATION_MADE_AVAILABLE: {
-    title: 'Formulaire de pré-évaluation mis à disposition',
-    tone: 'info',
-  },
-  PRELIMINARY_EVALUATION_SUBMITTED: { title: 'Pré-évaluation déposée', tone: 'info' },
-  PRELIMINARY_DECLARATION_CIRCUIT_CREATED: {
-    title: 'Déclaration de pré-évaluation en circuit',
-    tone: 'warning',
-  },
-  DOCUMENT_VERDICT_SET: { title: 'Document évalué', tone: 'info' },
-  DOCUMENT_RESUBMITTED: { title: 'Document redéposé', tone: 'info' },
-  INVOICE_UPLOADED: { title: 'Facture envoyée', tone: 'info' },
-  PAYMENT_PROOF_UPLOADED: { title: 'Preuve de paiement déposée', tone: 'info' },
-  PAYMENT_VALIDATED: { title: 'Paiement validé', tone: 'success' },
-  PAYMENT_REJECTED: { title: 'Paiement rejeté', tone: 'danger' },
-  MEETING_SCHEDULED: { title: 'Réunion planifiée', tone: 'info' },
-  MEETING_RESCHEDULED: { title: 'Réunion reportée', tone: 'warning' },
-  MEETING_REPORT_ATTACHED: { title: 'Compte-rendu de réunion joint', tone: 'info' },
-  // SESSION1-MEET-2 - the applicant's signed copy (one upload per meeting).
-  MEETING_SIGNED_REPORT_SUBMITTED: { title: 'Compte rendu signé transmis par le postulant', tone: 'info' },
-  MEETING_HELD: { title: 'Réunion tenue', tone: 'success' },
-  MEETING_NO_SHOW: { title: 'Réunion : absence du postulant', tone: 'warning' },
-  MEETING_FILE_CANCELLED: { title: 'Réunion : dossier annulé', tone: 'danger' },
-  MEETING_CONFIRMED_BY_APPLICANT: { title: 'Rendez-vous confirmé par le postulant', tone: 'success' },
-  MEETING_ALTERNATE_PROPOSED: { title: 'Nouvelle date proposée par le postulant', tone: 'warning' },
-  MEETING_ALTERNATE_ACCEPTED: { title: 'Date proposée acceptée', tone: 'success' },
-  MEETING_ALTERNATE_REFUSED: { title: 'Date proposée refusée', tone: 'warning' },
-  MEETING_CONFIRMED_BY_DN: { title: 'Rendez-vous confirmé au nom du postulant', tone: 'info' },
-  SITE_VISIT_HELD: { title: 'Visite sur site tenue', tone: 'success' },
-  INSPECTION_VERDICT_SUBMITTED: { title: 'Avis d’inspection rendu', tone: 'success' },
-  CERTIFICATE_CREATED: { title: 'Certificat créé', tone: 'info' },
-  CERTIFICATE_DOCUMENT_GENERATED: { title: 'Certificat généré', tone: 'info' },
-  CERTIFICATE_FIELDS_UPDATED: { title: 'Certificat mis à jour', tone: 'info' },
-  CERTIFICATE_TYPE_OVERRIDDEN: { title: 'Type de certificat modifié', tone: 'warning' },
-  CERTIFICATE_SIGNED_RETURN_REGISTERED: { title: 'Certificat signé enregistré', tone: 'success' },
-  CERTIFICATE_STATUS_CHANGED: { title: 'Statut du certificat modifié', tone: 'info' },
-};
-
-/** Phase code appended to phase events (« Phase ouverte (M4) »); the audit
- *  module is the phase for those actions. */
-function activityLabel(
-  action: string,
-  module: string
-): { title: string; tone: RequestCockpitActivity['tone'] } {
-  const known = ACTIVITY_LABELS[action];
-  if (known && (action === 'PHASE_OPENED' || action === 'PHASE_CLOSED')) {
-    return { ...known, title: `${known.title} (${module})` };
-  }
-  if (known) return known;
-  if (action.startsWith('MEETING_')) return { title: 'Réunion mise à jour', tone: 'info' };
-  return { title: action.replaceAll('_', ' ').toLowerCase(), tone: 'info' };
-}
 
 /** A raw `timestamp` (no time zone) read through db.execute: decoded as UTC,
  *  the same convention as drizzle's column decoder (never the server's zone). */
@@ -489,7 +403,7 @@ export async function listRequestCockpit(viewerUserId?: number): Promise<Request
       created_at: Date | string;
       actor: string | null;
     };
-    const label = activityLabel(activity.action, activity.module);
+    const label = resolveRequestActivityPresentation(activity.action, activity.module);
     const list = activitiesByRequestId.get(activity.request_id) ?? [];
     list.push({
       id: activity.id,

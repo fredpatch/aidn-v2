@@ -178,7 +178,8 @@ describe('D3a audit -> request link (real PostgreSQL)', { skip }, () => {
     assert.ok(item);
     assert.equal(item.activity.length, 5);
     assert.equal(item.activity[0].title, 'Paiement validé');
-    assert.equal(item.activity.at(-1).title, 'Phase ouverte (M5)');
+    // DASH-ACTIVITY-LABELS-1 - the phase by name, never its code.
+    assert.equal(item.activity.at(-1).title, 'Phase ouverte - Évaluation approfondie');
     // Read as UTC text in SQL: never through the test process's time zone.
     const latest = (
       await one(

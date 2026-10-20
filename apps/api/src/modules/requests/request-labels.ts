@@ -19,6 +19,15 @@ export const REQUEST_STATUS_LABELS: Record<string, string> = {
   cancelled: 'Annulé',
 };
 
+/** Business names of the phases: M3-M7 are technical identifiers. */
+export const PHASE_LABELS: Record<string, string> = {
+  M3: 'Préliminaire',
+  M4: 'Demande formelle',
+  M5: 'Évaluation approfondie',
+  M6: 'Démonstration / Inspection',
+  M7: 'Délivrance',
+};
+
 export const TERMINAL_REQUEST_STATUSES = ['rejected', 'completed', 'cancelled'];
 
 /** Effective status: a closed M7 (Délivrance) completes the dossier even if
