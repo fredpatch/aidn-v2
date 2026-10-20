@@ -42,8 +42,8 @@ export const KPI_EXPLANATIONS = [
   },
   {
     key: 'outside_sla',
-    label: 'Dossiers hors délai',
-    definition: 'Phases encore ouvertes qui dépassent leur cible SLA.',
+    label: 'Phases hors délai',
+    definition: "Phases actuellement ouvertes dont l'âge dépasse leur cible SLA.",
     dnValue: 'Identifie immédiatement les dossiers à reprendre en priorité.',
   },
   {

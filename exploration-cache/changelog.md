@@ -3,6 +3,16 @@
 Commit-level history. Covers `be9fce9` through the 2026-10-09 D3c admin
 unread/activity batch.
 
+## 2026-10-20 ANALYTICS-SLA-CLARITY-1: SLA and age donuts name their population
+
+- /analytique: « Ancienneté des dossiers actifs » (total « N dossiers actifs ») and « Respect des SLA - phases
+  clôturées » (« Phases clôturées sur la période, comparées à leur délai cible », total « N phases clôturées »,
+  legend « Dans le délai cible » / « Au-delà du délai cible », tooltip « … : 9 phases clôturées (75 %) »).
+  `DistributionChart` takes an optional count noun instead of « Total N ».
+- KPI `outside_sla` renamed « Phases hors délai » (« Phases ouvertes au-delà de leur cible SLA »): current open
+  phases, distinct from the historical compliance rate. Excel « Respect des SLA | Phases clôturées ».
+- No SLA calculation or target change; no raw M3-M7 in the visible UI, PDF or Excel (audited, already compliant).
+
 ## 2026-10-20 ANALYTICS-POLISH-1: analytics sample wording and report text
 
 - Overview KPIs carry `sampleLabel`, built where the sample is counted and agreed in number: « N dossiers

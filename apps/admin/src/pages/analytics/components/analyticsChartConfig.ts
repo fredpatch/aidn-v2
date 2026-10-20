@@ -18,6 +18,23 @@ export function durationTooltipLabel(seriesLabel: string, days: number | null | 
   return `${seriesLabel} : ${formatCalendarDuration(days ?? null)}`;
 }
 
+/** ANALYTICS-SLA-CLARITY-1 - what a distribution counts, agreed in number
+ *  (French: 0 and 1 take the singular). */
+export interface CountNoun {
+  singular: string;
+  plural: string;
+}
+
+export function countLabel(count: number, noun: CountNoun): string {
+  return `${count} ${count > 1 ? noun.plural : noun.singular}`;
+}
+
+/** « Au-delà du délai cible : 9 phases clôturées (75 %) ». */
+export function distributionTooltipLabel(label: string, value: number, total: number, noun?: CountNoun): string {
+  const share = total > 0 ? ` (${Math.round((value / total) * 100)} %)` : '';
+  return `${label} : ${noun ? countLabel(value, noun) : value}${share}`;
+}
+
 export function trendChartData(
   points: AnalyticsTrendPoint[]
 ): ChartData<'line', Array<number | null>, string> {

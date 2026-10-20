@@ -10,7 +10,9 @@ import type {
   AnalyticsTrendPoint,
 } from '../../analytics/analytics.types.js';
 import type { ReportKey, ReportSnapshot } from '../reports.types.js';
+import ExcelJS from 'exceljs';
 import { renderAnalyticsReportHtml } from './analytics-report-pdf.js';
+import { renderAnalyticsReportExcel } from './analytics-report-excel.js';
 import { niceAxisMax, renderPhaseDurationSvg, renderTrendSvg } from './analytics-report-svg.js';
 
 const phase = (
@@ -83,9 +85,9 @@ function snapshot(
       },
       {
         key: 'outside_sla',
-        label: 'Dossiers hors délai',
+        label: 'Phases hors délai',
         value: '3',
-        helper: 'Phases ouvertes au-dela de leur cible',
+        helper: 'Phases ouvertes au-delà de leur cible SLA',
         tone: 'danger',
         sampleSize: 1,
         sampleLabel: '1 phase ouverte',
@@ -336,5 +338,41 @@ describe('phase duration vs SLA SVG', () => {
 
   it('no phase -> null', () => {
     assert.equal(renderPhaseDurationSvg([]), null);
+  });
+});
+
+describe('ANALYTICS-SLA-CLARITY-1 - PDF / Excel wording', () => {
+  const sla = {
+    agingDistribution: [{ label: '0 - 7 jours', value: 2, color: '#16A34A' }],
+    slaDistribution: [
+      { label: 'Dans le délai cible', value: 3, color: '#16A34A' },
+      { label: 'Au-delà du délai cible', value: 9, color: '#DC2626' },
+    ],
+  };
+
+  it('PDF: phases by business name, « Phases hors délai » KPI, no raw M3-M7 cell', () => {
+    const page = html('sla', sla);
+    for (const name of ['Préliminaire', 'Demande formelle', 'Évaluation approfondie']) assert.match(page, new RegExp(`<td>${name}</td>`));
+    assert.match(page, /<td>Phases hors délai<\/td>/);
+    assert.doesNotMatch(page, /<td>M[3-7]<\/td>/);
+    assert.doesNotMatch(page, /au-dela/);
+  });
+
+  it('Excel: « Respect des SLA | Phases clôturées », target wording, same numbers; phases by business name', async () => {
+    const workbook = new ExcelJS.Workbook();
+    const buffer = await renderAnalyticsReportExcel(snapshot('full_report', sla));
+    await workbook.xlsx.load(buffer as unknown as Parameters<typeof workbook.xlsx.load>[0]);
+    const rows = (name: string) =>
+      (workbook.getWorksheet(name)!.getSheetValues() as unknown as unknown[][]).filter(Boolean).map((row) => row.slice(1));
+    const distributions = rows('Répartitions');
+    const header = distributions.findIndex((row) => row[0] === 'Respect des SLA');
+    assert.deepEqual(distributions[header], ['Respect des SLA', 'Phases clôturées']);
+    assert.deepEqual(distributions.slice(header + 1, header + 3), [
+      ['Dans le délai cible', 3],
+      ['Au-delà du délai cible', 9],
+    ]);
+    const phaseNames = rows('Phases').map((row) => row[0]);
+    assert.ok(phaseNames.includes('Préliminaire') && phaseNames.includes('Évaluation approfondie'));
+    assert.ok(!phaseNames.some((name) => /^M[3-7]$/.test(String(name))));
   });
 });

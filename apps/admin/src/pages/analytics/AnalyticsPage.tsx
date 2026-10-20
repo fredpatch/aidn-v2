@@ -135,14 +135,16 @@ export default function AnalyticsPage() {
         <DurationTrendChart points={data.durationTrend} />
         <PhaseDurationChart phases={data.phaseStats} />
         <DistributionChart
-          title="Répartition par ancienneté"
-          subtitle="Dossiers actifs, selon le temps écoulé depuis le dépôt"
+          title="Ancienneté des dossiers actifs"
+          subtitle="Dossiers actifs selon le temps écoulé depuis le dépôt"
           items={data.agingDistribution}
+          noun={{ singular: 'dossier actif', plural: 'dossiers actifs' }}
         />
         <DistributionChart
-          title="Respect des SLA"
-          subtitle="Phases clôturées sur la période, dans ou au-delà de leur délai cible"
+          title="Respect des SLA - phases clôturées"
+          subtitle="Phases clôturées sur la période, comparées à leur délai cible"
           items={data.slaDistribution}
+          noun={{ singular: 'phase clôturée', plural: 'phases clôturées' }}
         />
       </div>
 

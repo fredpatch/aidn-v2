@@ -117,6 +117,19 @@ describe('analytics overview: SLA parameters and B1 (real PostgreSQL)', { skip }
     }
   });
 
+  it('ANALYTICS-SLA-CLARITY-1: « Phases hors délai »; the SLA donut counts the closed phases, labelled per target', async () => {
+    const o = await overview();
+    const outside = o.metrics.find((item) => item.key === 'outside_sla')!;
+    assert.equal(outside.label, 'Phases hors délai');
+    assert.equal(outside.helper, 'Phases ouvertes au-delà de leur cible SLA');
+    assert.deepEqual(o.slaDistribution.map((item) => item.label), ['Dans le délai cible', 'Au-delà du délai cible']);
+    // Same numbers as before: within + beyond = the closed phases behind the compliance rate.
+    const compliance = o.metrics.find((item) => item.key === 'sla_compliance')!;
+    const [within, beyond] = o.slaDistribution.map((item) => item.value);
+    assert.equal(within + beyond, compliance.sampleSize);
+    if (compliance.sampleSize) assert.equal(compliance.value, `${Math.round((within / compliance.sampleSize) * 100)}%`);
+  });
+
   it('uses the configured phase SLA, not a hardcoded target', async () => {
     const requestId = await dossier('in_progress');
     await openPhase(requestId, 'M3', 5);

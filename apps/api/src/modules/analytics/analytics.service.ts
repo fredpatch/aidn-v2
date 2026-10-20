@@ -395,9 +395,9 @@ export async function getAnalyticsOverview(filters: AnalyticsFilters): Promise<A
     ),
     buildMetric(
       'outside_sla',
-      'Dossiers hors délai',
+      'Phases hors délai',
       String(outsideSla.length),
-      'Phases ouvertes au-dela de leur cible',
+      'Phases ouvertes au-delà de leur cible SLA',
       outsideSla.length > 0 ? 'danger' : 'success',
       sample(openPhaseRows.length, 'phase ouverte', 'phases ouvertes')
     ),
@@ -464,9 +464,10 @@ export async function getAnalyticsOverview(filters: AnalyticsFilters): Promise<A
     phaseStats,
     agingDistribution: agingBuckets,
     slaDistribution: [
-      { label: 'Dans les délais', value: closedPhaseWithinSla.length, color: '#16A34A' },
+      // ANALYTICS-SLA-CLARITY-1 - phases closed in the period, each against its own target.
+      { label: 'Dans le délai cible', value: closedPhaseWithinSla.length, color: '#16A34A' },
       {
-        label: 'Hors délai',
+        label: 'Au-delà du délai cible',
         value: Math.max(0, closedPhaseRows.length - closedPhaseWithinSla.length),
         color: '#DC2626',
       },
@@ -476,7 +477,7 @@ export async function getAnalyticsOverview(filters: AnalyticsFilters): Promise<A
         key: 'delayed_phases',
         label: 'Phases en dépassement',
         value: String(outsideSla.length),
-        helper: 'Phases ouvertes au-dela du SLA',
+        helper: 'Phases ouvertes au-delà du SLA',
         tone: outsideSla.length > 0 ? 'danger' : 'info',
         href: '/demandes',
       },

@@ -139,7 +139,7 @@ function addDistributionsSheet(workbook: ExcelJS.Workbook, snapshot: ReportSnaps
   styleHeader(sheet.lastRow!);
   snapshot.overview.agingDistribution.forEach((item) => sheet.addRow([item.label, item.value]));
   sheet.addRow([]);
-  sheet.addRow(['Respect SLA', 'Phases clôturées']);
+  sheet.addRow(['Respect des SLA', 'Phases clôturées']);
   styleHeader(sheet.lastRow!);
   snapshot.overview.slaDistribution.forEach((item) => sheet.addRow([item.label, item.value]));
   autoFit(sheet);

@@ -16,7 +16,15 @@ import type {
   AnalyticsPhaseStat,
   AnalyticsTrendPoint,
 } from '../../../lib/api/analytics.types';
-import { phaseChartData, phaseChartOptions, trendChartData, trendChartOptions } from './analyticsChartConfig';
+import {
+  countLabel,
+  distributionTooltipLabel,
+  phaseChartData,
+  phaseChartOptions,
+  trendChartData,
+  trendChartOptions,
+  type CountNoun,
+} from './analyticsChartConfig';
 import { AnalyticsSection } from './AnalyticsSection';
 
 ChartJS.register(
@@ -96,10 +104,13 @@ export function DistributionChart({
   title,
   subtitle,
   items,
+  noun,
 }: {
   title: string;
   subtitle: string;
   items: AnalyticsDistributionItem[];
+  /** What is counted: the total and the tooltip name it (never a bare « Total N »). */
+  noun?: CountNoun;
 }) {
   const total = items.reduce((sum, item) => sum + item.value, 0);
 
@@ -124,7 +135,14 @@ export function DistributionChart({
                 responsive: true,
                 maintainAspectRatio: false,
                 cutout: '62%',
-                plugins: { legend: { display: false } },
+                plugins: {
+                  legend: { display: false },
+                  tooltip: {
+                    callbacks: {
+                      label: (item) => distributionTooltipLabel(item.label, Number(item.raw), total, noun),
+                    },
+                  },
+                },
               }}
             />
           </div>
@@ -150,7 +168,7 @@ export function DistributionChart({
             </div>
           ))}
           <div className="border-t border-anac-border pt-2 text-[12px] font-semibold text-anac-navy">
-            Total {total}
+            {noun ? countLabel(total, noun) : `Total ${total}`}
           </div>
         </div>
       </div>
