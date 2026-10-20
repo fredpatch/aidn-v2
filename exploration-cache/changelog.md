@@ -3,6 +3,13 @@
 Commit-level history. Covers `be9fce9` through the 2026-10-09 D3c admin
 unread/activity batch.
 
+## 2026-10-20 TEST-INFRA-WIN-1: K8b CLI test portable on Windows
+
+- `certificate-per-request.db.test.ts` runs `db:check:certificates --check` as `process.execPath` + the tsx CLI file
+  (resolved from tsx's package.json `bin`) instead of `execFile('npx', ...)`, which failed on Windows with
+  `spawn npx ENOENT`. Same real script, cwd and env. The full API suite now passes on Windows; the « known K8b
+  failure » noted in earlier entries is gone. Test-only change (gotchas.md #22 updated).
+
 ## 2026-10-20 AUTH-ENUMERATION-1: login errors no longer reveal accounts
 
 - `POST /api/auth/login` and `POST /api/applicant-auth/login` use a login-only `handleLoginError`: unknown or

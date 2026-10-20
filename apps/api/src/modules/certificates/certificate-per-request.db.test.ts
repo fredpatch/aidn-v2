@@ -5,9 +5,22 @@
 import { after, before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
+import { createRequire } from 'node:module';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import pg from 'pg';
+
+/** The tsx CLI (its package.json `bin`), run with the current Node. `npx`
+ *  cannot be spawned without a shell on Windows (ENOENT: it is npx.cmd), and
+ *  .cmd files cannot be spawned without one either since Node's
+ *  CVE-2024-27980 fix (EINVAL); node + the CLI file works everywhere. */
+function tsxCli(): string {
+  const require = createRequire(import.meta.url);
+  const manifest = require.resolve('tsx/package.json');
+  const { bin } = require(manifest) as { bin: string | Record<string, string> };
+  return path.join(path.dirname(manifest), typeof bin === 'string' ? bin : bin.tsx);
+}
 
 const DATABASE_URL = process.env.DATABASE_URL;
 const skip = DATABASE_URL ? false : 'DATABASE_URL not set (needs a migrated, disposable database)';
@@ -124,10 +137,12 @@ describe('K8b one certificate per request (real PostgreSQL)', { skip }, () => {
 
   it('db:check:certificates --check: exit 0 and OK when there is no duplicate', async () => {
     const apiRoot = fileURLToPath(new URL('../../../', import.meta.url));
-    const { stdout } = await promisify(execFile)('npx', ['tsx', 'src/scripts/check-certificate-duplicates.ts', '--check'], {
-      cwd: apiRoot,
-      env: process.env,
-    });
+    const { stdout, stderr } = await promisify(execFile)(
+      process.execPath,
+      [tsxCli(), 'src/scripts/check-certificate-duplicates.ts', '--check'],
+      { cwd: apiRoot, env: process.env }
+    );
     assert.match(stdout, /OK - every request has at most one certificate/);
+    assert.doesNotMatch(stderr, /error/i);
   });
 });

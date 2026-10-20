@@ -283,8 +283,9 @@ to M4) and, if their files are internal, a file-access stage (`file-context.ts`)
 `npm test` skips `*.db.test.ts` without `DATABASE_URL`. Point it at a throwaway database (migrated with
 `db:migrate`), never the dev one. `K7 closed dossier is read-only` snapshots whole tables (`audit_logs`,
 `dg_circuit_documents`, `document_versions`...), so it can fail when other DB test files write at the same time:
-run `npx tsx --test --test-concurrency=1 "src/**/*.test.ts"`. On Windows, `K8b one certificate per request` fails
-with `spawn npx ENOENT` (it spawns `npx` without a shell) - environmental, not a regression.
+run `npx tsx --test --test-concurrency=1 "src/**/*.test.ts"`. A test that runs a CLI must not `execFile('npx' ...)`
+(Windows: `spawn npx ENOENT`, it is `npx.cmd`) nor a `.cmd` file (EINVAL without a shell since Node's
+CVE-2024-27980 fix): run `process.execPath` with the tool's `bin` file, as the K8b test does since TEST-INFRA-WIN-1.
 
 ## 23. A new enum value cannot be used by a later migration: drizzle applies all pending migrations in ONE transaction
 
