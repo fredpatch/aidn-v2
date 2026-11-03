@@ -3,6 +3,25 @@
 Commit-level history. Covers `be9fce9` through the 2026-10-09 D3c admin
 unread/activity batch.
 
+## 2026-11-03 WORKFLOW-FOUNDATION-1A: shared phase closure courrier (backend)
+
+- Migration 0011: `phase_closure_status` enum (`submitted` -> `in_signature_circuit` -> `signed_returned`) and
+  `phase_closure_circuits` (one per phase, `UNIQUE phase_id`; composite FK `(phase_id, request_id)` -> `phases(id,
+  request_id)` through the new unique index `phases_id_request_idx`; status/date coherence CHECK; indexes on
+  `request_id`, `status`). `phases.status` stays `open` / `closed`; no backfill.
+- `modules/phase-closure`: `startPhaseClosure` (dossier open, phase locked and open, readiness, one courrier,
+  draft versioned), `markPhaseClosureInCircuit`, `recordPhaseClosureReturn` (one transaction: closure
+  `signed_returned`, phase `closed` at the same instant, `closure_document_url` = signed return, versions, audits).
+  Routes `/api/phase-closures`: deposit `dn_supervisor`/`SU`; circuit `reception`/`assistant_dg`/`SU`.
+- Readiness: `phase-closure.policy.ts` holds the M3/M4/M5 gates moved unchanged from the three close services;
+  M6/M7 deferred (`PHASE_CLOSURE_NOT_SUPPORTED`).
+- Audits `PHASE_CLOSURE_CREATED` / `_SENT_TO_DG` / `_RETURNED` + `PHASE_CLOSED`, explicit `request_id`, details
+  `{ phaseId, phaseCode, requestId }`. Documents: owner `phase_closure_document` (id = phase): draft -> trash on
+  return, signed current. Shared `PhaseClosureView` / `PHASE_CLOSURE_STATUSES`.
+- Transitional: `closePhase` / `closeFormalPhase` / `closeDeepEvaluationPhase` still close directly but refuse a
+  phase whose courrier started (`PHASE_CLOSURE_IN_PROGRESS`); M6 verdict and M7 collection auto-closes marked as
+  known exceptions.
+
 ## 2026-10-20 DASH-ACTIVITY-LABELS-1: one catalog for dossier activity labels
 
 - `requests/request-activity-labels.ts`: `ACTIVITY_LABELS` (moved verbatim from `requests.service.ts`, re-exported

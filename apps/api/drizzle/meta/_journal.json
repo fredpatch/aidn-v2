@@ -78,6 +78,13 @@
       "when": 1792046309035,
       "tag": "0010_session1_meet2_signed_report",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793691775968,
+      "tag": "0011_workflow_foundation_1a_phase_closure",
+      "breakpoints": true
     }
   ]
 }

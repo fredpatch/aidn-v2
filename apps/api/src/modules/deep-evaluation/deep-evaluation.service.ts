@@ -19,6 +19,8 @@ import {
 } from '../uploads/upload-attachment.js';
 import { relocateDossierAssetAfterCommit } from '../files/relocate-asset.js';
 import type { RelocationTarget } from '../files/relocate-asset.js';
+import { assertDeepEvaluationReady } from '../phase-closure/phase-closure.policy.js';
+import { assertNoPhaseClosureCircuit } from '../phase-closure/phase-closure.service.js';
 import { attachPaymentInvoice, attachPaymentProof } from '../payments/payment-documents.js';
 import { SLOT_LABELS } from '../formal-request/formal-request.service.js';
 import type {
@@ -349,31 +351,12 @@ export async function closeDeepEvaluationPhase(
     if (attachment && (await claimUploadAsset(tx, attachment, target)) === 'attached_here') return;
     if (phase.status !== 'open') throw new Error('PHASE_ALREADY_CLOSED');
 
-    const [payment] = await tx.select().from(payments).where(eq(payments.phaseId, phaseId));
-    if (!payment || payment.status !== 'validated') throw new Error('PAYMENT_NOT_VALIDATED');
-
-    const [m4] = await tx
-      .select()
-      .from(phases)
-      .where(and(eq(phases.requestId, phase.requestId), eq(phases.phaseCode, 'M4')));
-
-    if (m4) {
-      const m4Docs = await tx
-        .select()
-        .from(formalRequestDocuments)
-        .where(eq(formalRequestDocuments.phaseId, m4.id));
-
-      if (m4Docs.length > 0) {
-        const docIds = m4Docs.map((d) => d.id);
-        const evalRows = await tx
-          .select()
-          .from(documentEvaluations)
-          .where(inArray(documentEvaluations.formalRequestDocumentId, docIds));
-
-        const allValidated = evalRows.every((e) => e.verdict === 'validated');
-        if (!allValidated) throw new Error('DOCUMENTS_NOT_ALL_VALIDATED');
-      }
-    }
+    // WORKFLOW-FOUNDATION-1A - transitional direct close, to be replaced by
+    // the closure courrier (modules/phase-closure); refused once that
+    // courrier has started. Readiness is the shared policy.
+    await assertNoPhaseClosureCircuit(tx, phaseId);
+    // Payment validated, every M4 document evaluation validated.
+    await assertDeepEvaluationReady(tx, phase);
 
     if (attachment) {
       await tx.insert(documentVersions).values(versionValues(attachment, 'phase_closure_document', phaseId));

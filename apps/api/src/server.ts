@@ -34,6 +34,7 @@ import formalRequestRoute from './modules/formal-request/formal-request.route.js
 import courrierTasksRoute from './modules/courrier-tasks/courrier-tasks.route.js';
 import dnAnnotationRoute from './modules/dn-annotation/dn-annotation.route.js';
 import deepEvaluationRoute from './modules/deep-evaluation/deep-evaluation.route.js';
+import phaseClosureRoute from './modules/phase-closure/phase-closure.route.js';
 import siteInspectionRoute from './modules/site-inspection/site-inspection.route.js';
 import certificatesRoute from './modules/certificates/certificates.route.js';
 import paymentsRoute from './modules/payments/payments.route.js';
@@ -86,6 +87,7 @@ app.use('/api/formal-request', formalRequestRoute);
 app.use('/api/courrier-tasks', courrierTasksRoute);
 app.use('/api/dn-annotation-tasks', dnAnnotationRoute);
 app.use('/api/deep-evaluation', deepEvaluationRoute);
+app.use('/api/phase-closures', phaseClosureRoute);
 app.use('/api/site-inspection', siteInspectionRoute);
 app.use('/api/certificates', certificatesRoute);
 app.use('/api/payments', paymentsRoute);

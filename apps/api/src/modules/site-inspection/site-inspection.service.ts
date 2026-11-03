@@ -321,6 +321,9 @@ export async function submitInspectionVerdict(
 
     // Auto-close: per M6 spec, no DN decision is required once R3's verdict
     // lands - closure happens immediately as part of this same action.
+    // WORKFLOW-FOUNDATION-1A - KNOWN TRANSITIONAL EXCEPTION to the closure
+    // courrier rule (modules/phase-closure): this obsolete inspection flow is
+    // replaced wholesale by Inspection V2, which retires this auto-close.
     await tx
       .update(phases)
       .set({ status: 'closed', closedAt: submittedAt })

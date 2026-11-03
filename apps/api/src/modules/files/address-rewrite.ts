@@ -32,6 +32,8 @@ export const ADDRESS_COLUMNS = [
   { table: 'meetings', column: 'cr_document_url', ownerTypeSql: "'meeting_report'", ownerIdSql: 'id', mimeSql: null },
   { table: 'meetings', column: 'signed_cr_document_url', ownerTypeSql: "'meeting_report_signed'", ownerIdSql: 'id', mimeSql: null },
   { table: 'phases', column: 'closure_document_url', ownerTypeSql: "'phase_closure_document'", ownerIdSql: 'id', mimeSql: null },
+  { table: 'phase_closure_circuits', column: 'draft_document_url', ownerTypeSql: "'phase_closure_document'", ownerIdSql: 'phase_id', mimeSql: null },
+  { table: 'phase_closure_circuits', column: 'signed_document_url', ownerTypeSql: "'phase_closure_document'", ownerIdSql: 'phase_id', mimeSql: null },
   { table: 'certificates', column: 'signed_file_url', ownerTypeSql: "'certificate_document'", ownerIdSql: 'id', mimeSql: null },
   { table: 'reports', column: 'file_url', ownerTypeSql: "'report'", ownerIdSql: 'id', mimeSql: null },
 ] as const;

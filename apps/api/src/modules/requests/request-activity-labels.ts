@@ -30,6 +30,10 @@ export const ACTIVITY_LABELS: Record<string, RequestActivityPresentation> = {
   DG_CIRCUIT_ALERT_SENT: { title: 'Alerte : circuit signature en retard', tone: 'warning' },
   PHASE_OPENED: { title: 'Phase ouverte', tone: 'info' },
   PHASE_CLOSED: { title: 'Phase clôturée', tone: 'success' },
+  // WORKFLOW-FOUNDATION-1A - the closure courrier of a phase.
+  PHASE_CLOSURE_CREATED: { title: 'Courrier de clôture déposé', tone: 'info' },
+  PHASE_CLOSURE_SENT_TO_DG: { title: 'Courrier de clôture en circuit de signature', tone: 'warning' },
+  PHASE_CLOSURE_RETURNED: { title: 'Courrier de clôture signé reçu', tone: 'success' },
   COURRIER_SENT_TO_SIGNATURE: { title: 'Courrier mis en signature', tone: 'warning' },
   COURRIER_SIGNED_RETURNED: { title: 'Retour signé du courrier scanné', tone: 'success' },
   FORMAL_LETTER_SUBMITTED: { title: 'Lettre formelle déposée', tone: 'info' },

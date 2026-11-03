@@ -2,7 +2,6 @@ import { eq, and, ne, desc, inArray } from 'drizzle-orm';
 import {
   canApplicantSubmitFormalDocument,
   canApplicantSubmitLetter,
-  missingFormalDocumentCount,
 } from '@aidn/shared';
 import { db } from '../../shared/db/index.js';
 import {
@@ -22,6 +21,8 @@ import {
   type PreparedAttachment,
 } from '../uploads/upload-attachment.js';
 import { relocateDossierAssetAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
+import { assertFormalReady } from '../phase-closure/phase-closure.policy.js';
+import { assertNoPhaseClosureCircuit } from '../phase-closure/phase-closure.service.js';
 import type {
   FormalDocumentView,
   FormalLetterCircuitView,
@@ -463,33 +464,12 @@ export async function closeFormalPhase(
     if (attachment && (await claimUploadAsset(tx, attachment, target)) === 'attached_here') return;
     if (phase.status !== 'open') throw new Error('PHASE_ALREADY_CLOSED');
 
-    // Gate 1 - formal letter must have gone through DG
-    const [circuit] = await tx
-      .select()
-      .from(dgCircuitDocuments)
-      .where(
-        and(
-          eq(dgCircuitDocuments.requestId, phase.requestId),
-          eq(dgCircuitDocuments.entityType, 'formal_request_letter')
-        )
-      );
-    if (!circuit || circuit.status !== 'pending_review') throw new Error('LETTER_NOT_TRANSMITTED');
-
-    // Gate 2 - all 11 documents
-    const docs = await tx
-      .select()
-      .from(formalRequestDocuments)
-      .where(eq(formalRequestDocuments.phaseId, phaseId));
-    if (missingFormalDocumentCount(docs) > 0) throw new Error('DOCUMENTS_INCOMPLETE');
-
-    // Gate 3 - formal meeting resolved
-    const [currentMeeting] = await tx
-      .select()
-      .from(meetings)
-      .where(and(eq(meetings.phaseId, phaseId), ne(meetings.status, 'rescheduled')))
-      .orderBy(desc(meetings.scheduledAt));
-    if (!currentMeeting || currentMeeting.status === 'scheduled')
-      throw new Error('MEETING_NOT_RESOLVED');
+    // WORKFLOW-FOUNDATION-1A - transitional direct close, to be replaced by
+    // the closure courrier (modules/phase-closure); refused once that
+    // courrier has started. Readiness is the shared policy.
+    await assertNoPhaseClosureCircuit(tx, phaseId);
+    // Letter circuit, the 11 documents, formal meeting resolved.
+    await assertFormalReady(tx, phase);
 
     if (attachment) {
       await tx.insert(documentVersions).values(versionValues(attachment, 'phase_closure_document', phaseId));

@@ -629,6 +629,10 @@ export async function notifyApplicant(
 // Collection auto-closes the M7 phase - the certificate lifecycle IS the
 // phase's reason to stay open, per the M7 spec ("la phase reste ouverte tout
 // le long du cycle"). No separate manual close endpoint exists for M7.
+// WORKFLOW-FOUNDATION-1A - KNOWN TRANSITIONAL EXCEPTION to the closure
+// courrier rule (modules/phase-closure): the Delivery integration moves M7 to
+// collected -> closure courrier -> M7 closed -> dossier completed, and drops
+// this auto-close; until then the courrier is refused on M7 (deferred policy).
 export async function markCollected(
   certificateId: number,
   actorUserId: number

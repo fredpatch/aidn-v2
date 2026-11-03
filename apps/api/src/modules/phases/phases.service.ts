@@ -1,11 +1,9 @@
-import { eq, and, ne, desc } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { db } from '../../shared/db/index.js';
 import {
   phases,
   requests,
   documentVersions,
-  meetings,
-  preliminaryEvaluationForms,
   dgCircuitDocuments,
   organisations,
   applicants,
@@ -20,6 +18,8 @@ import {
 } from '../uploads/upload-attachment.js';
 import { relocateDossierAssetAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
 import { assertPhaseDossierOpen, isDossierClosed } from '../requests/dossier-open.js';
+import { assertCurrentMeetingResolved, assertPreliminaryDeclarationReturned } from '../phase-closure/phase-closure.policy.js';
+import { assertNoPhaseClosureCircuit } from '../phase-closure/phase-closure.service.js';
 import { isPreliminaryOpenable } from '../dn-annotation/dn-annotation.stage.js';
 import { effectiveRequestStatus, requestStatusLabel } from '../requests/request-labels.js';
 
@@ -265,49 +265,15 @@ export async function closePhase(
     if (attachment && (await claimUploadAsset(tx, attachment, target)) === 'attached_here') return phase;
     if (phase.status !== 'open') throw new Error('PHASE_ALREADY_CLOSED');
 
-    const [currentMeeting] = await tx
-      .select()
-      .from(meetings)
-      .where(and(eq(meetings.phaseId, phaseId), ne(meetings.status, 'rescheduled')))
-      .orderBy(desc(meetings.scheduledAt));
-
-    if (!currentMeeting || currentMeeting.status === 'scheduled') {
-      throw new Error('MEETING_NOT_RESOLVED');
-    }
-
-    // PRELIM-DG-CIRCUIT-1 - explicitly scoped to M3 (the only phase this
-    // generic close endpoint is actually wired to today, per the admin
-    // preliminary-phase client) so a future caller closing another phase
-    // through this same shared service can never silently inherit the
-    // declaration/circuit requirement below.
-    if (phase.phaseCode === 'M3') {
-      const [evaluation] = await tx
-        .select()
-        .from(preliminaryEvaluationForms)
-        .where(eq(preliminaryEvaluationForms.phaseId, phaseId));
-
-      if (!evaluation || !evaluation.submittedFileUrl) {
-        throw new Error('DECLARATION_NOT_SUBMITTED');
-      }
-
-      // The declaration alone is not enough to close: it must also have
-      // completed the DG signature circuit (print -> signature -> signed
-      // scan returned) - applicant submission alone must never make M3
-      // closable (the bug this task fixes).
-      const [circuit] = await tx
-        .select()
-        .from(dgCircuitDocuments)
-        .where(
-          and(
-            eq(dgCircuitDocuments.entityType, 'pre_evaluation'),
-            eq(dgCircuitDocuments.requestId, phase.requestId)
-          )
-        );
-
-      if (!circuit || circuit.status !== 'pending_review') {
-        throw new Error('PRELIMINARY_DG_RETURN_REQUIRED');
-      }
-    }
+    // WORKFLOW-FOUNDATION-1A - transitional direct close, to be replaced by
+    // the closure courrier (modules/phase-closure); refused once that
+    // courrier has started. Readiness is the shared policy.
+    await assertNoPhaseClosureCircuit(tx, phaseId);
+    await assertCurrentMeetingResolved(tx, phaseId);
+    // PRELIM-DG-CIRCUIT-1 - the declaration and its DG return are scoped to
+    // M3 (the only phase this generic endpoint is wired to by the admin), so
+    // another phase closed here never inherits them.
+    if (phase.phaseCode === 'M3') await assertPreliminaryDeclarationReturned(tx, phase);
 
     if (attachment) {
       // VERSION-CURRENT-DISCIPLINE - defensive: a phase closes once today,

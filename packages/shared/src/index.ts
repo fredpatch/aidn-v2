@@ -10,3 +10,4 @@ export * from './operational-queue.js';
 export * from './role-analytics.js';
 export * from './analytics-format.js';
 export * from './branding.js';
+export * from './phase-closure.js';

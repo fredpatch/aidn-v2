@@ -12,6 +12,7 @@ import {
   uniqueIndex,
   primaryKey,
   check,
+  foreignKey,
 } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 
@@ -73,6 +74,12 @@ export const phaseCodeEnum = pgEnum('phase_code', [
 ]);
 
 export const phaseStatusEnum = pgEnum('phase_status', ['open', 'closed']);
+/** WORKFLOW-FOUNDATION-1A - the closure courrier of a phase (phase_closure_circuits). */
+export const phaseClosureStatusEnum = pgEnum('phase_closure_status', [
+  'submitted',
+  'in_signature_circuit',
+  'signed_returned',
+]);
 
 /** Pattern "Reunion / Visite" - shared by M3, M4, M6 */
 export const meetingTypeEnum = pgEnum('meeting_type', ['preliminary', 'formal', 'site_visit']);
@@ -421,6 +428,54 @@ export const phases = pgTable(
   (t) => [
     uniqueIndex('phases_request_phase_idx').on(t.requestId, t.phaseCode),
     index('phases_status_idx').on(t.status),
+    // Target of phase_closure_circuits' (phase_id, request_id) foreign key.
+    uniqueIndex('phases_id_request_idx').on(t.id, t.requestId),
+  ]
+);
+
+/** WORKFLOW-FOUNDATION-1A - the mandatory closure courrier of a phase: a
+ *  phase stays open until its courrier has gone through the DG signature
+ *  circuit and the signed return is uploaded. At most one per phase; its
+ *  request is the phase's own (composite foreign key). Business readiness is
+ *  computed (phase-closure/phase-closure.policy.ts), never stored here. Both
+ *  documents are versions of the phase_closure_document owner (id = phase). */
+export const phaseClosureCircuits = pgTable(
+  'phase_closure_circuits',
+  {
+    id: serial('id').primaryKey(),
+    phaseId: integer('phase_id')
+      .notNull()
+      .references(() => phases.id),
+    requestId: integer('request_id')
+      .notNull()
+      .references(() => requests.id),
+    status: phaseClosureStatusEnum('status').notNull().default('submitted'),
+    draftDocumentUrl: text('draft_document_url').notNull(),
+    submittedAt: timestamp('submitted_at').notNull().defaultNow(),
+    signatureSentAt: timestamp('signature_sent_at'),
+    signedAt: timestamp('signed_at'),
+    signedDocumentUrl: text('signed_document_url'),
+    createdBy: integer('created_by')
+      .notNull()
+      .references(() => users.id),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('phase_closure_circuits_phase_idx').on(t.phaseId),
+    index('phase_closure_circuits_request_idx').on(t.requestId),
+    index('phase_closure_circuits_status_idx').on(t.status),
+    foreignKey({
+      name: 'phase_closure_circuits_phase_request_fk',
+      columns: [t.phaseId, t.requestId],
+      foreignColumns: [phases.id, phases.requestId],
+    }),
+    check(
+      'phase_closure_circuits_status_coherent_chk',
+      sql`(${t.signatureSentAt} IS NOT NULL) = (${t.status} IN ('in_signature_circuit', 'signed_returned'))
+        AND (${t.signedAt} IS NOT NULL) = (${t.status} = 'signed_returned')
+        AND (${t.signedDocumentUrl} IS NOT NULL) = (${t.status} = 'signed_returned')`
+    ),
   ]
 );
 

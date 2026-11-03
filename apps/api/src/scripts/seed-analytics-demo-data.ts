@@ -23,6 +23,7 @@ import {
   notifications,
   organisations,
   payments,
+  phaseClosureCircuits,
   phases,
   preliminaryEvaluationForms,
   requests,
@@ -188,6 +189,7 @@ async function clearPreviousSeedData(): Promise<void> {
     await db.delete(preliminaryEvaluationForms).where(inArray(preliminaryEvaluationForms.phaseId, phaseIds));
     await db.delete(meetings).where(inArray(meetings.phaseId, phaseIds));
     await db.delete(formalRequestDocuments).where(inArray(formalRequestDocuments.phaseId, phaseIds));
+    await db.delete(phaseClosureCircuits).where(inArray(phaseClosureCircuits.phaseId, phaseIds));
     await db.delete(phases).where(inArray(phases.id, phaseIds));
   }
 

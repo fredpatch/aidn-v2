@@ -18,6 +18,7 @@ import {
   MEETING_NEGOTIATION_EVENT_KINDS,
   MEETING_STATUSES,
   PAYMENT_PROOF_STATUSES,
+  PHASE_CLOSURE_STATUSES,
   REQUEST_STATUSES,
 } from '@aidn/shared';
 import {
@@ -32,6 +33,7 @@ import {
   meetingNegotiationEventKindEnum,
   meetingStatusEnum,
   paymentProofStatusEnum,
+  phaseClosureStatusEnum,
   requestStatusEnum,
 } from './schema.js';
 
@@ -49,6 +51,7 @@ const MIRRORS: Array<[string, readonly string[], { enumName: string; enumValues:
   ['PAYMENT_PROOF_STATUSES', PAYMENT_PROOF_STATUSES, paymentProofStatusEnum],
   ['INTERNAL_ROLES', INTERNAL_ROLES, internalRoleEnum],
   ['APPLICANT_CONTACT_ORDER', APPLICANT_CONTACT_ORDER, applicantContactOrderEnum],
+  ['PHASE_CLOSURE_STATUSES', PHASE_CLOSURE_STATUSES, phaseClosureStatusEnum],
 ];
 
 describe('@aidn/shared constants mirror the DB enums', () => {
