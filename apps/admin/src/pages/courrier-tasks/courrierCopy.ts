@@ -26,6 +26,28 @@ export const SOURCE_LABELS: Record<string, string> = {
   pre_evaluation: 'Déclaration de pré-évaluation',
 };
 
+/** WORKFLOW-FOUNDATION-1B - a closure courrier is named by its phase, never
+ *  its code. */
+export const CLOSURE_SOURCE_LABELS: Record<string, string> = {
+  M3: 'Clôture - Phase préliminaire',
+  M4: 'Clôture - Demande formelle',
+  M5: 'Clôture - Évaluation approfondie',
+};
+
+const isClosure = (item: Pick<CourrierTask, 'source'>) => item.source === 'phase_closure';
+
+/** The courrier's name on the row, the reading pane, the viewer and the dialogs. */
+export function courrierSourceLabel(item: Pick<CourrierTask, 'source' | 'phaseCode'>): string {
+  if (isClosure(item)) return CLOSURE_SOURCE_LABELS[item.phaseCode ?? ''] ?? 'Courrier de clôture';
+  return SOURCE_LABELS[item.source] ?? item.source;
+}
+
+/** The step label (a closure courrier comes back signed, not annotated). */
+export function courrierStepLabel(item: Pick<CourrierTask, 'source' | 'circuitStep'>): string {
+  if (isClosure(item) && item.circuitStep === 'returned') return 'Retour signé reçu';
+  return STEP_LABELS[item.circuitStep];
+}
+
 export const REQUEST_TYPE_LABELS: Record<string, string> = {
   recognition: 'Reconnaissance',
   issuance: 'Délivrance',
@@ -67,6 +89,13 @@ export function courrierCallout(
   }
   switch (item.actionKey) {
     case 'print_for_dg':
+      if (isClosure(item)) {
+        return {
+          title: 'Impression et mise en circuit DG',
+          description: 'Imprimez le courrier de clôture puis confirmez sa mise en circuit DG.',
+          blockReason: null,
+        };
+      }
       return {
         title: 'Impression et mise en circuit DG',
         description: 'Imprimez le document puis confirmez sa mise en circuit DG.',
@@ -77,6 +106,13 @@ export function courrierCallout(
         item.signatureWorkingDays === null
           ? ''
           : `En circuit DG depuis ${item.signatureWorkingDays} j ouvrés (alerte au-delà de ${t.dgAlertWorkingDays}). `;
+      if (isClosure(item)) {
+        return {
+          title: 'Retour signé du DG attendu',
+          description: `${since}Scannez le courrier de clôture signé dès réception : la phase sera clôturée.`,
+          blockReason: null,
+        };
+      }
       return {
         title: 'Annotation du DG attendue',
         description: `${since}Scannez le retour annoté dès réception.`,
@@ -90,6 +126,13 @@ export function courrierCallout(
         blockReason: null,
       };
     case 'handed_to_dn':
+      if (isClosure(item)) {
+        return {
+          title: 'Courrier de clôture signé enregistré',
+          description: 'Le retour signé est enregistré : la phase est clôturée.',
+          blockReason: null,
+        };
+      }
       return {
         title: 'Annotation du DG enregistrée',
         description: 'Le document est transmis à la DN.',
@@ -109,9 +152,9 @@ export function courrierRowLabel(item: CourrierTask): string {
   if (item.blockReason === 'dossier_closed') return 'Dossier clos - consultation';
   if (item.blockReason === 'phase_not_open') return 'Phase non ouverte';
   if (item.actionKey === 'print_for_dg') return 'Imprimer puis mettre en circuit DG';
-  if (item.actionKey === 'record_dg_annotation') return 'Annotation du DG attendue';
+  if (item.actionKey === 'record_dg_annotation') return isClosure(item) ? 'Retour signé attendu' : 'Annotation du DG attendue';
   if (item.actionKey === 'handed_to_assistant_dn') return "Transmis à l'Assistante DN";
-  if (item.actionKey === 'handed_to_dn') return 'Transmis à la DN';
+  if (item.actionKey === 'handed_to_dn') return isClosure(item) ? 'Phase clôturée' : 'Transmis à la DN';
   return 'Ancien circuit';
 }
 

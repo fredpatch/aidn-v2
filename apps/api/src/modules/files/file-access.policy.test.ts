@@ -53,6 +53,24 @@ describe('canAccessFile', () => {
     assert.equal(canAccessFile(applicant(7), dossier('M7', 'certificate_document')), false);
   });
 
+  it('WORKFLOW-FOUNDATION-1B - closure courrier: Reception / Assistant DG open it, only while a courrier exists', () => {
+    const courrier: FileContext = { ...(dossier('M3', 'phase_closure_document') as Extract<FileContext, { kind: 'dossier' }>), closureCourrier: true };
+    for (const role of ['reception', 'assistant_dg', 'dn_agent', 'dn_supervisor', 'SU']) {
+      assert.equal(canAccessFile(staff(role), courrier), true, role);
+    }
+    // Unrelated staff and every applicant (even the dossier's own) stay out.
+    for (const role of ['assistant_dn', 's5_agent', 'r3_agent']) assert.equal(canAccessFile(staff(role), courrier), false, role);
+    assert.equal(canAccessFile(applicant(7), courrier), false);
+    assert.equal(canAccessFile(applicant(8), courrier), false);
+    // Historical closure files (no courrier): DN only, as before.
+    const historical = dossier('M3', 'phase_closure_document');
+    for (const role of ['reception', 'assistant_dg']) assert.equal(canAccessFile(staff(role), historical), false, role);
+    assert.equal(canAccessFile(staff('dn_agent'), historical), true);
+    // The flag never widens another owner type of the phase.
+    const other: FileContext = { ...(dossier('M3') as Extract<FileContext, { kind: 'dossier' }>), closureCourrier: true };
+    assert.equal(canAccessFile(staff('reception'), other), false);
+  });
+
   it('gives each staff role exactly the stages it can read', () => {
     const matrix: Record<string, string[]> = {
       dg_circuit: ['reception', 'assistant_dg', 'dn_agent', 'dn_supervisor'],

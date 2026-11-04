@@ -27,16 +27,6 @@ export function canScheduleMeeting(bundle: FormalPhaseBundle | null): boolean {
   return bundle.phase?.status === 'open' && bundle.letterCircuit?.status === 'pending_review';
 }
 
-export function canCloseFormalPhase(bundle: FormalPhaseBundle | null): boolean {
-  if (!bundle) return false;
-  return (
-    bundle.letterCircuit?.status === 'pending_review' &&
-    bundle.completionRate === 11 &&
-    !!bundle.meeting &&
-    bundle.meeting.status !== 'scheduled'
-  );
-}
-
 export function closureBlockReason(bundle: FormalPhaseBundle | null): string | null {
   if (!bundle) return null;
   if (!bundle.letterCircuit) {

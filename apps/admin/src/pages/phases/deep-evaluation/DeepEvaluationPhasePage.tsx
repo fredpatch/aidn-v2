@@ -6,12 +6,14 @@ import { DN_OWNER } from '../owners';
 import WorkflowCockpit from '../components/WorkflowCockpit';
 import { PhaseDossierContext } from '../components/PhaseDossierContext';
 import { ClosedDossierBanner, DossierStateValue, useDossierState } from '../components/DossierReadOnly';
-import DeepEvaluationClosureCard from './components/DeepEvaluationClosureCard';
+import { PhaseClosureCard } from '../../../components/phase-closure/PhaseClosureCard';
+import { usePhaseClosure } from '../../../components/phase-closure/usePhaseClosure';
+import { closureNextAction } from '../../../components/phase-closure/closureNextAction';
+import { queryKeys } from '../../../lib/react-query/queryKeys';
 import DocumentEvaluationsCard from './components/DocumentEvaluationsCard';
 import PaymentCard from './components/PaymentCard';
 import {
   buildChecklist,
-  canCloseDeepEvaluation,
   closureBlockReason,
   deepEvaluationWorkflowSummary,
   formatDate,
@@ -39,11 +41,11 @@ export default function DeepEvaluationPhasePage() {
   // K7b - closed dossier: read-only (components/DossierReadOnly.tsx).
   const dossierState = useDossierState(requestId);
   const dossierClosed = !!dossierState?.closed;
+  const closure = usePhaseClosure(bundle?.phase?.id, queryKeys.deepEvaluation.bundle(requestId ?? ''));
 
   if (loading) return <p className="p-6 text-anac-muted">Chargement...</p>;
   if (error) return <p className="p-6 text-anac-danger">{error}</p>;
 
-  const canClose = canCloseDeepEvaluation(bundle);
   const blockReason = closureBlockReason(bundle);
   const checklist = bundle ? buildChecklist(bundle) : [];
   const summary = bundle ? deepEvaluationWorkflowSummary(bundle, blockReason) : null;
@@ -91,7 +93,10 @@ export default function DeepEvaluationPhasePage() {
     );
   }
 
-  const action = summary
+  const closureAction = closureNextAction(closure.state);
+  const action = closureAction
+    ? closureAction
+    : summary
     ? {
         title: summary.title,
         description: summary.description,
@@ -178,19 +183,14 @@ export default function DeepEvaluationPhasePage() {
               setActionError={setActionError}
             />
 
-            {canEvaluateDocuments && !dossierClosed && bundle.phase.status === 'open' && canClose && (
-              <DeepEvaluationClosureCard
-                phaseId={bundle.phase.id}
-                requestId={requestId}
-                setActionError={setActionError}
-              />
-            )}
-
-            {canEvaluateDocuments && !dossierClosed && bundle.phase.status === 'open' && !canClose && blockReason && (
-              <div className="card">
-                <p className="text-sm text-anac-muted">{blockReason}</p>
-              </div>
-            )}
+            {/* WORKFLOW-FOUNDATION-1B - the only way this phase closes. */}
+            <PhaseClosureCard
+              state={closure.state}
+              blocker={blockReason}
+              dossierClosed={dossierClosed}
+              depositing={closure.depositing}
+              onDeposit={closure.depositCourrier}
+            />
           </>
         )}
       </div>

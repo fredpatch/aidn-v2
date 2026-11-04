@@ -17,6 +17,7 @@ import { SectionCard } from '../../../components/request/SectionCard';
 import { PaymentBlock } from '../../../components/request/PaymentBlock';
 import { useApplicantActions } from '../../../hooks/useApplicantActions';
 import { topPhaseAction } from '../../../lib/actions/selectors';
+import { CLOSURE_IN_PROGRESS, closureStepDetail } from './closure-wording';
 
 export function buildDeepEvaluationPresentation(bundle: DeepEvaluationBundle) {
   const phaseClosed = bundle.phase?.status === 'closed';
@@ -40,6 +41,9 @@ export function buildDeepEvaluationPresentation(bundle: DeepEvaluationBundle) {
     title = 'Évaluation approfondie clôturée';
     description = 'Les documents requis ont été traités et le dossier passe à la suite.';
     tone = 'success';
+  } else if (bundle.phase?.closureInProgress) {
+    title = CLOSURE_IN_PROGRESS.title;
+    description = CLOSURE_IN_PROGRESS.description;
   } else if (!payment?.invoiceFileUrl) {
     title = 'Facture en préparation';
     description = "La facture de cette phase sera disponible ici lorsqu'elle sera émise.";
@@ -135,7 +139,7 @@ export function DeepEvaluationSection({ requestId }: { requestId: number }) {
         />
         <PhaseStep
           label="Suite du dossier"
-          detail={phaseClosed ? 'Phase clôturée' : 'Prochaine étape à venir'}
+          detail={closureStepDetail(bundle.phase)}
           state={phaseClosed ? 'done' : 'waiting'}
         />
       </PhaseSummaryCard>

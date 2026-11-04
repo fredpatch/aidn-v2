@@ -6,6 +6,5 @@ export {
   markMeetingStatus,
   attachMeetingReport,
   makeDeclarationAvailable,
-  closePhase,
   uploadFile,
 } from '../../../lib/api/preliminary.api';

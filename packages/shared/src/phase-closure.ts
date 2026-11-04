@@ -19,3 +19,24 @@ export interface PhaseClosureView {
   signatureSentAt: string | null;
   signedAt: string | null;
 }
+
+/** WORKFLOW-FOUNDATION-1B - business readiness, computed by the API's
+ *  readiness policy (never re-implemented by a client). Only meaningful for
+ *  an open phase with no closure courrier yet. */
+export interface PhaseClosureReadiness {
+  ready: boolean;
+  /** The policy's refusal code (MEETING_NOT_RESOLVED, ...) when not ready. */
+  blockerCode: string | null;
+  /** Its French wording, ready to show. */
+  blockerMessage: string | null;
+}
+
+/** GET /phase-closures/phases/:phaseId - the closure courrier of a phase and,
+ *  while none exists on an open phase, whether one may be deposited. */
+export interface PhaseClosureState {
+  phaseId: number;
+  phaseStatus: 'open' | 'closed';
+  closure: PhaseClosureView | null;
+  /** null once a courrier exists or the phase is closed. */
+  readiness: PhaseClosureReadiness | null;
+}

@@ -23,6 +23,7 @@ import { MeetingConfirmationPanel, usesConfirmationPanel } from '../../../compon
 import { MeetingReportPanel, showsReportPanel } from '../../../components/meetings/MeetingReportPanel';
 import { useApplicantActions } from '../../../hooks/useApplicantActions';
 import { topPhaseAction } from '../../../lib/actions/selectors';
+import { CLOSURE_IN_PROGRESS, closureStepDetail } from './closure-wording';
 
 export function buildPreliminaryPresentation(bundle: PreliminaryBundle) {
   const meeting = bundle.meeting;
@@ -44,6 +45,9 @@ export function buildPreliminaryPresentation(bundle: PreliminaryBundle) {
     title = 'Phase préliminaire clôturée';
     description = 'Votre dossier passe à la phase suivante du traitement.';
     tone = 'success';
+  } else if (bundle.phase?.closureInProgress) {
+    title = CLOSURE_IN_PROGRESS.title;
+    description = CLOSURE_IN_PROGRESS.description;
   } else if (declarationSubmitted) {
     title = 'Déclaration transmise';
     description =
@@ -99,7 +103,7 @@ export function buildPreliminaryPresentation(bundle: PreliminaryBundle) {
       {
         key: 'closure',
         label: 'Suite du dossier',
-        detail: phaseClosed ? 'Phase clôturée' : 'Prochaine étape à venir',
+        detail: closureStepDetail(bundle.phase),
         state: stepState(phaseClosed, declarationSubmitted && !phaseClosed),
       },
     ],

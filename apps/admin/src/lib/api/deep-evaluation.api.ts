@@ -42,16 +42,5 @@ export async function setVerdict(
   });
 }
 
-export async function closeDeepEvaluationPhase(params: {
-  phaseId: number;
-  closureNote?: string;
-  closureDocumentUploadAssetId?: number;
-}): Promise<void> {
-  await api.post(`/deep-evaluation/phases/${params.phaseId}/close`, {
-    closureDocumentUploadAssetId: params.closureDocumentUploadAssetId,
-    closureNote: params.closureNote || undefined,
-  });
-}
-
 // STORAGE-0B - one shared upload helper (returns uploadAssetId).
 export { uploadFile } from '../uploads';

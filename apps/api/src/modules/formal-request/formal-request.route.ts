@@ -7,6 +7,7 @@ import {
   requireRole,
 } from '../../shared/guards/auth.middleware.js';
 import * as formalController from './formal-request.controller.js';
+import { retiredDirectPhaseClose } from '../phase-closure/phase-closure.controller.js';
 
 const router = Router();
 
@@ -50,12 +51,12 @@ router.post(
 // Document slot upload - the applicant only (one-shot per slot)
 router.post('/requests/:requestId/documents', authenticateEither, requireApplicant, formalController.submitDocument);
 
-// Close M4 - DN/SU only
+// WORKFLOW-FOUNDATION-1B - retired: M4 closes only through its closure courrier.
 router.post(
   '/phases/:phaseId/close',
   authenticate,
   requireRole('dn_agent', 'dn_supervisor', 'SU'),
-  formalController.closePhase
+  retiredDirectPhaseClose
 );
 
 export default router;

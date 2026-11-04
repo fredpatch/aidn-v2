@@ -19,8 +19,6 @@ import {
 } from '../uploads/upload-attachment.js';
 import { relocateDossierAssetAfterCommit } from '../files/relocate-asset.js';
 import type { RelocationTarget } from '../files/relocate-asset.js';
-import { assertDeepEvaluationReady } from '../phase-closure/phase-closure.policy.js';
-import { assertNoPhaseClosureCircuit } from '../phase-closure/phase-closure.service.js';
 import { attachPaymentInvoice, attachPaymentProof } from '../payments/payment-documents.js';
 import { SLOT_LABELS } from '../formal-request/formal-request.service.js';
 import type {
@@ -29,7 +27,8 @@ import type {
   DeepEvaluationBundle,
 } from './deep-evaluation.types.js';
 import { rejectPhasePayment, validatePhasePayment } from '../payments/payment-decisions.js';
-import { assertDossierOpen, assertEvaluationDossierOpen, assertPhaseDossierOpen } from '../requests/dossier-open.js';
+import { assertDossierOpen, assertEvaluationDossierOpen } from '../requests/dossier-open.js';
+import { closureInProgress } from '../phase-closure/phase-closure.service.js';
 
 function toPaymentView(row: typeof payments.$inferSelect): PaymentView {
   return {
@@ -168,6 +167,8 @@ export async function getBundleForRequest(requestId: number): Promise<DeepEvalua
       status: phase.status,
       openedAt: phase.openedAt,
       closedAt: phase.closedAt,
+      // WORKFLOW-FOUNDATION-1B - neutral progress for the portal (no circuit detail).
+      closureInProgress: await closureInProgress(phase.id),
     },
     payment: payment ? toPaymentView(payment) : null,
     evaluations,
@@ -331,50 +332,3 @@ export async function resubmitDocument(
   return toEvalView(updated, formalDoc);
 }
 
-// ── Close M5 ──────────────────────────────────────────────────────────────
-export async function closeDeepEvaluationPhase(
-  phaseId: number,
-  actorUserId: number,
-  params: {
-    /** Optional closure document (STORAGE-0B: a checked upload). */
-    attachment?: PreparedAttachment;
-    closureNote?: string;
-  }
-): Promise<void> {
-  // K7 - closed dossier: read-only (requests/dossier-open.ts).
-  await assertPhaseDossierOpen(db, phaseId);
-  const { attachment } = params;
-  const target: RelocationTarget = { ownerType: 'phase_closure_document', ownerId: phaseId };
-  await db.transaction(async (tx) => {
-    const [phase] = await tx.select().from(phases).where(eq(phases.id, phaseId)).for('update');
-    if (!phase) throw new Error('PHASE_NOT_FOUND');
-    if (attachment && (await claimUploadAsset(tx, attachment, target)) === 'attached_here') return;
-    if (phase.status !== 'open') throw new Error('PHASE_ALREADY_CLOSED');
-
-    // WORKFLOW-FOUNDATION-1A - transitional direct close, to be replaced by
-    // the closure courrier (modules/phase-closure); refused once that
-    // courrier has started. Readiness is the shared policy.
-    await assertNoPhaseClosureCircuit(tx, phaseId);
-    // Payment validated, every M4 document evaluation validated.
-    await assertDeepEvaluationReady(tx, phase);
-
-    if (attachment) {
-      await tx.insert(documentVersions).values(versionValues(attachment, 'phase_closure_document', phaseId));
-      await linkLockedAsset(tx, attachment.assetId, target);
-    }
-
-    await tx
-      .update(phases)
-      .set({
-        status: 'closed',
-        closedAt: new Date(),
-        closureDocumentUrl: attachment?.fileUrl,
-        closureNote: params.closureNote,
-      })
-      .where(eq(phases.id, phaseId));
-
-    await logAudit({ userId: actorUserId, action: 'PHASE_CLOSED', module: 'M5', entityId: phaseId }, tx);
-  });
-
-  if (attachment) await relocateDossierAssetAfterCommit(attachment.assetId, target);
-}

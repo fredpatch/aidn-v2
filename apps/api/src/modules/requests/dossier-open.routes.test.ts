@@ -21,12 +21,13 @@ const WORKFLOW_MODULES = [
   'courrier-tasks',
   'dn-annotation',
   'requests',
+  'phase-closure',
 ];
 
 /** Route -> why a closed dossier cannot reach it (guard or own rule). */
 const KNOWN_WRITE_ROUTES: Record<string, string> = {
   'phases POST /requests/:requestId/start-preliminary-phase': 'requires pending_review',
-  'phases POST /:id/close': 'guarded',
+  'phases POST /:id/close': 'WORKFLOW-FOUNDATION-1B retired: always 409, reads and writes nothing',
   'preliminary-evaluation POST /:phaseId/make-available': 'guarded',
   'preliminary-evaluation POST /:phaseId/submit': 'guarded',
   'formal-request POST /requests/:requestId/start-formal-phase': 'guarded',
@@ -34,7 +35,7 @@ const KNOWN_WRITE_ROUTES: Record<string, string> = {
   'formal-request POST /requests/:requestId/letter/mark-signed': 'guarded',
   'formal-request POST /requests/:requestId/letter/mark-pending-review': 'guarded',
   'formal-request POST /requests/:requestId/documents': 'guarded',
-  'formal-request POST /phases/:phaseId/close': 'guarded',
+  'formal-request POST /phases/:phaseId/close': 'WORKFLOW-FOUNDATION-1B retired: always 409, reads and writes nothing',
   'deep-evaluation POST /requests/:requestId/start-deep-evaluation': 'guarded',
   'deep-evaluation POST /phases/:phaseId/invoice': 'guarded',
   'deep-evaluation POST /phases/:phaseId/requests/:requestId/proof': 'guarded',
@@ -42,7 +43,7 @@ const KNOWN_WRITE_ROUTES: Record<string, string> = {
   'deep-evaluation POST /phases/:phaseId/payment/reject': 'guarded',
   'deep-evaluation PATCH /evaluations/:evaluationId/verdict': 'guarded',
   'deep-evaluation POST /evaluations/:evaluationId/resubmit': 'guarded',
-  'deep-evaluation POST /phases/:phaseId/close': 'guarded',
+  'deep-evaluation POST /phases/:phaseId/close': 'WORKFLOW-FOUNDATION-1B retired: always 409, reads and writes nothing',
   'site-inspection POST /requests/:requestId/start-site-inspection': 'guarded',
   'site-inspection POST /phases/:phaseId/invoice': 'guarded',
   'site-inspection POST /phases/:phaseId/requests/:requestId/proof': 'guarded',
@@ -84,6 +85,9 @@ const KNOWN_WRITE_ROUTES: Record<string, string> = {
   'requests POST /:id/return-signed-from-dg': 'guarded',
   'requests POST /:id/cancel': 'guarded',
   'requests POST /:id/replace-document': 'guarded',
+  'phase-closure POST /phases/:phaseId': 'guarded',
+  'phase-closure POST /:id/in-circuit': 'guarded',
+  'phase-closure POST /:id/return': 'guarded',
   'requests POST /:id/view': 'D3b consultation record (unread per agent): viewing stays allowed on a closed dossier',
 };
 
@@ -107,7 +111,11 @@ describe('K7 write routes of the workflow modules', () => {
   });
 
   it('the service of each guarded module calls the closed-dossier guard', () => {
-    for (const mod of WORKFLOW_MODULES.filter((m) => m !== 'requests')) {
+    // A module whose write routes are all unguarded by design (phases: the
+    // M3 opening rule and the retired close) has no guard to call.
+    const guarded = (mod: string) =>
+      Object.entries(KNOWN_WRITE_ROUTES).some(([route, why]) => route.startsWith(`${mod} `) && why === 'guarded');
+    for (const mod of WORKFLOW_MODULES.filter((m) => m !== 'requests' && guarded(m))) {
       const service = fs
         .readdirSync(path.join(modulesRoot, mod))
         .filter((f) => /\.service\.ts$/.test(f))

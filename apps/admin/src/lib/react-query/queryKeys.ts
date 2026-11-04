@@ -45,6 +45,10 @@ export const queryKeys = {
     all: ['certificates'] as const,
     bundle: (requestId: string) => ['certificates', 'bundle', requestId] as const,
   },
+  phaseClosure: {
+    all: ['phaseClosure'] as const,
+    byPhase: (phaseId: number) => ['phaseClosure', phaseId] as const,
+  },
   phases: {
     all: ['phases'] as const,
     summary: (requestId: string) => ['phases', 'summary', requestId] as const,

@@ -293,3 +293,24 @@ describe('passive phase builders (SESSION1-UX-1)', () => {
     }
   });
 });
+
+describe('closure courrier in progress (WORKFLOW-FOUNDATION-1B)', () => {
+  it('M3, M4, M5: neutral « Clôture administrative en cours », no circuit detail or staff name', () => {
+    const inProgress = <T extends { phase: { id: number; status: string; closureInProgress?: boolean } | null }>(bundle: T): T => ({
+      ...bundle,
+      phase: { ...bundle.phase!, closureInProgress: true },
+    });
+    const m3p = buildPreliminaryPresentation(inProgress(m3({ declaration: 'done' })));
+    const m4p = buildFormalPresentation(inProgress(m4({ completionRate: 11, meeting: meeting({ status: 'held' }) })));
+    const m5p = buildDeepEvaluationPresentation(inProgress(m5({})));
+    for (const p of [m3p, m4p, m5p]) {
+      expect(p.title).toBe('Clôture administrative en cours');
+      expect(`${p.title} ${p.description}`).not.toMatch(/DG|circuit|Réception|Assistant|courrier/i);
+    }
+    expect(m3p.steps.find((s) => s.key === 'closure')?.detail).toBe('Clôture administrative en cours');
+  });
+
+  it('without a courrier in progress, the wording is unchanged', () => {
+    expect(buildPreliminaryPresentation(m3({ declaration: 'done' })).title).toBe('Déclaration transmise');
+  });
+});

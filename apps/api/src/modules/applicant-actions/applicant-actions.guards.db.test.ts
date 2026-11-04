@@ -202,11 +202,11 @@ describe('SESSION1-UX-1 applicant write guards (real PostgreSQL)', { skip }, () 
     for (const slot of formal.ALL_SLOTS.slice(0, 10)) {
       await formal.submitDocument(d.request, slot, await asset(d.applicant));
     }
-    await assert.rejects(formal.closeFormalPhase(d.phase.M4, agent, {}), { message: 'DOCUMENTS_INCOMPLETE' });
+    // WORKFLOW-FOUNDATION-1B - readiness for the closure courrier (no direct close any more).
+    await assert.rejects((await import('../phase-closure/phase-closure.policy.js')).assertPhaseReadyForClosure((await import('../../shared/db/index.js')).db, { id: d.phase.M4, requestId: d.request, phaseCode: 'M4' }), { message: 'DOCUMENTS_INCOMPLETE' });
 
     await formal.submitDocument(d.request, formal.ALL_SLOTS[10], await asset(d.applicant));
-    await formal.closeFormalPhase(d.phase.M4, agent, {});
-    assert.equal((await one(`SELECT status FROM phases WHERE id = $1`, [d.phase.M4])).status, 'closed');
+    await (await import('../phase-closure/phase-closure.policy.js')).assertPhaseReadyForClosure((await import('../../shared/db/index.js')).db, { id: d.phase.M4, requestId: d.request, phaseCode: 'M4' });
   });
 
   it('payment proof: no invoice → INVOICE_NOT_UPLOADED; validated → PAYMENT_ALREADY_VALIDATED; pending_validation → replaced (ok)', async () => {

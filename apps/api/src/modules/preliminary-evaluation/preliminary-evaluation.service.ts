@@ -28,6 +28,7 @@ import { resolveStoredFilePath } from '../files/stored-file.js';
 import { UPLOADS_ROOT } from '../../shared/uploads-root.js';
 import { assertPhaseDossierOpen } from '../requests/dossier-open.js';
 import { toBundleMeeting, type BundleAudience, type BundleMeeting } from '../meetings/bundle-meeting.js';
+import { closureInProgress } from '../phase-closure/phase-closure.service.js';
 
 export interface PreliminaryEvaluationView {
   id: number;
@@ -351,7 +352,8 @@ export async function getRequestIdForPhase(
 }
 
 export interface PreliminaryPhaseBundle {
-  phase: { id: number; status: string; openedAt: Date; closedAt: Date | null } | null;
+  /** closureInProgress - WORKFLOW-FOUNDATION-1B: its closure courrier is deposited or in the DG circuit. */
+  phase: { id: number; status: string; openedAt: Date; closedAt: Date | null; closureInProgress: boolean } | null;
   /** SESSION1-MEET-1 - applicant block or staff negotiation view, by audience. */
   meeting: BundleMeeting | null;
   evaluation: PreliminaryEvaluationView | null;
@@ -393,6 +395,8 @@ export async function getBundleForRequest(
       status: phase.status,
       openedAt: phase.openedAt,
       closedAt: phase.closedAt,
+      // WORKFLOW-FOUNDATION-1B - neutral progress for the portal (no circuit detail).
+      closureInProgress: await closureInProgress(phase.id),
     },
     // SESSION1-MEET-1 - negotiation part depends on who reads the bundle.
     meeting: meetingRow ? await toBundleMeeting(meetingRow, requestId, audience) : null,

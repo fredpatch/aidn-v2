@@ -158,3 +158,44 @@ describe('<CourrierTasksPage> cockpit', () => {
     );
   });
 });
+
+describe('<CourrierTasksPage> closure courriers (WORKFLOW-FOUNDATION-1B)', () => {
+  const closure = (n: number, phaseCode: string, over: Partial<CourrierTask> = {}) =>
+    task(n, { id: `phase_closure:${n}`, source: 'phase_closure', phaseCode, circuitDocumentId: n, ...over });
+
+  it('named by business phase, never by code', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue(
+      seed([closure(1, 'M3'), closure(2, 'M4'), closure(3, 'M5')], { to_print: 3, with_dg: 0, returned: 0, inactive: 0 })
+    );
+    renderPage();
+    await screen.findAllByRole('option');
+    for (const label of ['Clôture - Phase préliminaire', 'Clôture - Demande formelle', 'Clôture - Évaluation approfondie']) {
+      expect(screen.getAllByText(new RegExp(label)).length).toBeGreaterThan(0);
+    }
+    expect(screen.getByRole('listbox').textContent).not.toMatch(/\bM[3-5]\b/);
+  });
+
+  it('Réception: open / print, then mise en circuit through the closure task id', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue(seed([closure(5, 'M4')], { to_print: 1, with_dg: 0, returned: 0, inactive: 0 }));
+    const post = vi.spyOn(api, 'post').mockResolvedValue({ data: null });
+    renderPage();
+    const article = await screen.findByRole('article', { name: /Détail du courrier DEM-C2-05/ });
+    expect(within(article).getByText(/Imprimez le courrier de clôture/)).toBeInTheDocument();
+    fireEvent.click(within(article).getByRole('button', { name: /Ouvrir \/ imprimer/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /Impression OK/ }));
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith(`/courrier-tasks/${encodeURIComponent('phase_closure:5')}/confirm-printed-for-signature`)
+    );
+  });
+
+  it('Assistant DG: the signed closure courrier is awaited (not an « annotation »)', async () => {
+    roles = ['assistant_dg'];
+    vi.spyOn(api, 'get').mockResolvedValue(
+      seed([closure(6, 'M5', { bucket: 'with_dg', actionKey: 'record_dg_annotation', circuitStep: 'with_dg', circuitStatus: 'in_signature_circuit', availableActions: ['upload_signed_return'], owner: OPERATIONAL_OWNERS.assistantDg, state: 'waiting' })], { to_print: 0, with_dg: 1, returned: 0, inactive: 0 })
+    );
+    renderPage();
+    const article = await screen.findByRole('article', { name: /Détail du courrier DEM-C2-06/ });
+    expect(within(article).getByText('Retour signé du DG attendu')).toBeInTheDocument();
+    expect(screen.getAllByText(/Retour signé attendu/).length).toBeGreaterThan(0);
+  });
+});

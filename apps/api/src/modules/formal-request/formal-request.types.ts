@@ -28,6 +28,8 @@ export interface FormalPhaseBundle {
     status: string;
     openedAt: Date;
     closedAt: Date | null;
+    /** WORKFLOW-FOUNDATION-1B - its closure courrier is deposited or in the DG circuit. */
+    closureInProgress: boolean;
   } | null;
   letterCircuit: FormalLetterCircuitView | null;
   documents: FormalDocumentView[];

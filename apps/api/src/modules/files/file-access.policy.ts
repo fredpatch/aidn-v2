@@ -9,7 +9,16 @@ export type FileActor =
 /** Where a file belongs, resolved from its upload asset (file-context.ts). */
 export type FileContext =
   | { kind: 'unlinked'; uploadedByUserId: number | null; uploadedByApplicantId: number | null }
-  | { kind: 'dossier'; ownerType: string; requestId: number; applicantId: number; stage: string }
+  | {
+      kind: 'dossier';
+      ownerType: string;
+      requestId: number;
+      applicantId: number;
+      stage: string;
+      /** WORKFLOW-FOUNDATION-1B - phase_closure_document of a phase whose
+       *  closure courrier exists (deposited, in the DG circuit or returned). */
+      closureCourrier?: boolean;
+    }
   | { kind: 'template'; active: boolean; isCurrent: boolean }
   | { kind: 'report' }
   | { kind: 'unresolvable' };
@@ -29,6 +38,12 @@ const STAFF_ROLES_BY_STAGE: Record<string, readonly string[]> = {
   M6: [...DN, 's5_agent', 'r3_agent'],
   M7: [...DN, 's5_agent'],
 };
+
+/** WORKFLOW-FOUNDATION-1B - Reception / Assistant DG print the closure
+ *  courrier and scan its signed return (/courriers), so they open the closure
+ *  documents of a phase that has a closure courrier - never the historical
+ *  closure files of phases closed before it existed. */
+const CLOSURE_COURRIER_ROLES = ['reception', 'assistant_dg'];
 
 /** Never shown in the portal today, so applicants cannot open them either. */
 const STAFF_ONLY_OWNER_TYPES = new Set(['phase_closure_document', 'certificate_document']);
@@ -58,6 +73,13 @@ export function canAccessFile(actor: FileActor, context: FileContext): boolean {
           !STAFF_ONLY_OWNER_TYPES.has(context.ownerType) &&
           !STAFF_ONLY_STAGES.has(context.stage)
         );
+      }
+      if (
+        context.ownerType === 'phase_closure_document' &&
+        context.closureCourrier === true &&
+        hasRole(actor, CLOSURE_COURRIER_ROLES)
+      ) {
+        return true;
       }
       return hasRole(actor, STAFF_ROLES_BY_STAGE[context.stage] ?? []);
 

@@ -29,6 +29,8 @@ export interface DeepEvaluationBundle {
     status: string;
     openedAt: Date;
     closedAt: Date | null;
+    /** WORKFLOW-FOUNDATION-1B - its closure courrier is deposited or in the DG circuit. */
+    closureInProgress: boolean;
   } | null;
   payment: PaymentView | null;
   evaluations: DocumentEvaluationView[];

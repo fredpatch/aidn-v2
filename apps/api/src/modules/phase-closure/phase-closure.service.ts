@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
-import type { PhaseClosureStatus, PhaseClosureView } from '@aidn/shared';
-import { db, type DbExecutor, type DbTx } from '../../shared/db/index.js';
+import type { PhaseClosureState, PhaseClosureStatus, PhaseClosureView } from '@aidn/shared';
+import { db, type DbTx } from '../../shared/db/index.js';
 import { documentVersions, phaseClosureCircuits, phases } from '../../shared/db/schema.js';
 import { logAudit } from '../auth/auth.service.js';
 import {
@@ -12,7 +12,7 @@ import {
 } from '../uploads/upload-attachment.js';
 import { relocateDossierAssetAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
 import { assertPhaseDossierOpen } from '../requests/dossier-open.js';
-import { assertPhaseReadyForClosure } from './phase-closure.policy.js';
+import { assertPhaseReadyForClosure, phaseClosureReadiness } from './phase-closure.policy.js';
 
 /** WORKFLOW-FOUNDATION-1A - the one workflow that closes a phase: the
  *  closure courrier is deposited (business readiness checked), goes into the
@@ -59,22 +59,38 @@ async function lockClosure(tx: DbTx, closureId: number): Promise<ClosureRow> {
   return closure;
 }
 
-/** Transitional direct close paths (closePhase / closeFormalPhase /
- *  closeDeepEvaluationPhase) refuse a phase whose closure courrier has
- *  started: once it exists, only its signed return may close the phase. */
-export async function assertNoPhaseClosureCircuit(executor: DbExecutor, phaseId: number): Promise<void> {
-  const [existing] = await executor
-    .select({ id: phaseClosureCircuits.id })
-    .from(phaseClosureCircuits)
-    .where(eq(phaseClosureCircuits.phaseId, phaseId));
-  if (existing) throw new Error('PHASE_CLOSURE_IN_PROGRESS');
+export async function getPhaseClosure(phaseId: number): Promise<PhaseClosureView | null> {
+  return (await getPhaseClosureState(phaseId)).closure;
 }
 
-export async function getPhaseClosure(phaseId: number): Promise<PhaseClosureView | null> {
-  const [phase] = await db.select({ id: phases.id }).from(phases).where(eq(phases.id, phaseId));
+/** WORKFLOW-FOUNDATION-1B - the phase pages' read: the courrier, and while
+ *  none exists on an open phase, the readiness policy's answer (the pages
+ *  never re-implement it). */
+export async function getPhaseClosureState(phaseId: number): Promise<PhaseClosureState> {
+  const [phase] = await db.select().from(phases).where(eq(phases.id, phaseId));
   if (!phase) throw new Error('PHASE_NOT_FOUND');
   const [closure] = await db.select().from(phaseClosureCircuits).where(eq(phaseClosureCircuits.phaseId, phaseId));
-  return closure ? toPhaseClosureView(closure) : null;
+  const open = phase.status === 'open';
+  return {
+    phaseId,
+    phaseStatus: open ? 'open' : 'closed',
+    closure: closure ? toPhaseClosureView(closure) : null,
+    readiness: open && !closure ? await phaseClosureReadiness(db, phase) : null,
+  };
+}
+
+/** An open phase's courrier is on its way: deposited or in the DG circuit. */
+export function isClosureInProgress(closure: Pick<PhaseClosureView, 'status'> | null | undefined): boolean {
+  return closure?.status === 'submitted' || closure?.status === 'in_signature_circuit';
+}
+
+/** The same, for one phase (the phase bundles' neutral progress flag). */
+export async function closureInProgress(phaseId: number): Promise<boolean> {
+  const [row] = await db
+    .select({ status: phaseClosureCircuits.status })
+    .from(phaseClosureCircuits)
+    .where(eq(phaseClosureCircuits.phaseId, phaseId));
+  return isClosureInProgress(row);
 }
 
 /** DN deposits the closure courrier of a business-ready open phase. The

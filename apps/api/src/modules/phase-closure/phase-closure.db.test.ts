@@ -2,13 +2,22 @@
  *  closes: deposited on a business-ready open phase, sent to the DG circuit,
  *  and its signed return closes the phase atomically (closure, phase,
  *  versions, audits). The M3/M4/M5 readiness rules moved into a shared
- *  policy unchanged; the transitional direct close paths refuse a phase whose
- *  courrier has started. Real PostgreSQL, skipped without DATABASE_URL. */
+ *  policy unchanged. WORKFLOW-FOUNDATION-1B: the direct close routes are
+ *  retired, the courrier runs end to end through /courriers, and Reception /
+ *  Assistant DG open its documents. Real PostgreSQL, skipped without
+ *  DATABASE_URL. */
 import { after, before, describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import type { AddressInfo } from 'node:net';
+import type { Server } from 'node:http';
 import pg from 'pg';
 import { pgConnectionConfig } from '../../shared/db/connection.js';
 import type { PreparedAttachment } from '../uploads/upload-attachment.js';
+
+process.env.JWT_SECRET ??= 'phase-closure-db-test-secret';
+process.env.JWT_REFRESH_SECRET ??= 'phase-closure-db-test-refresh-secret';
 
 const DATABASE_URL = process.env.DATABASE_URL;
 const skip = DATABASE_URL ? false : 'DATABASE_URL not set (needs a migrated, disposable database)';
@@ -21,12 +30,17 @@ describe('WORKFLOW-FOUNDATION-1A phase closure courrier (real PostgreSQL)', { sk
   /* eslint-disable @typescript-eslint/no-explicit-any */
   let closure: Record<string, any>;
   let policy: Record<string, any>;
-  let phasesSvc: Record<string, any>;
   let formal: Record<string, any>;
-  let deep: Record<string, any>;
+  let requestsSvc: Record<string, any>;
+  let fileContext: Record<string, any>;
   let certificatesSvc: Record<string, any>;
+  let jwt: Record<string, any>;
   let db: any;
   /* eslint-enable @typescript-eslint/no-explicit-any */
+  let server: Server;
+  let baseUrl = '';
+  let uploadsRoot = '';
+  const cookies = { staff: '', applicant: '' };
   const tag = Date.now().toString(36);
   let n = 0;
   const created = {
@@ -40,26 +54,71 @@ describe('WORKFLOW-FOUNDATION-1A phase closure courrier (real PostgreSQL)', { sk
 
   before(async () => {
     pool = new pg.Pool(pgConnectionConfig(DATABASE_URL));
-    const [service, policyModule, phasesModule, formalModule, deepModule, dbModule] = await Promise.all([
+    const [service, policyModule, formalModule, requestsModule, fileContextModule, dbModule] = await Promise.all([
       import('./phase-closure.service.js'),
       import('./phase-closure.policy.js'),
-      import('../phases/phases.service.js'),
       import('../formal-request/formal-request.service.js'),
-      import('../deep-evaluation/deep-evaluation.service.js'),
+      import('../requests/requests.service.js'),
+      import('../files/file-context.js'),
       import('../../shared/db/index.js'),
     ]);
     certificatesSvc = await import('../certificates/certificates.service.js');
     closure = service;
     policy = policyModule;
-    phasesSvc = phasesModule;
     formal = formalModule;
-    deep = deepModule;
+    requestsSvc = requestsModule;
+    fileContext = fileContextModule;
     db = dbModule.db;
     closeAppPool = () => dbModule.db.$client.end();
+    uploadsRoot = (await import('../../shared/uploads-root.js')).UPLOADS_ROOT;
+
+    // The real routes: the three retired direct closes, the closure courrier,
+    // the courrier queue and the file route.
+    const [{ default: express }, { default: cookieParser }, routes, jwtModule, guards] = await Promise.all([
+      import('express'),
+      import('cookie-parser'),
+      Promise.all([
+        import('../phases/phases.route.js'),
+        import('../formal-request/formal-request.route.js'),
+        import('../deep-evaluation/deep-evaluation.route.js'),
+        import('./phase-closure.route.js'),
+        import('../courrier-tasks/courrier-tasks.route.js'),
+        import('../files/files.route.js'),
+      ]),
+      import('../../shared/utils/jwt.js'),
+      import('../../shared/guards/auth.middleware.js'),
+    ]);
+    jwt = jwtModule;
+    cookies.staff = guards.ACCESS_TOKEN_COOKIE;
+    cookies.applicant = guards.APPLICANT_ACCESS_TOKEN_COOKIE;
+    const app = express();
+    app.use(express.json());
+    app.use(cookieParser());
+    const [phasesRoute, formalRoute, deepRoute, closureRoute, courrierRoute, filesRoute] = routes.map((m) => m.default);
+    app.use('/api/phases', phasesRoute);
+    app.use('/api/formal-request', formalRoute);
+    app.use('/api/deep-evaluation', deepRoute);
+    app.use('/api/phase-closures', closureRoute);
+    app.use('/api/courrier-tasks', courrierRoute);
+    app.use('/api/files', filesRoute);
+    server = await new Promise<Server>((resolve) => {
+      const listening = app.listen(0, () => resolve(listening));
+    });
+    baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   });
 
   after(async () => {
+    if (server) await new Promise<void>((resolve) => server.close(() => resolve()));
     const { users, requests, phases, assets } = created;
+    if (assets.length) {
+      const keys = (await pool.query(`SELECT storage_key FROM upload_assets WHERE id = ANY($1)`, [assets])).rows;
+      for (const { storage_key: key } of keys) fs.rmSync(path.join(uploadsRoot, key), { force: true });
+    }
+    if (requests.length) {
+      // Relocated closure files live under dossiers/<reference>/ (this test's dossiers only).
+      const references = (await pool.query(`SELECT reference FROM requests WHERE id = ANY($1)`, [requests])).rows;
+      for (const { reference } of references) fs.rmSync(path.join(uploadsRoot, 'dossiers', reference), { recursive: true, force: true });
+    }
     if (users.length) await pool.query(`DELETE FROM audit_logs WHERE user_id = ANY($1)`, [users]);
     if (phases.length) {
       await pool.query(`DELETE FROM document_versions WHERE owner_type = 'phase_closure_document' AND owner_id = ANY($1)`, [phases]);
@@ -162,16 +221,58 @@ describe('WORKFLOW-FOUNDATION-1A phase closure courrier (real PostgreSQL)', { sk
   }
 
   /** A real upload_assets row uploaded by `userId`. */
-  async function asset(userId: number): Promise<PreparedAttachment> {
+  async function asset(userId: number, onDisk = false): Promise<PreparedAttachment> {
+    const storageKey = `phase-closure-test/${tag}-${++n}.pdf`;
+    if (onDisk) {
+      const full = path.join(uploadsRoot, storageKey);
+      fs.mkdirSync(path.dirname(full), { recursive: true });
+      fs.writeFileSync(full, '%PDF-1.4 test');
+    }
     const { id } = await one(
       `INSERT INTO upload_assets (file_url, storage_key, original_name, mime_type, size_bytes, uploaded_by_user_id, uploaded_from_app)
-       VALUES ('pending', $1, 'cloture.pdf', 'application/pdf', 4, $2, 'admin') RETURNING id`,
-      [`phase-closure-test/${tag}-${++n}.pdf`, userId]
+       VALUES ('pending', $1, 'cloture.pdf', 'application/pdf', 13, $2, 'admin') RETURNING id`,
+      [storageKey, userId]
     );
     created.assets.push(id);
     const fileUrl = `/api/files/${id}`;
     await pool.query(`UPDATE upload_assets SET file_url = $1 WHERE id = $2`, [fileUrl, id]);
     return { assetId: id, fileUrl, mimeType: 'application/pdf', originalName: 'cloture.pdf', sizeBytes: 4, uploadedByUserId: userId, actor: { kind: 'staff', userId } };
+  }
+
+  /** A request to the mounted routes as staff (roles) or as an applicant. */
+  async function http(
+    method: 'GET' | 'POST',
+    url: string,
+    as: { userId: number; roles: string[] } | { applicantId: number },
+    body?: unknown
+  ) {
+    const cookie =
+      'roles' in as
+        ? `${cookies.staff}=${jwt.signAccessToken({ kind: 'staff', userId: as.userId, employeeCode: `E${as.userId}`, roles: as.roles })}`
+        : `${cookies.applicant}=${jwt.signApplicantAccessToken({ kind: 'applicant', applicantId: as.applicantId, organisationId: 1, email: 'x@test.local' })}`;
+    const response = await fetch(`${baseUrl}${url}`, {
+      method,
+      headers: { Cookie: cookie, 'Content-Type': 'application/json' },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    const text = await response.text();
+    let json: Record<string, any> | null = null; // eslint-disable-line @typescript-eslint/no-explicit-any
+    try {
+      json = JSON.parse(text);
+    } catch {
+      json = null;
+    }
+    return { status: response.status, json };
+  }
+
+  /** M3, M4 and M5 all business-ready (M5 evaluations of the M4 documents validated). */
+  async function readyM3M4M5() {
+    const d = await dossier(['M3', 'M4', 'M5']);
+    await prepareM3(d);
+    const docs = await prepareM4(d);
+    for (const doc of docs) await pool.query(`INSERT INTO document_evaluations (formal_request_document_id, verdict) VALUES ($1, 'validated')`, [doc]);
+    await pool.query(`INSERT INTO payments (phase_id, status) VALUES ($1, 'validated')`, [d.phase.M5]);
+    return d;
   }
 
   const phaseRow = (id: number) => one(`SELECT status, closed_at, closure_document_url FROM phases WHERE id = $1`, [id]);
@@ -447,29 +548,150 @@ describe('WORKFLOW-FOUNDATION-1A phase closure courrier (real PostgreSQL)', { sk
     });
   });
 
-  describe('transitional direct close paths (to be replaced by the courrier)', () => {
-    it('refuse a phase whose closure courrier has started: PHASE_CLOSURE_IN_PROGRESS', async () => {
-      const d = await dossier(['M3', 'M4', 'M5']);
-      await prepareM3(d);
-      const docs = await prepareM4(d);
-      for (const doc of docs) await pool.query(`INSERT INTO document_evaluations (formal_request_document_id, verdict) VALUES ($1, 'validated')`, [doc]);
-      await pool.query(`INSERT INTO payments (phase_id, status) VALUES ($1, 'validated')`, [d.phase.M5]);
-      for (const code of ['M3', 'M4', 'M5'] as const) await closure.startPhaseClosure(d.phase[code], d.actor, await asset(d.actor));
+  describe('WORKFLOW-FOUNDATION-1B - the direct close routes are retired', () => {
+    it('M3, M4, M5 business-ready: each legacy close answers PHASE_CLOSURE_WORKFLOW_REQUIRED and closes nothing', async () => {
+      const d = await readyM3M4M5();
+      const supervisor = { userId: d.actor, roles: ['dn_supervisor'] };
+      const legacy: Array<[PhaseCode, string]> = [
+        ['M3', `/api/phases/${d.phase.M3}/close`],
+        ['M4', `/api/formal-request/phases/${d.phase.M4}/close`],
+        ['M5', `/api/deep-evaluation/phases/${d.phase.M5}/close`],
+      ];
+      for (const [code, url] of legacy) {
+        // With the old optional file and note: still nothing.
+        const response = await http('POST', url, supervisor, { closureNote: 'x', closureDocumentUploadAssetId: (await asset(d.actor, true)).assetId });
+        assert.equal(response.status, 409, code);
+        assert.equal(response.json?.code, 'PHASE_CLOSURE_WORKFLOW_REQUIRED', code);
+        assert.match(response.json?.message, /courrier de clôture/, code);
+        assert.deepEqual(await phaseRow(d.phase[code]), { status: 'open', closed_at: null, closure_document_url: null }, code);
+        assert.deepEqual(await closureRows(d.phase[code]), [], code);
+      }
+      assert.deepEqual(await closureAudits(d.request), []);
+    });
+  });
 
-      await assert.rejects(phasesSvc.closePhase(d.phase.M3, d.actor, {}), { message: 'PHASE_CLOSURE_IN_PROGRESS' });
-      await assert.rejects(formal.closeFormalPhase(d.phase.M4, d.actor, {}), { message: 'PHASE_CLOSURE_IN_PROGRESS' });
-      await assert.rejects(deep.closeDeepEvaluationPhase(d.phase.M5, d.actor, {}), { message: 'PHASE_CLOSURE_IN_PROGRESS' });
-      for (const code of ['M3', 'M4', 'M5'] as const) assert.equal((await phaseRow(d.phase[code])).status, 'open', code);
+  describe('WORKFLOW-FOUNDATION-1B - read model', () => {
+    it('readiness comes from the policy: blocker wording while not ready, then the courrier replaces it', async () => {
+      const d = await dossier(['M4']);
+      await prepareM4(d, { missingSlot: true });
+      const blocked = await closure.getPhaseClosureState(d.phase.M4);
+      assert.deepEqual(blocked, {
+        phaseId: d.phase.M4,
+        phaseStatus: 'open',
+        closure: null,
+        readiness: {
+          ready: false,
+          blockerCode: 'DOCUMENTS_INCOMPLETE',
+          blockerMessage: 'Les 11 documents doivent tous être soumis avant de clôturer la phase.',
+        },
+      });
+      await pool.query(`UPDATE formal_request_documents SET status = 'submitted' WHERE phase_id = $1`, [d.phase.M4]);
+      assert.deepEqual((await closure.getPhaseClosureState(d.phase.M4)).readiness, { ready: true, blockerCode: null, blockerMessage: null });
+      await closure.startPhaseClosure(d.phase.M4, d.actor, await asset(d.actor));
+      const deposited = await closure.getPhaseClosureState(d.phase.M4);
+      assert.equal(deposited.closure.status, 'submitted');
+      assert.equal(deposited.readiness, null);
+      // Neutral progress for the portal's phase bundle.
+      assert.equal((await formal.getBundleForRequest(d.request, 'applicant')).phase.closureInProgress, true);
+    });
+  });
+
+  describe('WORKFLOW-FOUNDATION-1B - end to end through /courriers, with the file route', () => {
+    it('supervisor deposits; Réception / Assistant DG open, circuit and return it; the phase closes; access stays narrow', async () => {
+      const d = await readyM3M4M5();
+      const supervisor = { userId: d.actor, roles: ['dn_supervisor'] };
+      const reception = { userId: await user(), roles: ['reception'] };
+      const assistantDg = { userId: await user(), roles: ['assistant_dg'] };
+      const applicant = { applicantId: (await one(`SELECT applicant_id FROM requests WHERE id = $1`, [d.request])).applicant_id };
+
+      // RBAC on the deposit: dn_agent refused, dn_supervisor accepted.
+      const draft = await asset(d.actor, true);
+      assert.equal((await http('POST', `/api/phase-closures/phases/${d.phase.M4}`, { userId: d.actor, roles: ['dn_agent'] }, { uploadAssetId: draft.assetId })).status, 403);
+      const deposit = await http('POST', `/api/phase-closures/phases/${d.phase.M4}`, supervisor, { uploadAssetId: draft.assetId });
+      assert.equal(deposit.status, 201);
+      const closureId = deposit.json?.id;
+
+      // The courrier queue: business label data (phase code, never a raw label), print action.
+      const queue = await http('GET', '/api/courrier-tasks?source=phase_closure', reception);
+      const task = queue.json?.items.find((item: { id: string }) => item.id === `phase_closure:${closureId}`);
+      assert.ok(task);
+      assert.equal(task.source, 'phase_closure');
+      assert.equal(task.phaseCode, 'M4');
+      assert.equal(task.bucket, 'to_print');
+      assert.deepEqual(task.availableActions, ['print', 'confirm_signature_circuit']);
+      assert.equal(task.fileUrl, draft.fileUrl);
+      assert.equal(task.requestReference, (await one(`SELECT reference FROM requests WHERE id = $1`, [d.request])).reference);
+
+      // The draft: Réception and Assistant DG may open it; the applicant and unrelated staff may not.
+      assert.equal((await http('GET', `/api/files/${draft.assetId}`, reception)).status, 200);
+      assert.equal((await http('GET', `/api/files/${draft.assetId}`, assistantDg)).status, 200);
+      assert.equal((await http('GET', `/api/files/${draft.assetId}`, { userId: d.actor, roles: ['s5_agent'] })).status, 404);
+      assert.equal((await http('GET', `/api/files/${draft.assetId}`, { userId: d.actor, roles: ['assistant_dn'] })).status, 404);
+      assert.equal((await http('GET', `/api/files/${draft.assetId}`, applicant)).status, 404);
+      assert.equal((await http('GET', `/api/files/${draft.assetId}`, supervisor)).status, 200);
+
+      // Mise en circuit by Réception; the DN cannot run the circuit.
+      assert.equal((await http('POST', `/api/courrier-tasks/phase_closure:${closureId}/confirm-printed-for-signature`, supervisor)).status, 403);
+      const sent = await http('POST', `/api/courrier-tasks/phase_closure:${closureId}/confirm-printed-for-signature`, reception);
+      assert.equal(sent.status, 200);
+      assert.equal(sent.json?.bucket, 'with_dg');
+      assert.deepEqual(sent.json?.availableActions, ['upload_signed_return']);
+      // A second mise en circuit is a clear domain refusal, never a 500.
+      const again = await http('POST', `/api/courrier-tasks/phase_closure:${closureId}/confirm-printed-for-signature`, reception);
+      assert.equal(again.status, 409);
+      assert.equal(again.json?.code, 'INVALID_PHASE_CLOSURE_TRANSITION');
+      assert.equal((await phaseRow(d.phase.M4)).status, 'open');
+
+      // Signed return scanned by the Assistant DG: the phase closes.
+      const signed = await asset(assistantDg.userId, true);
+      const returned = await http('POST', `/api/courrier-tasks/phase_closure:${closureId}/return-signed`, assistantDg, { uploadAssetId: signed.assetId });
+      assert.equal(returned.status, 200);
+      assert.equal(returned.json?.bucket, 'returned');
+      assert.equal(returned.json?.circuitStatus, 'signed_returned');
+      assert.equal(returned.json?.fileUrl, signed.fileUrl);
+      const phase = await phaseRow(d.phase.M4);
+      assert.equal(phase.status, 'closed');
+      assert.equal(phase.closure_document_url, signed.fileUrl);
+      assert.deepEqual((await closureAudits(d.request)).map((a) => a.action), [
+        'PHASE_CLOSURE_CREATED',
+        'PHASE_CLOSURE_SENT_TO_DG',
+        'PHASE_CLOSURE_RETURNED',
+        'PHASE_CLOSED',
+      ]);
+
+      // After the return: DN and the circuit roles keep it (operational history); the applicant never.
+      for (const as of [supervisor, reception, assistantDg]) assert.equal((await http('GET', `/api/files/${signed.assetId}`, as)).status, 200);
+      assert.equal((await http('GET', `/api/files/${signed.assetId}`, applicant)).status, 404);
+      assert.equal((await http('GET', `/api/files/${signed.assetId}`, { userId: d.actor, roles: ['r3_agent'] })).status, 404);
+      const context = await fileContext.resolveAssetContext(
+        { id: signed.assetId, storageKey: 'x', linkedOwnerType: 'phase_closure_document', linkedOwnerId: d.phase.M4, uploadedByUserId: null, uploadedByApplicantId: null },
+        fileContext.createDbFileContextStore(db)
+      );
+      assert.equal(context.closureCourrier, true);
     });
 
-    it('still close directly without a courrier (known transitional path), with the shared readiness', async () => {
+    it('a historical closure file (phase closed before the courrier existed) stays DN-only', async () => {
       const d = await dossier(['M3']);
-      await prepareM3(d, { declaration: false });
-      await assert.rejects(phasesSvc.closePhase(d.phase.M3, d.actor, {}), { message: 'DECLARATION_NOT_SUBMITTED' });
-      await pool.query(`INSERT INTO preliminary_evaluation_forms (phase_id, submitted_file_url, submitted_at) VALUES ($1, '/api/files/1', now())`, [d.phase.M3]);
-      await phasesSvc.closePhase(d.phase.M3, d.actor, {});
-      assert.equal((await phaseRow(d.phase.M3)).status, 'closed');
-      assert.equal(await closure.getPhaseClosure(d.phase.M3), null);
+      const old = await asset(d.actor, true);
+      await pool.query(`UPDATE upload_assets SET linked_owner_type = 'phase_closure_document', linked_owner_id = $1 WHERE id = $2`, [d.phase.M3, old.assetId]);
+      await pool.query(`UPDATE phases SET status = 'closed', closed_at = now(), closure_document_url = $1 WHERE id = $2`, [old.fileUrl, d.phase.M3]);
+      assert.equal((await http('GET', `/api/files/${old.assetId}`, { userId: d.actor, roles: ['reception'] })).status, 404);
+      assert.equal((await http('GET', `/api/files/${old.assetId}`, { userId: d.actor, roles: ['dn_agent'] })).status, 200);
+    });
+  });
+
+  describe('WORKFLOW-FOUNDATION-1B - Demandes cockpit next action', () => {
+    it('ready → Courrier de clôture à déposer (Chef de service DN); deposited → à mettre en circuit (Réception)', async () => {
+      const d = await dossier(['M3']);
+      await prepareM3(d);
+      const item = async () => (await requestsSvc.listRequestCockpit()).items.find((i: { id: number }) => i.id === d.request);
+      const ready = await item();
+      assert.equal(ready.nextActionLabel, 'Courrier de clôture à déposer');
+      assert.equal(ready.nextActionOwner.label, 'Chef de service DN');
+      await closure.startPhaseClosure(d.phase.M3, d.actor, await asset(d.actor));
+      const deposited = await item();
+      assert.equal(deposited.nextActionLabel, 'Courrier de clôture à mettre en circuit');
+      assert.equal(deposited.nextActionOwner.label, 'Réception');
     });
   });
 

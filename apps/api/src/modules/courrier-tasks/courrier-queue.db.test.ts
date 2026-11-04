@@ -162,12 +162,14 @@ describe('SESSION1-COCKPIT-1 courrier queue (real PostgreSQL)', { skip }, () => 
     assert.equal('statusLabel' in list.items[0], false);
   });
 
-  it('issues exactly 6 queries whatever the number of courriers', async () => {
+  // WORKFLOW-FOUNDATION-1B - 7: the closure courriers (phase and current
+  // document joined) are one more query, whatever their number.
+  it('issues exactly 7 queries whatever the number of courriers', async () => {
     await circuit('formal_request_letter', 'submitted');
     const first = await countQueries(() => service.listCourrierTasks({}));
     for (let i = 0; i < 3; i += 1) await circuit('pre_evaluation', 'submitted');
     const second = await countQueries(() => service.listCourrierTasks({}));
-    assert.equal(first.count, 6);
-    assert.equal(second.count, 6);
+    assert.equal(first.count, 7);
+    assert.equal(second.count, 7);
   });
 });

@@ -14,7 +14,8 @@ export interface RequestView {
 }
 
 export interface PreliminaryBundle {
-  phase: { id: number; status: string } | null;
+  /** WORKFLOW-FOUNDATION-1B - closure courrier in progress (neutral wording only). */
+  phase: { id: number; status: string; closureInProgress?: boolean } | null;
   meeting: ({
     id: number;
     scheduledAt: string;
@@ -40,7 +41,8 @@ export interface FormalDoc {
 }
 
 export interface FormalBundle {
-  phase: { id: number; status: string } | null;
+  /** WORKFLOW-FOUNDATION-1B - closure courrier in progress (neutral wording only). */
+  phase: { id: number; status: string; closureInProgress?: boolean } | null;
   letterCircuit: { id: number; status: string; fileUrl: string | null } | null;
   documents: FormalDoc[];
   meeting: ({
@@ -64,7 +66,8 @@ export interface PaymentInfo {
 export type EvaluationVerdict = 'validated' | 'rejected' | 'needs_correction' | null;
 
 export interface DeepEvaluationBundle {
-  phase: { id: number; status: string } | null;
+  /** WORKFLOW-FOUNDATION-1B - closure courrier in progress (neutral wording only). */
+  phase: { id: number; status: string; closureInProgress?: boolean } | null;
   payment: PaymentInfo | null;
   evaluations: Array<{
     id: number;

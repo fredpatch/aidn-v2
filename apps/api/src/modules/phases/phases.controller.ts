@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import * as phasesService from './phases.service.js';
 import { handlePhasesError } from '../../shared/utils/error.js';
-import { actorFromRequest, parseOptionalUploadAssetId, prepareUploadAttachment } from '../uploads/upload-attachment.js';
 
 export async function startPreliminaryPhase(req: Request, res: Response): Promise<void> {
   try {
@@ -59,19 +58,3 @@ export async function getDossierState(req: Request, res: Response): Promise<void
   }
 }
 
-export async function close(req: Request, res: Response): Promise<void> {
-  try {
-    const { closureNote, closureDocumentUploadAssetId } = req.body ?? {};
-    const closureAssetId = parseOptionalUploadAssetId(closureDocumentUploadAssetId);
-    const attachment = closureAssetId
-      ? await prepareUploadAttachment(closureAssetId, actorFromRequest(req))
-      : undefined;
-    const phase = await phasesService.closePhase(Number(req.params.id), req.user!.userId, {
-      attachment,
-      closureNote,
-    });
-    res.json(phase);
-  } catch (error) {
-    handlePhasesError(res, error);
-  }
-}

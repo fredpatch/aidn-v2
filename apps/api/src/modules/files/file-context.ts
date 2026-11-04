@@ -28,6 +28,8 @@ export interface FileContextStore {
   findRequestApplicant(requestId: number): Promise<number | null>;
   findDgCircuit(dgCircuitDocumentId: number): Promise<{ requestId: number; entityType: string } | null>;
   findPhase(phaseId: number): Promise<{ requestId: number; phaseCode: string } | null>;
+  /** WORKFLOW-FOUNDATION-1B - the phase has a closure courrier (any status). */
+  hasPhaseClosureCircuit(phaseId: number): Promise<boolean>;
   findOwnerPhaseId(ownerType: PhaseOwnedType, ownerId: number): Promise<number | null>;
   findCertificateRequest(certificateId: number): Promise<number | null>;
   findTemplate(templateId: number): Promise<{ active: boolean; fileUrl: string | null } | null>;
@@ -82,7 +84,10 @@ export async function resolveAssetContext(asset: AssetForContext, store: FileCon
     return phaseDossier(store, ownerType, await store.findOwnerPhaseId(ownerType as PhaseOwnedType, ownerId));
   }
   if (ownerType === 'phase_closure_document') {
-    return phaseDossier(store, ownerType, ownerId);
+    const context = await phaseDossier(store, ownerType, ownerId);
+    return context.kind === 'dossier' && (await store.hasPhaseClosureCircuit(ownerId))
+      ? { ...context, closureCourrier: true }
+      : context;
   }
   if (ownerType === 'certificate_document') {
     return dossier(store, ownerType, await store.findCertificateRequest(ownerId), 'M7');
@@ -132,6 +137,15 @@ export function createDbFileContextStore(executor: Executor): FileContextStore {
           .from(schema.phases)
           .where(eq(schema.phases.id, id))
       );
+    },
+    async hasPhaseClosureCircuit(phaseId) {
+      const row = await one(
+        executor
+          .select({ id: schema.phaseClosureCircuits.id })
+          .from(schema.phaseClosureCircuits)
+          .where(eq(schema.phaseClosureCircuits.phaseId, phaseId))
+      );
+      return row !== null;
     },
     async findOwnerPhaseId(ownerType, id) {
       const table = {

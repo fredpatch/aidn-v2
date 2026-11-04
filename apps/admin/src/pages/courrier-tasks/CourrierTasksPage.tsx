@@ -31,7 +31,7 @@ import {
   COURRIER_TAB_MODES,
   COURRIER_TABS,
   REQUEST_TYPE_LABELS,
-  SOURCE_LABELS,
+  courrierSourceLabel,
   courrierMetrics,
   type CourrierTab,
 } from './courrierCopy';
@@ -70,7 +70,7 @@ export default function CourrierTasksPage() {
             item.requestReference,
             item.organisationName,
             item.applicantName,
-            SOURCE_LABELS[item.source],
+            courrierSourceLabel(item),
             REQUEST_TYPE_LABELS[item.requestType],
           ].join(' ')
         ),
@@ -189,7 +189,7 @@ export default function CourrierTasksPage() {
         file={
           viewerTask?.fileUrl
             ? {
-                title: `${SOURCE_LABELS[viewerTask.source] ?? viewerTask.source} ${viewerTask.requestReference}`,
+                title: `${courrierSourceLabel(viewerTask)} ${viewerTask.requestReference}`,
                 url: viewerTask.fileUrl,
               }
             : null
@@ -223,9 +223,9 @@ export default function CourrierTasksPage() {
       />
       {returnTask ? (
         <CockpitUploadModal
-          title="Scanner le retour annoté"
-          subtitle={`${SOURCE_LABELS[returnTask.source] ?? returnTask.source} - ${returnTask.requestReference}`}
-          label="Document annoté par le DG"
+          title={returnTask.source === 'phase_closure' ? 'Scanner le courrier de clôture signé' : 'Scanner le retour annoté'}
+          subtitle={`${courrierSourceLabel(returnTask)} - ${returnTask.requestReference}`}
+          label={returnTask.source === 'phase_closure' ? 'Courrier de clôture signé par le DG' : 'Document annoté par le DG'}
           accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
           submitLabel="Enregistrer le retour"
           busySubmitLabel="Enregistrement..."

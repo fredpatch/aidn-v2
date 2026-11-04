@@ -6,7 +6,6 @@ import * as evalService from './deep-evaluation.service.js';
 import { handleDeepEvaluationError } from '../../shared/utils/error.js';
 import {
   actorFromRequest,
-  parseOptionalUploadAssetId,
   parseUploadAssetId,
   prepareUploadAttachment,
 } from '../uploads/upload-attachment.js';
@@ -137,19 +136,3 @@ export async function resubmitDocument(req: Request, res: Response): Promise<voi
   }
 }
 
-export async function closePhase(req: Request, res: Response): Promise<void> {
-  try {
-    const { closureDocumentUploadAssetId, closureNote } = req.body ?? {};
-    const closureAssetId = parseOptionalUploadAssetId(closureDocumentUploadAssetId);
-    const attachment = closureAssetId
-      ? await prepareUploadAttachment(closureAssetId, actorFromRequest(req))
-      : undefined;
-    await evalService.closeDeepEvaluationPhase(Number(req.params.phaseId), req.user!.userId, {
-      attachment,
-      closureNote,
-    });
-    res.json({ message: 'Phase clôturée.' });
-  } catch (error) {
-    handleDeepEvaluationError(res, error);
-  }
-}

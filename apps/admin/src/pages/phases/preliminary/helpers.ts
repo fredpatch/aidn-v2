@@ -47,7 +47,7 @@ export function isDeclarationSubmitted(bundle: PreliminaryBundle | null): boolea
 
 /** PRELIM-DG-CIRCUIT-1 - the declaration must also have completed the DG
  *  signature circuit; applicant submission alone must never make M3
- *  closable. Mirrors the backend guard (phases.service.ts::closePhase) -
+ *  closable. Mirrors the backend rule (phase-closure.policy.ts::assertPreliminaryReady) -
  *  this is UI feedback only, the backend remains authoritative. */
 export function isCircuitReturned(bundle: PreliminaryBundle | null): boolean {
   return bundle?.circuit?.status === 'pending_review';

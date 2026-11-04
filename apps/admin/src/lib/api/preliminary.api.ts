@@ -53,16 +53,5 @@ export async function makeDeclarationAvailable(
   });
 }
 
-export async function closePhase(params: {
-  phaseId: number;
-  closureNote?: string;
-  closureDocumentUploadAssetId?: number;
-}): Promise<void> {
-  await api.post(`/phases/${params.phaseId}/close`, {
-    closureDocumentUploadAssetId: params.closureDocumentUploadAssetId,
-    closureNote: params.closureNote || undefined,
-  });
-}
-
 // STORAGE-0B - one shared upload helper (returns uploadAssetId).
 export { uploadFile } from '../uploads';

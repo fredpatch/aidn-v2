@@ -72,6 +72,8 @@ export function countBuckets<B extends string>(keys: readonly B[], items: Readon
  *  requireRole(...) list of the route performing the step, verbatim. */
 export const OPERATIONAL_OWNERS = {
   dn: { kind: 'staff', label: 'DN', roles: ['dn_agent', 'dn_supervisor', 'SU'] },
+  // WORKFLOW-FOUNDATION-1B - DN authority: deposits the phase closure courrier.
+  dnSupervisor: { kind: 'staff', label: 'Chef de service DN', roles: ['dn_supervisor', 'SU'] },
   reception: { kind: 'staff', label: 'Réception', roles: ['assistant_dg', 'reception', 'SU'] },
   assistantDg: { kind: 'staff', label: 'Assistant DG', roles: ['assistant_dg', 'reception', 'SU'] },
   assistantDn: { kind: 'staff', label: 'Assistante DN', roles: ['assistant_dn', 'SU'] },

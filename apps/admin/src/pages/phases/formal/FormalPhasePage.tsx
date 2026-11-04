@@ -5,12 +5,14 @@ import { useAuth } from '../../../hooks/useAuth';
 import WorkflowCockpit from '../components/WorkflowCockpit';
 import { useDossierState } from '../components/DossierReadOnly';
 import DocumentsChecklistCard from './components/DocumentsChecklistCard';
-import FormalClosureCard from './components/FormalClosureCard';
+import { PhaseClosureCard } from '../../../components/phase-closure/PhaseClosureCard';
+import { usePhaseClosure } from '../../../components/phase-closure/usePhaseClosure';
+import { closureNextAction } from '../../../components/phase-closure/closureNextAction';
+import { queryKeys } from '../../../lib/react-query/queryKeys';
 import FormalLetterCard from './components/FormalLetterCard';
 import FormalMeetingCard from './components/FormalMeetingCard';
 import {
   buildChecklist,
-  canCloseFormalPhase,
   closureBlockReason,
   formalNextAction,
   formatDate,
@@ -31,15 +33,16 @@ export default function FormalPhasePage() {
   // K7b - closed dossier: read-only (components/DossierReadOnly.tsx).
   const dossierState = useDossierState(requestId);
   const dossierClosed = !!dossierState?.closed;
+  const closure = usePhaseClosure(bundle?.phase?.id, queryKeys.formal.bundle(requestId ?? ''));
 
   if (loading) return <p className="p-6 text-anac-muted">Chargement...</p>;
   if (error) return <p className="p-6 text-anac-danger">{error}</p>;
 
-  const canClose = canCloseFormalPhase(bundle);
   const letterReturned = bundle?.letterCircuit?.status === 'pending_review';
   const blockReason = closureBlockReason(bundle);
   const checklist = bundle ? buildChecklist(bundle) : [];
-  const nextAction = formalNextAction(bundle);
+  const closureAction = closureNextAction(closure.state);
+  const nextAction = closureAction ?? formalNextAction(bundle);
   const canManageFormal =
     user?.roles.some((role) => ['dn_agent', 'dn_supervisor', 'SU'].includes(role)) ?? false;
 
@@ -71,7 +74,7 @@ export default function FormalPhasePage() {
       checklist={checklist}
       action={{
         ...nextAction,
-        blockReason,
+        blockReason: closureAction ? null : blockReason,
         primaryAction: !bundle?.phase
           ? {
               label: startingPhase ? 'Démarrage...' : 'Démarrer la phase',
@@ -122,27 +125,14 @@ export default function FormalPhasePage() {
               setActionError={setActionError}
             />
 
-            {!dossierClosed && bundle.phase.status === 'open' && canClose && canManageFormal && (
-              <FormalClosureCard
-                phaseId={bundle.phase.id}
-                requestId={requestId}
-                setActionError={setActionError}
-              />
-            )}
-
-            {!dossierClosed && bundle.phase.status === 'open' && canClose && !canManageFormal && (
-              <div className="card">
-                <p className="text-sm text-anac-muted">
-                  La phase est prête à être clôturée. Action réservée à la DN.
-                </p>
-              </div>
-            )}
-
-            {!dossierClosed && bundle.phase.status === 'open' && !canClose && blockReason && (
-              <div className="card">
-                <p className="text-sm text-anac-muted">{blockReason}</p>
-              </div>
-            )}
+            {/* WORKFLOW-FOUNDATION-1B - the only way this phase closes. */}
+            <PhaseClosureCard
+              state={closure.state}
+              blocker={blockReason}
+              dossierClosed={dossierClosed}
+              depositing={closure.depositing}
+              onDeposit={closure.depositCourrier}
+            />
           </>
         )}
       </div>

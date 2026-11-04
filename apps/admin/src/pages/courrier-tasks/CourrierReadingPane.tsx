@@ -8,7 +8,7 @@ import { QueueEmptyPane, QueueReadingPane } from '../../components/cockpit/Queue
 import type { CourrierTask } from '../../lib/api/courrier-tasks';
 import { canAct } from '../../lib/next-action-owner';
 import { cn } from '../../lib/utils';
-import { REQUEST_TYPE_LABELS, SOURCE_LABELS, courrierCallout } from './courrierCopy';
+import { REQUEST_TYPE_LABELS, courrierCallout, courrierSourceLabel } from './courrierCopy';
 
 const DN_VIEW_ROLES = ['dn_agent', 'dn_supervisor', 'SU'];
 
@@ -35,7 +35,7 @@ export function CourrierReadingPane({
   if (!task) return <QueueEmptyPane title="Sélectionnez un courrier" description="Le circuit, le document et l'action apparaîtront ici." />;
   const copy = courrierCallout(task, thresholds);
   const allowed = canAct(task.owner, roles as InternalRole[]);
-  const sourceLabel = SOURCE_LABELS[task.source] ?? task.source;
+  const sourceLabel = courrierSourceLabel(task);
   const cta = task.availableActions.includes('print') ? (
     <Button ref={actionButtonRef} type="button" size="sm" disabled={busy || !task.fileUrl} onClick={() => onPrint(task)}>
       <Printer size={14} aria-hidden="true" /> Ouvrir / imprimer

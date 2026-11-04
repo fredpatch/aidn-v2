@@ -3,23 +3,12 @@ import { db } from '../../shared/db/index.js';
 import {
   phases,
   requests,
-  documentVersions,
   dgCircuitDocuments,
   organisations,
   applicants,
 } from '../../shared/db/schema.js';
 import { logAudit } from '../auth/auth.service.js';
-import {
-  claimUploadAsset,
-  linkLockedAsset,
-  trashCurrentVersions,
-  versionValues,
-  type PreparedAttachment,
-} from '../uploads/upload-attachment.js';
-import { relocateDossierAssetAfterCommit, type RelocationTarget } from '../files/relocate-asset.js';
-import { assertPhaseDossierOpen, isDossierClosed } from '../requests/dossier-open.js';
-import { assertCurrentMeetingResolved, assertPreliminaryDeclarationReturned } from '../phase-closure/phase-closure.policy.js';
-import { assertNoPhaseClosureCircuit } from '../phase-closure/phase-closure.service.js';
+import { isDossierClosed } from '../requests/dossier-open.js';
 import { isPreliminaryOpenable } from '../dn-annotation/dn-annotation.stage.js';
 import { effectiveRequestStatus, requestStatusLabel } from '../requests/request-labels.js';
 
@@ -236,72 +225,3 @@ export async function getDossierState(requestId: number, viewerRoles: string[] =
   };
 }
 
-/** Pattern "Cloture de phase" - doc attached and/or note, both fully
- *  optional (relaxed on Fred's explicit call after live testing,
- *  2026-07-08 - DN should never be blocked from closing just for not
- *  typing something).
- *
- *  Two separate gates, added after further live testing the same day -
- *  neither is about the note/doc fields, both are about whether closing
- *  is reachable at all: (1) the phase's meeting must actually be resolved
- *  (held/no_show/file_cancelled), and (2) the postulant must have
- *  returned their filled-in declaration de pre-evaluation. */
-export async function closePhase(
-  phaseId: number,
-  actorUserId: number,
-  params: {
-    /** Optional closure document (STORAGE-0B: a checked upload). */
-    attachment?: PreparedAttachment;
-    closureNote?: string;
-  }
-): Promise<PhaseView> {
-  const { attachment } = params;
-  const target: RelocationTarget = { ownerType: 'phase_closure_document', ownerId: phaseId };
-  const updated = await db.transaction(async (tx) => {
-    // K7 - closed dossier: read-only (requests/dossier-open.ts).
-    await assertPhaseDossierOpen(tx, phaseId);
-    const [phase] = await tx.select().from(phases).where(eq(phases.id, phaseId)).for('update');
-    if (!phase) throw new Error('PHASE_NOT_FOUND');
-    if (attachment && (await claimUploadAsset(tx, attachment, target)) === 'attached_here') return phase;
-    if (phase.status !== 'open') throw new Error('PHASE_ALREADY_CLOSED');
-
-    // WORKFLOW-FOUNDATION-1A - transitional direct close, to be replaced by
-    // the closure courrier (modules/phase-closure); refused once that
-    // courrier has started. Readiness is the shared policy.
-    await assertNoPhaseClosureCircuit(tx, phaseId);
-    await assertCurrentMeetingResolved(tx, phaseId);
-    // PRELIM-DG-CIRCUIT-1 - the declaration and its DG return are scoped to
-    // M3 (the only phase this generic endpoint is wired to by the admin), so
-    // another phase closed here never inherits them.
-    if (phase.phaseCode === 'M3') await assertPreliminaryDeclarationReturned(tx, phase);
-
-    if (attachment) {
-      // VERSION-CURRENT-DISCIPLINE - defensive: a phase closes once today,
-      // so this is unreachable in practice, but follows the same
-      // unconditional invariant pattern as every other owner type.
-      await trashCurrentVersions(tx, 'phase_closure_document', phaseId);
-      await tx.insert(documentVersions).values(versionValues(attachment, 'phase_closure_document', phaseId));
-      await linkLockedAsset(tx, attachment.assetId, target);
-    }
-
-    const [closed] = await tx
-      .update(phases)
-      .set({
-        status: 'closed',
-        closedAt: new Date(),
-        closureDocumentUrl: attachment?.fileUrl,
-        closureNote: params.closureNote,
-      })
-      .where(eq(phases.id, phaseId))
-      .returning();
-
-    await logAudit(
-      { userId: actorUserId, action: 'PHASE_CLOSED', module: phase.phaseCode, entityId: phaseId },
-      tx
-    );
-    return closed;
-  });
-
-  if (attachment) await relocateDossierAssetAfterCommit(attachment.assetId, target);
-  return toPhaseView(updated);
-}

@@ -5,7 +5,10 @@ import { useAuth } from '../../hooks/useAuth';
 import { DN_OWNER } from './owners';
 import WorkflowCockpit from './components/WorkflowCockpit';
 import { useDossierState } from './components/DossierReadOnly';
-import ClosureCard from './preliminary/components/ClosureCard';
+import { PhaseClosureCard } from '../../components/phase-closure/PhaseClosureCard';
+import { usePhaseClosure } from '../../components/phase-closure/usePhaseClosure';
+import { closureNextAction } from '../../components/phase-closure/closureNextAction';
+import { queryKeys } from '../../lib/react-query/queryKeys';
 import DeclarationCard from './preliminary/components/DeclarationCard';
 import MeetingCard from './preliminary/components/MeetingCard';
 import {
@@ -32,6 +35,7 @@ export default function PreliminaryPhasePage() {
   // K7b - closed dossier: read-only (components/DossierReadOnly.tsx).
   const dossierState = useDossierState(requestId);
   const dossierClosed = !!dossierState?.closed;
+  const closure = usePhaseClosure(bundle?.phase?.id, queryKeys.preliminary.bundle(requestId ?? ''));
 
   if (loading) return <p className="p-6 text-anac-muted">Chargement...</p>;
   if (error) return <p className="p-6 text-anac-danger">{error}</p>;
@@ -40,7 +44,10 @@ export default function PreliminaryPhasePage() {
   const blockReason = preliminaryClosureBlockReason(bundle);
   const summary = bundle ? preliminaryWorkflowSummary(bundle, canClose ? null : blockReason) : null;
   const checklist = bundle ? buildChecklist(bundle) : [];
-  const action = summary
+  const closureAction = closureNextAction(closure.state);
+  const action = closureAction
+    ? closureAction
+    : summary
     ? {
         title: summary.title,
         description: summary.description,
@@ -133,19 +140,14 @@ export default function PreliminaryPhasePage() {
               setActionError={setActionError}
             />
 
-            {!dossierClosed && bundle.phase.status === 'open' && canClose && (
-              <ClosureCard
-                phaseId={bundle.phase.id}
-                requestId={requestId}
-                setActionError={setActionError}
-              />
-            )}
-
-            {!dossierClosed && bundle.phase.status === 'open' && !canClose && (
-              <div className="card">
-                <p className="text-sm text-anac-muted">{blockReason}</p>
-              </div>
-            )}
+            {/* WORKFLOW-FOUNDATION-1B - the only way this phase closes. */}
+            <PhaseClosureCard
+              state={closure.state}
+              blocker={canClose ? null : blockReason}
+              dossierClosed={dossierClosed}
+              depositing={closure.depositing}
+              onDeposit={closure.depositCourrier}
+            />
           </>
         )}
       </div>

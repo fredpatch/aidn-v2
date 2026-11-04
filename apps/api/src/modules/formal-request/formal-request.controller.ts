@@ -6,7 +6,6 @@ import * as formalService from './formal-request.service.js';
 import { handleFormalRequestError } from '../../shared/utils/error.js';
 import {
   actorFromRequest,
-  parseOptionalUploadAssetId,
   parseUploadAssetId,
   prepareUploadAttachment,
 } from '../uploads/upload-attachment.js';
@@ -103,19 +102,3 @@ export async function submitDocument(req: Request, res: Response): Promise<void>
   }
 }
 
-export async function closePhase(req: Request, res: Response): Promise<void> {
-  try {
-    const { closureNote, closureDocumentUploadAssetId } = req.body ?? {};
-    const closureAssetId = parseOptionalUploadAssetId(closureDocumentUploadAssetId);
-    const attachment = closureAssetId
-      ? await prepareUploadAttachment(closureAssetId, actorFromRequest(req))
-      : undefined;
-    await formalService.closeFormalPhase(Number(req.params.phaseId), req.user!.userId, {
-      attachment,
-      closureNote,
-    });
-    res.json({ message: 'Phase clôturée.' });
-  } catch (error) {
-    handleFormalRequestError(res, error);
-  }
-}

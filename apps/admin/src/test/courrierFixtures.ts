@@ -6,7 +6,7 @@ export const courrier = (over: Partial<CourrierTask> = {}): CourrierTask => ({
   bucket: 'to_print', state: 'action_required', owner: OPERATIONAL_OWNERS.reception, actionKey: 'print_for_dg',
   blockReason: null, urgency: 'normal', stepSince: '2026-10-15T09:00:00.000Z', dueAt: null,
   dossierClosed: false, dossierStatus: 'in_progress', source: 'formal_request_letter', requestType: 'issuance',
-  applicantName: 'Jean', circuitDocumentId: 1, circuitStatus: 'submitted', circuitStep: 'deposited',
+  applicantName: 'Jean', circuitDocumentId: 1, phaseCode: null, circuitStatus: 'submitted', circuitStep: 'deposited',
   fileUrl: '/api/files/1', mimeType: 'application/pdf', depositedAt: '2026-10-15T09:00:00.000Z',
   signatureSentAt: null, signedAt: null, pendingReviewAt: null, availableActions: ['print', 'confirm_signature_circuit'],
   signatureWorkingDays: null, signatureLate: false, ...over,

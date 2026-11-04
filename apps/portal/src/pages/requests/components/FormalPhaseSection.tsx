@@ -24,6 +24,7 @@ import { MeetingConfirmationPanel, usesConfirmationPanel } from '../../../compon
 import { MeetingReportPanel, showsReportPanel } from '../../../components/meetings/MeetingReportPanel';
 import { useApplicantActions } from '../../../hooks/useApplicantActions';
 import { topPhaseAction } from '../../../lib/actions/selectors';
+import { CLOSURE_IN_PROGRESS } from './closure-wording';
 
 function letterLabel(status: string | undefined): string {
   if (!status) return 'À déposer';
@@ -55,6 +56,9 @@ export function buildFormalPresentation(bundle: FormalBundle) {
     title = 'Demande formelle clôturée';
     description = 'Votre dossier formel est complet et passe à la phase suivante.';
     tone = 'success';
+  } else if (bundle.phase?.closureInProgress) {
+    title = CLOSURE_IN_PROGRESS.title;
+    description = CLOSURE_IN_PROGRESS.description;
   } else if (!bundle.letterCircuit) {
     title = 'Lettre officielle';
     description = "La lettre officielle de demande d'agrément OMA n'a pas encore été déposée.";

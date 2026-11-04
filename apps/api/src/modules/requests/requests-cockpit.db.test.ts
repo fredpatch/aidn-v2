@@ -246,17 +246,18 @@ describe('D2 request cockpit (real PostgreSQL)', { skip }, () => {
     for (let i = 0; i < 3; i += 1) await full();
     const withFour = await capture();
     assert.equal(withFour.length, withOne.length, `same query count with 1 and 4 seeded dossiers (${withOne.length})`);
-    // Absolute count without a viewer, 13 statements:
+    // Absolute count without a viewer, 14 statements:
     //   1  requests ⋈ organisations ⋈ applicants
     //   8  loadApplicantActionRows: phases, meetings, preliminary_evaluation_forms,
     //      formal_request_documents, dg_circuit_documents, payments, document_evaluations, certificates
     //   1  site_inspections
     //   2  audit_logs (activity window + last activity per request, by design)
     //   1  document_versions of the returned DN circuits (conditional; seeded above, so always issued here)
-    assert.equal(withFour.length, 13, `fixed cockpit query count without a viewer (got ${withFour.length})`);
+    //   1  phase_closure_circuits in progress (WORKFLOW-FOUNDATION-1B; readiness is computed from the rows above)
+    assert.equal(withFour.length, 14, `fixed cockpit query count without a viewer (got ${withFour.length})`);
     // With a viewer: + request_views.
     const withViewer = await capture(await agent());
-    assert.equal(withViewer.length, 14, `fixed cockpit query count with a viewer (got ${withViewer.length})`);
+    assert.equal(withViewer.length, 15, `fixed cockpit query count with a viewer (got ${withViewer.length})`);
 
     const primaryTable = (text: string) => /\bfrom\s+"?([a-z_]+)"?/i.exec(text)?.[1] ?? null;
     for (const captured of [withFour, withViewer]) {
@@ -276,6 +277,7 @@ describe('D2 request cockpit (real PostgreSQL)', { skip }, () => {
         'site_inspections',
         'request_views',
         'document_versions',
+        'phase_closure_circuits',
       ]) {
         assert.ok(readsOf(table) <= 1, `${table} is the primary table of at most one select (got ${readsOf(table)})`);
       }

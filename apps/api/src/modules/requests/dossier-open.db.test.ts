@@ -64,7 +64,8 @@ describe('K7 closed dossier is read-only (real PostgreSQL)', { skip }, () => {
       import('./dossier-open.js'),
       import('../../shared/db/index.js'),
     ]);
-    m = { phasesSvc, prelim, formal, deep, site, cert, meetings, negotiation, signedReport, courrier, dnAnnotation, requests, guard, db: dbModule.db };
+    const closure = await import('../phase-closure/phase-closure.service.js');
+    m = { closure, phasesSvc, prelim, formal, deep, site, cert, meetings, negotiation, signedReport, courrier, dnAnnotation, requests, guard, db: dbModule.db };
     closeAppPool = () => dbModule.db.$client.end();
   });
 
@@ -121,11 +122,11 @@ describe('K7 closed dossier is read-only (real PostgreSQL)', { skip }, () => {
   }
 
   function actions(d: Awaited<ReturnType<typeof dossierWithEverything>>): Array<[string, () => Promise<unknown>]> {
-    const { phasesSvc, prelim, formal, deep, site, cert, meetings, negotiation, signedReport, courrier, dnAnnotation, requests } = m;
+    const { closure, prelim, formal, deep, site, cert, meetings, negotiation, signedReport, courrier, dnAnnotation, requests } = m;
     const u = d.user;
     const soon = new Date(Date.now() + 3 * 86_400_000).toISOString();
     return [
-      ['M3 close phase', () => phasesSvc.closePhase(d.phase.M3, u, {})],
+      ['M3 closure courrier', () => closure.startPhaseClosure(d.phase.M3, u, attachment)],
       ['M3 declaration made available', () => prelim.makeAvailable(d.phase.M3, u)],
       ['M3 declaration submitted (applicant)', () => prelim.submit(d.phase.M3, attachment)],
       ['M4 open', () => formal.openFormalPhase(d.request, u)],
@@ -133,7 +134,7 @@ describe('K7 closed dossier is read-only (real PostgreSQL)', { skip }, () => {
       ['M4 letter signed', () => formal.markLetterSigned(d.request, u)],
       ['M4 letter pending review', () => formal.markLetterPendingReview(d.request, u)],
       ['M4 document submitted', () => formal.submitDocument(d.request, 'quality_manual', attachment)],
-      ['M4 close phase', () => formal.closeFormalPhase(d.phase.M4, u, {})],
+      ['M4 closure courrier', () => closure.startPhaseClosure(d.phase.M4, u, attachment)],
       ['M5 open', () => deep.openDeepEvaluationPhase(d.request, u)],
       ['M5 invoice', () => deep.uploadInvoice(d.phase.M5, attachment, u)],
       ['M5 proof (applicant)', () => deep.uploadPaymentProof(d.phase.M5, d.request, d.applicant, attachment)],
@@ -141,7 +142,7 @@ describe('K7 closed dossier is read-only (real PostgreSQL)', { skip }, () => {
       ['M5 reject payment', () => deep.rejectPayment(d.phase.M5, u, 'request_new_proof', 'x')],
       ['M5 document verdict', () => deep.setVerdict(d.evaluation, 'validated', u)],
       ['M5 document resubmitted (applicant)', () => deep.resubmitDocument(d.evaluation, d.applicant, attachment)],
-      ['M5 close phase', () => deep.closeDeepEvaluationPhase(d.phase.M5, u, {})],
+      ['M5 closure courrier', () => closure.startPhaseClosure(d.phase.M5, u, attachment)],
       ['M6 open', () => site.openSiteInspectionPhase(d.request, u)],
       ['M6 invoice', () => site.uploadInvoice(d.phase.M6, attachment, u)],
       ['M6 proof (applicant)', () => site.uploadPaymentProof(d.phase.M6, d.request, d.applicant, attachment)],

@@ -12,7 +12,7 @@ function pathId(value: unknown, notFound: string): number {
 
 export async function getForPhase(req: Request, res: Response): Promise<void> {
   try {
-    res.json(await phaseClosureService.getPhaseClosure(pathId(req.params.phaseId, 'PHASE_NOT_FOUND')));
+    res.json(await phaseClosureService.getPhaseClosureState(pathId(req.params.phaseId, 'PHASE_NOT_FOUND')));
   } catch (error) {
     handlePhaseClosureError(res, error);
   }
@@ -45,4 +45,11 @@ export async function recordReturn(req: Request, res: Response): Promise<void> {
   } catch (error) {
     handlePhaseClosureError(res, error);
   }
+}
+
+/** WORKFLOW-FOUNDATION-1B - the retired direct close routes (M3
+ *  /phases/:id/close, M4 and M5 /phases/:phaseId/close): a phase closes only
+ *  through its closure courrier. Nothing is read or written. */
+export function retiredDirectPhaseClose(_req: Request, res: Response): void {
+  handlePhaseClosureError(res, new Error('PHASE_CLOSURE_WORKFLOW_REQUIRED'));
 }

@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { PAYMENT_REJECTION_REASON_MAX_LENGTH } from '@aidn/shared';
 import { SeedingError } from '../../modules/seeding/seeding.types.js';
+import { READINESS_BLOCKER_MESSAGES } from '../../modules/phase-closure/phase-closure.policy.js';
 
 /** `code` overrides the code sent to the client (several internal codes
  *  can share one public response); the internal code is still logged. */
@@ -277,11 +278,24 @@ export const handleRequestsError = createErrorHandler(
   '[requests]'
 );
 
-/** WORKFLOW-FOUNDATION-1A - a transitional direct close of a phase whose
- *  closure courrier has started (only its signed return may close it). */
-const PHASE_CLOSURE_IN_PROGRESS = {
-  status: 409,
-  message: 'Le courrier de clôture de cette phase est en cours : la phase sera clôturée à son retour signé.',
+/** WORKFLOW-FOUNDATION-1A/1B - the closure courrier refusals, shared by its
+ *  routes and the courrier queue (/courriers). Readiness keeps each phase's
+ *  precise refusal, worded once in the readiness policy. */
+const PHASE_CLOSURE_ERRORS: ErrorMap = {
+  PHASE_CLOSURE_NOT_FOUND: { status: 404, message: 'Courrier de clôture introuvable.' },
+  PHASE_CLOSURE_ALREADY_EXISTS: { status: 409, message: 'Un courrier de clôture existe déjà pour cette phase.' },
+  INVALID_PHASE_CLOSURE_TRANSITION: {
+    status: 409,
+    message: "Cette étape n'est pas possible dans l'état actuel du courrier de clôture.",
+  },
+  PHASE_CLOSURE_WORKFLOW_REQUIRED: {
+    status: 409,
+    message:
+      'La clôture directe est désactivée : la phase se clôture par son courrier de clôture (dépôt, circuit DG, retour signé).',
+  },
+  ...Object.fromEntries(
+    Object.entries(READINESS_BLOCKER_MESSAGES).map(([code, message]) => [code, { status: 409, message }])
+  ),
 };
 
 export const handlePhasesError = createErrorHandler(
@@ -317,7 +331,6 @@ export const handlePhasesError = createErrorHandler(
         "La déclaration de pré-évaluation doit d'abord revenir signée/visée par la DG (circuit courrier) avant de clôturer la phase.",
     },
     ...UPLOAD_ATTACH_ERRORS,
-    PHASE_CLOSURE_IN_PROGRESS,
   },
   '[phases]'
 );
@@ -516,8 +529,8 @@ export const handleFormalRequestError = createErrorHandler(
       status: 409,
       message: 'Transition de statut invalide pour ce circuit.',
     },
+    ...PHASE_CLOSURE_ERRORS,
     ...UPLOAD_ATTACH_ERRORS,
-    PHASE_CLOSURE_IN_PROGRESS,
   },
   '[formal-request]'
 );
@@ -588,7 +601,6 @@ export const handleDeepEvaluationError = createErrorHandler(
       status: 409,
       message: 'Tous les documents doivent être validés avant de clôturer la phase.',
     },
-    PHASE_CLOSURE_IN_PROGRESS,
   },
   '[deep-evaluation]'
 );
@@ -746,48 +758,11 @@ export function handleSeedingError(res: Response, error: unknown): void {
   res.status(500).json({ message: 'Impossible de créer les éléments manquants.', code: 'SEED_FAILED' });
 }
 
-/** WORKFLOW-FOUNDATION-1A - the closure courrier workflow. Readiness keeps
- *  each phase's precise refusal (the screens already show them). */
 export const handlePhaseClosureError = createErrorHandler(
   {
     PHASE_NOT_FOUND: { status: 404, message: 'Phase introuvable.' },
     PHASE_ALREADY_CLOSED: { status: 409, message: 'Cette phase est déjà clôturée.' },
-    PHASE_CLOSURE_NOT_FOUND: { status: 404, message: 'Courrier de clôture introuvable.' },
-    PHASE_CLOSURE_ALREADY_EXISTS: {
-      status: 409,
-      message: 'Un courrier de clôture existe déjà pour cette phase.',
-    },
-    INVALID_PHASE_CLOSURE_TRANSITION: {
-      status: 409,
-      message: "Cette étape n'est pas possible dans l'état actuel du courrier de clôture.",
-    },
-    PHASE_CLOSURE_NOT_SUPPORTED: {
-      status: 409,
-      message: "La clôture par courrier n'est pas encore disponible pour cette phase.",
-    },
-    MEETING_NOT_RESOLVED: {
-      status: 409,
-      message: "La réunion doit d'abord être résolue (tenue, absence, ou dossier annulé) avant de clôturer la phase.",
-    },
-    DECLARATION_NOT_SUBMITTED: {
-      status: 409,
-      message: "Le postulant doit d'abord retourner sa déclaration de pré-évaluation remplie avant de clôturer la phase.",
-    },
-    PRELIMINARY_DG_RETURN_REQUIRED: {
-      status: 409,
-      message:
-        "La déclaration de pré-évaluation doit d'abord revenir signée/visée par la DG (circuit courrier) avant de clôturer la phase.",
-    },
-    LETTER_NOT_TRANSMITTED: {
-      status: 409,
-      message: "La lettre de demande formelle doit d'abord être transmise à la DN avant de clôturer.",
-    },
-    DOCUMENTS_INCOMPLETE: { status: 409, message: 'Les 11 documents doivent tous être soumis avant de clôturer la phase.' },
-    PAYMENT_NOT_VALIDATED: { status: 409, message: 'Le paiement doit être validé avant de clôturer la phase.' },
-    DOCUMENTS_NOT_ALL_VALIDATED: {
-      status: 409,
-      message: 'Tous les documents doivent être validés avant de clôturer la phase.',
-    },
+    ...PHASE_CLOSURE_ERRORS,
     ...UPLOAD_ATTACH_ERRORS,
   },
   '[phase-closure]'

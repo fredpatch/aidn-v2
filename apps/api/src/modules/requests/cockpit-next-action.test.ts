@@ -58,6 +58,8 @@ function facts(over: Partial<CockpitFacts> = {}): CockpitFacts {
     openPhasePayment: null,
     m6VisitHeldWithoutVerdict: false,
     openPhaseCircuitStatus: null,
+    openPhaseClosureStatus: null,
+    openPhaseClosureReady: false,
     ...over,
   };
 }
@@ -324,6 +326,42 @@ describe('resolveCockpitNextAction - open phase (D9)', () => {
     assert.deepEqual(r.nextActionOwner, DN);
     assert.equal(r.nextActionHref, `/demandes/${ID}/M3`);
     assert.equal(r.canStartPreliminary, false);
+  });
+});
+
+describe('resolveCockpitNextAction - closure courrier (WORKFLOW-FOUNDATION-1B)', () => {
+  for (const code of ['M3', 'M4', 'M5'] as const) {
+    it(`${code}: ready → Chef de service DN deposits; submitted → Réception; in circuit → Assistant DG waiting`, () => {
+      const open = phases({ ...(code !== 'M3' && { M3: 'closed' }), ...(code === 'M5' && { M4: 'closed' }), [code]: 'open' });
+      const ready = resolveCockpitNextAction(facts({ phases: open, openPhaseClosureReady: true }));
+      assert.equal(ready.nextActionLabel, 'Courrier de clôture à déposer');
+      assert.equal(ready.nextActionState, 'action_required');
+      assert.deepEqual(ready.nextActionOwner, { kind: 'staff', label: 'Chef de service DN', roles: ['dn_supervisor', 'SU'] });
+      assert.equal(ready.nextActionHref, `/demandes/${ID}/${code}`);
+
+      const submitted = resolveCockpitNextAction(facts({ phases: open, openPhaseClosureStatus: 'submitted' }));
+      assert.equal(submitted.nextActionLabel, 'Courrier de clôture à mettre en circuit');
+      assert.equal(submitted.nextActionState, 'action_required');
+      assert.deepEqual(submitted.nextActionOwner, OWNERS.reception);
+
+      const inCircuit = resolveCockpitNextAction(facts({ phases: open, openPhaseClosureStatus: 'in_signature_circuit' }));
+      assert.equal(inCircuit.nextActionLabel, 'Retour DG du courrier de clôture attendu');
+      assert.equal(inCircuit.nextActionState, 'waiting');
+      assert.deepEqual(inCircuit.nextActionOwner, OWNERS.assistantDg);
+      for (const r of [ready, submitted, inCircuit]) assert.doesNotMatch(r.nextActionLabel, /Traiter|M[3-7]/);
+    });
+  }
+
+  it('not ready and no courrier: the earlier steps still apply (no closure wording)', () => {
+    const r = resolveCockpitNextAction(facts({ phases: phases({ M3: 'open' }) }));
+    assert.equal(r.nextActionLabel, 'Traiter Préliminaire');
+  });
+
+  it('a courrier in progress outranks the earlier steps (the business work is done)', () => {
+    const r = resolveCockpitNextAction(
+      facts({ phases: phases({ M3: 'open' }), openPhaseCircuitStatus: 'submitted', openPhaseClosureStatus: 'in_signature_circuit' })
+    );
+    assert.equal(r.nextActionLabel, 'Retour DG du courrier de clôture attendu');
   });
 });
 

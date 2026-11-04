@@ -184,11 +184,12 @@ describe('SESSION1-UX-1 applicant actions (real PostgreSQL)', { skip }, () => {
     const bundle = await formal.getBundleForRequest(d.request, 'applicant');
     const action = (await list(d.applicant)).find((a) => a.key === 'formal_missing_documents')!;
     assert.equal(action.count, 11 - bundle.completionRate);
-    await assert.rejects(formal.closeFormalPhase(d.phase.M4, agent, {}), { message: 'DOCUMENTS_INCOMPLETE' });
+    // WORKFLOW-FOUNDATION-1B - the M4 readiness rule (closure courrier) agrees with the applicant's action.
+    await assert.rejects((await import('../phase-closure/phase-closure.policy.js')).assertPhaseReadyForClosure((await import('../../shared/db/index.js')).db, { id: d.phase.M4, requestId: d.request, phaseCode: 'M4' }), { message: 'DOCUMENTS_INCOMPLETE' });
 
     for (const slot of formal.ALL_SLOTS.slice(4)) await formal.submitDocument(d.request, slot, await asset(d.applicant));
     assert.equal((await list(d.applicant)).find((a) => a.key === 'formal_missing_documents'), undefined);
-    await formal.closeFormalPhase(d.phase.M4, agent, {}); // does not throw
+    await (await import('../phase-closure/phase-closure.policy.js')).assertPhaseReadyForClosure((await import('../../shared/db/index.js')).db, { id: d.phase.M4, requestId: d.request, phaseCode: 'M4' }); // ready: does not throw
   });
 
   it('payment proof: listed awaiting_proof, gone after the proof upload; rejection variant; validated / pending → none', async () => {

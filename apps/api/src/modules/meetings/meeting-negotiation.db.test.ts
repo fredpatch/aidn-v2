@@ -751,12 +751,14 @@ describe('SESSION1-MEET-1 meeting negotiation (real PostgreSQL)', { skip }, () =
     });
 
     it('phase closing stays blocked while the appointment is negotiated (status scheduled)', async () => {
-      const phasesSvc = await import('../phases/phases.service.js');
+      const { assertPhaseReadyForClosure } = await import('../phase-closure/phase-closure.policy.js');
+      const { db } = await import('../../shared/db/index.js');
       const d = await dossier();
       const dn = await user();
       const id = await propose(d.phase.M3, dn);
       await negotiation.proposeAlternate(id, d.applicant, { scheduledAt: slot().toISOString(), remark: 'r' });
-      await assert.rejects(phasesSvc.closePhase(d.phase.M3, dn, {}), /MEETING_NOT_RESOLVED/);
+      // WORKFLOW-FOUNDATION-1B - the closure courrier's M3 readiness.
+      await assert.rejects(assertPhaseReadyForClosure(db, { id: d.phase.M3, requestId: d.request, phaseCode: 'M3' }), /MEETING_NOT_RESOLVED/);
     });
   });
 });

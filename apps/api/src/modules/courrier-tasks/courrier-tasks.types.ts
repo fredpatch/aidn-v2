@@ -1,6 +1,8 @@
 import type { CourrierActionKey, CourrierBucket, OperationalQueue, OperationalQueueItem } from '@aidn/shared';
 
-export type CourrierTaskSource = 'intake_request' | 'formal_request_letter' | 'pre_evaluation';
+/** WORKFLOW-FOUNDATION-1B - phase_closure: the closure courrier of an M3/M4/M5
+ *  phase (phase_closure_circuits), printed and returned like the others. */
+export type CourrierTaskSource = 'intake_request' | 'formal_request_letter' | 'pre_evaluation' | 'phase_closure';
 export type CourrierTaskAction = 'print' | 'confirm_signature_circuit' | 'upload_signed_return';
 /** The DG circuit step, for the stepper (the former `bucket` values). */
 export type CourrierCircuitStep = 'deposited' | 'with_dg' | 'returned' | 'legacy_signed';
@@ -9,7 +11,10 @@ export interface CourrierQueueItem extends OperationalQueueItem<CourrierBucket, 
   source: CourrierTaskSource;
   requestType: string;
   applicantName: string;
+  /** dg_circuit_documents.id, or phase_closure_circuits.id for a closure courrier. */
   circuitDocumentId: number;
+  /** The phase of a closure courrier (its label is the phase name); null otherwise. */
+  phaseCode: string | null;
   circuitStatus: string;
   circuitStep: CourrierCircuitStep;
   fileUrl: string | null;

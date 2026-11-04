@@ -36,6 +36,11 @@ export interface CockpitFacts {
   m6VisitHeldWithoutVerdict: boolean;
   /** M4 letter circuit or M3 pre_evaluation circuit of the open phase. */
   openPhaseCircuitStatus: string | null;
+  /** WORKFLOW-FOUNDATION-1B - the open M3/M4/M5 phase's closure courrier
+   *  (submitted / in_signature_circuit), null when none. */
+  openPhaseClosureStatus: string | null;
+  /** No closure courrier yet and the readiness policy accepts one. */
+  openPhaseClosureReady: boolean;
 }
 
 export interface CockpitNextAction {
@@ -202,6 +207,29 @@ export function resolveCockpitNextAction(facts: CockpitFacts): CockpitNextAction
 function resolveOpenPhase(open: RequestCockpitPhase, facts: CockpitFacts): CockpitNextAction {
   const href = open.href;
 
+  // WORKFLOW-FOUNDATION-1B - the business work is done; only the closure
+  // courrier keeps the phase open.
+  if (facts.openPhaseClosureStatus === 'submitted') {
+    return result(
+      'Courrier de clôture à mettre en circuit',
+      'Le courrier de clôture de la phase est déposé : à imprimer puis mettre en circuit DG.',
+      href,
+      'warning',
+      'action_required',
+      OWNERS.reception
+    );
+  }
+  if (facts.openPhaseClosureStatus === 'in_signature_circuit') {
+    return result(
+      'Retour DG du courrier de clôture attendu',
+      'Le courrier de clôture est dans le circuit DG. La phase sera clôturée à son retour signé.',
+      href,
+      'warning',
+      'waiting',
+      OWNERS.assistantDg
+    );
+  }
+
   // 0. DN work pending in parallel: the DN never reads « en attente » while it has something to do.
   if (facts.meetingAwaitingDn) {
     return result(
@@ -288,7 +316,19 @@ function resolveOpenPhase(open: RequestCockpitPhase, facts: CockpitFacts): Cockp
     );
   }
 
-  // 5. Otherwise the DN works the phase.
+  // 5. Business work complete: the Chef de service deposits the closure courrier.
+  if (facts.openPhaseClosureReady) {
+    return result(
+      'Courrier de clôture à déposer',
+      'Les conditions de la phase sont réunies. Le Chef de service DN dépose le courrier de clôture.',
+      href,
+      'info',
+      'action_required',
+      OWNERS.dnSupervisor
+    );
+  }
+
+  // 6. Otherwise the DN works the phase.
   return result(
     `Traiter ${open.label}`,
     'La DN poursuit le traitement de la phase ouverte.',

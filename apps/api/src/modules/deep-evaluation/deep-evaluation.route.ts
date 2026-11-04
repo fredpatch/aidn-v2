@@ -7,6 +7,7 @@ import {
   requireRole,
 } from '../../shared/guards/auth.middleware.js';
 import * as evalController from './deep-evaluation.controller.js';
+import { retiredDirectPhaseClose } from '../phase-closure/phase-closure.controller.js';
 
 const router = Router();
 
@@ -72,12 +73,12 @@ router.post(
   evalController.resubmitDocument
 );
 
-// Close M5 - DN/SU
+// WORKFLOW-FOUNDATION-1B - retired: M5 closes only through its closure courrier.
 router.post(
   '/phases/:phaseId/close',
   authenticate,
   requireRole('dn_agent', 'dn_supervisor', 'SU'),
-  evalController.closePhase
+  retiredDirectPhaseClose
 );
 
 export default router;

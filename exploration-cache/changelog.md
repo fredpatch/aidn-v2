@@ -3,6 +3,25 @@
 Commit-level history. Covers `be9fce9` through the 2026-10-09 D3c admin
 unread/activity batch.
 
+## 2026-11-04 WORKFLOW-FOUNDATION-1B: the closure courrier is mandatory for M3/M4/M5
+
+- Retired: `POST /api/phases/:id/close`, `/api/formal-request/phases/:phaseId/close`,
+  `/api/deep-evaluation/phases/:phaseId/close` answer 409 `PHASE_CLOSURE_WORKFLOW_REQUIRED` and touch nothing; the
+  `closePhase` / `closeFormalPhase` / `closeDeepEvaluationPhase` services are deleted.
+- Readiness rules are pure functions of a phase's facts (`closureBlocker`): the workflow loads one phase's facts,
+  the Demandes cockpit builds them from its batch rows (+1 query: closures in progress; 14 / 15 statements).
+- `GET /phase-closures/phases/:phaseId` returns `PhaseClosureState` (courrier + server readiness with its French
+  blocker). Admin M3/M4/M5: one « Courrier de clôture » block (deposit: dn_supervisor / SU), the old close
+  cards, hooks, `PhaseClosureForm` and close API calls removed; the page next action follows the courrier.
+- `/courriers`: closure courriers as `phase_closure:<id>` tasks (« Clôture - Phase préliminaire / Demande
+  formelle / Évaluation approfondie »), print / mise en circuit / retour signé through the existing routes.
+- Files: Reception / Assistant DG open `phase_closure_document` only when the phase has a closure courrier
+  (`closureCourrier` context flag); historical closure files stay DN-only; applicants never.
+- Cockpit next action: « Courrier de clôture à déposer » (Chef de service DN, new `OPERATIONAL_OWNERS.dnSupervisor`),
+  « à mettre en circuit » (Réception), « Retour DG du courrier de clôture attendu » (Assistant DG).
+- Portal: `phase.closureInProgress` in the M3/M4/M5 bundles; « Clôture administrative en cours », no circuit detail.
+- M6 verdict and M7 collection auto-closes unchanged (documented exceptions).
+
 ## 2026-11-03 WORKFLOW-FOUNDATION-1A: shared phase closure courrier (backend)
 
 - Migration 0011: `phase_closure_status` enum (`submitted` -> `in_signature_circuit` -> `signed_returned`) and

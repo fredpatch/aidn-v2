@@ -23,6 +23,10 @@ const store: FileContextStore = {
   async findPhase(id) {
     return phases[id] ?? null;
   },
+  // WORKFLOW-FOUNDATION-1B - the M3 phase (30) has a closure courrier.
+  async hasPhaseClosureCircuit(phaseId) {
+    return phaseId === 30;
+  },
   async findOwnerPhaseId(ownerType, id) {
     const table: Record<string, Record<number, number>> = {
       formal_request_document: { 11: 40 },
@@ -100,6 +104,17 @@ describe('resolveAssetContext', () => {
       const context = await resolveAssetContext(asset({ linkedOwnerType: ownerType, linkedOwnerId: ownerId }), store);
       assert.deepEqual(context, { kind: 'dossier', ownerType, requestId: 1, applicantId: 7, stage }, ownerType);
     }
+  });
+
+  it('WORKFLOW-FOUNDATION-1B - a closure document of a phase with a closure courrier is flagged; others are not', async () => {
+    assert.deepEqual(await resolveAssetContext(asset({ linkedOwnerType: 'phase_closure_document', linkedOwnerId: 30 }), store), {
+      kind: 'dossier', ownerType: 'phase_closure_document', requestId: 1, applicantId: 7, stage: 'M3', closureCourrier: true,
+    });
+    const historical = await resolveAssetContext(asset({ linkedOwnerType: 'phase_closure_document', linkedOwnerId: 50 }), store);
+    assert.equal('closureCourrier' in historical, false);
+    // Another owner type of the same phase never gets the flag.
+    const declaration = await resolveAssetContext(asset({ linkedOwnerType: 'preliminary_evaluation_form', linkedOwnerId: 12 }), store);
+    assert.equal('closureCourrier' in declaration, false);
   });
 
   it('SESSION1-MEET-2 - both CR chains: owning applicant and the DN roles only', async () => {

@@ -7,6 +7,7 @@ import {
   documentVersions,
   applicants,
   organisations,
+  phaseClosureCircuits,
   phases,
   requestViews,
   siteInspections,
@@ -46,6 +47,7 @@ import {
   TERMINAL_REQUEST_STATUSES,
 } from './request-labels.js';
 import { resolveRequestActivityPresentation } from './request-activity-labels.js';
+import { closureBlocker, type ClosureFacts } from '../phase-closure/phase-closure.policy.js';
 
 export type { SubmitRequestParams, RequestView } from './requests.types.js';
 export { effectiveRequestStatus } from './request-labels.js';
@@ -320,6 +322,7 @@ export async function listRequestCockpit(viewerUserId?: number): Promise<Request
     activityResult,
     lastActivityRows,
     viewRows,
+    closureRows,
   ] = await Promise.all([
     db
       .select({
@@ -361,9 +364,15 @@ export async function listRequestCockpit(viewerUserId?: number): Promise<Request
     viewerUserId === undefined
       ? Promise.resolve([] as Array<typeof requestViews.$inferSelect>)
       : db.select().from(requestViews).where(eq(requestViews.userId, viewerUserId)),
+    // WORKFLOW-FOUNDATION-1B - the closure courriers in progress (one read, always).
+    db
+      .select({ phaseId: phaseClosureCircuits.phaseId, status: phaseClosureCircuits.status })
+      .from(phaseClosureCircuits)
+      .where(inArray(phaseClosureCircuits.status, ['submitted', 'in_signature_circuit'])),
   ]);
 
   const phaseRowsByRequestId = groupBy(actionRows.phases, (phase) => phase.requestId);
+  const closureStatusByPhaseId = new Map(closureRows.map((row) => [row.phaseId, row.status]));
   const circuitsOfType = (entityType: string) =>
     new Map(actionRows.circuits.filter((row) => row.entityType === entityType).map((row) => [row.requestId, row]));
   const circuitByRequestId = circuitsOfType('intake_request');
@@ -374,6 +383,25 @@ export async function listRequestCockpit(viewerUserId?: number): Promise<Request
   const meetingsByPhaseId = groupBy(actionRows.meetings, (meeting) => meeting.phaseId);
   const paymentByPhaseId = new Map(actionRows.payments.map((payment) => [payment.phaseId, payment]));
   const inspectedPhaseIds = new Set(inspectionRows.map((row) => row.phaseId));
+  const formByPhaseId = new Map(actionRows.forms.map((form) => [form.phaseId, form]));
+
+  /** WORKFLOW-FOUNDATION-1B - the readiness rule of the closure courrier
+   *  (phase-closure.policy.ts), on the facts already loaded here. */
+  function closureFacts(requestId: number, phaseId: number): ClosureFacts {
+    const m4 = phaseRowsByRequestId.get(requestId)?.find((phase) => phase.phaseCode === 'M4');
+    const m4DocumentIds = new Set((m4 ? formalDocsByPhaseId.get(m4.id) ?? [] : []).map((document) => document.id));
+    return {
+      meetings: meetingsByPhaseId.get(phaseId) ?? [],
+      declarationFileUrl: formByPhaseId.get(phaseId)?.submittedFileUrl ?? null,
+      preEvaluationCircuitStatus: declarationCircuitByRequestId.get(requestId)?.status ?? null,
+      letterCircuitStatus: letterCircuitByRequestId.get(requestId)?.status ?? null,
+      formalDocuments: formalDocsByPhaseId.get(phaseId) ?? [],
+      paymentStatus: paymentByPhaseId.get(phaseId)?.status ?? null,
+      m4EvaluationVerdicts: actionRows.evaluations
+        .filter((evaluation) => m4DocumentIds.has(evaluation.formalRequestDocumentId))
+        .map((evaluation) => evaluation.verdict),
+    };
+  }
   // Closed dossiers yield no applicant action (buildApplicantActions skips them).
   const actionsByRequestId = groupBy(buildApplicantActions(actionRows, new Date()), (action) => action.requestId);
   // SESSION1-M1-1 - the returned Directeur DN annotation, readable by the DN agents (staff-only cockpit).
@@ -475,7 +503,14 @@ export async function listRequestCockpit(viewerUserId?: number): Promise<Request
     const open = phasesSummary.find((phase) => phase.status === 'open');
     const row = open ? phaseRowsByRequestId.get(requestId)?.find((phase) => phase.phaseCode === open.phaseCode) : undefined;
     if (!open || !row) {
-      return { meetingAwaitingDn: false, openPhasePayment: null, m6VisitHeldWithoutVerdict: false, openPhaseCircuitStatus: null };
+      return {
+        meetingAwaitingDn: false,
+        openPhasePayment: null,
+        m6VisitHeldWithoutVerdict: false,
+        openPhaseCircuitStatus: null,
+        openPhaseClosureStatus: null,
+        openPhaseClosureReady: false,
+      };
     }
     const phaseMeetings = meetingsByPhaseId.get(row.id) ?? [];
     const payment = paymentByPhaseId.get(row.id);
@@ -493,6 +528,11 @@ export async function listRequestCockpit(viewerUserId?: number): Promise<Request
         !inspectedPhaseIds.has(row.id) &&
         phaseMeetings.some((meeting) => meeting.meetingType === 'site_visit' && meeting.status === 'held'),
       openPhaseCircuitStatus: openPhaseCircuit?.status ?? null,
+      openPhaseClosureStatus: closureStatusByPhaseId.get(row.id) ?? null,
+      openPhaseClosureReady:
+        ['M3', 'M4', 'M5'].includes(open.phaseCode) &&
+        !closureStatusByPhaseId.has(row.id) &&
+        closureBlocker(open.phaseCode, closureFacts(requestId, row.id)) === null,
     };
   }
 

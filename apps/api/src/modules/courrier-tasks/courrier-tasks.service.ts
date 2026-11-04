@@ -14,6 +14,7 @@ import {
   dgCircuitDocuments,
   documentVersions,
   organisations,
+  phaseClosureCircuits,
   phases,
   requests,
 } from '../../shared/db/schema.js';
@@ -38,26 +39,41 @@ import { assertDossierOpen, dossierFlags } from '../requests/dossier-open.js';
 import { getPublicHolidays } from '../system-parameters/system-parameters.service.js';
 import { loadThresholds } from '../operational/thresholds.js';
 import { calendarDaysSince } from '../operational/aging.js';
+import { markPhaseClosureInCircuit, recordPhaseClosureReturn } from '../phase-closure/phase-closure.service.js';
 
 /** The reception-family circuits (Courriers cockpit; ROLE-ANALYTICS-1C history). */
-export const MANAGED_ENTITY_TYPES: readonly CourrierTaskSource[] = [
+/** The DG circuit sources (dg_circuit_documents.entity_type). */
+type DgCourrierSource = Exclude<CourrierTaskSource, 'phase_closure'>;
+
+export const MANAGED_ENTITY_TYPES: readonly DgCourrierSource[] = [
   'intake_request',
   'formal_request_letter',
   'pre_evaluation',
 ];
 
-function parseTaskId(taskId: string): { source: CourrierTaskSource; requestId: number } {
+/** WORKFLOW-FOUNDATION-1B - closure courriers are `phase_closure:<closure id>`. */
+const CLOSURE_SOURCE = 'phase_closure';
+
+function parseClosureTaskId(taskId: string): number | null {
+  const [source, rawId] = taskId.split(':');
+  if (source !== CLOSURE_SOURCE) return null;
+  const closureId = Number(rawId);
+  if (!Number.isSafeInteger(closureId) || closureId <= 0) throw new Error('COURRIER_TASK_INVALID');
+  return closureId;
+}
+
+function parseTaskId(taskId: string): { source: DgCourrierSource; requestId: number } {
   const [source, rawRequestId] = taskId.split(':');
   const requestId = Number(rawRequestId);
 
   if (
-    !MANAGED_ENTITY_TYPES.includes(source as CourrierTaskSource) ||
+    !MANAGED_ENTITY_TYPES.includes(source as DgCourrierSource) ||
     !Number.isInteger(requestId)
   ) {
     throw new Error('COURRIER_TASK_INVALID');
   }
 
-  return { source: source as CourrierTaskSource, requestId };
+  return { source: source as DgCourrierSource, requestId };
 }
 
 function moduleForEntityType(entityType: string): string {
@@ -87,6 +103,31 @@ interface TaskContext {
   documentsByCircuitId: Map<number, { fileUrl: string; mimeType: string }>;
 }
 
+type ClosureRow = typeof phaseClosureCircuits.$inferSelect;
+
+/** A closure courrier with its phase code and current document, read in the
+ *  same query (the queue's query count does not depend on the data). */
+interface ClosureEntry {
+  row: ClosureRow;
+  phaseCode: string;
+  currentFileUrl: string | null;
+  currentMimeType: string | null;
+}
+
+/** What buildTaskView reads of a circuit: a DG circuit row, or a closure
+ *  courrier mapped onto the same steps (with its task id, phase and document). */
+interface CircuitRow {
+  id: number;
+  entityType: string;
+  requestId: number;
+  status: string;
+  depositedAt: Date;
+  signatureSentAt: Date | null;
+  signedAt: Date | null;
+  pendingReviewAt: Date | null;
+  closure?: { taskId: string; phaseCode: string; status: string; document: { fileUrl: string; mimeType: string | null } };
+}
+
 interface RequestRow {
   reference: string;
   requestType: string;
@@ -96,9 +137,10 @@ interface RequestRow {
 }
 
 async function loadTaskContext(
-  rows: Array<typeof dgCircuitDocuments.$inferSelect>
+  rows: Array<typeof dgCircuitDocuments.$inferSelect>,
+  closures: ClosureRow[] = []
 ): Promise<TaskContext> {
-  const requestIds = [...new Set(rows.map((row) => row.requestId))];
+  const requestIds = [...new Set([...rows, ...closures].map((row) => row.requestId))];
   const circuitIds = rows.map((row) => row.id);
   const none = Promise.resolve([]);
   const [limits, holidays, openRows, requestRows, documentRows] = await Promise.all([
@@ -160,6 +202,61 @@ async function loadTaskContext(
   };
 }
 
+/** WORKFLOW-FOUNDATION-1B - a closure courrier on the DG circuit steps:
+ *  deposited -> with the DG -> returned (signed_returned: the phase closed). */
+function closureCircuitRow({ row, phaseCode, currentFileUrl, currentMimeType }: ClosureEntry): CircuitRow {
+  const fileUrl = row.signedDocumentUrl ?? row.draftDocumentUrl;
+  return {
+    id: row.id,
+    entityType: CLOSURE_SOURCE,
+    requestId: row.requestId,
+    status: row.status === 'signed_returned' ? 'pending_review' : row.status,
+    depositedAt: row.submittedAt,
+    signatureSentAt: row.signatureSentAt,
+    signedAt: row.signedAt,
+    pendingReviewAt: row.signedAt,
+    closure: {
+      taskId: `${CLOSURE_SOURCE}:${row.id}`,
+      phaseCode,
+      status: row.status,
+      document: { fileUrl, mimeType: currentFileUrl === fileUrl ? currentMimeType : null },
+    },
+  };
+}
+
+/** The closure courriers (or one): one query, phase code and current
+ *  document (owner phase_closure_document) joined. */
+async function loadClosureRows(closureId?: number): Promise<ClosureEntry[]> {
+  return db
+    .select({
+      row: phaseClosureCircuits,
+      phaseCode: phases.phaseCode,
+      currentFileUrl: documentVersions.fileUrl,
+      currentMimeType: documentVersions.mimeType,
+    })
+    .from(phaseClosureCircuits)
+    .innerJoin(phases, eq(phases.id, phaseClosureCircuits.phaseId))
+    .leftJoin(
+      documentVersions,
+      and(
+        eq(documentVersions.ownerType, 'phase_closure_document'),
+        eq(documentVersions.ownerId, phaseClosureCircuits.phaseId),
+        eq(documentVersions.isCurrent, true)
+      )
+    )
+    .where(closureId === undefined ? undefined : eq(phaseClosureCircuits.id, closureId))
+    .orderBy(desc(phaseClosureCircuits.submittedAt));
+}
+
+async function closureTaskView(closureId: number): Promise<CourrierTaskView> {
+  const [found] = await loadClosureRows(closureId);
+  if (!found) throw new Error('COURRIER_TASK_NOT_FOUND');
+  const ctx = await loadTaskContext([], [found.row]);
+  const task = buildTaskView(closureCircuitRow(found), ctx);
+  if (!task) throw new Error('COURRIER_TASK_NOT_FOUND');
+  return task;
+}
+
 function actionsForStatus(status: string): CourrierTaskView['availableActions'] {
   if (status === 'submitted') return ['print', 'confirm_signature_circuit'];
   if (status === 'in_signature_circuit') return ['upload_signed_return'];
@@ -173,7 +270,7 @@ function circuitStepFor(status: string): CourrierCircuitStep {
   return 'deposited';
 }
 
-function stepSinceOf(row: typeof dgCircuitDocuments.$inferSelect): Date {
+function stepSinceOf(row: CircuitRow): Date {
   if (row.status === 'in_signature_circuit') return row.signatureSentAt ?? row.depositedAt;
   if (row.status === 'pending_review') return row.pendingReviewAt ?? row.signedAt ?? row.depositedAt;
   if (row.status === 'signed') return row.signedAt ?? row.pendingReviewAt ?? row.depositedAt;
@@ -182,10 +279,10 @@ function stepSinceOf(row: typeof dgCircuitDocuments.$inferSelect): Date {
 
 type Operational = Pick<CourrierQueueItem, 'bucket' | 'state' | 'owner' | 'actionKey' | 'blockReason' | 'urgency'>;
 
-function buildTaskView(row: typeof dgCircuitDocuments.$inferSelect, ctx: TaskContext): CourrierQueueItem | null {
+function buildTaskView(row: CircuitRow, ctx: TaskContext): CourrierQueueItem | null {
   const request = ctx.requestsById.get(row.requestId);
   if (!request) return null;
-  const currentDocument = ctx.documentsByCircuitId.get(row.id);
+  const currentDocument = row.closure ? row.closure.document : ctx.documentsByCircuitId.get(row.id);
   // K7c - closed dossier: no print, no signature circuit, no return; the
   // document stays viewable (fileUrl).
   const flags = dossierFlags(request.status);
@@ -228,7 +325,7 @@ function buildTaskView(row: typeof dgCircuitDocuments.$inferSelect, ctx: TaskCon
   } else op = inactive('done', null, null); // legacy `signed` or an unknown status: history
 
   return {
-    id: `${row.entityType}:${row.requestId}`,
+    id: row.closure?.taskId ?? `${row.entityType}:${row.requestId}`,
     requestId: row.requestId,
     requestReference: request.reference,
     organisationName: request.organisationName ?? '-',
@@ -240,7 +337,8 @@ function buildTaskView(row: typeof dgCircuitDocuments.$inferSelect, ctx: TaskCon
     requestType: request.requestType,
     applicantName: request.applicantName ?? '-',
     circuitDocumentId: row.id,
-    circuitStatus: row.status,
+    phaseCode: row.closure?.phaseCode ?? null,
+    circuitStatus: row.closure?.status ?? row.status,
     circuitStep: circuitStepFor(row.status),
     fileUrl: currentDocument?.fileUrl ?? null,
     mimeType: currentDocument?.mimeType ?? null,
@@ -284,20 +382,31 @@ export async function listCourrierTasks(filters: {
   bucket?: string;
   source?: string;
 }): Promise<CourrierQueueResponse> {
-  const rows =
-    filters.source && MANAGED_ENTITY_TYPES.includes(filters.source as CourrierTaskSource)
+  const onlyClosures = filters.source === CLOSURE_SOURCE;
+  const rows = onlyClosures
+    ? []
+    : filters.source && MANAGED_ENTITY_TYPES.includes(filters.source as DgCourrierSource)
       ? await db
           .select()
           .from(dgCircuitDocuments)
-          .where(eq(dgCircuitDocuments.entityType, filters.source as CourrierTaskSource))
+          .where(eq(dgCircuitDocuments.entityType, filters.source as DgCourrierSource))
           .orderBy(desc(dgCircuitDocuments.depositedAt))
       : await db.select().from(dgCircuitDocuments).orderBy(desc(dgCircuitDocuments.depositedAt));
 
   const managed = rows.filter((row) =>
-    MANAGED_ENTITY_TYPES.includes(row.entityType as CourrierTaskSource)
+    MANAGED_ENTITY_TYPES.includes(row.entityType as DgCourrierSource)
   );
-  const ctx = await loadTaskContext(managed);
-  const tasks = managed
+  // WORKFLOW-FOUNDATION-1B - the closure courriers share the queue.
+  const closures = !filters.source || onlyClosures ? await loadClosureRows() : [];
+  const ctx = await loadTaskContext(
+    managed,
+    closures.map((closure) => closure.row)
+  );
+  const circuits: CircuitRow[] = [
+    ...managed,
+    ...closures.map(closureCircuitRow),
+  ].sort((a, b) => b.depositedAt.getTime() - a.depositedAt.getTime());
+  const tasks = circuits
     .map((row) => buildTaskView(row, ctx))
     .filter((task): task is CourrierQueueItem => !!task);
 
@@ -313,6 +422,11 @@ export async function confirmPrintedForSignature(
   taskId: string,
   actorUserId: number
 ): Promise<CourrierTaskView> {
+  const closureId = parseClosureTaskId(taskId);
+  if (closureId !== null) {
+    await markPhaseClosureInCircuit(closureId, actorUserId);
+    return closureTaskView(closureId);
+  }
   const circuit = await getCircuitForTask(taskId);
   await ensureTaskCanMutate(circuit);
   if (circuit.status !== 'submitted') throw new Error('INVALID_CIRCUIT_TRANSITION');
@@ -341,6 +455,12 @@ export async function returnSigned(
   attachment: PreparedAttachment,
   actorUserId: number
 ): Promise<CourrierTaskView> {
+  const closureId = parseClosureTaskId(taskId);
+  if (closureId !== null) {
+    // The signed return closes the phase (phase-closure.service.ts).
+    await recordPhaseClosureReturn(closureId, actorUserId, attachment);
+    return closureTaskView(closureId);
+  }
   const found = await getCircuitForTask(taskId);
   await ensureTaskCanMutate(found);
 
