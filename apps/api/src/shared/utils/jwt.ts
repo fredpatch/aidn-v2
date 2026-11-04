@@ -19,6 +19,20 @@ export interface ApplicantTokenPayload {
   applicantId: number;
   organisationId: number;
   email: string;
+  /** ACCOUNT-V2 - the applicant's credential version when the token was
+   *  issued (applicants.auth_version). Absent from tokens issued before
+   *  ACCOUNT-V2: read through tokenAuthVersion. */
+  authVersion?: number;
+}
+
+/** ACCOUNT-V2 - compatibility rule: a token without `authVersion` predates
+ *  the column and counts as version 1, the column's default. It stays valid
+ *  while the applicant is still at version 1 (no logout on deployment) and
+ *  dies with the first reset or change, like any older token. */
+export const LEGACY_APPLICANT_AUTH_VERSION = 1;
+
+export function tokenAuthVersion(payload: Pick<ApplicantTokenPayload, 'authVersion'>): number {
+  return payload.authVersion ?? LEGACY_APPLICANT_AUTH_VERSION;
 }
 
 const defaults: SignOptions & VerifyOptions = {

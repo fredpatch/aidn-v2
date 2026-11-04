@@ -72,5 +72,18 @@ export interface ApplicantAccountView {
   phone: string | null;
   contactOrder: string;
   active: boolean;
+  /** ACCOUNT-V2 - a temporary password is waiting to be replaced. */
+  mustChangePassword: boolean;
   createdAt: Date;
+}
+
+/** ACCOUNT-V2 - the statuses GET /account-requests?status= accepts (the
+ *  account_request_status enum, validated before the query). */
+export const ACCOUNT_REQUEST_STATUSES = ['pending', 'approved', 'rejected'] as const;
+export type AccountRequestStatus = (typeof ACCOUNT_REQUEST_STATUSES)[number];
+
+/** ACCOUNT-V2 - the reset answer: the temporary password, shown once. */
+export interface ApplicantPasswordReset {
+  account: ApplicantAccountView;
+  temporaryPassword: string;
 }

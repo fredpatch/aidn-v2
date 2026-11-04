@@ -16,5 +16,11 @@ router.post('/:id/approve', accountRequestsController.approve);
 router.post('/:id/reject', accountRequestsController.reject);
 router.patch('/applicants/:id', accountRequestsController.updateApplicant);
 router.patch('/applicants/:id/activation', accountRequestsController.setApplicantActive);
+// ACCOUNT-V2 - more sensitive than a profile edit: DN supervisor and SU only.
+router.post(
+  '/applicants/:id/reset-password',
+  requireRole('dn_supervisor', 'SU'),
+  accountRequestsController.resetApplicantPassword
+);
 
 export default router;

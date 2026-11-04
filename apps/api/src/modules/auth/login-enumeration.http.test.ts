@@ -253,8 +253,11 @@ describe('login responses do not reveal accounts (HTTP)', { skip: dbSkip }, () =
 
       const accessToken = jwt.signApplicantAccessToken({ kind: 'applicant', applicantId: 2_000_000_000, organisationId: orgId, email: 'x' });
       const me = await fetch(`${baseUrl}/api/applicant-auth/me`, { headers: { Cookie: `${cookieNames.applicantAccess}=${accessToken}` } });
+      // ACCOUNT-V2 - the session check refuses a missing account before /me
+      // runs: an expired-session answer, so the portal refreshes, fails, and
+      // returns to the login page.
       assert.equal(me.status, 401);
-      assert.deepEqual(await me.json(), { message: 'Compte introuvable ou inactif.', code: 'ACCOUNT_NOT_FOUND' });
+      assert.deepEqual(await me.json(), { message: 'Session expirée.', code: 'TOKEN_EXPIRED' });
     });
   });
 });

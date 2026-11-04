@@ -1,6 +1,10 @@
 import { Request, Response } from 'express';
 import * as accountRequestsService from './account-requests.service.js';
-import type { UpdateApplicantAccountInput } from './account-requests.types.js';
+import {
+  ACCOUNT_REQUEST_STATUSES,
+  type AccountRequestStatus,
+  type UpdateApplicantAccountInput,
+} from './account-requests.types.js';
 import { handleAccountRequestsError } from '../../shared/utils/error.js';
 
 const UPDATABLE_APPLICANT_FIELDS = ['fullName', 'email', 'phone', 'contactOrder'] as const;
@@ -80,10 +84,11 @@ export async function submit(req: Request, res: Response): Promise<void> {
 
 export async function list(req: Request, res: Response): Promise<void> {
   try {
-    const { status } = req.query;
-    const result = await accountRequestsService.listAccountRequests(
-      typeof status === 'string' ? status : 'pending'
-    );
+    const status = req.query.status ?? 'pending';
+    if (typeof status !== 'string' || !ACCOUNT_REQUEST_STATUSES.includes(status as AccountRequestStatus)) {
+      throw new Error('INVALID_ACCOUNT_REQUEST_STATUS');
+    }
+    const result = await accountRequestsService.listAccountRequests(status as AccountRequestStatus);
     res.json(result);
   } catch (error) {
     handleAccountRequestsError(res, error);
@@ -142,6 +147,17 @@ export async function searchOrganisations(req: Request, res: Response): Promise<
   try {
     const { q } = req.query;
     const result = await accountRequestsService.searchOrganisations(typeof q === 'string' ? q : '');
+    res.json(result);
+  } catch (error) {
+    handleAccountRequestsError(res, error);
+  }
+}
+
+/** ACCOUNT-V2 - the temporary password is in this response only: no cache. */
+export async function resetApplicantPassword(req: Request, res: Response): Promise<void> {
+  try {
+    const result = await accountRequestsService.resetApplicantPassword(Number(req.params.id), req.user!.userId);
+    res.set('Cache-Control', 'no-store');
     res.json(result);
   } catch (error) {
     handleAccountRequestsError(res, error);

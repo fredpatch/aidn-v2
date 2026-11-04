@@ -15,6 +15,7 @@ import {
   UserCheck,
   UserCog,
   UserRound,
+  UserX,
 } from 'lucide-react';
 import { api, apiErrorMessage } from '../../lib/axios';
 import { Button } from '../../components/ui/button';
@@ -35,6 +36,8 @@ import {
   ApplicantAccountEditForm,
   type ApplicantAccountEditValues,
 } from './ApplicantAccountEditForm';
+import { useAuth } from '../../hooks/useAuth';
+import { ApplicantPasswordReset, PASSWORD_RESET_ROLES } from './ApplicantPasswordReset';
 
 interface OrganisationCandidate {
   id: number;
@@ -58,6 +61,8 @@ interface AccountRequestView {
   contactPhone: string | null;
   status: string;
   rejectionReason: string | null;
+  /** Decision date (approval or rejection). */
+  reviewedAt: string | null;
   submittedAt: string;
   candidates: OrganisationCandidate[];
 }
@@ -71,6 +76,8 @@ export interface ApplicantAccountView {
   phone: string | null;
   contactOrder: string;
   active: boolean;
+  /** ACCOUNT-V2 - a temporary password is waiting to be replaced. */
+  mustChangePassword: boolean;
   createdAt: string;
 }
 
@@ -93,13 +100,14 @@ const STATUS_STYLES = {
   rejected: 'border-red-100 bg-red-50 text-anac-danger',
 };
 
-type Tab = 'pending' | 'accounts';
+type Tab = 'pending' | 'rejected' | 'accounts';
 
 const PAGE_SIZE = 8;
 
 export default function AccountRequestsPage() {
   const [tab, setTab] = useState<Tab>('pending');
   const [requests, setRequests] = useState<AccountRequestView[]>([]);
+  const [rejectedRequests, setRejectedRequests] = useState<AccountRequestView[]>([]);
   const [accounts, setAccounts] = useState<ApplicantAccountView[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -107,12 +115,17 @@ export default function AccountRequestsPage() {
   const [busyId, setBusyId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
   const [selectedRequestId, setSelectedRequestId] = useState<number | null>(null);
+  const [selectedRejectedId, setSelectedRejectedId] = useState<number | null>(null);
   const [selectedAccountId, setSelectedAccountId] = useState<number | null>(null);
   const [page, setPage] = useState(1);
+  const { user } = useAuth();
+  const canResetPassword = (user?.roles ?? []).some((role) => PASSWORD_RESET_ROLES.includes(role));
 
   function updateTab(value: Tab) {
     setTab(value);
+    setSearch('');
     setPage(1);
+    setActionError(null);
   }
 
   function updateSearch(value: string) {
@@ -134,6 +147,21 @@ export default function AccountRequestsPage() {
     }
   }
 
+  /** ACCOUNT-V2 - decided requests, newest decision first (history, read-only). */
+  async function loadRejected() {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data } = await api.get('/account-requests?status=rejected');
+      setRejectedRequests(data);
+      setSelectedRejectedId((current) => current ?? data[0]?.id ?? null);
+    } catch (err) {
+      setError(apiErrorMessage(err, 'Impossible de charger les demandes rejetées.'));
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function loadAccounts() {
     setLoading(true);
     setError(null);
@@ -150,6 +178,7 @@ export default function AccountRequestsPage() {
 
   useEffect(() => {
     if (tab === 'pending') loadRequests();
+    else if (tab === 'rejected') loadRejected();
     else loadAccounts();
   }, [tab]);
 
@@ -221,6 +250,15 @@ export default function AccountRequestsPage() {
     );
   }, [requests, search]);
 
+  const filteredRejected = useMemo(() => {
+    const needle = normalize(search);
+    return rejectedRequests.filter((request) =>
+      normalize(
+        `${request.organisationNameInput} ${request.contactFullName} ${request.contactEmail} ${request.requestedEmail} ${request.rejectionReason ?? ''}`
+      ).includes(needle)
+    );
+  }, [rejectedRequests, search]);
+
   const filteredAccounts = useMemo(() => {
     const needle = normalize(search);
     return accounts.filter((account) =>
@@ -232,6 +270,10 @@ export default function AccountRequestsPage() {
     filteredRequests.find((request) => request.id === selectedRequestId) ??
     filteredRequests[0] ??
     null;
+  const selectedRejected =
+    filteredRejected.find((request) => request.id === selectedRejectedId) ??
+    filteredRejected[0] ??
+    null;
   const selectedAccount =
     filteredAccounts.find((account) => account.id === selectedAccountId) ??
     filteredAccounts[0] ??
@@ -239,10 +281,17 @@ export default function AccountRequestsPage() {
 
   const pagedRequests = paginate(filteredRequests, page, PAGE_SIZE);
   const pagedAccounts = paginate(filteredAccounts, page, PAGE_SIZE);
+  const pagedRejected = paginate(filteredRejected, page, PAGE_SIZE);
 
   const activeAccounts = accounts.filter((account) => account.active).length;
   const suspendedAccounts = accounts.filter((account) => !account.active).length;
   const newAccountsThisMonth = accounts.filter((account) => isThisMonth(account.createdAt)).length;
+  const rejectionDates = rejectedRequests
+    .map((request) => request.reviewedAt)
+    .filter((value): value is string => value !== null);
+  const latestRejection = rejectionDates.length
+    ? rejectionDates.reduce((latest, value) => (new Date(value) > new Date(latest) ? value : latest))
+    : null;
   const averageRequestAge = average(
     requests.map((request) => daysBetween(request.submittedAt, new Date().toISOString()))
   );
@@ -276,6 +325,30 @@ export default function AccountRequestsPage() {
             value: averageRequestAge === null ? '-' : `${averageRequestAge} j`,
             helper: 'Depuis soumission portail',
             icon: FileClock,
+            tone: 'info' as const,
+          },
+        ]
+      : tab === 'rejected'
+      ? [
+          {
+            label: 'Demandes rejetées',
+            value: rejectedRequests.length,
+            helper: 'Historique des refus DN/SU',
+            icon: UserX,
+            tone: 'danger' as const,
+          },
+          {
+            label: 'Rejetées ce mois',
+            value: rejectionDates.filter(isThisMonth).length,
+            helper: 'Décisions du mois en cours',
+            icon: FileClock,
+            tone: 'warning' as const,
+          },
+          {
+            label: 'Dernier rejet',
+            value: latestRejection ? formatShortDate(latestRejection) : '-',
+            helper: 'Date de la décision la plus récente',
+            icon: Clock3,
             tone: 'info' as const,
           },
         ]
@@ -330,7 +403,9 @@ export default function AccountRequestsPage() {
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={() => (tab === 'pending' ? loadRequests() : loadAccounts())}
+              onClick={() =>
+                tab === 'pending' ? loadRequests() : tab === 'rejected' ? loadRejected() : loadAccounts()
+              }
               className="inline-flex h-9 items-center gap-2 rounded-md border border-anac-border bg-white px-3 text-sm font-semibold text-anac-navy transition hover:bg-anac-blue/5"
             >
               <RefreshCw size={14} aria-hidden="true" />
@@ -348,7 +423,7 @@ export default function AccountRequestsPage() {
                 onChange={(event) => updateSearch(event.target.value)}
                 className="h-9 w-[300px] rounded-md border border-anac-border bg-white pl-9 pr-3 text-sm outline-none transition focus:border-anac-blue focus:ring-2 focus:ring-anac-blue/15"
                 placeholder={
-                  tab === 'pending' ? 'Rechercher une demande...' : 'Rechercher un compte...'
+                  tab === 'accounts' ? 'Rechercher un compte...' : 'Rechercher une demande...'
                 }
               />
             </label>
@@ -359,20 +434,21 @@ export default function AccountRequestsPage() {
           <TabButton
             active={tab === 'pending'}
             count={requests.length}
-            onClick={() => {
-              updateTab('pending');
-              setActionError(null);
-            }}
+            onClick={() => updateTab('pending')}
           >
             Demandes en attente
           </TabButton>
           <TabButton
+            active={tab === 'rejected'}
+            count={rejectedRequests.length}
+            onClick={() => updateTab('rejected')}
+          >
+            Demandes rejetées
+          </TabButton>
+          <TabButton
             active={tab === 'accounts'}
             count={accounts.length}
-            onClick={() => {
-              updateTab('accounts');
-              setActionError(null);
-            }}
+            onClick={() => updateTab('accounts')}
           >
             Comptes approuvés
           </TabButton>
@@ -419,6 +495,21 @@ export default function AccountRequestsPage() {
                   onPageChange={setPage}
                 />
               </>
+            ) : tab === 'rejected' ? (
+              <>
+                <RejectedRequestsTable
+                  requests={pagedRejected.pageItems}
+                  total={filteredRejected.length}
+                  selectedId={selectedRejected?.id ?? null}
+                  onSelect={(request) => setSelectedRejectedId(request.id)}
+                />
+                <Pagination
+                  label={`${filteredRejected.length} demande(s) rejetée(s)`}
+                  page={pagedRejected.page}
+                  totalPages={pagedRejected.totalPages}
+                  onPageChange={setPage}
+                />
+              </>
             ) : (
               <>
                 <ApplicantAccountsTable
@@ -446,12 +537,16 @@ export default function AccountRequestsPage() {
               onApprove={handleApprove}
               onReject={handleReject}
             />
+          ) : tab === 'rejected' ? (
+            <RejectedRequestPanel request={selectedRejected} />
           ) : (
             <ApprovedAccountPanel
               account={selectedAccount}
               busy={busyId === selectedAccount?.id}
+              canResetPassword={canResetPassword}
               onToggle={handleToggleAccount}
               onUpdate={handleUpdateAccount}
+              onPasswordReset={loadAccounts}
             />
           )}
         </section>
@@ -586,6 +681,78 @@ function PendingRequestsTable({
                   <Eye size={14} aria-hidden="true" />
                   <span className="sr-only">Voir la demande</span>
                 </button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </>
+  );
+}
+
+function RejectedRequestsTable({
+  requests,
+  total,
+  selectedId,
+  onSelect,
+}: {
+  requests: AccountRequestView[];
+  total: number;
+  selectedId: number | null;
+  onSelect: (request: AccountRequestView) => void;
+}) {
+  if (requests.length === 0) {
+    return (
+      <EmptyState
+        title="Aucune demande rejetée"
+        description="Les demandes refusées par la DN apparaîtront ici, avec leur motif."
+        className="min-h-[220px]"
+      />
+    );
+  }
+
+  return (
+    <>
+      <div className="flex items-center justify-between border-b border-anac-border px-4 py-3">
+        <div>
+          <h2 className="text-sm font-semibold text-anac-navy">{total} demande(s) rejetée(s)</h2>
+          <p className="text-xs text-anac-muted">Historique en lecture seule : sélectionnez une demande pour voir le motif.</p>
+        </div>
+      </div>
+      <Table className="min-w-[940px]">
+        <TableHeader>
+          <TableRow>
+            <TableHead>Organisation</TableHead>
+            <TableHead>Contact</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Soumise le</TableHead>
+            <TableHead>Rejetée le</TableHead>
+            <TableHead>Motif</TableHead>
+            <TableHead>Statut</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {requests.map((request) => (
+            <TableRow
+              key={request.id}
+              onClick={() => onSelect(request)}
+              className={cn('cursor-pointer', selectedId === request.id && 'bg-anac-blue/5')}
+            >
+              <TableCell>
+                <p className="font-semibold text-anac-navy">{request.organisationNameInput}</p>
+                <p className="text-xs text-anac-muted">
+                  {request.originalApprovalNumber ?? 'Agrément non renseigne'}
+                </p>
+              </TableCell>
+              <TableCell>{request.contactFullName}</TableCell>
+              <TableCell className="text-anac-muted">{request.contactEmail}</TableCell>
+              <TableCell>{formatDateTime(request.submittedAt)}</TableCell>
+              <TableCell>{request.reviewedAt ? formatDateTime(request.reviewedAt) : '-'}</TableCell>
+              <TableCell className="max-w-[220px] truncate text-anac-muted" title={request.rejectionReason ?? undefined}>
+                {request.rejectionReason ?? '-'}
+              </TableCell>
+              <TableCell>
+                <StatusBadge label="Rejetée" tone={STATUS_STYLES.rejected} />
               </TableCell>
             </TableRow>
           ))}
@@ -917,6 +1084,64 @@ function PendingRequestPanel({
   );
 }
 
+/** ACCOUNT-V2 - a rejected request is history: read-only, no decision control. */
+function RejectedRequestPanel({ request }: { request: AccountRequestView | null }) {
+  if (!request) {
+    return (
+      <aside className="rounded-lg border border-anac-border bg-white p-5 shadow-sm">
+        <EmptyState
+          title="Aucune demande sélectionnée"
+          description="Sélectionnez une demande rejetée dans la liste."
+          className="min-h-[220px]"
+        />
+      </aside>
+    );
+  }
+
+  return (
+    <aside className="h-fit rounded-lg border border-anac-border bg-white shadow-sm xl:sticky xl:top-6">
+      <div className="border-b border-anac-border p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold text-anac-muted">Demande rejetée</p>
+            <h2 className="mt-2 text-xl font-semibold text-anac-navy">{request.organisationNameInput}</h2>
+            <p className="mt-1 text-sm text-anac-muted">ID: REQ-{String(request.id).padStart(6, '0')}</p>
+          </div>
+          <StatusBadge label="Rejetée" tone={STATUS_STYLES.rejected} />
+        </div>
+      </div>
+
+      <div className="space-y-4 p-5">
+        <PanelBlock title="Décision" icon={UserX}>
+          <Info label="Statut" value="Rejetée" />
+          <Info label="Date de décision" value={request.reviewedAt ? formatDateTime(request.reviewedAt) : '-'} />
+          <Info label="Soumise le" value={formatDateTime(request.submittedAt)} />
+          <div className="pt-1 text-sm">
+            <p className="text-anac-muted">Motif du rejet</p>
+            <p className="mt-1 whitespace-pre-wrap rounded-md bg-red-50 px-3 py-2 text-anac-navy">
+              {request.rejectionReason ?? '-'}
+            </p>
+          </div>
+        </PanelBlock>
+
+        <PanelBlock title="Organisation" icon={Building2}>
+          <Info label="Raison sociale" value={request.organisationNameInput} />
+          <Info label="Email organisme" value={request.requestedEmail} />
+          <Info label="Téléphone" value={request.phone ?? '-'} />
+          <Info label="Agrément" value={request.originalApprovalNumber ?? 'Non renseigne'} />
+          <p className="pt-2 text-xs leading-relaxed text-anac-muted">{request.legalAddress}</p>
+        </PanelBlock>
+
+        <PanelBlock title="Contact" icon={UserRound}>
+          <Info label="Nom complet" value={request.contactFullName} />
+          <Info label="Email" value={request.contactEmail} />
+          <Info label="Téléphone" value={request.contactPhone ?? '-'} />
+        </PanelBlock>
+      </div>
+    </aside>
+  );
+}
+
 function AccountInfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div>
@@ -929,13 +1154,17 @@ function AccountInfoRow({ label, value }: { label: string; value: string }) {
 function ApprovedAccountPanel({
   account,
   busy,
+  canResetPassword,
   onToggle,
   onUpdate,
+  onPasswordReset,
 }: {
   account: ApplicantAccountView | null;
   busy: boolean;
+  canResetPassword: boolean;
   onToggle: (id: number, active: boolean) => void;
   onUpdate: (id: number, values: ApplicantAccountEditValues) => Promise<string | null>;
+  onPasswordReset: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -1039,6 +1268,9 @@ function ApprovedAccountPanel({
                 value={CONTACT_ORDER_LABELS[account.contactOrder] ?? account.contactOrder}
               />
               <AccountInfoRow label="Organisation" value={account.organisationName} />
+              {account.mustChangePassword ? (
+                <AccountInfoRow label="Mot de passe" value="Temporaire - à changer à la prochaine connexion" />
+              ) : null}
             </dl>
           )}
         </section>
@@ -1048,14 +1280,9 @@ function ApprovedAccountPanel({
             <LockKeyhole size={14} aria-hidden="true" />
             Actions rapides
           </h3>
-          <div className="grid grid-cols-1 gap-2">
-            <button
-              className="rounded-md border border-anac-border px-2 py-2 text-xs font-semibold text-anac-muted"
-              disabled
-            >
-              Réinitialiser
-            </button>
-          </div>
+          {canResetPassword ? (
+            <ApplicantPasswordReset accountId={account.id} active={account.active} onReset={onPasswordReset} />
+          ) : null}
           {editing ? null : (
             <Button
               type="button"

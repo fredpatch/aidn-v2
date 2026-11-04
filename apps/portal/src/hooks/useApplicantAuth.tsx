@@ -9,6 +9,8 @@ interface ApplicantPublic {
   fullName: string;
   email: string;
   contactOrder: string;
+  /** ACCOUNT-V2 - temporary password: only the change screen is open. */
+  mustChangePassword: boolean;
 }
 
 interface AuthContextValue {

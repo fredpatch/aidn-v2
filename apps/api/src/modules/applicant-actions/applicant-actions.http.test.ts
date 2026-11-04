@@ -13,16 +13,21 @@ describe('GET /api/applicant/actions (HTTP)', () => {
   let baseUrl: string;
   let applicantCookie: string;
   let closeAppPool: () => Promise<void>;
+  let restoreLookup = () => {};
 
   before(async () => {
-    const [{ default: express }, { default: cookieParser }, { default: route }, jwt, guards, dbModule] = await Promise.all([
+    const [{ default: express }, { default: cookieParser }, { default: route }, jwt, guards, dbModule, session] = await Promise.all([
       import('express'),
       import('cookie-parser'),
       import('./applicant-actions.route.js'),
       import('../../shared/utils/jwt.js'),
       import('../../shared/guards/auth.middleware.js'),
       import('../../shared/db/index.js'),
+      import('../../shared/guards/applicant-session.js'),
     ]);
+    // ACCOUNT-V2 - no database for identity here: every applicant session stands.
+    session.setApplicantSessionLookup(async () => ({ active: true, authVersion: 1, mustChangePassword: false }));
+    restoreLookup = () => session.setApplicantSessionLookup(null);
     closeAppPool = () => dbModule.db.$client.end();
     const app = express();
     app.use(cookieParser());
@@ -43,6 +48,7 @@ describe('GET /api/applicant/actions (HTTP)', () => {
 
   after(async () => {
     await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+    restoreLookup();
     await closeAppPool();
   });
 

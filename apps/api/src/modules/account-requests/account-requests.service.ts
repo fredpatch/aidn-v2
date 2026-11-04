@@ -1,12 +1,18 @@
-import bcrypt from 'bcryptjs';
 import { and, eq, ilike, ne, or, desc, sql } from 'drizzle-orm';
 import { db, type DbExecutor } from '../../shared/db/index.js';
 import { EMAIL_MAX_LENGTH, isValidEmail, normalizeEmail } from '../../shared/utils/email-address.js';
 import { accountRequests, applicants, organisations } from '../../shared/db/schema.js';
 import { logAudit } from '../auth/auth.service.js';
+import {
+  assertApplicantPasswordPolicy,
+  generateTemporaryPassword,
+  hashApplicantPassword,
+} from '../applicant-auth/applicant-password.js';
 import type {
   AccountRequestView,
+  AccountRequestStatus,
   ApplicantAccountView,
+  ApplicantPasswordReset,
   ApproveAccountRequestParams,
   OrganisationCandidate,
   RejectAccountRequestParams,
@@ -159,7 +165,8 @@ export async function searchOrganisations(query: string): Promise<OrganisationCa
 }
 
 async function toAccountRequestView(
-  row: typeof accountRequests.$inferSelect
+  row: typeof accountRequests.$inferSelect,
+  { withCandidates = true } = {}
 ): Promise<AccountRequestView> {
   return {
     id: row.id,
@@ -177,7 +184,9 @@ async function toAccountRequestView(
     reviewedBy: row.reviewedBy,
     reviewedAt: row.reviewedAt,
     submittedAt: row.submittedAt,
-    candidates: await findOrganisationCandidates(row.organisationNameInput, row.originalApprovalNumber),
+    candidates: withCandidates
+      ? await findOrganisationCandidates(row.organisationNameInput, row.originalApprovalNumber)
+      : [],
   };
 }
 
@@ -188,7 +197,7 @@ export async function submitAccountRequest(
   if (Date.now() - params.formStartedAt.getTime() < MIN_FORM_ELAPSED_MS) {
     throw new Error('ACCOUNT_REQUEST_TOO_FAST');
   }
-  if (params.password.length < 8) throw new Error('PASSWORD_TOO_SHORT');
+  assertApplicantPasswordPolicy(params.password);
 
   const contactEmail = cleanEmail(params.contactEmail);
   const requestedEmail = cleanEmail(params.requestedEmail);
@@ -199,7 +208,7 @@ export async function submitAccountRequest(
     .where(eq(applicants.email, contactEmail));
   if (existingApplicant) throw new Error('APPLICANT_EMAIL_EXISTS');
 
-  const passwordHash = await bcrypt.hash(params.password, 10);
+  const passwordHash = await hashApplicantPassword(params.password);
 
   try {
     const [request] = await db
@@ -232,14 +241,17 @@ export async function submitAccountRequest(
   }
 }
 
-export async function listAccountRequests(status = 'pending'): Promise<AccountRequestView[]> {
+/** ACCOUNT-V2 - pending requests carry their organisation candidates (the
+ *  review needs them); a decided request is history, read without them. */
+export async function listAccountRequests(status: AccountRequestStatus = 'pending'): Promise<AccountRequestView[]> {
+  const decided = status !== 'pending';
   const rows = await db
     .select()
     .from(accountRequests)
-    .where(eq(accountRequests.status, status as typeof accountRequests.$inferSelect.status))
-    .orderBy(desc(accountRequests.submittedAt));
+    .where(eq(accountRequests.status, status))
+    .orderBy(decided ? desc(accountRequests.reviewedAt) : desc(accountRequests.submittedAt));
 
-  return Promise.all(rows.map(toAccountRequestView));
+  return Promise.all(rows.map((row) => toAccountRequestView(row, { withCandidates: !decided })));
 }
 
 export async function getAccountRequest(id: number): Promise<AccountRequestView> {
@@ -366,6 +378,7 @@ const applicantAccountColumns = {
   phone: applicants.phone,
   contactOrder: applicants.contactOrder,
   active: applicants.active,
+  mustChangePassword: applicants.mustChangePassword,
   createdAt: applicants.createdAt,
 };
 
@@ -510,4 +523,41 @@ export async function updateApplicantAccount(
     if (isUniqueViolation(error)) throw new Error('APPLICANT_EMAIL_EXISTS');
     throw error;
   }
+}
+
+/** ACCOUNT-V2 - DN supervisor / SU reset of a lost applicant password. The
+ *  admin never sees nor chooses the password: a temporary one is generated,
+ *  only its hash is stored, the credential version moves on (every session
+ *  of the applicant ends at once) and the applicant must replace it at the
+ *  next login. The temporary password leaves this function once, in the
+ *  return value, after the commit - never in the audit, a log or a column. */
+export async function resetApplicantPassword(id: number, actorUserId: number): Promise<ApplicantPasswordReset> {
+  if (!Number.isInteger(id) || id <= 0 || id > INT4_MAX) throw new Error('APPLICANT_NOT_FOUND');
+  const temporaryPassword = generateTemporaryPassword();
+  const passwordHash = await hashApplicantPassword(temporaryPassword);
+
+  const account = await db.transaction(async (tx) => {
+    const [applicant] = await tx.select().from(applicants).where(eq(applicants.id, id)).for('update');
+    if (!applicant) throw new Error('APPLICANT_NOT_FOUND');
+    // A suspended account cannot sign in: a temporary password would be shown for nothing.
+    if (!applicant.active) throw new Error('PASSWORD_RESET_NOT_ALLOWED');
+
+    await tx
+      .update(applicants)
+      .set({ passwordHash, authVersion: sql`${applicants.authVersion} + 1`, mustChangePassword: true })
+      .where(eq(applicants.id, id));
+    await logAudit(
+      {
+        userId: actorUserId,
+        action: 'APPLICANT_PASSWORD_RESET',
+        module: 'M13',
+        entityId: id,
+        details: { reason: 'admin_reset', sessions_invalidated: true, must_change_password: true },
+      },
+      tx
+    );
+    return getApplicantAccountView(id, tx);
+  });
+
+  return { account, temporaryPassword };
 }

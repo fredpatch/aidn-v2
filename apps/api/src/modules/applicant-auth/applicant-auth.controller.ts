@@ -60,3 +60,21 @@ export async function me(req: Request, res: Response): Promise<void> {
     handleAuthError(res, error);
   }
 }
+
+/** ACCOUNT-V2 - the new pair replaces the cookies: the old version is dead. */
+export async function changePassword(req: Request, res: Response): Promise<void> {
+  const { currentPassword, newPassword } = req.body ?? {};
+  try {
+    const { tokens, applicant } = await applicantAuthService.changePassword({
+      session: req.applicant!,
+      currentPassword,
+      newPassword,
+    });
+    res.cookie(APPLICANT_ACCESS_TOKEN_COOKIE, tokens.accessToken, applicantAccessCookieOptions);
+    res.cookie(APPLICANT_REFRESH_TOKEN_COOKIE, tokens.refreshToken, applicantRefreshCookieOptions);
+    res.json({ applicant });
+  } catch (error) {
+    if (error instanceof Error && error.message === "SESSION_REVOKED") clearApplicantAuthCookies(res);
+    handleAuthError(res, error);
+  }
+}

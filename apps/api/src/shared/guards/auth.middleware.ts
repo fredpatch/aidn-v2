@@ -5,6 +5,7 @@ import {
   TokenPayload,
   ApplicantTokenPayload,
 } from '../utils/jwt.js';
+import { currentApplicantSession, PASSWORD_CHANGE_REQUIRED_BODY } from './applicant-session.js';
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -59,21 +60,54 @@ export function authenticate(req: Request, res: Response, next: NextFunction): v
   }
 }
 
-export function authenticateApplicant(req: Request, res: Response, next: NextFunction): void {
-  const token = req.cookies?.[APPLICANT_ACCESS_TOKEN_COOKIE];
+const SESSION_EXPIRED_BODY = { message: 'Session expirée.', code: 'TOKEN_EXPIRED' } as const;
 
-  if (!token) {
-    res.status(401).json({ message: 'Non authentifié.' });
-    return;
-  }
+/** ACCOUNT-V2 - a valid signature is not enough: the session must still
+ *  stand (applicant-session.ts). A revoked session answers like an expired
+ *  one, so the portal tries its refresh token, which is revoked too, and
+ *  returns to the login page. */
+function applicantGuard(allowPasswordChange: boolean) {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const token = req.cookies?.[APPLICANT_ACCESS_TOKEN_COOKIE];
 
-  try {
-    req.applicant = verifyApplicantAccessToken(token);
+    if (!token) {
+      res.status(401).json({ message: 'Non authentifié.' });
+      return;
+    }
+
+    let payload: ApplicantTokenPayload;
+    try {
+      payload = verifyApplicantAccessToken(token);
+    } catch {
+      res.status(401).json(SESSION_EXPIRED_BODY);
+      return;
+    }
+
+    try {
+      const session = await currentApplicantSession(payload);
+      if (!session) {
+        res.status(401).json(SESSION_EXPIRED_BODY);
+        return;
+      }
+      if (session.mustChangePassword && !allowPasswordChange) {
+        res.status(403).json(PASSWORD_CHANGE_REQUIRED_BODY);
+        return;
+      }
+    } catch (error) {
+      next(error);
+      return;
+    }
+    req.applicant = payload;
     next();
-  } catch {
-    res.status(401).json({ message: 'Session expirée.', code: 'TOKEN_EXPIRED' });
-  }
+  };
 }
+
+/** Every applicant route: refused while a temporary password is pending. */
+export const authenticateApplicant = applicantGuard(false);
+
+/** ACCOUNT-V2 - the few routes open with a temporary password: /me, logout,
+ *  and the password change itself. */
+export const authenticateApplicantSession = applicantGuard(true);
 
 export const AMBIGUOUS_SESSION_BODY = {
   message: 'Session ambiguë : reconnectez-vous depuis l’application concernée.',
@@ -121,20 +155,33 @@ function verifyOrNull<T>(verify: (token: string) => T, token: string | undefined
  *  - admin app -> staff session only (`authenticate`);
  *  - unknown app (curl, server-to-server) -> the single valid session;
  *    two valid sessions -> 401 AMBIGUOUS_SESSION; none -> 401. */
-export function authenticateEither(req: Request, res: Response, next: NextFunction): void {
+export async function authenticateEither(req: Request, res: Response, next: NextFunction): Promise<void> {
   const app = requestApp(req);
   if (app === 'portal') return authenticateApplicant(req, res, next);
   if (app === 'admin') return authenticate(req, res, next);
 
   const staff = verifyOrNull(verifyAccessToken, req.cookies?.[ACCESS_TOKEN_COOKIE]);
-  const applicant = verifyOrNull(verifyApplicantAccessToken, req.cookies?.[APPLICANT_ACCESS_TOKEN_COOKIE]);
+  const applicantToken = verifyOrNull(verifyApplicantAccessToken, req.cookies?.[APPLICANT_ACCESS_TOKEN_COOKIE]);
+  let applicant;
+  try {
+    // ACCOUNT-V2 - a revoked applicant session counts as no session.
+    applicant = applicantToken ? await currentApplicantSession(applicantToken) : null;
+  } catch (error) {
+    next(error);
+    return;
+  }
   if (staff && applicant) {
     res.status(401).json(AMBIGUOUS_SESSION_BODY);
     return;
   }
   if (staff) req.user = staff;
-  else if (applicant) req.applicant = applicant;
-  else {
+  else if (applicant) {
+    if (applicant.mustChangePassword) {
+      res.status(403).json(PASSWORD_CHANGE_REQUIRED_BODY);
+      return;
+    }
+    req.applicant = applicant.payload;
+  } else {
     res.status(401).json({ message: 'Non authentifié.' });
     return;
   }

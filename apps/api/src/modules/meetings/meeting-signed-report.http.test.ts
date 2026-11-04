@@ -15,15 +15,20 @@ describe('POST /api/meetings/:id/signed-report (HTTP)', () => {
   let server: Server;
   let baseUrl: string;
   let applicantCookie: string;
+  let restoreLookup = () => {};
 
   before(async () => {
-    const [{ default: express }, { default: cookieParser }, { default: meetingsRoute }, jwt, guards] = await Promise.all([
+    const [{ default: express }, { default: cookieParser }, { default: meetingsRoute }, jwt, guards, session] = await Promise.all([
       import('express'),
       import('cookie-parser'),
       import('./meetings.route.js'),
       import('../../shared/utils/jwt.js'),
       import('../../shared/guards/auth.middleware.js'),
+      import('../../shared/guards/applicant-session.js'),
     ]);
+    // ACCOUNT-V2 - no database for identity here: every applicant session stands.
+    session.setApplicantSessionLookup(async () => ({ active: true, authVersion: 1, mustChangePassword: false }));
+    restoreLookup = () => session.setApplicantSessionLookup(null);
     const app = express();
     app.use(cookieParser());
     app.use(express.json());
@@ -43,6 +48,7 @@ describe('POST /api/meetings/:id/signed-report (HTTP)', () => {
 
   after(async () => {
     await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+    restoreLookup();
   });
 
   const post = (body: unknown, cookie: string | null = applicantCookie) =>

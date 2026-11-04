@@ -315,6 +315,13 @@ export const applicants = pgTable(
     passwordHash: varchar('password_hash', { length: 255 }).notNull(),
     contactOrder: applicantContactOrderEnum('contact_order').notNull().default('primary'),
     active: boolean('active').notNull().default(true),
+    /** ACCOUNT-V2 - credential/session version, carried by every applicant
+     *  JWT: a password reset or change increments it, so every token issued
+     *  before stops working (access and refresh). */
+    authVersion: integer('auth_version').notNull().default(1),
+    /** ACCOUNT-V2 - set by an admin reset (temporary password): the portal
+     *  is limited to the password change until the applicant picks one. */
+    mustChangePassword: boolean('must_change_password').notNull().default(false),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (t) => [index('applicants_organisation_idx').on(t.organisationId)]

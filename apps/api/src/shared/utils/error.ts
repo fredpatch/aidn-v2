@@ -98,6 +98,13 @@ const AUTH_ERRORS: ErrorMap = {
     status: 400,
     message: 'Le mot de passe doit contenir au moins 8 caractères.',
   },
+  // ACCOUNT-V2 - applicant session version and password change.
+  SESSION_REVOKED: { status: 401, message: 'Session expirée. Merci de vous reconnecter.' },
+  INVALID_CURRENT_PASSWORD: { status: 400, message: 'Le mot de passe actuel est incorrect.' },
+  PASSWORD_UNCHANGED: {
+    status: 400,
+    message: "Le nouveau mot de passe doit être différent de l'actuel.",
+  },
 };
 
 /** /me, /refresh, /set-password...: the caller is already identified, the
@@ -221,6 +228,12 @@ export const handleAccountRequestsError = createErrorHandler(
       message: 'Un compte postulant existe déjà pour cet email.',
     },
     APPLICANT_NOT_FOUND: { status: 404, message: 'Compte postulant introuvable.' },
+    // ACCOUNT-V2
+    INVALID_ACCOUNT_REQUEST_STATUS: { status: 400, message: 'Statut de demande invalide.' },
+    PASSWORD_RESET_NOT_ALLOWED: {
+      status: 409,
+      message: 'Ce compte est suspendu : réactivez-le avant de réinitialiser son mot de passe.',
+    },
     INVALID_APPLICANT_EMAIL: { status: 400, message: 'Adresse email invalide.' },
     APPLICANT_NAME_REQUIRED: { status: 400, message: 'Le nom complet est requis.' },
     APPLICANT_NAME_TOO_LONG: {

@@ -18,17 +18,24 @@ describe('authenticateEither identity resolution (HTTP)', () => {
   let server: Server;
   let baseUrl: string;
   let cookieHeader: (staff: Cookie, applicant: Cookie) => string;
+  let setLookup: (typeof import('./applicant-session.js'))['setApplicantSessionLookup'];
+  const LIVE = { active: true, authVersion: 1, mustChangePassword: false };
+  let applicantState: typeof LIVE | null = LIVE;
   const savedEnv = { portal: process.env.PORTAL_ORIGIN, admin: process.env.ADMIN_ORIGIN };
 
   before(async () => {
     process.env.PORTAL_ORIGIN = PORTAL;
     process.env.ADMIN_ORIGIN = ADMIN;
-    const [{ default: express }, { default: cookieParser }, jwt, guards] = await Promise.all([
+    const [{ default: express }, { default: cookieParser }, jwt, guards, session] = await Promise.all([
       import('express'),
       import('cookie-parser'),
       import('../utils/jwt.js'),
       import('./auth.middleware.js'),
+      import('./applicant-session.js'),
     ]);
+    // ACCOUNT-V2 - no database: the applicant account state is `applicantState`.
+    setLookup = session.setApplicantSessionLookup;
+    setLookup(async () => applicantState);
     const app = express();
     app.use(cookieParser());
     app.all('/probe', guards.authenticateEither, (req, res) => {
@@ -65,6 +72,7 @@ describe('authenticateEither identity resolution (HTTP)', () => {
 
   after(async () => {
     await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+    setLookup(null);
     process.env.PORTAL_ORIGIN = savedEnv.portal;
     process.env.ADMIN_ORIGIN = savedEnv.admin;
     if (savedEnv.portal === undefined) delete process.env.PORTAL_ORIGIN;
@@ -80,6 +88,41 @@ describe('authenticateEither identity resolution (HTTP)', () => {
     const response = await fetch(`${baseUrl}/probe`, { method: opts.method ?? 'POST', headers });
     return { status: response.status, body: (await response.json()) as Record<string, unknown> };
   }
+
+  describe('ACCOUNT-V2 - the applicant session must still stand', () => {
+    const withState = async (state: typeof applicantState, run: () => Promise<void>) => {
+      applicantState = state;
+      try {
+        await run();
+      } finally {
+        applicantState = LIVE;
+      }
+    };
+    it('portal: a revoked session (older version, suspended, gone) -> 401 TOKEN_EXPIRED, never staff', async () => {
+      for (const state of [{ ...LIVE, authVersion: 2 }, { ...LIVE, active: false }, null]) {
+        await withState(state, async () => {
+          const { status, body } = await probe({ origin: PORTAL, applicant: 'valid', staff: 'valid' });
+          assert.equal(status, 401);
+          assert.equal(body.code, 'TOKEN_EXPIRED');
+        });
+      }
+    });
+    it('unknown app: a revoked applicant session is no session -> the staff one, or 401', async () => {
+      await withState({ ...LIVE, authVersion: 2 }, async () => {
+        assert.deepEqual(await probe({ staff: 'valid', applicant: 'valid' }), { status: 200, body: { who: 'staff', both: false } });
+        assert.deepEqual(await probe({ applicant: 'valid' }), { status: 401, body: { message: 'Non authentifié.' } });
+      });
+    });
+    it('temporary password pending -> 403 PASSWORD_CHANGE_REQUIRED (portal and unknown app)', async () => {
+      await withState({ ...LIVE, mustChangePassword: true }, async () => {
+        for (const origin of [PORTAL, undefined]) {
+          const { status, body } = await probe({ origin, applicant: 'valid' });
+          assert.equal(status, 403);
+          assert.equal(body.code, 'PASSWORD_CHANGE_REQUIRED');
+        }
+      });
+    });
+  });
 
   describe('Origin = PORTAL_ORIGIN', () => {
     it('1. applicant valid only -> applicant', async () => {

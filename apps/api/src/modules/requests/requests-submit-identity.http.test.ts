@@ -20,19 +20,24 @@ describe('POST /api/requests identity (HTTP)', () => {
   let applicantCookie: string;
   let expiredApplicantCookie: string;
   let closeAppPool: () => Promise<void>;
+  let restoreLookup = () => {};
   const savedEnv = { portal: process.env.PORTAL_ORIGIN, admin: process.env.ADMIN_ORIGIN };
 
   before(async () => {
     process.env.PORTAL_ORIGIN = PORTAL;
     process.env.ADMIN_ORIGIN = ADMIN;
-    const [{ default: express }, { default: cookieParser }, { default: route }, jwt, guards, dbModule] = await Promise.all([
+    const [{ default: express }, { default: cookieParser }, { default: route }, jwt, guards, dbModule, session] = await Promise.all([
       import('express'),
       import('cookie-parser'),
       import('./requests.route.js'),
       import('../../shared/utils/jwt.js'),
       import('../../shared/guards/auth.middleware.js'),
       import('../../shared/db/index.js'),
+      import('../../shared/guards/applicant-session.js'),
     ]);
+    // ACCOUNT-V2 - no database for identity here: every applicant session stands.
+    session.setApplicantSessionLookup(async () => ({ active: true, authVersion: 1, mustChangePassword: false }));
+    restoreLookup = () => session.setApplicantSessionLookup(null);
     closeAppPool = () => dbModule.db.$client.end();
     const app = express();
     app.use(cookieParser());
@@ -54,6 +59,7 @@ describe('POST /api/requests identity (HTTP)', () => {
 
   after(async () => {
     await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+    restoreLookup();
     await closeAppPool();
     process.env.PORTAL_ORIGIN = savedEnv.portal;
     process.env.ADMIN_ORIGIN = savedEnv.admin;

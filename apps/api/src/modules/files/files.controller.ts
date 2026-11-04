@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import { Request, Response } from 'express';
 import { ACCESS_TOKEN_COOKIE, APPLICANT_ACCESS_TOKEN_COOKIE } from '../../shared/guards/auth.middleware.js';
 import { verifyAccessToken, verifyApplicantAccessToken } from '../../shared/utils/jwt.js';
+import { currentApplicantSession, PASSWORD_CHANGE_REQUIRED_BODY } from '../../shared/guards/applicant-session.js';
 import { createFileGrant, fileGrantSecret, verifyFileGrant, type FileDisposition } from './file-grant.js';
 import { buildFileHeaders, resolveFileActor } from './file-delivery.js';
 import { authorizeFile, findAsset, locateAssetFile, type StoredAsset } from './files.service.js';
@@ -23,17 +24,25 @@ function tryVerify<T>(verify: () => T): T | null {
   }
 }
 
-/** Amendment A1: never guess between two valid sessions. */
-function actorFrom(req: Request, res: Response): FileActor | null {
+/** Amendment A1: never guess between two valid sessions. ACCOUNT-V2 - an
+ *  applicant token counts only while its session stands (a reset or a
+ *  suspension revokes it), and a temporary password opens no file. */
+async function actorFrom(req: Request, res: Response): Promise<FileActor | null> {
   const staffToken = req.cookies?.[ACCESS_TOKEN_COOKIE];
   const applicantToken = req.cookies?.[APPLICANT_ACCESS_TOKEN_COOKIE];
+  const applicantPayload = applicantToken ? tryVerify(() => verifyApplicantAccessToken(applicantToken)) : null;
+  const applicant = applicantPayload ? await currentApplicantSession(applicantPayload) : null;
   const resolution = resolveFileActor({
     staff: staffToken ? tryVerify(() => verifyAccessToken(staffToken)) : null,
-    applicant: applicantToken ? tryVerify(() => verifyApplicantAccessToken(applicantToken)) : null,
+    applicant: applicant?.payload ?? null,
     origin: req.get('origin'),
     adminOrigin: process.env.ADMIN_ORIGIN,
     portalOrigin: process.env.PORTAL_ORIGIN,
   });
+  if (resolution.actor?.kind === 'applicant' && applicant?.mustChangePassword) {
+    res.status(403).json(PASSWORD_CHANGE_REQUIRED_BODY);
+    return null;
+  }
   if (resolution.actor) return resolution.actor;
   if (resolution.error === 'ambiguous') {
     res.status(401).json({
@@ -72,7 +81,14 @@ export async function sendAssetFile(res: Response, asset: StoredAsset, dispositi
 /** GET /api/files/:id - the stable address, for authenticated programmatic use. */
 export async function get(req: Request, res: Response): Promise<void> {
   const id = assetId(req);
-  const actor = actorFrom(req, res);
+  let actor: FileActor | null;
+  try {
+    actor = await actorFrom(req, res);
+  } catch (error) {
+    console.error('[files/session]', error instanceof Error ? error.message : error);
+    res.status(500).json({ message: 'Erreur interne du serveur.' });
+    return;
+  }
   if (!actor) return;
   try {
     const asset = id === null ? null : await authorizeFile(actor, id);
@@ -90,7 +106,14 @@ export async function get(req: Request, res: Response): Promise<void> {
 /** POST /api/files/:id/access - checks access, returns a 5-minute signed link. */
 export async function access(req: Request, res: Response): Promise<void> {
   const id = assetId(req);
-  const actor = actorFrom(req, res);
+  let actor: FileActor | null;
+  try {
+    actor = await actorFrom(req, res);
+  } catch (error) {
+    console.error('[files/session]', error instanceof Error ? error.message : error);
+    res.status(500).json({ message: 'Erreur interne du serveur.' });
+    return;
+  }
   if (!actor) return;
 
   const disposition = (req.body ?? {}).disposition ?? 'inline';

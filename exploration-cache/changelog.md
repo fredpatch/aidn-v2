@@ -3,6 +3,24 @@
 Commit-level history. Covers `be9fce9` through the 2026-10-09 D3c admin
 unread/activity batch.
 
+## 2026-11-04 ACCOUNT-V2: rejected account requests and applicant password reset
+
+- Migration 0012: `applicants.auth_version` (int, default 1) and `applicants.must_change_password` (bool, default false).
+- Applicant JWTs carry `authVersion`; a token without it counts as version 1 (no logout on deployment). Every
+  applicant token consumer checks the live account (`shared/guards/applicant-session.ts`, one read per request):
+  `authenticateApplicant`, `authenticateEither` (unknown app), `/api/files` - gone, suspended or older version ->
+  revoked; refresh refuses an older version (401 `SESSION_REVOKED`).
+- `POST /api/account-requests/applicants/:id/reset-password` (dn_supervisor / SU): temporary password (16 chars,
+  CSPRNG) returned once, `no-store`; hash replaced, version +1, change required; `APPLICANT_PASSWORD_RESET` audit
+  without secret; suspended account -> 409 `PASSWORD_RESET_NOT_ALLOWED`.
+- `POST /api/applicant-auth/change-password` (current + new, 8 characters, different): version +1, change cleared,
+  new cookie pair, `APPLICANT_PASSWORD_CHANGED` audit. While a change is required, every other applicant route
+  answers 403 `PASSWORD_CHANGE_REQUIRED` (/me, refresh, logout and the change stay open); the portal shows only
+  the change screen.
+- `GET /account-requests?status=` validated (pending / approved / rejected, else 400); decided requests are listed
+  without organisation candidates, newest decision first. Admin « Comptes postulants »: « Demandes rejetées » tab
+  (search incl. reason, read-only panel, 3 metrics) and « Réinitialiser le mot de passe » with a one-time result.
+
 ## 2026-11-04 WORKFLOW-FOUNDATION-1B: the closure courrier is mandatory for M3/M4/M5
 
 - Retired: `POST /api/phases/:id/close`, `/api/formal-request/phases/:phaseId/close`,

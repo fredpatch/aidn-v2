@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { ApplicantAuthProvider, useApplicantAuth } from "./hooks/useApplicantAuth";
 import { AppHeader } from "./components/layout/AppHeader";
 import LoginPage from "./pages/auth/LoginPage";
+import ChangePasswordPage from "./pages/auth/ChangePasswordPage";
 import DashboardPage from "./pages/dashboard/DashboardPage";
 import NewRequestPage from "./pages/requests/NewRequestPage";
 import DossiersPage from "./pages/dossiers/DossiersPage";
@@ -10,7 +11,7 @@ import AccountPage from "./pages/account/AccountPage";
 import MeetingsPage from "./pages/meetings/MeetingsPage";
 
 function Gate() {
-  const { applicant, loading, logout } = useApplicantAuth();
+  const { applicant, loading, refreshMe, logout } = useApplicantAuth();
 
   if (loading) {
     return (
@@ -22,6 +23,11 @@ function Gate() {
 
   if (!applicant) {
     return <LoginPage />;
+  }
+
+  // ACCOUNT-V2 - a temporary password opens nothing but its replacement.
+  if (applicant.mustChangePassword) {
+    return <ChangePasswordPage fullName={applicant.fullName} onChanged={refreshMe} onLogout={() => logout()} />;
   }
 
   return (
