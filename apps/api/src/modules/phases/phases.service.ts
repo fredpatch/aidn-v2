@@ -181,6 +181,9 @@ export interface DossierIdentityView {
   organisationName: string;
   applicantName: string | null;
   statusLabel: string;
+  /** FINANCE-LABELS-1 - the stored request type (the Finance payment cards
+   *  name their invoice from it, shared financeInvoiceLabel). */
+  requestType: string;
 }
 
 /** Roles that can land on a phase page (M3-M7 for DN, the Finance M5/M6/M7
@@ -197,6 +200,7 @@ export async function getDossierState(requestId: number, viewerRoles: string[] =
       updatedAt: requests.updatedAt,
       rejectionReason: requests.rejectionReason,
       reference: requests.reference,
+      requestType: requests.requestType,
       organisationName: organisations.name,
       applicantName: applicants.fullName,
       deliveryPhaseStatus: phases.status,
@@ -220,6 +224,7 @@ export async function getDossierState(requestId: number, viewerRoles: string[] =
           organisationName: row.organisationName ?? '',
           applicantName: row.applicantName,
           statusLabel: requestStatusLabel(effectiveRequestStatus(row.status, row.deliveryPhaseStatus)),
+          requestType: row.requestType,
         }
       : null,
   };

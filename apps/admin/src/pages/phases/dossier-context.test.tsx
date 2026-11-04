@@ -41,6 +41,7 @@ const state: DossierState = {
     organisationName: 'Air Example Gabon',
     applicantName: 'Jean Dupont',
     statusLabel: 'En cours',
+    requestType: 'recognition',
   },
 };
 

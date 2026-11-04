@@ -3,6 +3,19 @@
 Commit-level history. Covers `be9fce9` through the 2026-10-09 D3c admin
 unread/activity batch.
 
+## 2026-11-04 FINANCE-LABELS-1: invoice purpose from phase + request type
+
+- `@aidn/shared` `finance-invoice.ts`: `financeInvoiceLabel({ phaseCode, requestType })`, the one catalog. M5 study
+  fee: recognition « Frais d’étude de Reconnaissance d’agrément », issuance « Frais d’étude de Certification d’un
+  OMA » (validated, workshop 24/10/2026); modification / renewal provisional. M6 « Frais d’audit - <type> », M7
+  « Frais de délivrance - <type> » (neutral). Unknown values: « Frais liés au dossier OMA », never the raw enum.
+- Finance queue items carry `invoiceLabel` (derived, still 2 queries); `/paiements-s5` shows it in each row, the
+  reading pane (« Objet de la facture ») and the invoice upload dialog, and searches it.
+- M5 / M6 / M7 payment cards (and the Finance compact pages): « Objet de la facture » from the dossier identity
+  (`identity.requestType`, same query). Demandes cockpit: Finance action descriptions start with the invoice purpose;
+  action labels unchanged.
+- No enum, migration, payment state, RBAC, urgency, bucket, analytics or portal change.
+
 ## 2026-11-04 ACCOUNT-V2: rejected account requests and applicant password reset
 
 - Migration 0012: `applicants.auth_version` (int, default 1) and `applicants.must_change_password` (bool, default false).

@@ -1,4 +1,4 @@
-import { OPERATIONAL_OWNERS } from '@aidn/shared';
+import { OPERATIONAL_OWNERS, financeInvoiceLabel } from '@aidn/shared';
 import type { FinancePaymentView, FinanceQueueItem } from '../lib/api/payments.types';
 
 export const financePayment = (over: Partial<FinancePaymentView> = {}): FinancePaymentView => ({
@@ -6,8 +6,14 @@ export const financePayment = (over: Partial<FinancePaymentView> = {}): FinanceP
   validatedAt: null, rejectionReason: null, rejectionAction: null, ...over,
 });
 
-/** Default: an invoice to send (M5), open dossier. */
-export const finance = (over: Partial<FinanceQueueItem> = {}): FinanceQueueItem => ({
+/** Default: an invoice to send (M5), open dossier. The invoice label is the
+ *  API's (shared catalog) for the item's phase and request type. */
+export const finance = (over: Partial<FinanceQueueItem> = {}): FinanceQueueItem => {
+  const item = baseFinance(over);
+  return { invoiceLabel: financeInvoiceLabel(item), ...item };
+};
+
+const baseFinance = (over: Partial<FinanceQueueItem>): Omit<FinanceQueueItem, 'invoiceLabel'> & { invoiceLabel?: string } => ({
   id: 'M5:1', requestId: 1, requestReference: 'DEM-FIN-01', organisationName: 'OMA 1', bucket: 'invoice_to_send',
   state: 'action_required', owner: OPERATIONAL_OWNERS.finance, actionKey: 'send_invoice', blockReason: null, urgency: 'normal',
   stepSince: '2026-10-15T09:00:00.000Z', dueAt: null, dossierClosed: false, dossierStatus: 'in_progress',

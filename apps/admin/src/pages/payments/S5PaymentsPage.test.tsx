@@ -129,3 +129,73 @@ describe('<S5PaymentsPage> Finance cockpit', () => {
     expect(screen.queryByRole('button', { name: /Suivant|Précédent/ })).not.toBeInTheDocument();
   });
 });
+
+describe('<S5PaymentsPage> FINANCE-LABELS-1 - objet de la facture', () => {
+  const MATRIX: Array<[Partial<FinanceQueueItem>, string]> = [
+    [{ phaseCode: 'M5', requestType: 'recognition' }, 'Frais d’étude de Reconnaissance d’agrément'],
+    [{ phaseCode: 'M5', requestType: 'issuance' }, 'Frais d’étude de Certification d’un OMA'],
+    [{ phaseCode: 'M5', requestType: 'modification' }, 'Frais d’étude de Modification d’un agrément OMA'],
+    [{ phaseCode: 'M5', requestType: 'renewal' }, 'Frais d’étude de Renouvellement d’un agrément OMA'],
+    [{ phaseCode: 'M6', requestType: 'recognition' }, 'Frais d’audit - Reconnaissance d’agrément'],
+    [{ phaseCode: 'M7', requestType: 'issuance' }, 'Frais de délivrance - Certification d’un OMA'],
+  ];
+  const items = MATRIX.map(([over], index) =>
+    invoice(index + 1, { ...over, id: `${over.phaseCode}:${index + 1}` })
+  );
+  const counts = { ...COUNTS, invoice_to_send: items.length };
+
+  it('each row and the reading pane show the invoice purpose before any upload', async () => {
+    renderPage('/paiements-s5', items, counts);
+    const options = await screen.findAllByRole('option');
+    expect(options).toHaveLength(MATRIX.length);
+    for (const [index, [, label]] of MATRIX.entries()) {
+      const reference = `DEM-FIN-${String(index + 1).padStart(2, '0')}`;
+      const option = options.find((element) => element.textContent?.includes(reference))!;
+      expect(option).toHaveTextContent(label);
+      fireEvent.click(option);
+      const article = await screen.findByRole('article', { name: new RegExp(reference) });
+      expect(within(article).getByText('Objet de la facture')).toBeInTheDocument();
+      expect(within(article).getByText(label)).toBeInTheDocument();
+      // The operational step stays the action; the purpose never replaces it.
+      expect(within(article).getByText('Facture à transmettre')).toBeInTheDocument();
+      expect(within(article).getByRole('button', { name: /Joindre la facture transmise/ })).toBeInTheDocument();
+    }
+    expect(document.body.textContent).not.toMatch(/recognition|issuance|modification|renewal/);
+    expect(document.body.textContent).not.toMatch(/provisoire/i);
+  });
+
+  it('the upload dialog names the invoice; the upload flow is unchanged', async () => {
+    renderPage('/paiements-s5', items, counts);
+    const article = await screen.findByRole('article', { name: /DEM-FIN-01/ });
+    fireEvent.click(within(article).getByRole('button', { name: /Joindre la facture transmise/ }));
+    expect(await screen.findByText('DEM-FIN-01 - Frais d’étude de Reconnaissance d’agrément')).toBeInTheDocument();
+    expect(screen.getByText('Facture transmise au postulant')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Enregistrer' })).toBeDisabled();
+  });
+
+  it('validation and rejection actions are unchanged on a labelled proof', async () => {
+    renderPage('/paiements-s5?tab=proof_to_validate', [proof(7, { phaseCode: 'M6', id: 'M6:7', requestType: 'renewal' })]);
+    const article = await screen.findByRole('article', { name: /DEM-FIN-07/ });
+    expect(within(article).getByText('Frais d’audit - Renouvellement')).toBeInTheDocument();
+    expect(within(article).getByRole('button', { name: /Valider la preuve de paiement/ })).toBeInTheDocument();
+    expect(within(article).getByRole('button', { name: /Rejeter/ })).toBeInTheDocument();
+  });
+
+  it('search finds dossiers by the business label', async () => {
+    renderPage('/paiements-s5', items, counts);
+    await screen.findAllByRole('option');
+    const search = screen.getByPlaceholderText('Référence, organisation, phase, objet de la facture...');
+    for (const [needle, references] of [
+      ['Reconnaissance', ['DEM-FIN-01', 'DEM-FIN-05']],
+      ['Certification', ['DEM-FIN-02', 'DEM-FIN-06']],
+      ['Renouvellement', ['DEM-FIN-04']],
+      ['Frais d’audit', ['DEM-FIN-05']],
+    ] as const) {
+      fireEvent.change(search, { target: { value: needle } });
+      await waitFor(() => {
+        const visible = screen.queryAllByRole('option').map((option) => option.textContent?.match(/DEM-FIN-\d+/)?.[0]);
+        expect(visible.sort()).toEqual([...references]);
+      });
+    }
+  });
+});

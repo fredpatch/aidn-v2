@@ -2,7 +2,7 @@
  *  (typed owner), the operational state, and the D9 open-phase resolution.
  *  Pure: the service computes the facts from its batch rows (no N+1). Staff
  *  wording stays server-side; the applicant's own wording is the portal's (D2). */
-import { OPERATIONAL_OWNERS, type ApplicantAction, type NextActionOwner, type OperationalState } from '@aidn/shared';
+import { OPERATIONAL_OWNERS, financeInvoiceLabel, type ApplicantAction, type NextActionOwner, type OperationalState } from '@aidn/shared';
 import type { RequestCockpitPhase } from './requests.types.js';
 
 /** SESSION1-COCKPIT-1 - single source in @aidn/shared (values unchanged). */
@@ -18,6 +18,8 @@ export function phaseHref(phaseCode: string, requestId: number): string {
 
 export interface CockpitFacts {
   requestId: number;
+  /** FINANCE-LABELS-1 - names the invoice in the Finance actions. */
+  requestType: string;
   /** Effective request status. */
   status: string;
   /** Intake DG circuit. */
@@ -204,6 +206,12 @@ export function resolveCockpitNextAction(facts: CockpitFacts): CockpitNextAction
 }
 
 /** D9 - first match per open phase. */
+/** FINANCE-LABELS-1 - the action says what Finance must do; this says what
+ *  the invoice is for (shared catalog). */
+function invoiceOf(open: RequestCockpitPhase, facts: CockpitFacts): string {
+  return financeInvoiceLabel({ phaseCode: open.phaseCode, requestType: facts.requestType });
+}
+
 function resolveOpenPhase(open: RequestCockpitPhase, facts: CockpitFacts): CockpitNextAction {
   const href = open.href;
 
@@ -264,7 +272,7 @@ function resolveOpenPhase(open: RequestCockpitPhase, facts: CockpitFacts): Cockp
   if (facts.openPhasePayment && facts.openPhasePayment.invoiceFileUrl === null) {
     return result(
       'Facture à transmettre',
-      'La facture de la phase doit être émise par le service Finance.',
+      `${invoiceOf(open, facts)} - La facture de la phase doit être émise par le service Finance.`,
       href,
       'warning',
       'action_required',
@@ -274,7 +282,7 @@ function resolveOpenPhase(open: RequestCockpitPhase, facts: CockpitFacts): Cockp
   if (facts.openPhasePayment?.status === 'pending_validation') {
     return result(
       'Preuve de paiement à valider',
-      'La preuve de paiement du postulant doit être validée par Finance.',
+      `${invoiceOf(open, facts)} - La preuve de paiement du postulant doit être validée par Finance.`,
       href,
       'warning',
       'action_required',

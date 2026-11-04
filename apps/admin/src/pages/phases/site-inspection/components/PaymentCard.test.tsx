@@ -3,6 +3,7 @@ import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { api } from '../../../../lib/axios';
 import { renderWithProviders } from '../../../../test/render';
+import { queryKeys } from '../../../../lib/react-query/queryKeys';
 import type { PaymentView } from '../types';
 import PaymentCard from './PaymentCard';
 
@@ -26,6 +27,9 @@ function setup({ value = payment(), canManagePayment = true }: { value?: Payment
   const post = vi.spyOn(api, 'post').mockImplementation(async (url: string) =>
     url === '/uploads' ? { data: { uploadAssetId: 77 } } : { data: {} },
   );
+  // FINANCE-LABELS-1 - the card reads the dossier identity (invoice purpose); a
+  // decision invalidates it, so its refetch must answer without the network.
+  vi.spyOn(api, 'get').mockResolvedValue({ data: { status: 'in_progress', closed: false, closedAt: null, rejectionReason: null, identity: null } });
   renderWithProviders(
     <PaymentCard
       requestId="9"
@@ -34,6 +38,7 @@ function setup({ value = payment(), canManagePayment = true }: { value?: Payment
       canManagePayment={canManagePayment}
       setActionError={setActionError}
     />,
+{ seed: [[queryKeys.phases.dossierState('9'), { status: 'in_progress', closed: false, closedAt: null, rejectionReason: null, identity: null }]] },
   );
   return { user: userEvent.setup(), post, setActionError };
 }

@@ -11,6 +11,7 @@ import { formatDate } from '../helpers';
 import { usePaymentActions } from '../hooks/usePaymentActions';
 import type { PaymentView } from '../types';
 import PhaseStatusBadge from '../../preliminary/components/PhaseStatusBadge';
+import { InvoicePurpose } from '../../components/InvoicePurpose';
 import { ClosedDossierNote, useDossierReadOnly } from '../../components/DossierReadOnly';
 
 const PAYMENT_LABEL = 'Paiement - Frais de délivrance';
@@ -71,6 +72,8 @@ export default function PaymentCard({
           />
         )}
       </div>
+
+      <InvoicePurpose requestId={requestId} phaseCode="M7" />
 
       {payment?.status === 'validated' && (
         <p className="text-anac-success text-xs">

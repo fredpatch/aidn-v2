@@ -97,7 +97,7 @@ describe('K7b dossier state (real PostgreSQL)', { skip }, () => {
         const state = await getDossierState(id, roles);
         assert.deepEqual(
           state.identity,
-          { reference: expected.reference, organisationName: expected.organisation, applicantName: 'P', statusLabel: 'En cours' },
+          { reference: expected.reference, organisationName: expected.organisation, applicantName: 'P', statusLabel: 'En cours', requestType: 'issuance' },
           roles.join()
         );
       }

@@ -17,6 +17,8 @@ export interface FinanceQueueItem extends OperationalQueueItem<FinanceBucket, Fi
   phaseId: number;
   phaseCode: 'M5' | 'M6' | 'M7';
   requestType: string;
+  /** FINANCE-LABELS-1 - « Objet de la facture » (shared financeInvoiceLabel). */
+  invoiceLabel: string;
   phaseOpenedAt: string;
   payment: FinancePaymentView;
   /** Awaiting a new proof after a « request_new_proof » rejection. */

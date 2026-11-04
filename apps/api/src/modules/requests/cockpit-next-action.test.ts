@@ -47,6 +47,7 @@ function act(
 function facts(over: Partial<CockpitFacts> = {}): CockpitFacts {
   return {
     requestId: ID,
+    requestType: 'recognition',
     status: 'in_progress',
     circuitStatus: 'pending_review',
     dnCircuitStatus: 'pending_review',
@@ -257,7 +258,10 @@ describe('resolveCockpitNextAction - open phase (D9)', () => {
       })
     );
     assert.equal(r.nextActionLabel, 'Preuve de paiement à valider');
-    assert.equal(r.nextActionDescription, 'La preuve de paiement du postulant doit être validée par Finance.');
+    assert.equal(
+      r.nextActionDescription,
+      'Frais d’étude de Reconnaissance d’agrément - La preuve de paiement du postulant doit être validée par Finance.'
+    );
     assert.equal(r.nextActionState, 'action_required');
     assert.equal(r.nextActionTone, 'warning');
     assert.deepEqual(r.nextActionOwner, FINANCE);
@@ -271,8 +275,32 @@ describe('resolveCockpitNextAction - open phase (D9)', () => {
       })
     );
     assert.equal(r.nextActionLabel, 'Facture à transmettre');
-    assert.equal(r.nextActionDescription, 'La facture de la phase doit être émise par le service Finance.');
+    assert.equal(
+      r.nextActionDescription,
+      'Frais d’audit - Reconnaissance d’agrément - La facture de la phase doit être émise par le service Finance.'
+    );
     assert.deepEqual(r.nextActionOwner, FINANCE);
+  });
+
+  it('FINANCE-LABELS-1: the action label stays the operational step; the description names the invoice', () => {
+    for (const [requestType, open, invoice] of [
+      ['recognition', 'M5', 'Frais d’étude de Reconnaissance d’agrément'],
+      ['issuance', 'M5', 'Frais d’étude de Certification d’un OMA'],
+      ['renewal', 'M7', 'Frais de délivrance - Renouvellement'],
+    ] as const) {
+      const closedBefore = { M3: 'closed', M4: 'closed', M5: 'closed', M6: 'closed' } as const;
+      const states = open === 'M5' ? { M3: 'closed', M4: 'closed', M5: 'open' } : { ...closedBefore, M7: 'open' };
+      const r = resolveCockpitNextAction(
+        facts({
+          requestType,
+          phases: phases(states as Parameters<typeof phases>[0]),
+          openPhasePayment: { status: 'awaiting_invoice', invoiceFileUrl: null },
+        })
+      );
+      assert.equal(r.nextActionLabel, 'Facture à transmettre', requestType);
+      assert.ok(r.nextActionDescription.startsWith(`${invoice} - `), r.nextActionDescription);
+      assert.deepEqual(r.nextActionOwner, FINANCE);
+    }
   });
 
   it('a validated payment is not Finance work', () => {

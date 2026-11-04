@@ -4,7 +4,14 @@
  *  opening. B3: a rejected payment means a rejected dossier (done); a new
  *  proof requested is flagged. */
 import { desc, eq, inArray } from 'drizzle-orm';
-import { FINANCE_AWAITING_APPLICANT_BUCKET, FINANCE_BUCKETS, OPERATIONAL_OWNERS, countBuckets, urgencyFromAge } from '@aidn/shared';
+import {
+  FINANCE_AWAITING_APPLICANT_BUCKET,
+  FINANCE_BUCKETS,
+  OPERATIONAL_OWNERS,
+  countBuckets,
+  financeInvoiceLabel,
+  urgencyFromAge,
+} from '@aidn/shared';
 import { db } from '../../shared/db/index.js';
 import { organisations, payments, phases, requests } from '../../shared/db/schema.js';
 import { dossierFlags } from '../requests/dossier-open.js';
@@ -65,6 +72,8 @@ export function buildFinanceItem(
     phaseId: row.phaseId,
     phaseCode: row.phaseCode as FinanceQueueItem['phaseCode'],
     requestType: row.requestType,
+    // FINANCE-LABELS-1 - derived from the row (no query): what the invoice is for.
+    invoiceLabel: financeInvoiceLabel({ phaseCode: row.phaseCode, requestType: row.requestType }),
     phaseOpenedAt: row.phaseOpenedAt,
     payment: {
       id: p.id, status: p.status, invoiceFileUrl: p.invoiceFileUrl, invoiceUploadedAt: p.invoiceUploadedAt,

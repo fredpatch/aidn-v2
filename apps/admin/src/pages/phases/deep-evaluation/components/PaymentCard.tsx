@@ -12,6 +12,7 @@ import { formatDate } from '../helpers';
 import { usePaymentActions } from '../hooks/usePaymentActions';
 import type { PaymentView } from '../types';
 import PhaseStatusBadge from '../../preliminary/components/PhaseStatusBadge';
+import { InvoicePurpose } from '../../components/InvoicePurpose';
 import { ClosedDossierNote, useDossierReadOnly } from '../../components/DossierReadOnly';
 
 const PAYMENT_LABEL = "Paiement - Frais d'étude de dossier";
@@ -72,6 +73,7 @@ export default function PaymentCard({
         ) : null
       }
     >
+      <InvoicePurpose requestId={requestId} phaseCode="M5" />
       <div className="space-y-2">
         <p className="text-xs font-medium text-anac-navy">Facture (Finance)</p>
         {!payment?.invoiceFileUrl ? (

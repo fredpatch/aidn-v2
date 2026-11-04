@@ -80,7 +80,7 @@ const dossier: DossierState = {
   closed: false,
   closedAt: null,
   rejectionReason: null,
-  identity: { reference: 'DEM-1', organisationName: 'OMA 1', applicantName: 'Jean', statusLabel: 'En cours' },
+  identity: { reference: 'DEM-1', organisationName: 'OMA 1', applicantName: 'Jean', statusLabel: 'En cours', requestType: 'issuance' },
 };
 
 const view = (status: PhaseClosureView['status']): PhaseClosureView => ({

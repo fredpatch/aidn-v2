@@ -547,6 +547,7 @@ export async function listRequestCockpit(viewerUserId?: number): Promise<Request
     const summary = documentSummary(row.request.id);
     const action = resolveCockpitNextAction({
       requestId: row.request.id,
+      requestType: row.request.requestType,
       status: resolvedStatus,
       circuitStatus: circuit?.status ?? null,
       dnCircuitStatus: dnCircuit?.status ?? null,

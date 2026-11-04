@@ -63,6 +63,10 @@ export function FinancePaymentPane({
             <span className="ml-auto">{item.dossierClosed ? <ClosedDossierBadge status={item.dossierStatus} /> : null}</span>
           </div>
           <p className="mt-1.5 text-sm font-semibold">{item.organisationName}</p>
+          <div className="mt-3 rounded-md bg-anac-gray/60 px-3 py-2">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-anac-muted">Objet de la facture</p>
+            <p className="text-sm font-semibold text-anac-navy">{item.invoiceLabel}</p>
+          </div>
         </>
       }
       callout={{ state: item.state, title: copy.title, description: copy.description, owner: item.owner, canAct: allowed && !!cta, cta, secondary, blockReason: copy.blockReason }}

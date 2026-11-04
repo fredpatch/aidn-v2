@@ -22,4 +22,6 @@ export interface DossierIdentity {
   applicantName: string | null;
   /** Same label as the Demandes reading pane. */
   statusLabel: string;
+  /** FINANCE-LABELS-1 - stored request type (names the phase invoice). */
+  requestType: string;
 }

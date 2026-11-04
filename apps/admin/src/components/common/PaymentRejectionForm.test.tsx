@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { PAYMENT_REJECTION_REASON_MAX_LENGTH } from '@aidn/shared';
 import { api } from '../../lib/axios';
 import { renderWithProviders } from '../../test/render';
+import { queryKeys } from '../../lib/react-query/queryKeys';
 import DeepEvaluationPaymentCard from '../../pages/phases/deep-evaluation/components/PaymentCard';
 import SiteInspectionPaymentCard from '../../pages/phases/site-inspection/components/PaymentCard';
 import CertificatesPaymentCard from '../../pages/phases/certificates/components/PaymentCard';
@@ -47,8 +48,12 @@ describe.each(CARDS)('%s payment card - final rejection of the dossier', (_code,
   function setup() {
     const setActionError = vi.fn();
     const post = vi.spyOn(api, 'post').mockResolvedValue({ data: {} });
+    // FINANCE-LABELS-1 - the card reads the dossier identity (invoice purpose); a
+    // decision invalidates it, so its refetch must answer without the network.
+    vi.spyOn(api, 'get').mockResolvedValue({ data: { status: 'in_progress', closed: false, closedAt: null, rejectionReason: null, identity: null } });
     renderWithProviders(
       <Card requestId="9" phaseId={PHASE_ID} payment={pending} canManagePayment setActionError={setActionError} />,
+{ seed: [[queryKeys.phases.dossierState('9'), { status: 'in_progress', closed: false, closedAt: null, rejectionReason: null, identity: null }]] },
     );
     return { user: userEvent.setup(), post, setActionError };
   }

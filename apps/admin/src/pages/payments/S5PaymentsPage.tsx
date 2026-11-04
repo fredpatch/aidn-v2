@@ -141,6 +141,8 @@ export default function S5PaymentsPage() {
             item.organisationName,
             PHASE_LABELS[item.phaseCode],
             item.requestType,
+            // FINANCE-LABELS-1 - « Reconnaissance », « Certification », « Renouvellement »...
+            item.invoiceLabel,
           ].join(' ')
         ),
         mode,
@@ -199,7 +201,7 @@ export default function S5PaymentsPage() {
       search={{
         value: search,
         onChange: setSearch,
-        placeholder: 'Référence, organisation, phase, type...',
+        placeholder: 'Référence, organisation, phase, objet de la facture...',
         label: 'Rechercher un paiement',
       }}
       errors={[
@@ -273,7 +275,7 @@ export default function S5PaymentsPage() {
       {invoiceTask ? (
         <CockpitUploadModal
           title="Joindre la facture transmise"
-          subtitle={`${invoiceTask.requestReference} - ${PHASE_LABELS[invoiceTask.phaseCode]}`}
+          subtitle={`${invoiceTask.requestReference} - ${invoiceTask.invoiceLabel}`}
           label="Facture transmise au postulant"
           accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
           hint="Cette action enregistre la facture comme transmise au postulant."
@@ -333,6 +335,7 @@ function FinanceRow({ item }: { item: FinanceQueueItem }) {
       <span className="col-span-2 truncate text-xs font-semibold text-anac-text">
         {financeCallout(item).title}
       </span>
+      <span className="col-span-2 truncate text-xs text-anac-navy">{item.invoiceLabel}</span>
     </>
   );
 }

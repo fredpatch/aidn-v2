@@ -47,7 +47,7 @@ describe('SESSION1-COCKPIT-1 Finance queue (real PostgreSQL)', { skip }, () => {
   }
 
   /** One dossier (own organisation and applicant) with the requested phases, all open. */
-  async function dossier(codes: string[], status = 'in_progress') {
+  async function dossier(codes: string[], status = 'in_progress', requestType = 'issuance') {
     const k = `${tag}-${++n}`;
     const org = (await one(
       `INSERT INTO organisations (name, normalized_name, legal_address) VALUES ($1, $1, 'Libreville') RETURNING id`,
@@ -59,8 +59,8 @@ describe('SESSION1-COCKPIT-1 Finance queue (real PostgreSQL)', { skip }, () => {
     )).id as number;
     const request = (await one(
       `INSERT INTO requests (reference, applicant_id, organisation_id, request_type, status)
-       VALUES ($1, $2, $3, 'issuance', $4) RETURNING id`,
-      [`DEM-FQ-${k}`, applicant, org, status]
+       VALUES ($1, $2, $3, $5, $4) RETURNING id`,
+      [`DEM-FQ-${k}`, applicant, org, status, requestType]
     )).id as number;
     const phase: Record<string, number> = {};
     for (const code of codes) {
@@ -171,6 +171,44 @@ describe('SESSION1-COCKPIT-1 Finance queue (real PostgreSQL)', { skip }, () => {
       assert.equal(item.actionKey, 'none');
       assert.equal(item.owner, null);
     }
+  });
+
+  it('FINANCE-LABELS-1: each item names its invoice from phase + request type; operational fields unchanged', async () => {
+    const expected: Array<[string, string, string]> = [
+      ['recognition', 'M5', 'Frais d’étude de Reconnaissance d’agrément'],
+      ['issuance', 'M5', 'Frais d’étude de Certification d’un OMA'],
+      ['modification', 'M5', 'Frais d’étude de Modification d’un agrément OMA'],
+      ['renewal', 'M5', 'Frais d’étude de Renouvellement d’un agrément OMA'],
+      ['recognition', 'M6', 'Frais d’audit - Reconnaissance d’agrément'],
+      ['renewal', 'M7', 'Frais de délivrance - Renouvellement'],
+    ];
+    const ids: number[] = [];
+    for (const [requestType, code] of expected) {
+      const d = await dossier([code], 'in_progress', requestType);
+      await payment(d.phase[code], { status: 'awaiting_invoice' });
+      ids.push(d.phase[code]);
+    }
+    const queue = await finance.getFinanceQueue();
+    expected.forEach(([requestType, code, label], index) => {
+      const item = queue.items.find((i) => i.phaseId === ids[index])!;
+      assert.equal(item.invoiceLabel, label, `${requestType} / ${code}`);
+      assert.equal(item.requestType, requestType, 'the stored value is kept as is');
+      assert.deepEqual(
+        [item.bucket, item.state, item.owner, item.actionKey],
+        ['invoice_to_send', 'action_required', OPERATIONAL_OWNERS.finance, 'send_invoice']
+      );
+    });
+
+    // History keeps a useful label: validated and rejected payments.
+    const done = await dossier(['M5'], 'in_progress', 'recognition');
+    await payment(done.phase.M5, { status: 'validated', validatedAt: daysAgo(1) });
+    const rejected = await dossier(['M7'], 'rejected', 'issuance');
+    await payment(rejected.phase.M7, { status: 'rejected', proofUploadedAt: daysAgo(2), rejectionReason: 'Fraude', rejectionAction: 'reject_dossier' });
+    const after = await finance.getFinanceQueue();
+    const doneItem = after.items.find((i) => i.phaseId === done.phase.M5)!;
+    const rejectedItem = after.items.find((i) => i.phaseId === rejected.phase.M7)!;
+    assert.deepEqual([doneItem.bucket, doneItem.invoiceLabel], ['done', 'Frais d’étude de Reconnaissance d’agrément']);
+    assert.deepEqual([rejectedItem.bucket, rejectedItem.invoiceLabel], ['done', 'Frais de délivrance - Certification d’un OMA']);
   });
 
   it('issues exactly 2 queries whatever the number of payments', async () => {
