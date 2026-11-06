@@ -10,6 +10,8 @@ import {
 
 describe('resolveRequestActivityPresentation', () => {
   const known: Array<[string, string, string]> = [
+    ['DOSSIER_TEAM_PROPOSAL_CREATED', 'Équipe du dossier proposée', 'info'],
+    ['DOSSIER_TEAM_PROPOSAL_UPDATED', 'Proposition d’équipe mise à jour', 'info'],
     ['PAYMENT_VALIDATED', 'Paiement validé', 'success'],
     ['PAYMENT_REJECTED', 'Paiement rejeté', 'danger'],
     ['DOCUMENT_VERDICT_SET', 'Document évalué', 'info'],

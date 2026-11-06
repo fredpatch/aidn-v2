@@ -26,7 +26,7 @@ const heldMeeting = {
   signedCrDocumentUrl: null,
   negotiation: { confirmationStatus: 'confirmed' },
 };
-const bundles = vi.hoisted(() => ({ phaseStatus: 'open' }));
+const bundles = vi.hoisted(() => ({ phaseStatus: 'open', hasPhase: true }));
 const hook = (bundle: () => unknown) => () => ({
   bundle: bundle(),
   loading: false,
@@ -36,7 +36,7 @@ const hook = (bundle: () => unknown) => () => ({
 });
 vi.mock('./preliminary/hooks/usePreliminaryBundle', () => ({
   usePreliminaryBundle: hook(() => ({
-    phase: { ...phase, status: bundles.phaseStatus },
+    phase: bundles.hasPhase ? { ...phase, status: bundles.phaseStatus } : null,
     meeting: heldMeeting,
     evaluation: { submittedFileUrl: '/api/files/2', madeAvailableAt: '2026-10-11T09:00:00.000Z' },
     circuit: { status: 'pending_review' },
@@ -118,6 +118,7 @@ function renderPage(path: string, Page: ComponentType, closure: PhaseClosureStat
         [queryKeys.phases.dossierState('42'), dossier],
         [queryKeys.phases.summary('42'), []],
         [queryKeys.phaseClosure.byPhase(PHASE_ID), closure],
+        [queryKeys.dossierTeams.byRequest('42'), { proposal: null, team: null }],
       ],
     }
   );
@@ -128,6 +129,7 @@ const block = () => screen.getByRole('region', { name: 'Courrier de clôture' })
 beforeEach(() => {
   auth.roles = ['dn_supervisor'];
   bundles.phaseStatus = 'open';
+  bundles.hasPhase = true;
   vi.restoreAllMocks();
 });
 
@@ -136,6 +138,24 @@ const PAGES: Array<[string, string, ComponentType]> = [
   ['Demande formelle', 'phase-formelle', FormalPhasePage],
   ['Évaluation approfondie', 'evaluation-approfondie', DeepEvaluationPhasePage],
 ];
+
+describe('Preliminary team card visibility', () => {
+  it('shows the proposal foundation in open M3 without adding a closure gate', () => {
+    renderPage('phase-preliminaire', PreliminaryPhasePage, STATES.ready);
+    expect(screen.getByRole('region', { name: 'Équipe proposée pour le dossier' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Déposer le courrier de clôture' })).toBeInTheDocument();
+  });
+  it('does not show the card in closed M3', () => {
+    bundles.phaseStatus = 'closed';
+    renderPage('phase-preliminaire', PreliminaryPhasePage, STATES.closed);
+    expect(screen.queryByRole('region', { name: 'Équipe proposée pour le dossier' })).not.toBeInTheDocument();
+  });
+  it('does not show the card before Preliminary exists', () => {
+    bundles.hasPhase = false;
+    renderPage('phase-preliminaire', PreliminaryPhasePage, STATES.notReady);
+    expect(screen.queryByRole('region', { name: 'Équipe proposée pour le dossier' })).not.toBeInTheDocument();
+  });
+});
 
 describe.each(PAGES)('%s - closure courrier', (_label, path, Page) => {
   it('no legacy immediate close, no closure note', () => {

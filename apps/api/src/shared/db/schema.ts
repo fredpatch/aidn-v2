@@ -418,6 +418,54 @@ export const dgCircuitDocuments = pgTable(
 );
 
 // ── M3-M7 - Phases ───────────────────────────────────────────────────────────
+/** TEAM-FOUNDATION-1: proposal and final assignment deliberately have separate
+ * storage. LEGAL-DECISION-1 will introduce finalization after legal evidence exists. */
+export const dossierTeamProposals = pgTable('dossier_team_proposals', {
+  id: serial('id').primaryKey(),
+  requestId: integer('request_id').notNull().references(() => requests.id, { onDelete: 'cascade' }),
+  proposedApprovalNumber: varchar('proposed_approval_number', { length: 100 }).notNull(),
+  proposedBy: integer('proposed_by').notNull().references(() => users.id),
+  proposedAt: timestamp('proposed_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex('dossier_team_proposals_request_idx').on(t.requestId),
+  check('dossier_team_proposals_number_nonempty', sql`length(btrim(${t.proposedApprovalNumber})) > 0`),
+]);
+
+export const dossierTeamProposalMembers = pgTable('dossier_team_proposal_members', {
+  id: serial('id').primaryKey(),
+  proposalId: integer('proposal_id').notNull().references(() => dossierTeamProposals.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull().references(() => users.id),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex('dossier_team_proposal_members_proposal_user_idx').on(t.proposalId, t.userId),
+  index('dossier_team_proposal_members_user_idx').on(t.userId),
+]);
+
+export const dossierTeams = pgTable('dossier_teams', {
+  id: serial('id').primaryKey(),
+  requestId: integer('request_id').notNull().references(() => requests.id, { onDelete: 'cascade' }),
+  approvalNumber: varchar('approval_number', { length: 100 }).notNull(),
+  finalizedBy: integer('finalized_by').notNull().references(() => users.id),
+  finalizedAt: timestamp('finalized_at').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex('dossier_teams_request_idx').on(t.requestId),
+  // Numbering semantics are unvalidated: intentionally no global uniqueness.
+  check('dossier_teams_number_nonempty', sql`length(btrim(${t.approvalNumber})) > 0`),
+]);
+
+export const dossierTeamMembers = pgTable('dossier_team_members', {
+  id: serial('id').primaryKey(),
+  teamId: integer('team_id').notNull().references(() => dossierTeams.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull().references(() => users.id),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex('dossier_team_members_team_user_idx').on(t.teamId, t.userId),
+  index('dossier_team_members_user_idx').on(t.userId),
+]);
+
 export const phases = pgTable(
   'phases',
   {
@@ -715,6 +763,8 @@ export const certificates = pgTable(
     // None of this is derived/computed - the approval numbering scheme and
     // validity-period rule aren't defined yet, so DN handles them manually
     // until a real generation pattern is confirmed (see project decisions).
+    // Delivery V2 must reconcile this legacy certificate field with the dossier
+    // source of truth: dossier_teams.approval_number. No derivation/migration yet.
     approvalReferenceNumber: varchar('approval_reference_number', { length: 100 }),
     expiresAt: timestamp('expires_at'),
     initialIssueDate: timestamp('initial_issue_date'),

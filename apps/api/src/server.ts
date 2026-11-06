@@ -41,6 +41,7 @@ import paymentsRoute from './modules/payments/payments.route.js';
 import dashboardRoute from './modules/dashboard/dashboard.route.js';
 import analyticsRoute from './modules/analytics/analytics.route.js';
 import reportsRoute from './modules/reports/reports.route.js';
+import dossierTeamsRoute from './modules/dossier-teams/dossier-teams.route.js';
 
 const app = express();
 const port = process.env.PORT ? Number(process.env.PORT) : 4000;
@@ -73,6 +74,7 @@ app.use('/api/account-requests', accountRequestsRoute);
 app.use('/api/users', usersRoute);
 app.use('/api/personnel-anac', personnelAnacRoute);
 app.use('/api/requests', requestsRoute);
+app.use('/api', dossierTeamsRoute);
 app.use('/api/uploads', uploadsRoute);
 app.use('/api/phases', phasesRoute);
 app.use('/api/meetings', meetingsRoute);

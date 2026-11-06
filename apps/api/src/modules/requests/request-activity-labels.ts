@@ -15,6 +15,8 @@ export interface RequestActivityPresentation {
 /** D3a - French titles and tones of the dossier events, all phases (audit
  *  actions linked to a request, modules/auth/audit-request.ts). The source of truth. */
 export const ACTIVITY_LABELS: Record<string, RequestActivityPresentation> = {
+  DOSSIER_TEAM_PROPOSAL_CREATED: { title: 'Équipe du dossier proposée', tone: 'info' },
+  DOSSIER_TEAM_PROPOSAL_UPDATED: { title: 'Proposition d’équipe mise à jour', tone: 'info' },
   REQUEST_SUBMITTED: { title: 'Demande déposée', tone: 'info' },
   REQUEST_CANCELLED: { title: 'Demande annulée', tone: 'danger' },
   REQUEST_COMPLETED: { title: 'Dossier terminé', tone: 'success' },

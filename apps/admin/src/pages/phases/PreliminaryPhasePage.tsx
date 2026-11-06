@@ -11,6 +11,7 @@ import { closureNextAction } from '../../components/phase-closure/closureNextAct
 import { queryKeys } from '../../lib/react-query/queryKeys';
 import DeclarationCard from './preliminary/components/DeclarationCard';
 import MeetingCard from './preliminary/components/MeetingCard';
+import TeamProposalCard from './preliminary/components/TeamProposalCard';
 import {
   buildChecklist,
   canClosePreliminaryPhase,
@@ -123,6 +124,9 @@ export default function PreliminaryPhasePage() {
           </div>
         ) : (
           <>
+            {bundle.phase.status === 'open' && requestId && (
+              <TeamProposalCard requestId={requestId} dossierClosed={dossierClosed} />
+            )}
             <MeetingCard
               phaseId={bundle.phase.id}
               meeting={bundle.meeting}

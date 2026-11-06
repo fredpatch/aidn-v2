@@ -1,4 +1,8 @@
 export const queryKeys = {
+  dossierTeams: {
+    byRequest: (requestId: string) => ['dossierTeams', requestId] as const,
+    eligibleMembers: () => ['dossierTeams', 'eligible-members'] as const,
+  },
   auth: {
     all: ['auth'] as const,
     me: () => ['auth', 'me'] as const,

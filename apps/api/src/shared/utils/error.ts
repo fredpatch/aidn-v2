@@ -57,6 +57,13 @@ function createErrorHandler(
   };
 }
 
+export const handleDossierTeamError = createErrorHandler({
+  REQUEST_NOT_FOUND: { status: 404, message: 'Dossier introuvable.' },
+  PRELIMINARY_NOT_OPEN: { status: 409, message: 'La phase préliminaire doit être ouverte pour modifier la proposition.' },
+  INVALID_TEAM_PROPOSAL: { status: 400, message: 'Sélectionnez au moins un membre distinct et renseignez un numéro d’agrément proposé de 1 à 100 caractères.' },
+  TEAM_MEMBER_INELIGIBLE: { status: 400, message: 'Chaque membre doit être un utilisateur DN actif (agent ou superviseur).' },
+}, '[dossier-teams]');
+
 /** STORAGE-0B - attachment refusals, shared by every workflow handler.
  *  Not found / not owned / invalid source are one public response, so an
  *  applicant cannot probe whether someone else's upload exists. */
